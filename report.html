@@ -1,0 +1,209 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RBM Ising Benchmark Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
+        h1 { color: #333; border-bottom: 3px solid #0066cc; padding-bottom: 10px; }
+        h2 { color: #0066cc; margin-top: 30px; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; background: white; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #0066cc; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .metric { background-color: #e8f4f8; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .success { color: green; font-weight: bold; }
+        .failed { color: red; font-weight: bold; }
+        .timestamp { color: #666; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>RBM Ising Model Benchmark Report</h1>
+    
+    <div class="timestamp">
+        Generated: 2026-03-06 15:57:04
+    </div>
+    
+    <h2>Executive Summary</h2>
+    <div class="metric">
+        <p><strong>Total Tests:</strong> 72</p>
+        <p><strong>Successful:</strong> <span class="success">36</span></p>
+        <p><strong>Failed:</strong> <span class="failed">36</span></p>
+    </div>
+    
+    <h2>Test Configuration</h2>
+    <table>
+        <tr>
+            <th>Parameter</th>
+            <th>Values</th>
+        </tr>
+        <tr>
+            <td>System Sizes</td>
+            <td>4, 6, 8, 10</td>
+        </tr>
+        <tr>
+            <td>h Values</td>
+            <td>0.5, 1.0, 2.0</td>
+        </tr>
+        <tr>
+            <td>Architectures</td>
+            <td>fully_connected, dwave_topology</td>
+        </tr>
+        <tr>
+            <td>Runs per Config</td>
+            <td>3</td>
+        </tr>
+    </table>
+    
+    <h2>Best Configurations</h2>
+    <table>
+        <tr>
+            <th>Rank</th>
+            <th>Configuration</th>
+            <th>Final Energy</th>
+            <th>Improvement</th>
+        </tr>
+        <tr>
+            <td>1</td>
+            <td><strong>N10_h1.00_fully_connected</strong></td>
+            <td>-10.465196</td>
+            <td>4.700737</td>
+        </tr>
+    </table>
+    
+    <h2>Results per Configuration</h2>
+    <table>
+        <tr>
+            <th>Configuration</th>
+            <th>N</th>
+            <th>h</th>
+            <th>Architecture</th>
+            <th>Runs</th>
+            <th>Final Energy (mean ± std)</th>
+            <th>Improvement (mean ± std)</th>
+        </tr>
+
+        <tr>
+            <td>N10_h0.50_fully_connected</td>
+            <td>10</td>
+            <td>0.50</td>
+            <td>fully_connected</td>
+            <td>3</td>
+            <td>-10.000124 ± 0.000173</td>
+            <td>10.604741 ± 2.016571</td>
+        </tr>
+
+        <tr>
+            <td>N10_h1.00_fully_connected</td>
+            <td>10</td>
+            <td>1.00</td>
+            <td>fully_connected</td>
+            <td>3</td>
+            <td>-10.465196 ± 0.352084</td>
+            <td>4.700737 ± 1.311988</td>
+        </tr>
+
+        <tr>
+            <td>N10_h2.00_fully_connected</td>
+            <td>10</td>
+            <td>2.00</td>
+            <td>fully_connected</td>
+            <td>3</td>
+            <td>-10.085710 ± 0.121212</td>
+            <td>6.091083 ± 0.991902</td>
+        </tr>
+
+        <tr>
+            <td>N4_h0.50_fully_connected</td>
+            <td>4</td>
+            <td>0.50</td>
+            <td>fully_connected</td>
+            <td>3</td>
+            <td>-1.335985 ± 1.883746</td>
+            <td>-0.244640 ± 1.411592</td>
+        </tr>
+
+        <tr>
+            <td>N4_h1.00_fully_connected</td>
+            <td>4</td>
+            <td>1.00</td>
+            <td>fully_connected</td>
+            <td>3</td>
+            <td>-1.333333 ± 1.885618</td>
+            <td>0.376239 ± 1.252221</td>
+        </tr>
+
+        <tr>
+            <td>N4_h2.00_fully_connected</td>
+            <td>4</td>
+            <td>2.00</td>
+            <td>fully_connected</td>
+            <td>3</td>
+            <td>-4.000000 ± 0.000000</td>
+            <td>-0.596690 ± 0.930545</td>
+        </tr>
+
+        <tr>
+            <td>N6_h0.50_fully_connected</td>
+            <td>6</td>
+            <td>0.50</td>
+            <td>fully_connected</td>
+            <td>3</td>
+            <td>-6.024639 ± 0.026926</td>
+            <td>5.056531 ± 1.777735</td>
+        </tr>
+
+        <tr>
+            <td>N6_h1.00_fully_connected</td>
+            <td>6</td>
+            <td>1.00</td>
+            <td>fully_connected</td>
+            <td>3</td>
+            <td>-6.000004 ± 0.000006</td>
+            <td>3.189146 ± 2.486607</td>
+        </tr>
+
+        <tr>
+            <td>N6_h2.00_fully_connected</td>
+            <td>6</td>
+            <td>2.00</td>
+            <td>fully_connected</td>
+            <td>3</td>
+            <td>-4.467992 ± 4.628703</td>
+            <td>-2.326510 ± 5.255172</td>
+        </tr>
+
+        <tr>
+            <td>N8_h0.50_fully_connected</td>
+            <td>8</td>
+            <td>0.50</td>
+            <td>fully_connected</td>
+            <td>3</td>
+            <td>-6.666713 ± 1.885651</td>
+            <td>6.075358 ± 3.029535</td>
+        </tr>
+
+        <tr>
+            <td>N8_h1.00_fully_connected</td>
+            <td>8</td>
+            <td>1.00</td>
+            <td>fully_connected</td>
+            <td>3</td>
+            <td>-6.717876 ± 1.922851</td>
+            <td>4.075544 ± 2.952748</td>
+        </tr>
+
+        <tr>
+            <td>N8_h2.00_fully_connected</td>
+            <td>8</td>
+            <td>2.00</td>
+            <td>fully_connected</td>
+            <td>3</td>
+            <td>-8.318503 ± 0.225376</td>
+            <td>2.799934 ± 1.818805</td>
+        </tr>
+
+    </table>
+    
+</body>
+</html>

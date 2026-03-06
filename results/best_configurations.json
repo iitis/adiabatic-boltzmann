@@ -1,0 +1,31 @@
+{
+  "overall_best": {
+    "config": "N10_h1.00_fully_connected",
+    "final_energy": -10.465196442576351,
+    "improvement": 4.700736611172573
+  },
+  "best_per_size": {
+    "N4": {
+      "config": "N4_h2.00_fully_connected",
+      "final_energy": -4.000000000014018
+    },
+    "N6": {
+      "config": "N6_h0.50_fully_connected",
+      "final_energy": -6.024638827273297
+    },
+    "N8": {
+      "config": "N8_h2.00_fully_connected",
+      "final_energy": -8.318503144775553
+    },
+    "N10": {
+      "config": "N10_h1.00_fully_connected",
+      "final_energy": -10.465196442576351
+    }
+  },
+  "best_per_architecture": {
+    "fully_connected": {
+      "config": "N10_h1.00_fully_connected",
+      "final_energy": -10.465196442576351
+    }
+  }
+}

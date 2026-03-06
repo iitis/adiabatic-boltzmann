@@ -1,0 +1,31 @@
+{
+  "benchmark": {
+    "description": "Benchmark configuration for variational Boltzmann machine training tests",
+    "system_sizes": [4, 6, 8, 10],
+    "h_values": [0.5, 1.0, 2.0],
+    "architectures": ["fully_connected", "dwave_topology"],
+    "samplers": ["metropolis", "simulated_annealing"],
+    "learning_rates": [0.01, 0.1],
+    "runs_per_config": 3,
+    "training": {
+      "n_iterations": 50,
+      "n_samples": 500,
+      "regularization": 1e-5
+    }
+  },
+  "instances": {
+    "system_sizes": [4, 6, 8, 10],
+    "h_values": [0.5, 1.0, 2.0],
+    "n_instances_per_config": 3
+  },
+  "paths": {
+    "data_dir": "experiments/data",
+    "results_dir": "experiments/results",
+    "logs_dir": "experiments/logs"
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "file": "experiments/logs/benchmark.log"
+  }
+}

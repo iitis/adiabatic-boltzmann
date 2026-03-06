@@ -1,0 +1,552 @@
+{
+  "timestamp": "2026-03-06T14:58:52.045339",
+  "model_type": "1d",
+  "test_matrix": {
+    "system_sizes": [
+      4,
+      6,
+      8,
+      10
+    ],
+    "h_values": [
+      0.5,
+      1.0,
+      2.0
+    ],
+    "architectures": [
+      "fully_connected",
+      "dwave_topology"
+    ],
+    "runs_per_config": 3
+  },
+  "training_config": {
+    "n_iterations": 100,
+    "n_samples": 500,
+    "learning_rate": 0.1
+  },
+  "totals": {
+    "total_tests": 72,
+    "successful": 36,
+    "failed": 36
+  },
+  "configuration_statistics": {
+    "N4_h0.50_fully_connected": {
+      "n_spins": 4,
+      "h": 0.5,
+      "architecture": "fully_connected",
+      "n_runs": 3,
+      "E_final_mean": -1.3359851544026247,
+      "E_final_std": 1.883745762308194,
+      "E_improvement_mean": -0.24464039388731817,
+      "E_improvement_std": 1.4115920387259007
+    },
+    "N4_h1.00_fully_connected": {
+      "n_spins": 4,
+      "h": 1.0,
+      "architecture": "fully_connected",
+      "n_runs": 3,
+      "E_final_mean": -1.3333333343132046,
+      "E_final_std": 1.8856180845498742,
+      "E_improvement_mean": 0.37623933945109794,
+      "E_improvement_std": 1.252220842164601
+    },
+    "N4_h2.00_fully_connected": {
+      "n_spins": 4,
+      "h": 2.0,
+      "architecture": "fully_connected",
+      "n_runs": 3,
+      "E_final_mean": -4.000000000014018,
+      "E_final_std": 1.98013821387212e-11,
+      "E_improvement_mean": -0.5966902732242317,
+      "E_improvement_std": 0.930544519898485
+    },
+    "N6_h0.50_fully_connected": {
+      "n_spins": 6,
+      "h": 0.5,
+      "architecture": "fully_connected",
+      "n_runs": 3,
+      "E_final_mean": -6.024638827273297,
+      "E_final_std": 0.026926441937961256,
+      "E_improvement_mean": 5.056530985914223,
+      "E_improvement_std": 1.777734563235493
+    },
+    "N6_h1.00_fully_connected": {
+      "n_spins": 6,
+      "h": 1.0,
+      "architecture": "fully_connected",
+      "n_runs": 3,
+      "E_final_mean": -6.0000040522463,
+      "E_final_std": 5.7290514435806945e-06,
+      "E_improvement_mean": 3.1891461114066444,
+      "E_improvement_std": 2.486607225222599
+    },
+    "N6_h2.00_fully_connected": {
+      "n_spins": 6,
+      "h": 2.0,
+      "architecture": "fully_connected",
+      "n_runs": 3,
+      "E_final_mean": -4.467991930268662,
+      "E_final_std": 4.628702630478737,
+      "E_improvement_mean": -2.32651014205727,
+      "E_improvement_std": 5.255172071945953
+    },
+    "N8_h0.50_fully_connected": {
+      "n_spins": 8,
+      "h": 0.5,
+      "architecture": "fully_connected",
+      "n_runs": 3,
+      "E_final_mean": -6.666712630637645,
+      "E_final_std": 1.885650584607712,
+      "E_improvement_mean": 6.075357747033725,
+      "E_improvement_std": 3.029534993939112
+    },
+    "N8_h1.00_fully_connected": {
+      "n_spins": 8,
+      "h": 1.0,
+      "architecture": "fully_connected",
+      "n_runs": 3,
+      "E_final_mean": -6.717875744548691,
+      "E_final_std": 1.9228514856527965,
+      "E_improvement_mean": 4.075543566282089,
+      "E_improvement_std": 2.9527483123463734
+    },
+    "N8_h2.00_fully_connected": {
+      "n_spins": 8,
+      "h": 2.0,
+      "architecture": "fully_connected",
+      "n_runs": 3,
+      "E_final_mean": -8.318503144775553,
+      "E_final_std": 0.2253763961821741,
+      "E_improvement_mean": 2.7999344717945545,
+      "E_improvement_std": 1.8188054567394158
+    },
+    "N10_h0.50_fully_connected": {
+      "n_spins": 10,
+      "h": 0.5,
+      "architecture": "fully_connected",
+      "n_runs": 3,
+      "E_final_mean": -10.000123590336692,
+      "E_final_std": 0.0001731532558245596,
+      "E_improvement_mean": 10.60474062163974,
+      "E_improvement_std": 2.0165712053763256
+    },
+    "N10_h1.00_fully_connected": {
+      "n_spins": 10,
+      "h": 1.0,
+      "architecture": "fully_connected",
+      "n_runs": 3,
+      "E_final_mean": -10.465196442576351,
+      "E_final_std": 0.35208383707154667,
+      "E_improvement_mean": 4.700736611172573,
+      "E_improvement_std": 1.3119879478658718
+    },
+    "N10_h2.00_fully_connected": {
+      "n_spins": 10,
+      "h": 2.0,
+      "architecture": "fully_connected",
+      "n_runs": 3,
+      "E_final_mean": -10.08570979611568,
+      "E_final_std": 0.12121195609497211,
+      "E_improvement_mean": 6.091082541161484,
+      "E_improvement_std": 0.9919022534332578
+    }
+  },
+  "individual_results": [
+    {
+      "system_size": 4,
+      "h": 0.5,
+      "architecture": "fully_connected",
+      "run_id": 0,
+      "status": "completed",
+      "result_file": "N4/h0.50/fully_connected/run_000.json",
+      "final_energy": -4.0,
+      "initial_energy": -2.3312581800685965,
+      "energy_improvement": 1.6687418199314035
+    },
+    {
+      "system_size": 4,
+      "h": 0.5,
+      "architecture": "fully_connected",
+      "run_id": 1,
+      "status": "completed",
+      "result_file": "N4/h0.50/fully_connected/run_001.json",
+      "final_energy": 0.0,
+      "initial_energy": -0.7082650716280091,
+      "energy_improvement": -0.7082650716280091
+    },
+    {
+      "system_size": 4,
+      "h": 0.5,
+      "architecture": "fully_connected",
+      "run_id": 2,
+      "status": "completed",
+      "result_file": "N4/h0.50/fully_connected/run_002.json",
+      "final_energy": -0.007955463207873369,
+      "initial_energy": -1.7023533931732222,
+      "energy_improvement": -1.6943979299653489
+    },
+    {
+      "system_size": 4,
+      "h": 1.0,
+      "architecture": "fully_connected",
+      "run_id": 0,
+      "status": "completed",
+      "result_file": "N4/h1.00/fully_connected/run_000.json",
+      "final_energy": 0.0,
+      "initial_energy": -1.2732660088731709,
+      "energy_improvement": -1.2732660088731709
+    },
+    {
+      "system_size": 4,
+      "h": 1.0,
+      "architecture": "fully_connected",
+      "run_id": 1,
+      "status": "completed",
+      "result_file": "N4/h1.00/fully_connected/run_001.json",
+      "final_energy": -4.000000002939614,
+      "initial_energy": -3.3570712793879647,
+      "energy_improvement": 0.6429287235516492
+    },
+    {
+      "system_size": 4,
+      "h": 1.0,
+      "architecture": "fully_connected",
+      "run_id": 2,
+      "status": "completed",
+      "result_file": "N4/h1.00/fully_connected/run_002.json",
+      "final_energy": -4.01524411807746e-19,
+      "initial_energy": 1.7590553036748156,
+      "energy_improvement": 1.7590553036748156
+    },
+    {
+      "system_size": 4,
+      "h": 2.0,
+      "architecture": "fully_connected",
+      "run_id": 0,
+      "status": "completed",
+      "result_file": "N4/h2.00/fully_connected/run_000.json",
+      "final_energy": -4.000000000042021,
+      "initial_energy": -4.938935617243632,
+      "energy_improvement": -0.9389356172016114
+    },
+    {
+      "system_size": 4,
+      "h": 2.0,
+      "architecture": "fully_connected",
+      "run_id": 1,
+      "status": "completed",
+      "result_file": "N4/h2.00/fully_connected/run_001.json",
+      "final_energy": -4.0,
+      "initial_energy": -3.325103722380808,
+      "energy_improvement": 0.674896277619192
+    },
+    {
+      "system_size": 4,
+      "h": 2.0,
+      "architecture": "fully_connected",
+      "run_id": 2,
+      "status": "completed",
+      "result_file": "N4/h2.00/fully_connected/run_002.json",
+      "final_energy": -4.000000000000031,
+      "initial_energy": -5.526031480090307,
+      "energy_improvement": -1.5260314800902757
+    },
+    {
+      "system_size": 6,
+      "h": 0.5,
+      "architecture": "fully_connected",
+      "run_id": 0,
+      "status": "completed",
+      "result_file": "N6/h0.50/fully_connected/run_000.json",
+      "final_energy": -6.0001720035162025,
+      "initial_energy": 1.3220386421864982,
+      "energy_improvement": 7.3222106457027
+    },
+    {
+      "system_size": 6,
+      "h": 0.5,
+      "architecture": "fully_connected",
+      "run_id": 1,
+      "status": "completed",
+      "result_file": "N6/h0.50/fully_connected/run_001.json",
+      "final_energy": -6.011602082551873,
+      "initial_energy": -3.031590970507976,
+      "energy_improvement": 2.9800111120438966
+    },
+    {
+      "system_size": 6,
+      "h": 0.5,
+      "architecture": "fully_connected",
+      "run_id": 2,
+      "status": "completed",
+      "result_file": "N6/h0.50/fully_connected/run_002.json",
+      "final_energy": -6.062142395751815,
+      "initial_energy": -1.1947711957557445,
+      "energy_improvement": 4.867371199996071
+    },
+    {
+      "system_size": 6,
+      "h": 1.0,
+      "architecture": "fully_connected",
+      "run_id": 0,
+      "status": "completed",
+      "result_file": "N6/h1.00/fully_connected/run_000.json",
+      "final_energy": -6.0000121543484335,
+      "initial_energy": 0.4139683249814684,
+      "energy_improvement": 6.413980479329902
+    },
+    {
+      "system_size": 6,
+      "h": 1.0,
+      "architecture": "fully_connected",
+      "run_id": 1,
+      "status": "completed",
+      "result_file": "N6/h1.00/fully_connected/run_001.json",
+      "final_energy": -6.0000000023904665,
+      "initial_energy": -3.208711190300153,
+      "energy_improvement": 2.7912888120903134
+    },
+    {
+      "system_size": 6,
+      "h": 1.0,
+      "architecture": "fully_connected",
+      "run_id": 2,
+      "status": "completed",
+      "result_file": "N6/h1.00/fully_connected/run_002.json",
+      "final_energy": -6.0,
+      "initial_energy": -5.637830957200284,
+      "energy_improvement": 0.3621690427997164
+    },
+    {
+      "system_size": 6,
+      "h": 2.0,
+      "architecture": "fully_connected",
+      "run_id": 0,
+      "status": "completed",
+      "result_file": "N6/h2.00/fully_connected/run_000.json",
+      "final_energy": -8.574422645431309,
+      "initial_energy": -5.386899102168707,
+      "energy_improvement": 3.1875235432626017
+    },
+    {
+      "system_size": 6,
+      "h": 2.0,
+      "architecture": "fully_connected",
+      "run_id": 1,
+      "status": "completed",
+      "result_file": "N6/h2.00/fully_connected/run_001.json",
+      "final_energy": 1.999999995642906,
+      "initial_energy": -7.398828212223085,
+      "energy_improvement": -9.398828207865991
+    },
+    {
+      "system_size": 6,
+      "h": 2.0,
+      "architecture": "fully_connected",
+      "run_id": 2,
+      "status": "completed",
+      "result_file": "N6/h2.00/fully_connected/run_002.json",
+      "final_energy": -6.829553141017582,
+      "initial_energy": -7.597778902586002,
+      "energy_improvement": -0.76822576156842
+    },
+    {
+      "system_size": 8,
+      "h": 0.5,
+      "architecture": "fully_connected",
+      "run_id": 0,
+      "status": "completed",
+      "result_file": "N8/h0.50/fully_connected/run_000.json",
+      "final_energy": -8.000075679892047,
+      "initial_energy": 2.0807298086328183,
+      "energy_improvement": 10.080805488524867
+    },
+    {
+      "system_size": 8,
+      "h": 0.5,
+      "architecture": "fully_connected",
+      "run_id": 1,
+      "status": "completed",
+      "result_file": "N8/h0.50/fully_connected/run_001.json",
+      "final_energy": -8.00006221202089,
+      "initial_energy": -2.610456539569235,
+      "energy_improvement": 5.389605672451655
+    },
+    {
+      "system_size": 8,
+      "h": 0.5,
+      "architecture": "fully_connected",
+      "run_id": 2,
+      "status": "completed",
+      "result_file": "N8/h0.50/fully_connected/run_002.json",
+      "final_energy": -4.0,
+      "initial_energy": -1.2443379198753464,
+      "energy_improvement": 2.7556620801246536
+    },
+    {
+      "system_size": 8,
+      "h": 1.0,
+      "architecture": "fully_connected",
+      "run_id": 0,
+      "status": "completed",
+      "result_file": "N8/h1.00/fully_connected/run_000.json",
+      "final_energy": -4.0,
+      "initial_energy": -3.64339215371061,
+      "energy_improvement": 0.35660784628939
+    },
+    {
+      "system_size": 8,
+      "h": 1.0,
+      "architecture": "fully_connected",
+      "run_id": 1,
+      "status": "completed",
+      "result_file": "N8/h1.00/fully_connected/run_001.json",
+      "final_energy": -8.153627233527198,
+      "initial_energy": -0.5738599812921155,
+      "energy_improvement": 7.579767252235082
+    },
+    {
+      "system_size": 8,
+      "h": 1.0,
+      "architecture": "fully_connected",
+      "run_id": 2,
+      "status": "completed",
+      "result_file": "N8/h1.00/fully_connected/run_002.json",
+      "final_energy": -8.000000000118876,
+      "initial_energy": -3.7097443997970787,
+      "energy_improvement": 4.290255600321797
+    },
+    {
+      "system_size": 8,
+      "h": 2.0,
+      "architecture": "fully_connected",
+      "run_id": 0,
+      "status": "completed",
+      "result_file": "N8/h2.00/fully_connected/run_000.json",
+      "final_energy": -8.488175370221594,
+      "initial_energy": -7.396583384733233,
+      "energy_improvement": 1.0915919854883605
+    },
+    {
+      "system_size": 8,
+      "h": 2.0,
+      "architecture": "fully_connected",
+      "run_id": 1,
+      "status": "completed",
+      "result_file": "N8/h2.00/fully_connected/run_001.json",
+      "final_energy": -8.000000000000005,
+      "initial_energy": -2.680585185723196,
+      "energy_improvement": 5.31941481427681
+    },
+    {
+      "system_size": 8,
+      "h": 2.0,
+      "architecture": "fully_connected",
+      "run_id": 2,
+      "status": "completed",
+      "result_file": "N8/h2.00/fully_connected/run_002.json",
+      "final_energy": -8.467334064105064,
+      "initial_energy": -6.47853744848657,
+      "energy_improvement": 1.9887966156184937
+    },
+    {
+      "system_size": 10,
+      "h": 0.5,
+      "architecture": "fully_connected",
+      "run_id": 0,
+      "status": "completed",
+      "result_file": "N10/h0.50/fully_connected/run_000.json",
+      "final_energy": -10.00036846239271,
+      "initial_energy": 1.3793300939107103,
+      "energy_improvement": 11.37969855630342
+    },
+    {
+      "system_size": 10,
+      "h": 0.5,
+      "architecture": "fully_connected",
+      "run_id": 1,
+      "status": "completed",
+      "result_file": "N10/h0.50/fully_connected/run_001.json",
+      "final_energy": -10.00000230849238,
+      "initial_energy": -2.1595913624023413,
+      "energy_improvement": 7.840410946090039
+    },
+    {
+      "system_size": 10,
+      "h": 0.5,
+      "architecture": "fully_connected",
+      "run_id": 2,
+      "status": "completed",
+      "result_file": "N10/h0.50/fully_connected/run_002.json",
+      "final_energy": -10.000000000124986,
+      "initial_energy": 2.5941123624007716,
+      "energy_improvement": 12.594112362525758
+    },
+    {
+      "system_size": 10,
+      "h": 1.0,
+      "architecture": "fully_connected",
+      "run_id": 0,
+      "status": "completed",
+      "result_file": "N10/h1.00/fully_connected/run_000.json",
+      "final_energy": -10.890489986162313,
+      "initial_energy": -8.034603215029856,
+      "energy_improvement": 2.8558867711324574
+    },
+    {
+      "system_size": 10,
+      "h": 1.0,
+      "architecture": "fully_connected",
+      "run_id": 1,
+      "status": "completed",
+      "result_file": "N10/h1.00/fully_connected/run_001.json",
+      "final_energy": -10.028298486107332,
+      "initial_energy": -4.233773703907019,
+      "energy_improvement": 5.7945247822003125
+    },
+    {
+      "system_size": 10,
+      "h": 1.0,
+      "architecture": "fully_connected",
+      "run_id": 2,
+      "status": "completed",
+      "result_file": "N10/h1.00/fully_connected/run_002.json",
+      "final_energy": -10.476800855459407,
+      "initial_energy": -5.025002575274458,
+      "energy_improvement": 5.451798280184949
+    },
+    {
+      "system_size": 10,
+      "h": 2.0,
+      "architecture": "fully_connected",
+      "run_id": 0,
+      "status": "completed",
+      "result_file": "N10/h2.00/fully_connected/run_000.json",
+      "final_energy": -10.257129388346963,
+      "initial_energy": -5.283495298440072,
+      "energy_improvement": 4.9736340899068905
+    },
+    {
+      "system_size": 10,
+      "h": 2.0,
+      "architecture": "fully_connected",
+      "run_id": 1,
+      "status": "completed",
+      "result_file": "N10/h2.00/fully_connected/run_001.json",
+      "final_energy": -10.0,
+      "initial_energy": -2.6158317148563324,
+      "energy_improvement": 7.384168285143668
+    },
+    {
+      "system_size": 10,
+      "h": 2.0,
+      "architecture": "fully_connected",
+      "run_id": 2,
+      "status": "completed",
+      "result_file": "N10/h2.00/fully_connected/run_002.json",
+      "final_energy": -10.00000000000008,
+      "initial_energy": -4.084554751566186,
+      "energy_improvement": 5.915445248433894
+    }
+  ]
+}
