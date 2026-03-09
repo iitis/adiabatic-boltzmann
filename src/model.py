@@ -1,15 +1,9 @@
 """
-HOMEWORK: Restricted Boltzmann Machine Implementation
-
-This is where you implement the wave function and its gradients.
+Restricted Boltzmann Machine Implementation
 
 Key reference: Gardas et al., Eq. 6-7 (ansatz) and Eq. 15 (gradients)
 
 Wave function: Ψ(v) = e^(-a·v/2) ∏_j [2·cosh(b_j + W_j·v)]^(1/2)
-
-TASK 1: Implement log_psi() - the log of the wave function
-TASK 2: Implement psi_ratio() - efficient ratio evaluation for flips
-TASK 3: Implement gradient_log_psi() - Eq. 15 derivatives
 """
 
 import numpy as np
@@ -45,11 +39,6 @@ class RBM(ABC):
         
         Returns: scalar log(Ψ(v))
         
-        HINTS:
-        - First term: log(e^(-a·v/2)) = -a·v/2
-        - Second term: sum over hidden units of log(2·cosh(...))
-        - Use np.logcosh() for numerical stability!
-        - What goes inside the cosh?
         """
         def logcosh(x):
             # s always has real part >= 0
@@ -66,22 +55,11 @@ class RBM(ABC):
         """
         Compute Ψ(v_flip) / Ψ(v) when flipping spin at index flip_idx.
         
-        This is critical for the local energy calculation in the Ising solver.
-        
         v: current configuration
         flip_idx: which spin to flip (0 to n_visible-1)
         
         Returns: Ψ(v with spin flip_idx flipped) / Ψ(v)
         
-        HINTS:
-        - You can compute this as exp(log_psi(v_flip) - log_psi(v))
-        - But there's a more efficient way!
-        - Notice that changing one spin only affects:
-          1. The a·v term
-          2. The hidden unit activations involving that spin
-        - Avoid computing full log_psi twice; instead compute log-ratio directly
-        - After flip: v'[flip_idx] = -v[flip_idx]
-        - What changes in the cosh terms?
         """
         v_flipped = np.copy(v)
         v_flipped[flip_idx]  *= -1
@@ -95,23 +73,6 @@ class RBM(ABC):
         
         Returns dict with keys 'a', 'b', 'W' containing gradients of same shape as weights.
         
-        CRITICAL EQUATIONS (Eq. 15):
-        For three parameter types:
-        
-        1. ∂log(Ψ)/∂a_i = ???  (HINT: First term in ansatz)
-        
-        2. ∂log(Ψ)/∂b_j = ???  (HINT: Derivative of log(cosh))
-           - Remember: d/dx[log(cosh(x))] = tanh(x)
-           - What x are we taking tanh of?
-        
-        3. ∂log(Ψ)/∂W_{ij} = ???  (HINT: Product rule)
-           - Both the a term and the cosh term depend on W
-           - Which term actually depends on W?
-        
-        Additional hints:
-        - Precompute θ_j = b_j + W_j · v (activations)
-        - All three gradients should use tanh(θ_j) somewhere
-        - Be careful with the factor of 1/2 from the square root!
         """
         theta = self.b + self.W.T @ v  # Hidden unit activations
         
@@ -151,15 +112,7 @@ class DWaveTopologyRBM(RBM):
     """
     RBM constrained to D-Wave Chimera/Pegasus-like topology.
     
-    TASK 4: Design a sparse connectivity pattern.
-    
-    HINTS:
-    - D-Wave qubits have ~5 neighbors on average
-    - Each hidden unit should connect to ~2 visible units
-    - Use a simple pattern: hidden unit j connects to visible units j, (j+1)%n_visible
-    - When computing gradients, apply the mask: only update connected W[i,j]
-    """
-    
+    """    
     def get_connectivity_mask(self):
         """Create sparse connectivity mask for D-Wave-like topology."""
         mask = np.zeros((self.n_visible, self.n_hidden))
@@ -185,7 +138,6 @@ class DWaveTopologyRBM(RBM):
         pass
 
 
-# Test stubs (fill in your own tests!)
 
 if __name__ == "__main__":
     # Test 1: Check gradient shapes

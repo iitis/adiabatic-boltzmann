@@ -1,11 +1,3 @@
-"""
-HOMEWORK: Main script to run experiments
-
-This ties together all the modules for end-to-end training.
-
-Implement the argument parsing and main orchestration.
-"""
-
 import argparse
 import json
 import numpy as np
@@ -20,14 +12,6 @@ from ising import TransverseFieldIsing1D, TransverseFieldIsing2D
 
 def parse_arguments():
     """
-    TASK: Parse command-line arguments for experiment configuration.
-    
-    Should support:
-    - Model: 1d or 2d Ising
-    - RBM type: full (dense) or dwave (sparse)
-    - Sampler: classical or dwave
-    - Hyperparameters: h, iterations, learning_rate, etc.
-    
     Example usage:
     python homework/main_skeleton.py --model 1d --size 8 --h 0.5 --rbm full --sampler classical
     
@@ -80,20 +64,6 @@ def parse_arguments():
 
 
 def main():
-    """
-    TASK: Implement main orchestration logic.
-    
-    Pseudocode:
-    1. Parse arguments
-    2. Set random seed
-    3. Create Ising model (1D or 2D)
-    4. Create RBM (full or dwave)
-    5. Create sampler (classical or dwave)
-    6. Create trainer
-    7. Run training
-    8. Save results to JSON
-    9. Plot if requested
-    """
     args = parse_arguments()
     
     # Set seed for reproducibility
@@ -122,7 +92,7 @@ def main():
     
     # 3. Instantiate sampler
     if args.sampler == 'classical':
-        sampler = ClassicalSampler()
+        sampler = ClassicalSampler(method=args.sampling_method)
     else:
         sampler = DWaveSampler()
     
