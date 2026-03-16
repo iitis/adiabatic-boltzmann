@@ -1,0 +1,43 @@
+{
+  "config": {
+    "model": "1d",
+    "size": 32,
+    "h": 0.5,
+    "rbm": "full",
+    "n_hidden": null,
+    "sampler": "velox",
+    "sampling_method": "simulated_annealing",
+    "n_samples": 1000,
+    "iterations": 5,
+    "learning_rate": 0.1,
+    "regularization": 1e-05,
+    "output_dir": "results/",
+    "seed": 42,
+    "visualize": true
+  },
+  "history": {
+    "energy": [
+      -9.274181235029195,
+      -32.0,
+      -32.0,
+      -32.0,
+      -32.0
+    ],
+    "error": [
+      3.9813589759972547,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "learning_rate": [
+      0.1,
+      0.1,
+      0.1,
+      0.1,
+      0.1
+    ]
+  },
+  "final_energy": -32.0,
+  "exact_energy": -34.033421119147896
+}

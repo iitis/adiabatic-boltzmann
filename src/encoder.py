@@ -46,7 +46,7 @@ class Trainer:
             gradients_list = []  # List of dicts
 
             for v in samples:
-                # TODO:
+                v = v.copy()
                 # 1. Compute local energy: E_loc = ising.local_energy(v, self.rbm.psi_ratio)
                 E_loc = self.ising.local_energy(v, self.rbm.psi_ratio)
                 local_energies.append(E_loc)
@@ -57,12 +57,9 @@ class Trainer:
 
             local_energies = np.array(local_energies)
 
-            # TODO: Compute stochastic reconfiguration matrices S and F
             S, F = self._compute_sr_matrices(gradients_list, local_energies)
 
-            # TODO: Solve S·x = F
             x = np.linalg.solve(S, F)
-            # TODO: Update weights
             w = self.rbm.get_weights()
             w_new = w - self.learning_rate * x
             self.rbm.set_weights(w_new)
@@ -73,7 +70,6 @@ class Trainer:
 
             self.history["energy"].append(E_mean)
             self.history["error"].append(E_std)
-            self.history["learning_rate"].append(self.learning_rate)
 
             if iteration % 10 == 0:
                 print(f"Iter {iteration:3d}: E = {E_mean:.6f} ± {E_std:.6f}")
@@ -99,15 +95,15 @@ class Trainer:
             D.append(row)
 
         D = np.array(D)  # Shape: (M, n_params)
+
         M = D.shape[0]
-
-        # TODO: Compute S and F using formulas above
-
-        mean_D = np.mean(D)
+        mean_D = np.mean(D, axis=0)
         mean_E = np.mean(local_energies)
+        D_centered = D - mean_D
 
-        S = (1 / M) * D.T @ D - np.outer(mean_D, mean_D)
-        F = (1 / M) * (local_energies.T @ D) - mean_E * mean_D
+        S = (1 / M) * D_centered.T @ D_centered
+        F = (1 / M) * D_centered.T @ (local_energies - mean_E)
+
         S += self.regularization * np.eye(S.shape[0])
 
         return S, F

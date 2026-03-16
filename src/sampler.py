@@ -128,7 +128,6 @@ class ClassicalSampler(Sampler):
         T_initial = config.get("T_initial", 10)
         T_final = config.get("T_final", 0.05)
         n_steps = config.get("n_steps", int(1e5))
-        K = 10
         print("simulated annealing")
         n_visible = rbm.n_visible
         v = (2 * np.random.randint(0, 2, n_visible) - 1).astype(float)
