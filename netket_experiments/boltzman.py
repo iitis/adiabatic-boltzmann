@@ -8,7 +8,7 @@ calculate_exact_ground = True
 
 g = nk.graph.Hypercube(length=L, n_dim=1, pbc=True)
 hi = nk.hilbert.Spin(s=0.5, N=g.n_nodes)
-ha = nk.operator.IsingJax(hi, g, h=0.5, J=1)
+ha = nk.operator.IsingJax(hi, g, h=0.1, J=1)
 
 if calculate_exact_ground:
     evals = nk.exact.lanczos_ed(ha, compute_eigenvectors=False)

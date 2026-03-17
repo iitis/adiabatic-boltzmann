@@ -1,4 +1,3 @@
-import numpy as np
 import pytest
 import netket as nk
 from src.ising import TransverseFieldIsing1D

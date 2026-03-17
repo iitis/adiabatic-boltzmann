@@ -51,7 +51,7 @@ def parse_arguments():
     parser.add_argument(
         "--sampler",
         choices=["custom", "dimod", "velox"],
-        default="velox",
+        default="dimod",
         help="Sampling backend",
     )
     parser.add_argument(

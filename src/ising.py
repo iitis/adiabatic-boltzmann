@@ -119,6 +119,7 @@ class TransverseFieldIsing2D(IsingModel):
         """size: linear dimension (total N = size^2 spins)."""
         super().__init__(size * size, h)
         self.linear_size = size  # For 2D indexing
+        print("2dddd")
 
     def local_energy(self, v: np.ndarray, psi_ratio_fn) -> float:
         E_diag = (

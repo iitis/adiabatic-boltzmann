@@ -16,22 +16,30 @@ class RBM(ABC):
     def __init__(self, n_visible: int, n_hidden: int):
         self.n_visible = n_visible
         self.n_hidden = n_hidden
-        scale = 0.001
+        scale = 0.01
 
         self.a = np.random.normal(0, scale, n_visible)
         self.b = np.random.normal(0, scale, n_hidden)
         self.W = np.random.normal(0, scale, (n_visible, n_hidden))
+
+    def logcosh(self, x):
+        return np.logaddexp(x, -x)
 
     @abstractmethod
     def get_connectivity_mask(self):
         """Return (n_visible, n_hidden) binary mask indicating W[i,j] != 0."""
         pass
 
-    def logcosh(self, x):
-        # s always has real part >= 0
-        s = np.sign(x) * x
-        p = np.exp(-2 * s)
-        return s + np.log1p(p) - np.log(2)
+    def psi(self, v: np.ndarray) -> float:
+        """Compute Ψ(v) - wave function value for configuration v.
+        
+        From paper: Ψ(v) = e^(-a·v/2) ∏_j [2·cosh(b_j + W_j·v)]^(1/2)
+        """
+        first_term = np.exp(-(self.a @ v) / 2)
+        second_term = np.prod(
+            [2 * np.cosh(self.b[i] + self.W.T[i] @ v) for i in range(self.n_hidden)]
+        )
+        return float(first_term * np.sqrt(second_term))
 
     def log_psi(self, v: np.ndarray) -> float:
         """
@@ -41,12 +49,16 @@ class RBM(ABC):
 
         Returns: scalar log(Ψ(v))
 
+        From Gardas et al., Eq. 6-7:
+        Ψ(v) = e^(-a·v/2) ∏_j [2·cosh(b_j + W_j·v)]^(1/2)
+        log(Ψ) = -a·v/2 + (1/2) ∑_j log[2·cosh(b_j + W_j·v)]
         """
 
-        first_term = (self.a @ v) / 2
+        first_term = -(self.a @ v) / 2
         theta = self.b + self.W.T @ v
-        second_term = np.sum(np.log(2) + self.logcosh(theta))
-        return first_term + 0.5 * second_term
+        # log(2*cosh(x)) = log(2) + log(cosh(x))
+        second_term = 0.5 * np.sum(np.log(2) + self.logcosh(theta))
+        return first_term + second_term
 
     def psi_ratio_old(self, v: np.ndarray, flip_idx: int) -> float:
         """
@@ -59,16 +71,16 @@ class RBM(ABC):
         """
         v_flipped = np.copy(v)
         v_flipped[flip_idx] *= -1
-        return_value = np.exp(self.log_psi(v_flipped) - self.log_psi(v))
-
-        return return_value
+        return self.psi(v_flipped) / self.psi(v)
 
     def psi_ratio(self, v: np.ndarray, flip_idx: int) -> float:
         vi = v[flip_idx]
-        log_ratio_a = self.a[flip_idx] * (-2 * vi) / 2
+        # log change from visible bias: -a[i]*(-v_i)/2 - (-a[i]*v_i/2) = a[i]*v_i
+        log_ratio_a = self.a[flip_idx] * vi
         theta = self.b + self.W.T @ v
         theta_flipped = theta - 2 * vi * self.W[flip_idx, :]
 
+        # log change from hidden part: (1/2) * [log(2*cosh(theta')) - log(2*cosh(theta))]
         log_ratio_cosh = 0.5 * np.sum(self.logcosh(theta_flipped) - self.logcosh(theta))
 
         return np.exp(log_ratio_a + log_ratio_cosh)
@@ -79,12 +91,18 @@ class RBM(ABC):
 
         This implements Equation 15 from the paper.
 
+        From Gardas et al., Eq. 6-7:
+        Ψ(v) = e^(-a·v/2) ∏_j [2·cosh(b_j + W_j·v)]^(1/2)
+        
+        ∂log(Ψ)/∂a_i = -v_i/2
+        ∂log(Ψ)/∂b_j = (1/2) tanh(θ_j)  
+        ∂log(Ψ)/∂W_ij = (1/2) v_i tanh(θ_j)
+        
         Returns dict with keys 'a', 'b', 'W' containing gradients of same shape as weights.
-
         """
         theta = self.b + self.W.T @ v  # Hidden unit activations
 
-        grad_a = 0.5 * np.copy(v)
+        grad_a = -0.5 * np.copy(v)
         grad_b = 0.5 * np.tanh(theta)
         grad_W = 0.5 * np.outer(v, np.tanh(theta))
 
@@ -145,58 +163,3 @@ class DWaveTopologyRBM(RBM):
         gradients = super().gradient_log_psi(v)
         gradients["W"] *= self.get_connectivity_mask()
         pass
-
-
-if __name__ == "__main__":
-    # Test 1: Check gradient shapes
-    rbm = FullyConnectedRBM(n_visible=4, n_hidden=3)
-    v = np.array([1, -1, 1, -1])
-    grad = rbm.gradient_log_psi(v)
-
-    print("Gradient shapes:")
-    print(f"  a: {grad['a'].shape}, should be (4,)")
-    print(f"  b: {grad['b'].shape}, should be (3,)")
-    print(f"  W: {grad['W'].shape}, should be (4, 3)")
-
-    # Test 2: Check psi_ratio (critical for sampling!)
-    # The ratio should always be positive (it's |Ψ_new/Ψ_old|)
-    for flip_idx in range(v.shape[0]):
-        ratio = rbm.psi_ratio(v, flip_idx)
-        print(f"Flip {flip_idx}: ratio = {ratio:.4f}")
-        assert ratio > 0, f"Ratio must be positive! Got {ratio}"
-
-    # Test 3: Verify log_psi is real
-    log_psi_val = rbm.log_psi(v)
-    assert np.isreal(log_psi_val), f"log_psi should be real, got {log_psi_val}"
-    print(f"\nlog_psi({v}) = {log_psi_val}")
-
-    rbm = FullyConnectedRBM(4, 3)
-    v = np.array([1.0, -1.0, 1.0, -1.0])
-    grad_analytical = rbm.gradient_log_psi(v)
-
-    # Numerical gradient check
-    eps = 1e-5
-    grad_numerical = {"a": np.zeros(4), "b": np.zeros(3), "W": np.zeros((4, 3))}
-
-    # Check 'a' gradients
-    for i in range(rbm.n_visible):
-        rbm.a[i] += eps
-        f_plus = rbm.log_psi(v)
-        rbm.a[i] -= 2 * eps
-        f_minus = rbm.log_psi(v)
-        rbm.a[i] += eps
-        grad_numerical["a"][i] = (f_plus - f_minus) / (2 * eps)
-
-    # Check 'b' gradients (similar)
-    # Check 'W' gradients (similar)
-
-    # Compare
-    print(
-        "a gradient error:", np.max(np.abs(grad_analytical["a"] - grad_numerical["a"]))
-    )
-    print(
-        "b gradient error:", np.max(np.abs(grad_analytical["b"] - grad_numerical["b"]))
-    )
-    print(
-        "W gradient error:", np.max(np.abs(grad_analytical["W"] - grad_numerical["W"]))
-    )

@@ -1,0 +1,25 @@
+Configuration:
+  Model: 1d with h=0.5
+  System size: 3
+  RBM: full
+  Sampler: dimod (simulated_annealing)
+  Training: 30 iterations, lr=0.1
+
+Starting training...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

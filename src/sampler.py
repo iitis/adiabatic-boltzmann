@@ -25,16 +25,16 @@ class Sampler(ABC):
 
         # visible biases
         for i in range(Nv):
-            linear[i] = rbm.a[i]
+            linear[i] = -rbm.a[i]
 
         # hidden biases
         for j in range(Nh):
-            linear[Nv + j] = rbm.b[j]
+            linear[Nv + j] = -rbm.b[j]
 
         # RBM couplings
         for i in range(Nv):
             for j in range(Nh):
-                quadratic[(i, Nv + j)] = rbm.W[i, j]
+                quadratic[(i, Nv + j)] = -rbm.W[i, j]
 
         return quadratic, linear
 
