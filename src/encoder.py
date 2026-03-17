@@ -24,12 +24,14 @@ class Trainer:
         self.n_iterations = config.get("n_iterations", 50)
         self.n_samples = config.get("n_samples", 1000)
         self.regularization = config.get("regularization", 1e-5)
-
-        # History tracking
         self.history = {
-            "energy": [],
-            "error": [],
-            "learning_rate": [],
+            "energy": [],  # mean local energy per iteration
+            "error": [],  # std of local energies (variance proxy)
+            "energy_error": [],  # std / sqrt(n_samples) — true statistical error of mean
+            "learning_rate": [],  # actual lr used (useful if you add adaptive lr later)
+            "grad_norm": [],  # ||x|| = ||S^-1 F|| — detects exploding/vanishing updates
+            "s_condition_number": [],  # condition number of S — detects SR instability
+            "weight_norm": [],  # ||w|| — detects weight explosion
         }
 
     def train(self) -> dict:
@@ -68,9 +70,15 @@ class Trainer:
             E_mean = np.mean(local_energies)
             E_std = np.std(local_energies)
 
-            self.history["energy"].append(E_mean)
-            self.history["error"].append(E_std)
-
+            self.history["energy"].append(float(E_mean))
+            self.history["error"].append(float(E_std))
+            self.history["energy_error"].append(
+                float(E_std / np.sqrt(len(local_energies)))
+            )
+            self.history["learning_rate"].append(self.learning_rate)
+            self.history["grad_norm"].append(float(np.linalg.norm(x)))
+            self.history["s_condition_number"].append(float(np.linalg.cond(S)))
+            self.history["weight_norm"].append(float(np.linalg.norm(w_new)))
             if iteration % 10 == 0:
                 print(f"Iter {iteration:3d}: E = {E_mean:.6f} ± {E_std:.6f}")
 
@@ -96,7 +104,7 @@ class Trainer:
         D = np.array(D)  # Shape: (M, n_params)
         M = D.shape[0]
 
-        # TODO: Compute S and F using formulas above
+        # TODO: Compute S and F
         M = D.shape[0]
         mean_D = np.mean(D, axis=0)  # (n_params,)
         mean_E = np.mean(local_energies)  # scalar

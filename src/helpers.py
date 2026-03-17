@@ -12,10 +12,7 @@ def save_results(args, history, ising):
 
     results = {
         "config": vars(args),
-        "history": {
-            k: v if not isinstance(v, np.ndarray) else v.tolist()
-            for k, v in history.items()
-        },
+        "history": {k: [float(v) for v in vals] for k, vals in history.items()},
         "final_energy": history["energy"][-1],
         "exact_energy": ising.exact_ground_energy(),
         "error": abs(history["energy"][-1] - ising.exact_ground_energy()),
