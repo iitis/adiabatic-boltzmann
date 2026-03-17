@@ -12,11 +12,11 @@ from argparse import Namespace
 sizes = [8, 16, 32]
 hs = [0.1, 0.5, 1.0, 2.0]
 rbms = ["full"]
-sampler_methods = [ ("dimod", "simulated_annealing")]
+sampler_methods = [("dimod", "simulated_annealing")]
 iterations = [600]
-learning_rates = [0.0001]
+learning_rates = [1e-2, 1e-3, 1e-4]
 regularizations = [1e-6, 1e-5, 1e-4]
-n_samples = [100, 1000, 5000]
+n_samples = [1000, 1e4]
 seeds = [1, 42, 123]
 
 output_dir = "results/"
