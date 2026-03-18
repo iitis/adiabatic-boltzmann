@@ -16,7 +16,7 @@ sampler_methods = [("dimod", "simulated_annealing")]
 iterations = [600]
 learning_rates = [1e-2, 1e-3, 1e-4]
 regularizations = [1e-6, 1e-5, 1e-4]
-n_samples = [1000, 1e4]
+n_samples = [1000, 10000]
 seeds = [1, 42, 123]
 
 output_dir = "results/"
