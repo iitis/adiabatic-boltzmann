@@ -209,10 +209,16 @@ class DimodSampler(Sampler):
             - config (dict): Optional configuration for the annealing schedule
         """
         sampler = neal.SimulatedAnnealingSampler()
-        sampleset = sampler.sample(bqm, num_reads=n_samples)
-
+        sampleset = sampler.sample(
+            bqm,
+            num_reads=n_samples,
+            beta_range=(0.01, 5.0),  # wider temperature range
+            num_sweeps=1000,  # more sweeps per read
+            beta_schedule_type="geometric",
+        )
         samples = sampleset.record.sample
-
+        unique_samples = len(set(map(tuple, samples)))
+        print(f"  unique samples: {unique_samples}/{len(samples)}")
         # return visible spins only
         return samples[:, : self.n_visible]
 
