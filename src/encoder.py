@@ -32,7 +32,8 @@ class Trainer:
             "grad_norm": [],  # ||x|| = ||S^-1 F|| — detects exploding/vanishing updates
             "s_condition_number": [],  # condition number of S — detects SR instability
             "weight_norm": [],  # ||w|| — detects weight explosion
-        }
+            "raw_grad_norm":[],
+            }
 
     def train(self) -> dict:
         """
@@ -52,7 +53,7 @@ class Trainer:
                 # 1. Compute local energy: E_loc = ising.local_energy(v, self.rbm.psi_ratio)
                 E_loc = self.ising.local_energy(v, self.rbm.psi_ratio)
                 local_energies.append(E_loc)
-
+                assert E_loc > -4 * self.rbm.n_visible, f"Unphysical energy: {E_loc} for N={self.size}"
                 # 2. Compute gradient: grad = rbm.gradient_log_psi(v)
                 grad = self.rbm.gradient_log_psi(v)
                 gradients_list.append(grad)
@@ -60,15 +61,18 @@ class Trainer:
             local_energies = np.array(local_energies)
 
             S, F = self._compute_sr_matrices(gradients_list, local_energies,iteration)
-
-            x = np.linalg.solve(S, F)
-            x_norm = np.linalg.norm(x)
-            if x_norm > 0.1:            # max step size
-                x = x * 0.1 / x_norm
             w = self.rbm.get_weights()
-            w_new = w - self.learning_rate * x
-            self.rbm.set_weights(w_new)
+            x = np.linalg.solve(S, F)
 
+            # Scale lr by λ_max so effective step is geometry-aware
+            eigvals = np.linalg.eigvalsh(S)
+            lambda_max = eigvals[-1]
+            effective_lr = self.learning_rate / lambda_max  # ~ 0.1 / 0.35 ~ 0.28
+
+            w_new = w - effective_lr * x
+                        
+            self.rbm.set_weights(w_new)
+            print(f"  effective_lr={effective_lr:.4f}  raw‖x‖={np.linalg.norm(x):.2f}  step={effective_lr*np.linalg.norm(x):.4f}")
             # Track metrics
             E_mean = np.mean(local_energies)
             E_std = np.std(local_energies)
@@ -122,6 +126,7 @@ class Trainer:
         eigvals = np.linalg.eigvalsh(S - self.regularization * np.eye(S.shape[0]))
         print(f"  λ_min={eigvals[0]:.2e}  λ_max={eigvals[-1]:.2e}  "
               f"n_zero={np.sum(eigvals < 1e-10)}/{len(eigvals)}")
+        
         return S, F
 
 

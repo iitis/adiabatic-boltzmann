@@ -212,7 +212,7 @@ class DimodSampler(Sampler):
         sampleset = sampler.sample(
             bqm,
             num_reads=n_samples,
-            beta_range=(0.01, 5.0),  # wider temperature range
+            beta_range=(0.01, 10.0),   # wider temperature range
             num_sweeps=1000,  # more sweeps per read
             beta_schedule_type="geometric",
         )
