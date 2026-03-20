@@ -28,6 +28,20 @@ class IsingModel(ABC):
         pass
 
     @abstractmethod
+    def local_energy_batch(self, V: np.ndarray, rbm) -> np.ndarray:
+        """
+        Compute local energies for a batch of configurations.
+
+        V   : (n_samples, n_visible)  spin configurations in {-1, +1}
+        rbm : RBM instance (needs .a, .b, .W, .logcosh)
+
+        Returns: (n_samples,) array of local energies.
+
+        Vectorised over samples — avoids Python loop over configurations.
+        """
+        pass
+
+    @abstractmethod
     def exact_ground_energy(self) -> float:
         """
         Return exact ground state energy (for validation).
@@ -85,6 +99,47 @@ class TransverseFieldIsing1D(IsingModel):
 
         vals, _ = eigsh(H_sparse, k=1, which="SA")
         return vals[0]
+
+    def local_energy_batch(self, V: np.ndarray, rbm) -> np.ndarray:
+        """
+        Batched local energy over all samples simultaneously.
+
+        Diagonal term:  E_diag(v) = -Σ_{bonds} v_i * v_j
+        Off-diagonal:   E_off(v)  = -h * Σ_i Ψ(v_flip_i)/Ψ(v)
+
+        The psi_ratio for flipping spin i across all samples is:
+
+            log_ratio_i(s) = a_i * V[s,i]
+                        + 0.5 * Σ_j [logcosh(θ'_ij) - logcosh(θ_ij)]
+
+        where θ'_ij = θ_ij - 2*V[s,i]*W[i,j]
+        """
+        ns, N = V.shape
+
+        # θ[s, j] = b_j + Σ_i W_ij * v_si  —  shape (ns, n_hidden)
+        theta = V @ rbm.W + rbm.b[None, :]  # (ns, n_hidden)
+        base = rbm.logcosh(theta)  # (ns, n_hidden)
+
+        # Off-diagonal: sum psi_ratio over all spin flips
+        transverse = np.zeros(ns, dtype=np.float64)
+        for i in range(N):
+            # θ after flipping spin i:  θ' = θ - 2*v_i * W[i, :]
+            # shape: (ns, n_hidden)
+            theta_flipped = theta - 2.0 * V[:, i : i + 1] * rbm.W[i, :]
+
+            log_ratio = rbm.a[i] * V[:, i] + 0.5 * np.sum(
+                rbm.logcosh(theta_flipped) - base, axis=1
+            )
+            transverse += np.exp(log_ratio)
+
+        E_off_diag = -self.h * transverse
+
+        # Diagonal: vectorised bond sum using precomputed edge arrays
+        # Build right-neighbour array once (periodic BC)
+        right = (np.arange(N) + 1) % N  # shape (N,)
+        E_diag = -np.sum(V * V[:, right], axis=1)  # (ns,)  one bond per site
+
+        return E_diag + E_off_diag
 
     def exact_ground_energy(self) -> float:
         """

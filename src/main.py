@@ -36,7 +36,7 @@ def parse_arguments():
     # RBM architecture
     parser.add_argument(
         "--rbm",
-        choices=["full", "dwave"],
+        choices=["full", "pegasus", "zephyr"],
         default="full",
         help="RBM connectivity pattern",
     )
@@ -100,7 +100,6 @@ def main():
     print(f"  Sampler: {args.sampler} ({args.sampling_method})")
     print(f"  Training: {args.iterations} iterations, lr={args.learning_rate}")
 
-    # TODO:
     # 1. Instantiate Ising model
     if args.model == "1d":
         ising = TransverseFieldIsing1D(args.size, args.h)
@@ -113,7 +112,7 @@ def main():
     if args.rbm == "full":
         rbm = FullyConnectedRBM(args.size, n_hidden)
     else:
-        rbm = DWaveTopologyRBM(args.size, n_hidden)
+        rbm = DWaveTopologyRBM(args.size, n_hidden, solver=args.rbm)
 
     # 3. Instantiate sampler
     if args.sampler == "custom":
@@ -137,6 +136,8 @@ def main():
     print(f"\nStarting training...")
     history = trainer.train()
     save_results(args, history, ising)
+    if args.rbm != "full":
+        print(f"sparsity: {rbm.connectivity_summary()['sparsity']}")
 
 
 if __name__ == "__main__":

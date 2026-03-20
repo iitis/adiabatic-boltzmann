@@ -15,6 +15,7 @@ from pathlib import Path
 # Data loading
 # ---------------------------------------------------------------------------
 
+
 def load_results(root: Path) -> list[dict]:
     records = []
     for file in root.rglob("*.json"):
@@ -25,33 +26,40 @@ def load_results(root: Path) -> list[dict]:
             print(f"  [warn] skipping: {file}")
             continue
 
-        config  = data["config"]
+        config = data["config"]
         history = data["history"]
 
-        records.append({
-            "file":            str(file),
-            "size":            int(config["size"]),
-            "h":               float(config["h"]),
-            "rbm":             config["rbm"],
-            "n_hidden":        int(config["n_hidden"] or config["size"]),
-            "sampler":         config["sampler"],
-            "sampling_method": config["sampling_method"],
-            "lr":              float(config["learning_rate"]),
-            "reg":             float(config["regularization"]),
-            "n_samples":       int(config["n_samples"]),
-            "seed":            int(config["seed"]),
-            "final_energy":    float(data["final_energy"]),
-            "exact_energy":    float(data["exact_energy"]),
-            "abs_error":       float(abs(data["final_energy"] - data["exact_energy"])),
-            "rel_error":       float(abs(data["final_energy"] - data["exact_energy"])
-                                    / abs(data["exact_energy"]) * 100),
-            "energy_curve":       [float(x) for x in history.get("energy", [])],
-            "error_curve":        [float(x) for x in history.get("error", [])],
-            "energy_error_curve": [float(x) for x in history.get("energy_error", [])],
-            "grad_norm_curve":    [float(x) for x in history.get("grad_norm", [])],
-            "cond_curve":         [float(x) for x in history.get("s_condition_number", [])],
-            "weight_norm_curve":  [float(x) for x in history.get("weight_norm", [])],
-        })
+        records.append(
+            {
+                "file": str(file),
+                "size": int(config["size"]),
+                "h": float(config["h"]),
+                "rbm": config["rbm"],
+                "n_hidden": int(config["n_hidden"] or config["size"]),
+                "sampler": config["sampler"],
+                "sampling_method": config["sampling_method"],
+                "lr": float(config["learning_rate"]),
+                "reg": float(config["regularization"]),
+                "n_samples": int(config["n_samples"]),
+                "seed": int(config["seed"]),
+                "final_energy": float(data["final_energy"]),
+                "exact_energy": float(data["exact_energy"]),
+                "abs_error": float(abs(data["final_energy"] - data["exact_energy"])),
+                "rel_error": float(
+                    abs(data["final_energy"] - data["exact_energy"])
+                    / abs(data["exact_energy"])
+                    * 100
+                ),
+                "energy_curve": [float(x) for x in history.get("energy", [])],
+                "error_curve": [float(x) for x in history.get("error", [])],
+                "energy_error_curve": [
+                    float(x) for x in history.get("energy_error", [])
+                ],
+                "grad_norm_curve": [float(x) for x in history.get("grad_norm", [])],
+                "cond_curve": [float(x) for x in history.get("s_condition_number", [])],
+                "weight_norm_curve": [float(x) for x in history.get("weight_norm", [])],
+            }
+        )
 
     return sorted(records, key=lambda r: (r["size"], r["h"], r["rel_error"]))
 
@@ -174,6 +182,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       <select id="f-nsamples" onchange="applyFilters()"><option value="">All</option></select></div>
     <div class="fg"><label>Reg</label>
       <select id="f-reg" onchange="applyFilters()"><option value="">All</option></select></div>
+    <div class="fg"><label>Learn. Rate</label>
+  <select id="f-lr" onchange="applyFilters()"><option value="">All</option></select></div>
     <div class="fg"><label>Seed</label>
       <select id="f-seed" onchange="applyFilters()"><option value="">All</option></select></div>
     <span class="filter-badge" id="filter-badge"></span>
@@ -259,6 +269,7 @@ function applyFilters(){
     n_hidden:$('f-nhidden').value,
     n_samples:$('f-nsamples').value,
     reg:$('f-reg').value,
+    lr:$('f-lr').value,  
     seed:$('f-seed').value,
   };
   ACTIVE=ALL_RUNS.filter(r=>
@@ -268,6 +279,7 @@ function applyFilters(){
     (!fs.n_hidden||String(r.n_hidden)===fs.n_hidden)&&
     (!fs.n_samples||String(r.n_samples)===fs.n_samples)&&
     (!fs.reg||String(r.reg)===fs.reg)&&
+    (!fs.lr||String(r.lr)=== fs.lr)&& // ← add
     (!fs.seed||String(r.seed)===fs.seed)
   );
   const nActive=Object.values(fs).filter(Boolean).length;
@@ -286,7 +298,7 @@ function applyFilters(){
 }
 
 function resetFilters(){
-  ['f-sampler','f-method','f-rbm','f-nhidden','f-nsamples','f-reg','f-seed'].forEach(id=>$(id).value='');
+  ['f-sampler','f-method','f-rbm','f-nhidden','f-nsamples','f-reg','f-lr','f-seed'].forEach(id=>$(id).value='');
   applyFilters();
 }
 
@@ -301,6 +313,7 @@ popSel('f-rbm',     ALL_RUNS.map(r=>r.rbm));
 popSel('f-nhidden', ALL_RUNS.map(r=>String(r.n_hidden)));
 popSel('f-nsamples',ALL_RUNS.map(r=>String(r.n_samples)));
 popSel('f-reg',     ALL_RUNS.map(r=>String(r.reg)));
+popSel('f-lr', ALL_RUNS.map(r => String(r.lr)));
 popSel('f-seed',    ALL_RUNS.map(r=>String(r.seed)));
 
 // run count
@@ -607,20 +620,20 @@ def generate_report(results_dir: Path, output_path: Path):
         print("No results found.")
         return
     print(f"Loaded {len(runs)} runs.")
-    runs_json = json.dumps(runs, indent=None, separators=(',', ':'))
-    html = HTML_TEMPLATE.replace('__RUNS_JSON__', runs_json)
-    output_path.write_text(html, encoding='utf-8')
+    runs_json = json.dumps(runs, indent=None, separators=(",", ":"))
+    html = HTML_TEMPLATE.replace("__RUNS_JSON__", runs_json)
+    output_path.write_text(html, encoding="utf-8")
     print(f"Report written → {output_path}  ({output_path.stat().st_size // 1024} KB)")
     print(f"Open with:  open {output_path}")
 
 
 def main():
     p = argparse.ArgumentParser(description="Generate HTML benchmark report")
-    p.add_argument('--results', default='results/', help='Results directory')
-    p.add_argument('--output',  default='report.html', help='Output HTML file')
+    p.add_argument("--results", default="results/", help="Results directory")
+    p.add_argument("--output", default="report.html", help="Output HTML file")
     args = p.parse_args()
     generate_report(Path(args.results), Path(args.output))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

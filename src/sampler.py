@@ -8,12 +8,13 @@ from veloxq_sdk import VeloxQSolver
 from veloxq_sdk.config import load_config, VeloxQAPIConfig
 from pathlib import Path
 import json
+from helpers import get_solver_name
 
 
 class Sampler(ABC):
     """Abstract sampling interface."""
 
-    def rbm_to_ising(self, rbm):
+    def rbm_to_ising(self, rbm,beta_x: float = 1.0):
         """
         Convert RBM parameters to Ising model parameters (J, h).
         Args:
@@ -27,16 +28,17 @@ class Sampler(ABC):
 
         # visible biases
         for i in range(Nv):
-            linear[i] = -rbm.a[i]
+            linear[i] = -rbm.a[i] / beta_x
 
         # hidden biases
         for j in range(Nh):
-            linear[Nv + j] = -rbm.b[j]
+            linear[Nv + j] = -rbm.b[j] / beta_x
 
         # RBM couplings
         for i in range(Nv):
             for j in range(Nh):
-                quadratic[(i, Nv + j)] = -rbm.W[i, j]
+                if abs(rbm.W[i,j]) > 1e-6:
+                    quadratic[(i, Nv + j)] = -rbm.W[i, j] / beta_x
 
         return quadratic, linear
 
@@ -291,12 +293,9 @@ class DimodSampler(Sampler):
             return self.simulated_annealing(bqm, n_samples, config)
         elif self.method == "tabu":
             return self.tabu_search(bqm, n_samples, config)
-        elif self.method == "pegasus":
-            config["solver"] = "Advantage_system6.4"
-            return self.dwave(bqm, n_samples, config)
-        elif self.method == "zephyr":
-            config["solver"] = "Advantage2_system1.12"
-            return self.dwave(bqm, n_samples, config)
+        elif self.method == "pegasus" or self.method == "zephyr":
+            config["solver"] = get_solver_name(self.method)
+            return self.dwave(bqm, n_samples, config, rbm=rbm)
         else:
             raise ValueError(f"Unknown method: {self.method}")
 
@@ -352,28 +351,13 @@ class DimodSampler(Sampler):
         # return visible spins only
         return samples[:, : self.n_visible]
 
-    def dwave(self, bqm, n_samples: int, config: dict = {}) -> np.ndarray:
-        """
-        Sample using a real D-Wave QPU via dwave-system.
-
-        Requires:
-            pip install dwave-system
-            dwave config create   # set up API token
-
-        Config keys:
-        - solver:          D-Wave solver name, e.g. "Advantage_system6.4"
-                           defaults to the best available solver
-        - annealing_time:  annealing time in µs (default 20)
-        - num_reads:       overrides n_samples if set
-        - chain_strength:  embedding chain strength (default auto)
-        """
-        try:
-            from dwave.system import DWaveSampler, EmbeddingComposite
-        except ImportError:
-            raise ImportError(
-                "dwave-system is required for D-Wave QPU sampling. "
-                "Install with: pip install dwave-system"
-            )
+    def dwave(self, bqm, n_samples: int, config: dict = {}, rbm=None) -> np.ndarray:
+        from dwave.system import (
+            DWaveSampler,
+            EmbeddingComposite,
+            FixedEmbeddingComposite,
+        )
+        from model import DWaveTopologyRBM
 
         solver_name = config.get("solver", None)
         annealing_time = config.get("annealing_time", 20)
@@ -381,20 +365,34 @@ class DimodSampler(Sampler):
         chain_strength = config.get("chain_strength", None)
 
         dwave_sampler = DWaveSampler(solver=solver_name)
-        sampler = EmbeddingComposite(dwave_sampler)
 
-        sample_kwargs = dict(
-            num_reads=num_reads,
-            annealing_time=annealing_time,
-        )
-        if chain_strength is not None:
-            sample_kwargs["chain_strength"] = chain_strength
+        # Use trivial identity embedding if the RBM was built from this solver's
+        # hardware graph — avoids minorminer entirely, no chains needed
+        if rbm is not None and isinstance(rbm, DWaveTopologyRBM):
+            assert rbm._qubit_mapping is not None
+            # Invert mapping: logical -> [physical]  (one qubit per logical variable)
+            identity_embedding = {
+                logical: [phys] for phys, logical in rbm._qubit_mapping.items()
+            }
+            sampler = FixedEmbeddingComposite(dwave_sampler, identity_embedding)
+            sample_kwargs = dict(
+                num_reads=num_reads,
+                annealing_time=annealing_time,
+                answer_mode="raw",
+                auto_scale=False,  # sample from intended distribution, not rescaled
+            )
+        else:
+            # minorminer embedding
+            sampler = EmbeddingComposite(dwave_sampler)
+            sample_kwargs = dict(num_reads=num_reads, annealing_time=annealing_time)
+            if chain_strength is not None:
+                sample_kwargs["chain_strength"] = chain_strength
 
         sampleset = sampler.sample(bqm, **sample_kwargs)
         self._log_access_time(sampleset.info["timing"]["qpu_access_time"])
+        
+        #import dwave.inspector
+        #dwave.inspector.show(sampleset)
         df = sampleset.to_pandas_dataframe()
-        df = df.loc[df.index.repeat(df["num_occurrences"])].reset_index(
-            drop=True
-        )  # expand
-        # return visible only
+        df = df.loc[df.index.repeat(df["num_occurrences"])].reset_index(drop=True)
         return df.loc[:, list(range(self.n_visible))].to_numpy()

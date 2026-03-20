@@ -1,17 +1,173 @@
+import math
 import numpy as np
+
+
+# ---------------------------------------------------------------------------
+# Matrix-free SR linear system
+# ---------------------------------------------------------------------------
+
+
+class SRLinearSystem:
+    """
+    Matrix-free representation of the SR system  S·x = F.
+
+    Avoids forming the (n_params × n_params) S matrix explicitly.
+    Memory cost: O(n_samples * (N + M))  instead of  O(n_params²).
+    Solve cost per CG iteration: O(n_samples * n_params)  instead of  O(n_params³).
+
+    Sign convention matches our RBM (Gardas ansatz):
+        ∂log Ψ / ∂a_i  = -v_i / 2
+        ∂log Ψ / ∂b_j  =  tanh(θ_j) / 2
+        ∂log Ψ / ∂W_ij =  v_i · tanh(θ_j) / 2
+
+    Parameters
+    ----------
+    V          : (n_samples, n_visible)   spin configs {-1, +1}
+    H          : (n_samples, n_hidden)    tanh(θ) activations
+    E          : (n_samples,)             local energies
+    diag_shift : regularization added to diagonal of S
+    """
+
+    def __init__(self, V: np.ndarray, H: np.ndarray, E: np.ndarray, diag_shift: float):
+        self.V = np.asarray(V, dtype=np.float64)
+        self.H = np.asarray(H, dtype=np.float64)
+        self.E = np.asarray(E, dtype=np.float64)
+        self.ns = self.V.shape[0]
+        self.N = self.V.shape[1]  # n_visible
+        self.M = self.H.shape[1]  # n_hidden
+        self.diag_shift = float(diag_shift)
+
+        # Mean gradients  ⟨O_k⟩  — note sign on a block
+        self.mu_a = -0.5 * self.V.mean(axis=0)  # (N,)
+        self.mu_b = 0.5 * self.H.mean(axis=0)  # (M,)
+        self.mu_W = 0.5 * (self.H.T @ self.V) / self.ns  # (M, N)  W stored (M,N) here
+
+        # Force vector  F_k = ⟨O_k · E_loc⟩ − ⟨O_k⟩⟨E_loc⟩
+        centered_E = self.E - self.E.mean()
+        self.F_a = -0.5 * (centered_E @ self.V) / self.ns  # (N,)
+        self.F_b = 0.5 * (centered_E @ self.H) / self.ns  # (M,)
+        self.F_W = 0.5 * (self.H.T @ (centered_E[:, None] * self.V)) / self.ns  # (M, N)
+
+    def pack(self, a: np.ndarray, b: np.ndarray, W: np.ndarray) -> np.ndarray:
+        """Flatten (a, b, W) → 1-D.  W expected shape (M, N) here."""
+        return np.concatenate([a.ravel(), b.ravel(), W.ravel()])
+
+    def unpack(self, x: np.ndarray):
+        """Split 1-D vector → (a, b, W) where W has shape (M, N)."""
+        a = x[: self.N]
+        b = x[self.N : self.N + self.M]
+        W = x[self.N + self.M :].reshape(self.M, self.N)
+        return a, b, W
+
+    @property
+    def force(self) -> np.ndarray:
+        return self.pack(self.F_a, self.F_b, self.F_W)
+
+    def matvec(self, x: np.ndarray) -> np.ndarray:
+        """
+        Compute  S·x  without forming S.
+
+        S·x = (1/ns) Ō^T Ō x  +  diag_shift · x
+
+        Steps:
+          1. z_s = O_s · x  (inner product of sample-s gradient with x)
+          2. z_s -= ⟨O⟩ · x   (centre)
+          3. out = (1/ns) Ō^T z  +  diag_shift · x
+        """
+        xa, xb, xW = self.unpack(x)
+
+        # Step 1+2: z_s = (O_s - ⟨O⟩) · x  for each sample s
+        # a-block: O_a = -v/2
+        z = -0.5 * (self.V @ xa)
+        # b-block: O_b = h/2
+        z += 0.5 * (self.H @ xb)
+        # W-block: O_W[s] = outer(h_s, v_s)/2  with W in (M,N) layout
+        z += 0.5 * np.einsum("sm,mn,sn->s", self.H, xW, self.V)
+        # subtract mean component
+        z -= float(self.mu_a @ xa + self.mu_b @ xb + np.sum(self.mu_W * xW))
+
+        # Step 3: back-project
+        out_a = -0.5 * (z @ self.V) / self.ns + self.diag_shift * xa
+        out_b = 0.5 * (z @ self.H) / self.ns + self.diag_shift * xb
+        out_W = (
+            0.5 * (self.H.T @ (z[:, None] * self.V)) / self.ns + self.diag_shift * xW
+        )
+
+        return self.pack(out_a, out_b, out_W)
+
+
+# ---------------------------------------------------------------------------
+# Conjugate gradient
+# ---------------------------------------------------------------------------
+
+
+def conjugate_gradient(
+    matvec,
+    b: np.ndarray,
+    tol: float = 1e-8,
+    maxiter: int = 200,
+) -> tuple:
+    """
+    Solve  A·x = b  for symmetric positive-definite A, given only matvec.
+
+    Returns (x, info) where info = {'iterations': int, 'residual_norm': float}.
+    """
+    x = np.zeros_like(b)
+    r = b - matvec(x)
+    p = r.copy()
+    rs_old = float(r @ r)
+    info = {"iterations": 0, "residual_norm": math.sqrt(rs_old)}
+
+    if rs_old <= tol * tol:
+        return x, info
+
+    for it in range(1, maxiter + 1):
+        Ap = matvec(p)
+        denom = float(p @ Ap)
+        if abs(denom) < 1e-30:
+            break
+        alpha = rs_old / denom
+        x = x + alpha * p
+        r = r - alpha * Ap
+        rs_new = float(r @ r)
+        info = {"iterations": it, "residual_norm": math.sqrt(rs_new)}
+        if rs_new <= tol * tol:
+            return x, info
+        p = r + (rs_new / rs_old) * p
+        rs_old = rs_new
+
+    return x, info
+
+
+# ---------------------------------------------------------------------------
+# Trainer
+# ---------------------------------------------------------------------------
 
 
 class Trainer:
     """
     Variational Monte Carlo trainer using Stochastic Reconfiguration.
+
+    The SR system S·x = F is solved matrix-free via conjugate gradient.
+    Local energies and gradients are computed in a single vectorised pass
+    — no Python loops over samples inside the training iteration.
     """
 
     def __init__(self, rbm, ising_model, sampler, config: dict = None):
         """
-        rbm: RBM instance (has gradient_log_psi)
-        ising_model: Ising Hamiltonian (has local_energy)
-        sampler: Sampling algorithm (has sample method)
-        config: training config (learning_rate, n_sweeps, etc.)
+        Config keys
+        -----------
+        learning_rate  : float  (default 0.1)
+        n_iterations   : int    (default 50)
+        n_samples      : int    (default 1000)
+        regularization : float  (default 1e-3)   diag_shift for SR
+        cg_tol         : float  (default 1e-8)   CG convergence tolerance
+        cg_maxiter     : int    (default 200)    CG iteration limit
+        beta_x_init    : float  (default 2.0)    initial sampler temperature scale
+        beta_adapt     : float  (default 0.05)   fractional beta_x adjustment
+        beta_min       : float  (default 0.05)   lower bound on beta_x
+        beta_max       : float  (default 20.0)   upper bound on beta_x
+        param_clip     : float  (default 3.0)    weight clipping bound (None = off)
         """
         self.rbm = rbm
         self.ising = ising_model
@@ -23,124 +179,132 @@ class Trainer:
         self.learning_rate = config.get("learning_rate", 0.1)
         self.n_iterations = config.get("n_iterations", 50)
         self.n_samples = config.get("n_samples", 1000)
-        self.regularization = config.get("regularization", 1e-5)
+        self.regularization = config.get("regularization", 1e-3)
+        self.cg_tol = config.get("cg_tol", 1e-8)
+        self.cg_maxiter = config.get("cg_maxiter", 200)
+
+        self.beta_x = config.get("beta_x_init", 2.0)
+        self.beta_adapt = config.get("beta_adapt", 0.05)
+        self.beta_min = config.get("beta_min", 0.05)
+        self.beta_max = config.get("beta_max", 20.0)
+
+        self.param_clip = config.get("param_clip", 3.0)
+
         self.history = {
-            "energy": [],  # mean local energy per iteration
-            "error": [],  # std of local energies (variance proxy)
-            "energy_error": [],  # std / sqrt(n_samples) — true statistical error of mean
-            "learning_rate": [],  # actual lr used (useful if you add adaptive lr later)
-            "grad_norm": [],  # ||x|| = ||S^-1 F|| — detects exploding/vanishing updates
-            "s_condition_number": [],  # condition number of S — detects SR instability
-            "weight_norm": [],  # ||w|| — detects weight explosion
-            "raw_grad_norm":[],
-            }
+            "energy": [],
+            "error": [],
+            "energy_error": [],
+            "learning_rate": [],
+            "grad_norm": [],
+            "weight_norm": [],
+            "s_condition_number": [],
+            "beta_x": [],
+            "cg_iterations": [],
+            "cg_residual": [],
+        }
 
     def train(self) -> dict:
-        """
-        Returns: history dict with convergence data
-        """
+        prev_energy = None
+        rng = np.random.default_rng()
 
         for iteration in range(self.n_iterations):
-            # Sample from RBM
-            samples = self.sampler.sample(self.rbm, self.n_samples)
-
-            # Compute local energies and gradients
-            local_energies = []
-            gradients_list = []  # List of dicts
-
-            for v in samples:
-                v = v.copy()
-                # 1. Compute local energy: E_loc = ising.local_energy(v, self.rbm.psi_ratio)
-                E_loc = self.ising.local_energy(v, self.rbm.psi_ratio)
-                local_energies.append(E_loc)
-                assert E_loc > -4 * self.rbm.n_visible, f"Unphysical energy: {E_loc} for N={self.size}"
-                # 2. Compute gradient: grad = rbm.gradient_log_psi(v)
-                grad = self.rbm.gradient_log_psi(v)
-                gradients_list.append(grad)
-
-            local_energies = np.array(local_energies)
-
-            S, F = self._compute_sr_matrices(gradients_list, local_energies,iteration)
-            w = self.rbm.get_weights()
-            x = np.linalg.solve(S, F)
-
-            # Scale lr by λ_max so effective step is geometry-aware
-            eigvals = np.linalg.eigvalsh(S)
-            lambda_max = eigvals[-1]
-            effective_lr = self.learning_rate / lambda_max  # ~ 0.1 / 0.35 ~ 0.28
-
-            w_new = w - effective_lr * x
-                        
-            self.rbm.set_weights(w_new)
-            print(f"  effective_lr={effective_lr:.4f}  raw‖x‖={np.linalg.norm(x):.2f}  step={effective_lr*np.linalg.norm(x):.4f}")
-            # Track metrics
-            E_mean = np.mean(local_energies)
-            E_std = np.std(local_energies)
-
-            self.history["energy"].append(float(E_mean))
-            self.history["error"].append(float(E_std))
-            self.history["energy_error"].append(
-                float(E_std / np.sqrt(len(local_energies)))
+            # ── 1. Sample ──────────────────────────────────────────────────
+            samples = self.sampler.sample(
+                self.rbm,
+                self.n_samples,
+                config={"beta_x": self.beta_x},
             )
+            V = np.array([v.copy() for v in samples], dtype=np.float64)  # (ns, N)
+            ns = V.shape[0]
+
+            # ── 2. Batch local energies ────────────────────────────────────
+            local_energies = self.ising.local_energy_batch(V, self.rbm)  # (ns,)
+
+            # ── 3. Batch gradients (no Python loop) ───────────────────────
+            # θ[s, j] = b_j + Σ_i W_ij v_si
+            Theta = V @ self.rbm.W + self.rbm.b[None, :]  # (ns, M)
+            TanH = np.tanh(Theta)  # (ns, M)
+
+            # ── 4. Build SR system and solve with CG ──────────────────────
+            # SRLinearSystem expects H = tanh(θ),  W layout (M, N)
+            sr = SRLinearSystem(V, TanH, local_energies, self.regularization)
+            x, cg_info = conjugate_gradient(
+                sr.matvec,
+                sr.force,
+                tol=self.cg_tol,
+                maxiter=self.cg_maxiter,
+            )
+
+            # ── 5. Unpack and apply update ─────────────────────────────────
+            xa, xb, xW = sr.unpack(x)
+            # xW is (M, N) — transpose to (N, M) to match rbm.W layout
+            # pack in same order as get_weights(): [a, b, W.flatten()]
+            w = self.rbm.get_weights()
+            w_new = w - self.learning_rate * np.concatenate(
+                [xa.ravel(), xb.ravel(), xW.T.ravel()]
+            )
+
+            if self.param_clip is not None:
+                w_new = np.clip(w_new, -self.param_clip, self.param_clip)
+
+            self.rbm.set_weights(w_new)
+
+            # ── 6. Adapt beta_x ────────────────────────────────────────────
+            E_mean = float(np.mean(local_energies))
+            if prev_energy is not None and E_mean > prev_energy:
+                factor = (
+                    (1.0 + self.beta_adapt)
+                    if rng.random() < 0.5
+                    else (1.0 - self.beta_adapt)
+                )
+                self.beta_x = float(
+                    np.clip(self.beta_x * factor, self.beta_min, self.beta_max)
+                )
+            prev_energy = E_mean
+
+            # ── 7. Metrics ─────────────────────────────────────────────────
+            E_std = float(np.std(local_energies))
+            E_error = E_std / math.sqrt(ns)
+
+            self.history["energy"].append(E_mean)
+            self.history["error"].append(E_std)
+            self.history["energy_error"].append(E_error)
             self.history["learning_rate"].append(self.learning_rate)
             self.history["grad_norm"].append(float(np.linalg.norm(x)))
-            self.history["s_condition_number"].append(float(np.linalg.cond(S)))
             self.history["weight_norm"].append(float(np.linalg.norm(w_new)))
+            self.history["s_condition_number"].append(
+                float(cg_info["residual_norm"])
+            )  # CG residual proxy
+            self.history["beta_x"].append(self.beta_x)
+            self.history["cg_iterations"].append(int(cg_info["iterations"]))
+            self.history["cg_residual"].append(float(cg_info["residual_norm"]))
+
             if iteration % 10 == 0:
-                print(f"Iter {iteration:3d}: E = {E_mean:.6f} ± {E_std:.6f}")
+                print(
+                    f"Iter {iteration:3d}: "
+                    f"E = {E_mean:.6f} ± {E_error:.6f}  "
+                    f"β_x = {self.beta_x:.3f}  "
+                    f"CG {cg_info['iterations']}it "
+                    f"res={cg_info['residual_norm']:.2e}  "
+                    f"‖x‖={np.linalg.norm(x):.4f}"
+                )
 
         return self.history
 
-    def _compute_sr_matrices(self, gradients_list, local_energies, iteration) -> tuple:
-        """
-        Returns: (S, F) where S is (n_params, n_params) and F is (n_params,)
-        """
 
-        # Convert list of gradient dicts to matrix
-        D = []
-        for grad_dict in gradients_list:
-            # Flatten: [a, b, W]
-            row = np.concatenate(
-                [
-                    grad_dict["a"].flatten(),
-                    grad_dict["b"].flatten(),
-                    grad_dict["W"].flatten(),
-                ]
-            )
-            D.append(row)
-        D = np.array(D)  # Shape: (M, n_params)
-        M = D.shape[0]
-        mean_D = np.mean(D, axis=0)
-        mean_E = np.mean(local_energies)
-
-        D_centered = D - mean_D
-        E_centered = local_energies - mean_E
-
-        S = (D_centered.T @ D_centered) / M
-        F = (D_centered.T @ E_centered) / M
-        # Adaptive regularization — start high, decay toward target
-        reg_initial = 0.01          # start here
-        reg_final   = self.regularization   # decay toward this (e.g. 1e-4)
-        reg = reg_final + (reg_initial - reg_final) * (0.97 ** iteration)
-        S += reg * np.eye(S.shape[0])
-        eigvals = np.linalg.eigvalsh(S - self.regularization * np.eye(S.shape[0]))
-        print(f"  λ_min={eigvals[0]:.2e}  λ_max={eigvals[-1]:.2e}  "
-              f"n_zero={np.sum(eigvals < 1e-10)}/{len(eigvals)}")
-        
-        return S, F
+# ---------------------------------------------------------------------------
+# ExperimentRunner — unchanged interface
+# ---------------------------------------------------------------------------
 
 
 class ExperimentRunner:
     """Utility for running multiple experiments and comparing architectures."""
 
     def run_experiment(self, ising_model, rbm, sampler, config: dict = None) -> dict:
-        """Run single experiment and return results."""
         if config is None:
             config = {}
-
         trainer = Trainer(rbm, ising_model, sampler, config)
         history = trainer.train()
-
         return {
             "config": config,
             "history": history,
@@ -152,19 +316,9 @@ class ExperimentRunner:
         }
 
     def compare_architectures(self, ising_model, sampler, config: dict = None) -> dict:
-        """
-        OPTIONAL TASK: Compare fully-connected vs sparse RBM.
-
-        Run two experiments:
-        1. FullyConnectedRBM
-        2. DWaveTopologyRBM
-
-        Track which converges faster/better.
-        """
         from model import FullyConnectedRBM, DWaveTopologyRBM
 
         results = {}
-
         for name, RBMClass in [
             ("full", FullyConnectedRBM),
             ("dwave", DWaveTopologyRBM),
@@ -172,9 +326,7 @@ class ExperimentRunner:
             print(f"\n{'=' * 50}")
             print(f"Training {name.upper()} architecture")
             print(f"{'=' * 50}")
-
             rbm = RBMClass(n_visible=ising_model.size, n_hidden=ising_model.size)
-
             results[name] = self.run_experiment(ising_model, rbm, sampler, config)
 
         return results

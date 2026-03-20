@@ -75,3 +75,10 @@ def save_results(args, history, ising):
 
         except ImportError:
             print("Matplotlib not available, skipping visualization")
+
+
+def get_solver_name(architecture="pegasus"):
+    if architecture == "pegasus":
+        return "Advantage_system6.4"
+    elif architecture == "zephyr":
+        return "Advantage2_system1.13"
