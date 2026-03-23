@@ -53,7 +53,7 @@ OUTPUT_DIR = "results/"
 SAMPLER_METHODS = [
     ("custom", "metropolis"),
     ("dimod", "simulated_annealing"),
-    ("dimod", "pegasus"),
+    ("dimod", "zephyr"),
 ]
 
 # Set to N to skip the first N experiments in sweep order (0 = no skip)

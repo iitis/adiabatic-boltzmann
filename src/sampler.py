@@ -14,7 +14,7 @@ from helpers import get_solver_name
 class Sampler(ABC):
     """Abstract sampling interface."""
 
-    def rbm_to_ising(self, rbm,beta_x: float = 1.0):
+    def rbm_to_ising(self, rbm, beta_x: float = 1.0):
         """
         Convert RBM parameters to Ising model parameters (J, h).
         Args:
@@ -37,7 +37,7 @@ class Sampler(ABC):
         # RBM couplings
         for i in range(Nv):
             for j in range(Nh):
-                if abs(rbm.W[i,j]) > 1e-6:
+                if abs(rbm.W[i, j]) > 1e-6:
                     quadratic[(i, Nv + j)] = -rbm.W[i, j] / beta_x
 
         return quadratic, linear
@@ -388,11 +388,30 @@ class DimodSampler(Sampler):
             if chain_strength is not None:
                 sample_kwargs["chain_strength"] = chain_strength
 
-        sampleset = sampler.sample(bqm, **sample_kwargs)
-        self._log_access_time(sampleset.info["timing"]["qpu_access_time"])
-        
-        #import dwave.inspector
-        #dwave.inspector.show(sampleset)
+        MAX_DWAVE_RETRIES = 3
+
+        success = False
+        tries = 0
+
+        while not success and tries < MAX_DWAVE_RETRIES:
+            tries += 1
+            try:
+                sampleset = sampler.sample(bqm, **sample_kwargs)
+                access_time_us = sampleset.info["timing"]["qpu_access_time"]
+                self._log_access_time(access_time_us * tries)
+                success = True
+            except Exception as e:
+                print(
+                    f"  D-Wave sampling attempt {tries}/{MAX_DWAVE_RETRIES} failed: {e}"
+                )
+
+        if not success:
+            raise RuntimeError(
+                f"D-Wave sampling failed after {MAX_DWAVE_RETRIES} attempts."
+            )
+
+        # import dwave.inspector
+        # dwave.inspector.show(sampleset)
         df = sampleset.to_pandas_dataframe()
         df = df.loc[df.index.repeat(df["num_occurrences"])].reset_index(drop=True)
         return df.loc[:, list(range(self.n_visible))].to_numpy()
