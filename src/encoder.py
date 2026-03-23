@@ -188,6 +188,9 @@ class Trainer:
         self.beta_min = config.get("beta_min", 0.05)
         self.beta_max = config.get("beta_max", 20.0)
 
+        self.stop_at_convergence = config.get("stop_at_convergence", True)
+        self.conv_var_threshold = config.get("conv_var_threshold", 1e-4)
+        self.conv_window = config.get("conv_window", 10)
         self.param_clip = config.get("param_clip", 3.0)
 
         self.history = {
@@ -206,7 +209,7 @@ class Trainer:
     def train(self) -> dict:
         prev_energy = None
         rng = np.random.default_rng()
-
+        consecutive_converged = 0  # ← add this
         for iteration in range(self.n_iterations):
             # ── 1. Sample ──────────────────────────────────────────────────
             samples = self.sampler.sample(
@@ -265,6 +268,7 @@ class Trainer:
             # ── 7. Metrics ─────────────────────────────────────────────────
             E_std = float(np.std(local_energies))
             E_error = E_std / math.sqrt(ns)
+            E_var = float(np.var(local_energies))
 
             self.history["energy"].append(E_mean)
             self.history["error"].append(E_std)
@@ -288,7 +292,21 @@ class Trainer:
                     f"res={cg_info['residual_norm']:.2e}  "
                     f"‖x‖={np.linalg.norm(x):.4f}"
                 )
+            # ── 8. Convergence check ──────────────────────────────────────
+            if self.stop_at_convergence:
+                if E_var < self.conv_var_threshold:
+                    consecutive_converged += 1
+                else:
+                    consecutive_converged = 0  # reset on any bad iteration
 
+                if consecutive_converged >= self.conv_window:
+                    print(
+                        f"\n[Converged] Iter {iteration}: "
+                        f"Var(E_loc) = {E_var:.2e} < {self.conv_var_threshold:.2e} "
+                        f"for {self.conv_window} consecutive iterations. "
+                        f"Final E = {E_mean:.6f}"
+                    )
+                    break
         return self.history
 
 
