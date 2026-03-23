@@ -9,7 +9,7 @@ import numpy as np
 
 from helpers import save_results
 from model import FullyConnectedRBM
-from sampler import ClassicalSampler, DimodSampler
+from sampler import ClassicalSampler, DimodSampler, VeloxSampler
 from encoder import Trainer
 from ising import TransverseFieldIsing1D
 from argparse import Namespace
@@ -37,6 +37,8 @@ def main():
         sampler = ClassicalSampler(method=args.method)
     elif args.sampler == "dimod":
         sampler = DimodSampler(method=args.method)
+    elif args.sampler == "velox":
+        sampler = VeloxSampler(method=args.method)
     else:
         raise ValueError(f"Unknown sampler: {args.sampler}")
 
@@ -51,7 +53,7 @@ def main():
         model="1d",
         size=args.size,
         h=0.5,
-        rbm="full",
+        rbm="pegasus",
         n_hidden=args.size,
         sampler=args.sampler,
         sampling_method=args.method,

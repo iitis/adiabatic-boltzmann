@@ -33,7 +33,7 @@ from pathlib import Path
 
 from helpers import save_results
 from model import FullyConnectedRBM
-from sampler import ClassicalSampler, DimodSampler
+from sampler import ClassicalSampler, DimodSampler, VeloxSampler
 from encoder import Trainer
 from ising import TransverseFieldIsing1D
 
@@ -109,6 +109,8 @@ def run_experiment(args: Namespace) -> bool:
         sampler = ClassicalSampler(method=args.sampling_method)
     elif args.sampler == "dimod":
         sampler = DimodSampler(method=args.sampling_method)
+    elif args.sampler == "velox":
+        sampler = VeloxSampler(method=args.sampling_method)
     else:
         raise ValueError(f"Unknown sampler: {args.sampler}")
 

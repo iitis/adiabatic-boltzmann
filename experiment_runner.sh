@@ -17,7 +17,7 @@ SCRIPT="src/single_experiment.py"
 
 SIZES=(16 32 64)
 LEARNING_RATES=(0.1 0.01)
-SAMPLERS=("dimod:zephyr")
+SAMPLERS=("custom:metropolis" "velox:velox")
 SEEDS=(1 42)
 
 DWAVE_BUDGET_MS=1200000 # 20 minutes in milliseconds
