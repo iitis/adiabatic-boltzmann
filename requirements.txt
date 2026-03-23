@@ -5,3 +5,4 @@ pandas
 dwave-neal
 scipy
 netket
+dwave-system
