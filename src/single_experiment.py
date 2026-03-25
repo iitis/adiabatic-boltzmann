@@ -33,6 +33,7 @@ def parse_args():
         help="Number of hidden units. Defaults to size (1D) or size (2D linear dim).",
     )
 
+    p.add_argument("--h", type=float, required=True, help="Transverse field strength.")
     p.add_argument("--iterations", type=int, default=300)
     p.add_argument("--rbm", choices=["full", "pegasus", "zephyr"], default="full")
     p.add_argument("--resume", action="store_true",
@@ -61,9 +62,9 @@ def main():
     n_visible = args.size if args.model == "1d" else args.size**2
     # 1. Instantiate Ising model
     if args.model == "1d":
-        ising = TransverseFieldIsing1D(args.size)
+        ising = TransverseFieldIsing1D(args.size, h=args.h)
     elif args.model == "2d":
-        ising = TransverseFieldIsing2D(args.size)
+        ising = TransverseFieldIsing2D(args.size, h=args.h)
     n_hidden = args.n_hidden
     if args.rbm == "full":
         rbm = FullyConnectedRBM(n_visible, n_hidden)
@@ -92,7 +93,7 @@ def main():
     ns_args = Namespace(
         model=args.model,
         size=args.size,
-        h=0.5,
+        h=args.h,
         rbm=args.rbm,
         n_hidden=n_hidden,
         sampler=args.sampler,

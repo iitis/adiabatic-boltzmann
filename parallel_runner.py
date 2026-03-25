@@ -43,6 +43,7 @@ SAMPLERS = [
     ("dimod", "simulated_annealing"),
 ]  # list of (sampler, method) pairs
 RBMS = ["full"]
+H_VALUES = [0.5]
 SEEDS = [1, 42]
 ITERATIONS = 300
 
@@ -121,22 +122,24 @@ def build_experiments() -> list[dict]:
         for n_hidden in _n_hidden_steps(n_visible):
             alpha = n_hidden / n_visible
             for rbm in RBMS:
-                for lr in LEARNING_RATES:
-                    for sampler, method in SAMPLERS:
-                        for seed in SEEDS:
-                            experiments.append(
-                                {
-                                    "size": size,
-                                    "n_visible": n_visible,
-                                    "n_hidden": n_hidden,
-                                    "alpha": alpha,
-                                    "rbm": rbm,
-                                    "lr": lr,
-                                    "sampler": sampler,
-                                    "method": method,
-                                    "seed": seed,
-                                }
-                            )
+                for h in H_VALUES:
+                    for lr in LEARNING_RATES:
+                        for sampler, method in SAMPLERS:
+                            for seed in SEEDS:
+                                experiments.append(
+                                    {
+                                        "size": size,
+                                        "n_visible": n_visible,
+                                        "n_hidden": n_hidden,
+                                        "alpha": alpha,
+                                        "rbm": rbm,
+                                        "h": h,
+                                        "lr": lr,
+                                        "sampler": sampler,
+                                        "method": method,
+                                        "seed": seed,
+                                    }
+                                )
     return experiments
 
 
@@ -170,7 +173,7 @@ def run_experiment(exp: dict, idx: int, total: int, dry_run: bool) -> bool:
     label = (
         f"[{idx:>4}/{total}] "
         f"size={exp['size']} nh={exp['n_hidden']} (α={exp['alpha']:.2f}) "
-        f"rbm={exp['rbm']} lr={exp['lr']} "
+        f"rbm={exp['rbm']} h={exp['h']} lr={exp['lr']} "
         f"{exp['sampler']}/{exp['method']} seed={exp['seed']}"
     )
 
@@ -208,6 +211,8 @@ def run_experiment(exp: dict, idx: int, total: int, dry_run: bool) -> bool:
         MODEL,
         "--n-hidden",
         str(exp["n_hidden"]),
+        "--h",
+        str(exp["h"]),
         "--iterations",
         str(ITERATIONS),
         "--rbm",
@@ -290,6 +295,7 @@ def main():
     log(f"Model                   : {MODEL}  sizes={SIZES}")
     log(f"N_NH_STEPS              : {N_NH_STEPS}")
     log(f"RBMs                    : {RBMS}")
+    log(f"H values                : {H_VALUES}")
     log(f"Samplers                : {SAMPLERS}")
     log(
         f"QPU budget              : {DWAVE_BUDGET_MS / 60000:.1f} min  "
