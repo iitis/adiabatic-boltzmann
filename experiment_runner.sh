@@ -18,7 +18,7 @@ MODEL="2d"
 SIZES=(4 6 8)
 
 LEARNING_RATES=(0.1 0.01)
-SAMPLERS=("custom:metropolis" "velox:velox")
+SAMPLERS=("custom:metropolis") 
 SEEDS=(1 42)
 ITERATIONS=300
 DWAVE_BUDGET_MS=1200000 # 20 minutes in milliseconds
