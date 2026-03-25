@@ -105,11 +105,10 @@ for size in "${SIZES[@]}"; do
   else
     n_visible=$size
   fi
-  nh1=$((n_visible / 4))
-  nh2=$((n_visible / 2))
-  nh3=$((3 * n_visible / 4))
-  nh4=$n_visible
-  N_HIDDEN_VALUES=($nh1 $nh2 $nh3 $nh4)
+  N_HIDDEN_VALUES=()
+  for k in $(seq 1 $N_NH_STEPS); do
+    N_HIDDEN_VALUES+=($((n_visible * k / N_NH_STEPS)))
+  done
 
   log ""
   log "Size=$size  n_visible=$n_visible  n_hidden sweep: ${N_HIDDEN_VALUES[*]}"
