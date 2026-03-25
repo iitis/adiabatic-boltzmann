@@ -18,7 +18,8 @@ MODEL="2d"
 SIZES=(4 6 8)
 
 LEARNING_RATES=(0.1 0.01)
-SAMPLERS=("custom:metropolis") 
+SAMPLERS=("custom:metropolis" "velox:velox")
+RBMS=("full" "pegasus" "zephyr")
 SEEDS=(1 42)
 ITERATIONS=300
 DWAVE_BUDGET_MS=1200000 # 20 minutes in milliseconds
@@ -84,7 +85,7 @@ if [ "$used_ms" -ge "$DWAVE_BUDGET_MS" ] 2>/dev/null; then
 fi
 
 N_NH_STEPS=4 # 25%, 50%, 75%, 100% of n_visible
-TOTAL=$((${#SIZES[@]} * N_NH_STEPS * ${#LEARNING_RATES[@]} * ${#SAMPLERS[@]} * ${#SEEDS[@]}))
+TOTAL=$((${#SIZES[@]} * N_NH_STEPS * ${#LEARNING_RATES[@]} * ${#SAMPLERS[@]} * ${#RBMS[@]} * ${#SEEDS[@]}))
 log "Total experiments : $TOTAL"
 log "========================================================"
 
@@ -116,75 +117,78 @@ for size in "${SIZES[@]}"; do
   for n_hidden in "${N_HIDDEN_VALUES[@]}"; do
     local_alpha=$(python3 -c "print(f'{$n_hidden/$n_visible:.2f}')")
 
-    for lr in "${LEARNING_RATES[@]}"; do
-      for sampler_method in "${SAMPLERS[@]}"; do
-        for seed in "${SEEDS[@]}"; do
+    for rbm in "${RBMS[@]}"; do
+      for lr in "${LEARNING_RATES[@]}"; do
+        for sampler_method in "${SAMPLERS[@]}"; do
+          for seed in "${SEEDS[@]}"; do
 
-          sampler="${sampler_method%%:*}"
-          method="${sampler_method##*:}"
-          idx=$((DONE + SKIPPED + FAILED + 1))
+            sampler="${sampler_method%%:*}"
+            method="${sampler_method##*:}"
+            idx=$((DONE + SKIPPED + FAILED + 1))
 
-          # ── Skip first N ──────────────────────────────────────────────────────
-          if [ "$SKIPPED" -lt "$SKIP_FIRST_N" ]; then
-            SKIPPED=$((SKIPPED + 1))
-            log "[skip $SKIPPED/$SKIP_FIRST_N] size=$size nh=$n_hidden lr=$lr $sampler/$method seed=$seed"
-            continue
-          fi
-
-          # ── QPU budget check ──────────────────────────────────────────────────
-          if is_dwave "$method"; then
-            used_ms=$(read_qpu_time_ms)
-            if [ "$used_ms" -ge "$DWAVE_BUDGET_MS" ] 2>/dev/null; then
-              log ""
-              log "[QPU BUDGET] $(format_min $used_ms) min used >= $(format_min $DWAVE_BUDGET_MS) min limit."
-              log "             Aborting remaining D-Wave experiments."
-              break 5
-            fi
-            qpu_info="  QPU used=$(format_min $used_ms)min"
-          else
-            qpu_info=""
-          fi
-
-          log ""
-          log "[$idx/$TOTAL] size=$size nh=$n_hidden (α=$local_alpha) lr=$lr $sampler/$method seed=$seed$qpu_info"
-
-          # ── Run with one retry ──────────────────────────────────────────────
-          success=0
-          for attempt in 1 2; do
-            if [ "$attempt" -eq 2 ]; then
-              log "  Retrying (attempt $attempt/2)..."
+            # ── Skip first N ──────────────────────────────────────────────────
+            if [ "$SKIPPED" -lt "$SKIP_FIRST_N" ]; then
+              SKIPPED=$((SKIPPED + 1))
+              log "[skip $SKIPPED/$SKIP_FIRST_N] size=$size nh=$n_hidden rbm=$rbm lr=$lr $sampler/$method seed=$seed"
+              continue
             fi
 
-            python3 "$SCRIPT" \
-              --size "$size" \
-              --lr "$lr" \
-              --sampler "$sampler" \
-              --method "$method" \
-              --seed "$seed" \
-              --output-dir "$OUTPUT_DIR" \
-              --model "$MODEL" \
-              --n-hidden "$n_hidden" \
-              --iterations "$ITERATIONS" \
-              2>&1 | tee -a "$LOG_FILE"
-
-            exit_code=${PIPESTATUS[0]}
-
-            if [ "$exit_code" -eq 0 ]; then
-              success=1
-              break
+            # ── QPU budget check ───────────────────────────────────────────────
+            if is_dwave "$method"; then
+              used_ms=$(read_qpu_time_ms)
+              if [ "$used_ms" -ge "$DWAVE_BUDGET_MS" ] 2>/dev/null; then
+                log ""
+                log "[QPU BUDGET] $(format_min $used_ms) min used >= $(format_min $DWAVE_BUDGET_MS) min limit."
+                log "             Aborting remaining D-Wave experiments."
+                break 6
+              fi
+              qpu_info="  QPU used=$(format_min $used_ms)min"
             else
-              log "  Attempt $attempt failed (exit code $exit_code)"
+              qpu_info=""
             fi
+
+            log ""
+            log "[$idx/$TOTAL] size=$size nh=$n_hidden (α=$local_alpha) rbm=$rbm lr=$lr $sampler/$method seed=$seed$qpu_info"
+
+            # ── Run with one retry ────────────────────────────────────────────
+            success=0
+            for attempt in 1 2; do
+              if [ "$attempt" -eq 2 ]; then
+                log "  Retrying (attempt $attempt/2)..."
+              fi
+
+              python3 "$SCRIPT" \
+                --size "$size" \
+                --lr "$lr" \
+                --sampler "$sampler" \
+                --method "$method" \
+                --seed "$seed" \
+                --output-dir "$OUTPUT_DIR" \
+                --model "$MODEL" \
+                --n-hidden "$n_hidden" \
+                --iterations "$ITERATIONS" \
+                --rbm "$rbm" \
+                2>&1 | tee -a "$LOG_FILE"
+
+              exit_code=${PIPESTATUS[0]}
+
+              if [ "$exit_code" -eq 0 ]; then
+                success=1
+                break
+              else
+                log "  Attempt $attempt failed (exit code $exit_code)"
+              fi
+            done
+
+            if [ "$success" -eq 0 ]; then
+              log "  Both attempts failed — skipping this experiment, continuing sweep."
+              FAILED=$((FAILED + 1))
+              continue
+            fi
+
+            DONE=$((DONE + 1))
+
           done
-
-          if [ "$success" -eq 0 ]; then
-            log "  Both attempts failed — skipping this experiment, continuing sweep."
-            FAILED=$((FAILED + 1))
-            continue
-          fi
-
-          DONE=$((DONE + 1))
-
         done
       done
     done
