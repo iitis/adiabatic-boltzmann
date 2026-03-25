@@ -37,13 +37,10 @@ N_NH_STEPS = 1  # generates N evenly-spaced steps ending at n_visible
 LEARNING_RATES = [0.1, 0.01]
 SAMPLERS = [
     ("custom", "metropolis"),
-    ("velox", "velox"),
-    ("dimod", "pegasus"),
-    ("dimod", "zephyr"),
     ("dimod", "simulated_annealing"),
 ]  # list of (sampler, method) pairs
 RBMS = ["full"]
-H_VALUES = [0.5]
+H_VALUES = [0.5,2.0]
 SEEDS = [1, 42]
 ITERATIONS = 300
 
