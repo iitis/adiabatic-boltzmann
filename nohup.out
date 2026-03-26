@@ -28479,3 +28479,774 @@ Traceback (most recent call last):
   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/json/decoder.py", line 348, in decode
     raise JSONDecodeError("Extra data", s, end)
 json.decoder.JSONDecodeError: Extra data: line 1 column 31 (char 30)
+11:41:24  ============================================================
+11:41:24  Parallel runner started : 2026-03-26 11:41:24
+11:41:24  Workers                 : 20
+11:41:24  Total experiments       : 54
+11:41:24  Model                   : 2d  sizes=[4, 6, 8]
+11:41:24  N_NH_STEPS              : 1
+11:41:24  RBMs                    : ['full']
+11:41:24  H values                : [0.5, 1.0, 2.0]
+11:41:24  Samplers                : [('dimod', 'pegasus'), ('dimod', 'zephyr'), ('velox', 'velox')]
+11:41:24  QPU budget              : 60.0 min  (used so far: 54.20 min)
+11:41:24  ============================================================
+11:41:25    [skip] result already exists — [   3/54] size=4 nh=16 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/zephyr seed=1
+11:41:25    [skip] result already exists — [   4/54] size=4 nh=16 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/zephyr seed=42
+11:41:25    [skip] result already exists — [   2/54] size=4 nh=16 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/pegasus seed=42
+11:41:25    [skip] result already exists — [   9/54] size=4 nh=16 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/zephyr seed=1
+11:41:25    [skip] result already exists — [  12/54] size=4 nh=16 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=42
+11:41:25    [skip] result already exists — [   6/54] size=4 nh=16 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=42
+11:41:25    [skip] result already exists — [  15/54] size=4 nh=16 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/zephyr seed=1
+11:41:25    [skip] result already exists — [  17/54] size=4 nh=16 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=1
+11:41:25    [skip] result already exists — [   5/54] size=4 nh=16 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=1
+11:41:25    [skip] result already exists — [  11/54] size=4 nh=16 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=1
+11:41:25    [skip] result already exists — [  10/54] size=4 nh=16 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/zephyr seed=42
+11:41:25    [skip] result already exists — [   1/54] size=4 nh=16 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/pegasus seed=1
+11:41:25    [skip] result already exists — [   8/54] size=4 nh=16 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/pegasus seed=42
+11:41:25    [skip] result already exists — [  14/54] size=4 nh=16 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/pegasus seed=42
+11:41:25    [skip] result already exists — [  13/54] size=4 nh=16 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/pegasus seed=1
+11:41:25    [skip] result already exists — [   7/54] size=4 nh=16 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/pegasus seed=1
+11:41:25    [skip] result already exists — [  16/54] size=4 nh=16 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/zephyr seed=42
+11:41:25    [skip] result already exists — [  18/54] size=4 nh=16 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=42
+11:41:25    [skip] result already exists — [  19/54] size=6 nh=36 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/pegasus seed=1
+11:41:25    [skip] result already exists — [  21/54] size=6 nh=36 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/zephyr seed=1
+11:41:25    [skip] result already exists — [  20/54] size=6 nh=36 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/pegasus seed=42
+11:41:25    [skip] result already exists — [  23/54] size=6 nh=36 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=1
+11:41:25    [skip] result already exists — [  22/54] size=6 nh=36 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/zephyr seed=42
+11:41:25    [skip] result already exists — [  25/54] size=6 nh=36 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/pegasus seed=1
+11:41:25    [skip] result already exists — [  26/54] size=6 nh=36 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/pegasus seed=42
+11:41:25    [skip] result already exists — [  27/54] size=6 nh=36 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/zephyr seed=1
+11:41:25    [skip] result already exists — [  24/54] size=6 nh=36 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=42
+11:41:25    [skip] result already exists — [  29/54] size=6 nh=36 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=1
+11:41:25    [skip] result already exists — [  28/54] size=6 nh=36 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/zephyr seed=42
+11:41:25    [skip] result already exists — [  31/54] size=6 nh=36 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/pegasus seed=1
+11:41:25    [skip] result already exists — [  32/54] size=6 nh=36 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/pegasus seed=42
+11:41:25    [skip] result already exists — [  30/54] size=6 nh=36 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=42
+11:41:25    [skip] result already exists — [  34/54] size=6 nh=36 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/zephyr seed=42
+11:41:25    [skip] result already exists — [  33/54] size=6 nh=36 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/zephyr seed=1
+11:41:25    [skip] result already exists — [  35/54] size=6 nh=36 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=1
+11:41:25    [skip] result already exists — [  36/54] size=6 nh=36 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=42
+11:41:25    [skip] result already exists — [  37/54] size=8 nh=64 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/pegasus seed=1
+11:41:25    [skip] result already exists — [  38/54] size=8 nh=64 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/pegasus seed=42
+11:41:25  [  39/54] size=8 nh=64 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/zephyr seed=1  QPU used=54.20min
+11:41:25    [skip] result already exists — [  42/54] size=8 nh=64 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=42
+11:41:25    [skip] result already exists — [  41/54] size=8 nh=64 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=1
+11:41:25  [  40/54] size=8 nh=64 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/zephyr seed=42  QPU used=54.20min
+11:41:25  [  43/54] size=8 nh=64 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/pegasus seed=1  QPU used=54.20min
+11:41:25  [  44/54] size=8 nh=64 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/pegasus seed=42  QPU used=54.20min
+11:41:25    [skip] result already exists — [  46/54] size=8 nh=64 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/zephyr seed=42
+11:41:25  [  45/54] size=8 nh=64 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/zephyr seed=1  QPU used=54.20min
+11:41:25    [skip] result already exists — [  47/54] size=8 nh=64 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=1
+11:41:25    [skip] result already exists — [  48/54] size=8 nh=64 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=42
+11:41:25    [skip] result already exists — [  49/54] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/pegasus seed=1
+11:41:25  [  50/54] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/pegasus seed=42  QPU used=54.20min
+11:41:25    [skip] result already exists — [  51/54] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/zephyr seed=1
+11:41:25  [  53/54] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=1
+11:41:25  [  52/54] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/zephyr seed=42  QPU used=54.20min
+11:41:25  [  54/54] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=42
+11:41:34      | <model.FullyConnectedRBM object at 0x779b7b893e00>
+11:41:34      | <ising.TransverseFieldIsing2D object at 0x779b81d4b8c0>
+11:41:34      | None
+11:41:34      |   [VeloxQ] attempt 1/3 failed: Job b182166e-f418-48be-81d4-dc727a9ef3a3 has not completed successfully.
+11:41:34      |   [VeloxQ] attempt 2/3 failed: Job fcf58e2d-3b21-4ba4-a255-65a7dc5dcf9b has not completed successfully.
+11:41:34      |   [VeloxQ] attempt 3/3 failed: Job c8c75956-39d2-4558-b7a0-15d92be11351 has not completed successfully.
+11:41:34      |   [Trainer] Sampling failed at iteration 0: VeloxQ sampling failed after 3 attempts.
+11:41:34      |   [Trainer] Aborting this experiment.
+11:41:34      | Traceback (most recent call last):
+11:41:34      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 267, in sample
+11:41:34      |     sampleset = self.solver.sample(h, J)
+11:41:34      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/solvers.py", line 161, in sample
+11:41:34      |     return job.result
+11:41:34      |            ^^^^^^^^^^
+11:41:34      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/functools.py", line 1126, in __get__
+11:41:34      |     val = self.func(instance)
+11:41:34      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 387, in result
+11:41:34      |     temp_file = self._get_temp_result()
+11:41:34      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 482, in _get_temp_result
+11:41:34      |     self.download_result(f)
+11:41:34      |     ~~~~~~~~~~~~~~~~~~~~^^^
+11:41:34      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 408, in download_result
+11:41:34      |     raise RuntimeError(msg)
+11:41:34      | RuntimeError: Job c8c75956-39d2-4558-b7a0-15d92be11351 has not completed successfully.
+11:41:34      | 
+11:41:34      | The above exception was the direct cause of the following exception:
+11:41:34      | 
+11:41:34      | Traceback (most recent call last):
+11:41:34      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:41:34      |     main()
+11:41:34      |     ~~~~^^
+11:41:34      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:41:34      |     history = trainer.train()
+11:41:34      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:41:34      |     samples = self.sampler.sample(
+11:41:34      |         self.rbm,
+11:41:34      |         self.n_samples,
+11:41:34      |         config={"beta_x": self.beta_x},
+11:41:34      |     )
+11:41:34      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 272, in sample
+11:41:34      |     raise RuntimeError(
+11:41:34      |         f"VeloxQ sampling failed after {MAX_VELOX_RETRIES} attempts."
+11:41:34      |     ) from e
+11:41:34      | RuntimeError: VeloxQ sampling failed after 3 attempts.
+11:41:34    Attempt 1/2 failed (exit 1)
+11:41:34    Retrying (attempt 2/2) — [  53/54] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=1
+11:41:35      | <model.FullyConnectedRBM object at 0x748344ebfe00>
+11:41:35      | <ising.TransverseFieldIsing2D object at 0x74834b34b8c0>
+11:41:35      | None
+11:41:35      |   [VeloxQ] attempt 1/3 failed: Job 563d22f1-9b6d-4f87-a93c-fa4cf2c076ad has not completed successfully.
+11:41:35      |   [VeloxQ] attempt 2/3 failed: Job 02c31029-4e5e-4ff2-a1ca-bdc60da79c82 has not completed successfully.
+11:41:35      |   [VeloxQ] attempt 3/3 failed: Job 36fd5af2-5b7f-4a8f-bf61-1858ab2f7494 has not completed successfully.
+11:41:35      |   [Trainer] Sampling failed at iteration 0: VeloxQ sampling failed after 3 attempts.
+11:41:35      |   [Trainer] Aborting this experiment.
+11:41:35      | Traceback (most recent call last):
+11:41:35      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 267, in sample
+11:41:35      |     sampleset = self.solver.sample(h, J)
+11:41:35      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/solvers.py", line 161, in sample
+11:41:35      |     return job.result
+11:41:35      |            ^^^^^^^^^^
+11:41:35      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/functools.py", line 1126, in __get__
+11:41:35      |     val = self.func(instance)
+11:41:35      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 387, in result
+11:41:35      |     temp_file = self._get_temp_result()
+11:41:35      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 482, in _get_temp_result
+11:41:35      |     self.download_result(f)
+11:41:35      |     ~~~~~~~~~~~~~~~~~~~~^^^
+11:41:35      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 408, in download_result
+11:41:35      |     raise RuntimeError(msg)
+11:41:35      | RuntimeError: Job 36fd5af2-5b7f-4a8f-bf61-1858ab2f7494 has not completed successfully.
+11:41:35      | 
+11:41:35      | The above exception was the direct cause of the following exception:
+11:41:35      | 
+11:41:35      | Traceback (most recent call last):
+11:41:35      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:41:35      |     main()
+11:41:35      |     ~~~~^^
+11:41:35      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:41:35      |     history = trainer.train()
+11:41:35      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:41:35      |     samples = self.sampler.sample(
+11:41:35      |         self.rbm,
+11:41:35      |         self.n_samples,
+11:41:35      |         config={"beta_x": self.beta_x},
+11:41:35      |     )
+11:41:35      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 272, in sample
+11:41:35      |     raise RuntimeError(
+11:41:35      |         f"VeloxQ sampling failed after {MAX_VELOX_RETRIES} attempts."
+11:41:35      |     ) from e
+11:41:35      | RuntimeError: VeloxQ sampling failed after 3 attempts.
+11:41:35    Attempt 1/2 failed (exit 1)
+11:41:35    Retrying (attempt 2/2) — [  54/54] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=42
+11:41:43      | <model.FullyConnectedRBM object at 0x730f4a297e00>
+11:41:43      | <ising.TransverseFieldIsing2D object at 0x730f5073b8c0>
+11:41:43      | None
+11:41:43      |   [VeloxQ] attempt 1/3 failed: Job ccfff540-33b4-4cae-9b18-f94d43e93c58 has not completed successfully.
+11:41:43      |   [VeloxQ] attempt 2/3 failed: Job 27349922-fe23-4f5f-a868-09fb0bc5cdcd has not completed successfully.
+11:41:43      |   [VeloxQ] attempt 3/3 failed: Job ce00f7fc-412e-41a1-bb7f-d2c41365f781 has not completed successfully.
+11:41:43      |   [Trainer] Sampling failed at iteration 0: VeloxQ sampling failed after 3 attempts.
+11:41:43      |   [Trainer] Aborting this experiment.
+11:41:43      | Traceback (most recent call last):
+11:41:43      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 267, in sample
+11:41:43      |     sampleset = self.solver.sample(h, J)
+11:41:43      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/solvers.py", line 161, in sample
+11:41:43      |     return job.result
+11:41:43      |            ^^^^^^^^^^
+11:41:43      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/functools.py", line 1126, in __get__
+11:41:43      |     val = self.func(instance)
+11:41:43      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 387, in result
+11:41:43      |     temp_file = self._get_temp_result()
+11:41:43      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 482, in _get_temp_result
+11:41:43      |     self.download_result(f)
+11:41:43      |     ~~~~~~~~~~~~~~~~~~~~^^^
+11:41:43      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 408, in download_result
+11:41:43      |     raise RuntimeError(msg)
+11:41:43      | RuntimeError: Job ce00f7fc-412e-41a1-bb7f-d2c41365f781 has not completed successfully.
+11:41:43      | 
+11:41:43      | The above exception was the direct cause of the following exception:
+11:41:43      | 
+11:41:43      | Traceback (most recent call last):
+11:41:43      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:41:43      |     main()
+11:41:43      |     ~~~~^^
+11:41:43      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:41:43      |     history = trainer.train()
+11:41:43      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:41:43      |     samples = self.sampler.sample(
+11:41:43      |         self.rbm,
+11:41:43      |         self.n_samples,
+11:41:43      |         config={"beta_x": self.beta_x},
+11:41:43      |     )
+11:41:43      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 272, in sample
+11:41:43      |     raise RuntimeError(
+11:41:43      |         f"VeloxQ sampling failed after {MAX_VELOX_RETRIES} attempts."
+11:41:43      |     ) from e
+11:41:43      | RuntimeError: VeloxQ sampling failed after 3 attempts.
+11:41:43    Attempt 2/2 failed (exit 1)
+11:41:43    All 2 attempts failed — skipping.
+11:41:44      | <model.FullyConnectedRBM object at 0x705a39163e00>
+11:41:44      | <ising.TransverseFieldIsing2D object at 0x705a3f6438c0>
+11:41:44      | None
+11:41:44      |   [VeloxQ] attempt 1/3 failed: Job 3e721ab7-4637-469d-ab70-a0c6ccde62cd has not completed successfully.
+11:41:44      |   [VeloxQ] attempt 2/3 failed: Job e81c6839-7a7f-4b19-9888-b2774f43cb9e has not completed successfully.
+11:41:44      |   [VeloxQ] attempt 3/3 failed: Job 1f0292c5-97e4-4c28-a86d-c3b705b2e862 has not completed successfully.
+11:41:44      |   [Trainer] Sampling failed at iteration 0: VeloxQ sampling failed after 3 attempts.
+11:41:44      |   [Trainer] Aborting this experiment.
+11:41:44      | Traceback (most recent call last):
+11:41:44      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 267, in sample
+11:41:44      |     sampleset = self.solver.sample(h, J)
+11:41:44      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/solvers.py", line 161, in sample
+11:41:44      |     return job.result
+11:41:44      |            ^^^^^^^^^^
+11:41:44      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/functools.py", line 1126, in __get__
+11:41:44      |     val = self.func(instance)
+11:41:44      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 387, in result
+11:41:44      |     temp_file = self._get_temp_result()
+11:41:44      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 482, in _get_temp_result
+11:41:44      |     self.download_result(f)
+11:41:44      |     ~~~~~~~~~~~~~~~~~~~~^^^
+11:41:44      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 408, in download_result
+11:41:44      |     raise RuntimeError(msg)
+11:41:44      | RuntimeError: Job 1f0292c5-97e4-4c28-a86d-c3b705b2e862 has not completed successfully.
+11:41:44      | 
+11:41:44      | The above exception was the direct cause of the following exception:
+11:41:44      | 
+11:41:44      | Traceback (most recent call last):
+11:41:44      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:41:44      |     main()
+11:41:44      |     ~~~~^^
+11:41:44      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:41:44      |     history = trainer.train()
+11:41:44      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:41:44      |     samples = self.sampler.sample(
+11:41:44      |         self.rbm,
+11:41:44      |         self.n_samples,
+11:41:44      |         config={"beta_x": self.beta_x},
+11:41:44      |     )
+11:41:44      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 272, in sample
+11:41:44      |     raise RuntimeError(
+11:41:44      |         f"VeloxQ sampling failed after {MAX_VELOX_RETRIES} attempts."
+11:41:44      |     ) from e
+11:41:44      | RuntimeError: VeloxQ sampling failed after 3 attempts.
+11:41:44    Attempt 2/2 failed (exit 1)
+11:41:44    All 2 attempts failed — skipping.
+11:52:50      | <model.FullyConnectedRBM object at 0x77771a9b3e00>
+11:52:50      | <ising.TransverseFieldIsing2D object at 0x777720f4b8c0>
+11:52:50      | None
+11:52:50      |   [embedding] Running minorminer for (64, 'Advantage2_system1.13') — this may take a moment...
+11:52:50      |   [embedding] Embedding found and cached for (64, 'Advantage2_system1.13').
+11:52:50      | Iter   0: E = -127.880226 ± 0.349445  β_x = 2.000  CG 200it res=2.80e-08  ‖x‖=73.7151
+11:52:50      | Iter  10: E = -28.000000 ± 0.000000  β_x = 2.205  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter  20: E = -28.000000 ± 0.000000  β_x = 2.205  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter  30: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter  40: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter  50: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter  60: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter  70: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter  80: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter  90: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 100: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 110: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 120: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 130: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 140: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 150: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 160: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 170: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 180: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 190: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 200: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 210: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 220: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 230: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 240: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 250: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 260: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 270: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 280: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Iter 290: E = -28.000000 ± 0.000000  β_x = 2.095  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:52:50      | Saved  → results/8/dimod/zephyr/result_2d_h2.0_rbmfull_nh64_lr0.1_reg0.001_ns1000_seed42_iter300.json
+11:52:50      |   Final energy : -28.000000
+11:52:50      |   Exact energy : -157.113600
+11:52:50      |   Error        : 129.113600
+11:52:50      |   Checkpoint → checkpoints/8/dimod/zephyr/full/checkpoint_2d_h2.0_rbmfull_nh64_lr0.1_iter0300.pkl
+11:55:37  ============================================================
+11:55:37  Parallel runner started : 2026-03-26 11:55:37
+11:55:37  Workers                 : 1
+11:55:37  Total experiments       : 18
+11:55:37  Model                   : 2d  sizes=[4, 6, 8]
+11:55:37  N_NH_STEPS              : 1
+11:55:37  RBMs                    : ['full']
+11:55:37  H values                : [0.5, 1.0, 2.0]
+11:55:37  Samplers                : [('velox', 'velox')]
+11:55:37  QPU budget              : 60.0 min  (used so far: 56.85 min)
+11:55:37  ============================================================
+11:55:37    [skip] result already exists — [   1/18] size=4 nh=16 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=1
+11:55:37    [skip] result already exists — [   2/18] size=4 nh=16 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=42
+11:55:37    [skip] result already exists — [   3/18] size=4 nh=16 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=1
+11:55:37    [skip] result already exists — [   4/18] size=4 nh=16 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=42
+11:55:37    [skip] result already exists — [   5/18] size=4 nh=16 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=1
+11:55:37    [skip] result already exists — [   6/18] size=4 nh=16 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=42
+11:55:37    [skip] result already exists — [   7/18] size=6 nh=36 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=1
+11:55:37    [skip] result already exists — [   8/18] size=6 nh=36 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=42
+11:55:37    [skip] result already exists — [   9/18] size=6 nh=36 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=1
+11:55:37    [skip] result already exists — [  10/18] size=6 nh=36 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=42
+11:55:37    [skip] result already exists — [  11/18] size=6 nh=36 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=1
+11:55:37    [skip] result already exists — [  12/18] size=6 nh=36 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=42
+11:55:37    [skip] result already exists — [  13/18] size=8 nh=64 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=1
+11:55:37    [skip] result already exists — [  14/18] size=8 nh=64 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=42
+11:55:37    [skip] result already exists — [  15/18] size=8 nh=64 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=1
+11:55:37    [skip] result already exists — [  16/18] size=8 nh=64 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=42
+11:55:37  [  17/18] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=1
+11:55:46      | <model.FullyConnectedRBM object at 0x770ddd657e00>
+11:55:46      | <ising.TransverseFieldIsing2D object at 0x770de3b478c0>
+11:55:46      | None
+11:55:46      |   [VeloxQ] attempt 1/3 failed: Job 1fe69823-82bb-4e72-88de-613b7940fda6 has not completed successfully.
+11:55:46      |   [VeloxQ] attempt 2/3 failed: Job d5b32ee0-c18a-4390-9a67-9bbc7938c4a5 has not completed successfully.
+11:55:46      |   [VeloxQ] attempt 3/3 failed: Job ecc85efd-70d6-4162-b695-957857a3c21b has not completed successfully.
+11:55:46      |   [Trainer] Sampling failed at iteration 0: VeloxQ sampling failed after 3 attempts.
+11:55:46      |   [Trainer] Aborting this experiment.
+11:55:46      | Traceback (most recent call last):
+11:55:46      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 267, in sample
+11:55:46      |     sampleset = self.solver.sample(h, J)
+11:55:46      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/solvers.py", line 161, in sample
+11:55:46      |     return job.result
+11:55:46      |            ^^^^^^^^^^
+11:55:46      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/functools.py", line 1126, in __get__
+11:55:46      |     val = self.func(instance)
+11:55:46      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 387, in result
+11:55:46      |     temp_file = self._get_temp_result()
+11:55:46      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 482, in _get_temp_result
+11:55:46      |     self.download_result(f)
+11:55:46      |     ~~~~~~~~~~~~~~~~~~~~^^^
+11:55:46      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 408, in download_result
+11:55:46      |     raise RuntimeError(msg)
+11:55:46      | RuntimeError: Job ecc85efd-70d6-4162-b695-957857a3c21b has not completed successfully.
+11:55:46      | 
+11:55:46      | The above exception was the direct cause of the following exception:
+11:55:46      | 
+11:55:46      | Traceback (most recent call last):
+11:55:46      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:55:46      |     main()
+11:55:46      |     ~~~~^^
+11:55:46      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:55:46      |     history = trainer.train()
+11:55:46      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:55:46      |     samples = self.sampler.sample(
+11:55:46      |         self.rbm,
+11:55:46      |         self.n_samples,
+11:55:46      |         config={"beta_x": self.beta_x},
+11:55:46      |     )
+11:55:46      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 272, in sample
+11:55:46      |     raise RuntimeError(
+11:55:46      |         f"VeloxQ sampling failed after {MAX_VELOX_RETRIES} attempts."
+11:55:46      |     ) from e
+11:55:46      | RuntimeError: VeloxQ sampling failed after 3 attempts.
+11:55:46    Attempt 1/2 failed (exit 1)
+11:55:46    Retrying (attempt 2/2) — [  17/18] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=1
+11:55:56      | <model.FullyConnectedRBM object at 0x7aa4ff973e00>
+11:55:56      | <ising.TransverseFieldIsing2D object at 0x7aa505e438c0>
+11:55:56      | None
+11:55:56      |   [VeloxQ] attempt 1/3 failed: Job 958fcc96-6f75-4660-9de8-44afe1036249 has not completed successfully.
+11:55:56      |   [VeloxQ] attempt 2/3 failed: Job 00cd9423-a877-4e3b-8aa3-37c18239708d has not completed successfully.
+11:55:56      |   [VeloxQ] attempt 3/3 failed: Job ee5cb8c4-8e8c-4eef-84de-f32250fd1ce9 has not completed successfully.
+11:55:56      |   [Trainer] Sampling failed at iteration 0: VeloxQ sampling failed after 3 attempts.
+11:55:56      |   [Trainer] Aborting this experiment.
+11:55:56      | Traceback (most recent call last):
+11:55:56      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 267, in sample
+11:55:56      |     sampleset = self.solver.sample(h, J)
+11:55:56      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/solvers.py", line 161, in sample
+11:55:56      |     return job.result
+11:55:56      |            ^^^^^^^^^^
+11:55:56      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/functools.py", line 1126, in __get__
+11:55:56      |     val = self.func(instance)
+11:55:56      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 387, in result
+11:55:56      |     temp_file = self._get_temp_result()
+11:55:56      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 482, in _get_temp_result
+11:55:56      |     self.download_result(f)
+11:55:56      |     ~~~~~~~~~~~~~~~~~~~~^^^
+11:55:56      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 408, in download_result
+11:55:56      |     raise RuntimeError(msg)
+11:55:56      | RuntimeError: Job ee5cb8c4-8e8c-4eef-84de-f32250fd1ce9 has not completed successfully.
+11:55:56      | 
+11:55:56      | The above exception was the direct cause of the following exception:
+11:55:56      | 
+11:55:56      | Traceback (most recent call last):
+11:55:56      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:55:56      |     main()
+11:55:56      |     ~~~~^^
+11:55:56      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:55:56      |     history = trainer.train()
+11:55:56      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:55:56      |     samples = self.sampler.sample(
+11:55:56      |         self.rbm,
+11:55:56      |         self.n_samples,
+11:55:56      |         config={"beta_x": self.beta_x},
+11:55:56      |     )
+11:55:56      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 272, in sample
+11:55:56      |     raise RuntimeError(
+11:55:56      |         f"VeloxQ sampling failed after {MAX_VELOX_RETRIES} attempts."
+11:55:56      |     ) from e
+11:55:56      | RuntimeError: VeloxQ sampling failed after 3 attempts.
+11:55:56    Attempt 2/2 failed (exit 1)
+11:55:56    All 2 attempts failed — skipping.
+11:55:56  [  18/18] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=42
+11:56:06      | <model.FullyConnectedRBM object at 0x752c78773e00>
+11:56:06      | <ising.TransverseFieldIsing2D object at 0x752c7ec438c0>
+11:56:06      | None
+11:56:06      |   [VeloxQ] attempt 1/3 failed: Job 0fd13098-2651-41b5-a13c-c7a6a5581017 has not completed successfully.
+11:56:06      |   [VeloxQ] attempt 2/3 failed: Job 8295e58c-0455-4953-b2d8-21a56278527d has not completed successfully.
+11:56:06      |   [VeloxQ] attempt 3/3 failed: Job e5a4d12b-8252-4cf2-97de-fcbaceb7c3ec has not completed successfully.
+11:56:06      |   [Trainer] Sampling failed at iteration 0: VeloxQ sampling failed after 3 attempts.
+11:56:06      |   [Trainer] Aborting this experiment.
+11:56:06      | Traceback (most recent call last):
+11:56:06      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 267, in sample
+11:56:06      |     sampleset = self.solver.sample(h, J)
+11:56:06      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/solvers.py", line 161, in sample
+11:56:06      |     return job.result
+11:56:06      |            ^^^^^^^^^^
+11:56:06      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/functools.py", line 1126, in __get__
+11:56:06      |     val = self.func(instance)
+11:56:06      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 387, in result
+11:56:06      |     temp_file = self._get_temp_result()
+11:56:06      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 482, in _get_temp_result
+11:56:06      |     self.download_result(f)
+11:56:06      |     ~~~~~~~~~~~~~~~~~~~~^^^
+11:56:06      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 408, in download_result
+11:56:06      |     raise RuntimeError(msg)
+11:56:06      | RuntimeError: Job e5a4d12b-8252-4cf2-97de-fcbaceb7c3ec has not completed successfully.
+11:56:06      | 
+11:56:06      | The above exception was the direct cause of the following exception:
+11:56:06      | 
+11:56:06      | Traceback (most recent call last):
+11:56:06      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:56:06      |     main()
+11:56:06      |     ~~~~^^
+11:56:06      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:56:06      |     history = trainer.train()
+11:56:06      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:56:06      |     samples = self.sampler.sample(
+11:56:06      |         self.rbm,
+11:56:06      |         self.n_samples,
+11:56:06      |         config={"beta_x": self.beta_x},
+11:56:06      |     )
+11:56:06      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 272, in sample
+11:56:06      |     raise RuntimeError(
+11:56:06      |         f"VeloxQ sampling failed after {MAX_VELOX_RETRIES} attempts."
+11:56:06      |     ) from e
+11:56:06      | RuntimeError: VeloxQ sampling failed after 3 attempts.
+11:56:06    Attempt 1/2 failed (exit 1)
+11:56:06    Retrying (attempt 2/2) — [  18/18] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=42
+11:56:15      | <model.FullyConnectedRBM object at 0x765c2da07e00>
+11:56:15      | <ising.TransverseFieldIsing2D object at 0x765c33f478c0>
+11:56:15      | None
+11:56:15      |   [VeloxQ] attempt 1/3 failed: Job 091846a2-e507-4077-b7ac-4e2ad3b06648 has not completed successfully.
+11:56:15      |   [VeloxQ] attempt 2/3 failed: Job a011efd4-604b-4e0a-977e-4af66b4fb7c6 has not completed successfully.
+11:56:15      |   [VeloxQ] attempt 3/3 failed: Job 43e238bc-9c53-4fb1-96ac-8294430ca726 has not completed successfully.
+11:56:15      |   [Trainer] Sampling failed at iteration 0: VeloxQ sampling failed after 3 attempts.
+11:56:15      |   [Trainer] Aborting this experiment.
+11:56:15      | Traceback (most recent call last):
+11:56:15      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 267, in sample
+11:56:15      |     sampleset = self.solver.sample(h, J)
+11:56:15      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/solvers.py", line 161, in sample
+11:56:15      |     return job.result
+11:56:15      |            ^^^^^^^^^^
+11:56:15      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/functools.py", line 1126, in __get__
+11:56:15      |     val = self.func(instance)
+11:56:15      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 387, in result
+11:56:15      |     temp_file = self._get_temp_result()
+11:56:15      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 482, in _get_temp_result
+11:56:15      |     self.download_result(f)
+11:56:15      |     ~~~~~~~~~~~~~~~~~~~~^^^
+11:56:15      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 408, in download_result
+11:56:15      |     raise RuntimeError(msg)
+11:56:15      | RuntimeError: Job 43e238bc-9c53-4fb1-96ac-8294430ca726 has not completed successfully.
+11:56:15      | 
+11:56:15      | The above exception was the direct cause of the following exception:
+11:56:15      | 
+11:56:15      | Traceback (most recent call last):
+11:56:15      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:56:15      |     main()
+11:56:15      |     ~~~~^^
+11:56:15      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:56:15      |     history = trainer.train()
+11:56:15      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:56:15      |     samples = self.sampler.sample(
+11:56:15      |         self.rbm,
+11:56:15      |         self.n_samples,
+11:56:15      |         config={"beta_x": self.beta_x},
+11:56:15      |     )
+11:56:15      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 272, in sample
+11:56:15      |     raise RuntimeError(
+11:56:15      |         f"VeloxQ sampling failed after {MAX_VELOX_RETRIES} attempts."
+11:56:15      |     ) from e
+11:56:15      | RuntimeError: VeloxQ sampling failed after 3 attempts.
+11:56:15    Attempt 2/2 failed (exit 1)
+11:56:15    All 2 attempts failed — skipping.
+11:56:15  
+11:56:15  ============================================================
+11:56:15  Benchmark finished : 2026-03-26 11:56:15
+11:56:15  Completed          : 16 / 18
+11:56:15  Failed (skipped)   : 2
+11:56:15  QPU time this run  : 0.10 min
+11:56:15  QPU time total     : 56.95 min
+11:56:15  ============================================================
+11:57:08  ============================================================
+11:57:08  Parallel runner started : 2026-03-26 11:57:08
+11:57:08  Workers                 : 1
+11:57:08  Total experiments       : 18
+11:57:08  Model                   : 2d  sizes=[4, 6, 8]
+11:57:08  N_NH_STEPS              : 1
+11:57:08  RBMs                    : ['full']
+11:57:08  H values                : [0.5, 1.0, 2.0]
+11:57:08  Samplers                : [('velox', 'velox')]
+11:57:08  QPU budget              : 60.0 min  (used so far: 57.08 min)
+11:57:08  ============================================================
+11:57:08    [skip] result already exists — [   1/18] size=4 nh=16 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=1
+11:57:08    [skip] result already exists — [   2/18] size=4 nh=16 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=42
+11:57:08    [skip] result already exists — [   3/18] size=4 nh=16 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=1
+11:57:08    [skip] result already exists — [   4/18] size=4 nh=16 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=42
+11:57:08    [skip] result already exists — [   5/18] size=4 nh=16 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=1
+11:57:08    [skip] result already exists — [   6/18] size=4 nh=16 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=42
+11:57:08    [skip] result already exists — [   7/18] size=6 nh=36 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=1
+11:57:08    [skip] result already exists — [   8/18] size=6 nh=36 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=42
+11:57:08    [skip] result already exists — [   9/18] size=6 nh=36 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=1
+11:57:08    [skip] result already exists — [  10/18] size=6 nh=36 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=42
+11:57:08    [skip] result already exists — [  11/18] size=6 nh=36 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=1
+11:57:08    [skip] result already exists — [  12/18] size=6 nh=36 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=42
+11:57:08    [skip] result already exists — [  13/18] size=8 nh=64 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=1
+11:57:08    [skip] result already exists — [  14/18] size=8 nh=64 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=42
+11:57:08    [skip] result already exists — [  15/18] size=8 nh=64 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=1
+11:57:08    [skip] result already exists — [  16/18] size=8 nh=64 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=42
+11:57:08  [  17/18] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=1
+11:57:18      | <model.FullyConnectedRBM object at 0x7fc170c3fe00>
+11:57:18      | <ising.TransverseFieldIsing2D object at 0x7fc17714b8c0>
+11:57:18      | None
+11:57:18      |   [VeloxQ] attempt 1/3 failed: Job 060e3067-3f64-4e31-8740-15dab4397220 has not completed successfully.
+11:57:18      |   [VeloxQ] attempt 2/3 failed: Job fc433065-eb00-4a1d-ac86-6d2409af2352 has not completed successfully.
+11:57:18      |   [VeloxQ] attempt 3/3 failed: Job 3e7995c5-1794-4300-adc1-3784fd776ee5 has not completed successfully.
+11:57:18      |   [Trainer] Sampling failed at iteration 0: VeloxQ sampling failed after 3 attempts.
+11:57:18      |   [Trainer] Aborting this experiment.
+11:57:18      | Traceback (most recent call last):
+11:57:18      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 267, in sample
+11:57:18      |     sampleset = self.solver.sample(h, J)
+11:57:18      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/solvers.py", line 161, in sample
+11:57:18      |     return job.result
+11:57:18      |            ^^^^^^^^^^
+11:57:18      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/functools.py", line 1126, in __get__
+11:57:18      |     val = self.func(instance)
+11:57:18      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 387, in result
+11:57:18      |     temp_file = self._get_temp_result()
+11:57:18      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 482, in _get_temp_result
+11:57:18      |     self.download_result(f)
+11:57:18      |     ~~~~~~~~~~~~~~~~~~~~^^^
+11:57:18      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 408, in download_result
+11:57:18      |     raise RuntimeError(msg)
+11:57:18      | RuntimeError: Job 3e7995c5-1794-4300-adc1-3784fd776ee5 has not completed successfully.
+11:57:18      | 
+11:57:18      | The above exception was the direct cause of the following exception:
+11:57:18      | 
+11:57:18      | Traceback (most recent call last):
+11:57:18      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:57:18      |     main()
+11:57:18      |     ~~~~^^
+11:57:18      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:57:18      |     history = trainer.train()
+11:57:18      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:57:18      |     samples = self.sampler.sample(
+11:57:18      |         self.rbm,
+11:57:18      |         self.n_samples,
+11:57:18      |         config={"beta_x": self.beta_x},
+11:57:18      |     )
+11:57:18      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 272, in sample
+11:57:18      |     raise RuntimeError(
+11:57:18      |         f"VeloxQ sampling failed after {MAX_VELOX_RETRIES} attempts."
+11:57:18      |     ) from e
+11:57:18      | RuntimeError: VeloxQ sampling failed after 3 attempts.
+11:57:18    Attempt 1/2 failed (exit 1)
+11:57:18    Retrying (attempt 2/2) — [  17/18] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=1
+11:57:25      | <model.FullyConnectedRBM object at 0x7b885ec2be00>
+11:57:25      | <ising.TransverseFieldIsing2D object at 0x7b886514b8c0>
+11:57:25      | None
+11:57:25      |   [embedding] Running minorminer for (64, 'Advantage_system6.4') — this may take a moment...
+11:57:25      |   [embedding] Embedding found and cached for (64, 'Advantage_system6.4').
+11:57:25      | Iter   0: E = -60.926894 ± 0.301403  β_x = 2.000  CG 200it res=1.13e-08  ‖x‖=60.4065
+11:57:25      | Iter  10: E = -120.719758 ± 0.061943  β_x = 2.100  CG 95it res=1.31e-09  ‖x‖=2.0596
+11:57:25      | Iter  20: E = -120.456218 ± 0.006809  β_x = 3.103  CG 30it res=1.69e-11  ‖x‖=0.7478
+11:57:25      | Iter  30: E = -122.067419 ± 0.047415  β_x = 2.786  CG 72it res=4.74e-09  ‖x‖=1.3069
+11:57:25      | Iter  40: E = -128.508099 ± 0.064196  β_x = 2.640  CG 8it res=9.66e-14  ‖x‖=0.6621
+11:57:25      | Iter  50: E = -137.090245 ± 0.004950  β_x = 2.904  CG 5it res=6.80e-13  ‖x‖=0.3917
+11:57:25      | Iter  60: E = -136.745548 ± 0.001344  β_x = 2.241  CG 1it res=8.31e-13  ‖x‖=0.0163
+11:57:25      | Iter  70: E = -136.604912 ± 0.000877  β_x = 2.224  CG 1it res=1.11e-12  ‖x‖=0.0126
+11:57:25      | Iter  80: E = -136.514521 ± 0.001338  β_x = 1.902  CG 1it res=5.30e-14  ‖x‖=0.0100
+11:57:25      | Iter  90: E = -136.340948 ± 0.001220  β_x = 1.893  CG 2it res=6.84e-13  ‖x‖=0.0085
+11:57:25      | Iter 100: E = -136.314483 ± 0.003366  β_x = 1.978  CG 4it res=7.55e-09  ‖x‖=0.4254
+11:57:25      | Iter 110: E = -136.219195 ± 0.000782  β_x = 1.865  CG 1it res=9.37e-13  ‖x‖=0.0053
+11:57:25      | Iter 120: E = -135.989821 ± 0.000648  β_x = 1.846  CG 3it res=1.80e-12  ‖x‖=0.0379
+11:57:25      | Iter 130: E = -135.851282 ± 0.000698  β_x = 2.025  CG 1it res=9.50e-13  ‖x‖=0.0044
+11:57:25      | Iter 140: E = -135.856207 ± 0.000506  β_x = 1.823  CG 2it res=7.29e-14  ‖x‖=0.0245
+11:57:25      | Iter 150: E = -135.771714 ± 0.000437  β_x = 1.559  CG 2it res=5.39e-13  ‖x‖=0.0073
+11:57:25      | Iter 160: E = -135.772314 ± 0.000383  β_x = 1.990  CG 1it res=4.73e-13  ‖x‖=0.0023
+11:57:25      | Iter 170: E = -135.774039 ± 0.000290  β_x = 2.183  CG 2it res=7.61e-13  ‖x‖=0.0022
+11:57:25      | Iter 180: E = -135.772580 ± 0.000211  β_x = 2.167  CG 2it res=2.40e-13  ‖x‖=0.0017
+11:57:25      | Iter 190: E = -135.786382 ± 0.000188  β_x = 2.502  CG 2it res=3.03e-13  ‖x‖=0.0013
+11:57:25      | Iter 200: E = -135.732439 ± 0.000104  β_x = 2.241  CG 1it res=1.10e-12  ‖x‖=0.0011
+11:57:25      | Iter 210: E = -135.707000 ± 0.000156  β_x = 2.224  CG 2it res=8.26e-13  ‖x‖=0.0010
+11:57:25      | Iter 220: E = -135.700913 ± 0.000104  β_x = 2.208  CG 2it res=5.92e-13  ‖x‖=0.0018
+11:57:25      | Iter 230: E = -135.644868 ± 0.000205  β_x = 2.543  CG 3it res=6.42e-13  ‖x‖=0.0240
+11:57:25      | Iter 240: E = -135.648690 ± 0.000099  β_x = 2.530  CG 1it res=6.79e-13  ‖x‖=0.0007
+11:57:25      | Iter 250: E = -135.624316 ± 0.000063  β_x = 2.386  CG 1it res=8.93e-13  ‖x‖=0.0004
+11:57:25      | Iter 260: E = -135.613300 ± 0.000049  β_x = 2.486  CG 2it res=4.38e-13  ‖x‖=0.0005
+11:57:25      | Iter 270: E = -135.611944 ± 0.000024  β_x = 2.591  CG 1it res=2.69e-13  ‖x‖=0.0002
+11:57:25      | Iter 280: E = -135.448873 ± 0.000083  β_x = 3.141  CG 2it res=7.21e-13  ‖x‖=0.0010
+11:57:25      | Iter 290: E = -135.429582 ± 0.000148  β_x = 3.446  CG 2it res=9.65e-13  ‖x‖=0.0099
+11:57:25      | Saved  → results/8/dimod/pegasus/result_2d_h1.0_rbmfull_nh64_lr0.1_reg0.001_ns1000_seed1_iter300.json
+11:57:25      |   Final energy : -135.430726
+11:57:25      |   Exact energy : -136.166400
+11:57:25      |   Error        : 0.735674
+11:57:25      |   Checkpoint → checkpoints/8/dimod/pegasus/full/checkpoint_2d_h1.0_rbmfull_nh64_lr0.1_iter0300.pkl
+11:57:27      | <model.FullyConnectedRBM object at 0x7cedb833be00>
+11:57:27      | <ising.TransverseFieldIsing2D object at 0x7cedbe8338c0>
+11:57:27      | None
+11:57:27      |   [VeloxQ] attempt 1/3 failed: Job 4a4a15ee-635f-42c2-8033-41430f196fbb has not completed successfully.
+11:57:27      |   [VeloxQ] attempt 2/3 failed: Job 2e61c21e-3e55-4176-9123-799e4478ceea has not completed successfully.
+11:57:27      |   [VeloxQ] attempt 3/3 failed: Job 85f1a4fc-965d-4565-b06c-3009304091fd has not completed successfully.
+11:57:27      |   [Trainer] Sampling failed at iteration 0: VeloxQ sampling failed after 3 attempts.
+11:57:27      |   [Trainer] Aborting this experiment.
+11:57:27      | Traceback (most recent call last):
+11:57:27      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 267, in sample
+11:57:27      |     sampleset = self.solver.sample(h, J)
+11:57:27      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/solvers.py", line 161, in sample
+11:57:27      |     return job.result
+11:57:27      |            ^^^^^^^^^^
+11:57:27      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/functools.py", line 1126, in __get__
+11:57:27      |     val = self.func(instance)
+11:57:27      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 387, in result
+11:57:27      |     temp_file = self._get_temp_result()
+11:57:27      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 482, in _get_temp_result
+11:57:27      |     self.download_result(f)
+11:57:27      |     ~~~~~~~~~~~~~~~~~~~~^^^
+11:57:27      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 408, in download_result
+11:57:27      |     raise RuntimeError(msg)
+11:57:27      | RuntimeError: Job 85f1a4fc-965d-4565-b06c-3009304091fd has not completed successfully.
+11:57:27      | 
+11:57:27      | The above exception was the direct cause of the following exception:
+11:57:27      | 
+11:57:27      | Traceback (most recent call last):
+11:57:27      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:57:27      |     main()
+11:57:27      |     ~~~~^^
+11:57:27      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:57:27      |     history = trainer.train()
+11:57:27      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:57:27      |     samples = self.sampler.sample(
+11:57:27      |         self.rbm,
+11:57:27      |         self.n_samples,
+11:57:27      |         config={"beta_x": self.beta_x},
+11:57:27      |     )
+11:57:27      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 272, in sample
+11:57:27      |     raise RuntimeError(
+11:57:27      |         f"VeloxQ sampling failed after {MAX_VELOX_RETRIES} attempts."
+11:57:27      |     ) from e
+11:57:27      | RuntimeError: VeloxQ sampling failed after 3 attempts.
+11:57:27    Attempt 2/2 failed (exit 1)
+11:57:27    All 2 attempts failed — skipping.
+11:57:27  [  18/18] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=42
+11:57:37      | <model.FullyConnectedRBM object at 0x7f0155c37e00>
+11:57:37      | <ising.TransverseFieldIsing2D object at 0x7f015c1478c0>
+11:57:37      | None
+11:57:37      |   [VeloxQ] attempt 1/3 failed: Job 8290a4be-6bbe-4f34-b770-757453654055 has not completed successfully.
+11:57:37      |   [VeloxQ] attempt 2/3 failed: Job e5b030dc-8a4e-4e74-a7e4-d7cd6437e26b has not completed successfully.
+11:57:37      |   [VeloxQ] attempt 3/3 failed: Job 10f41efe-a570-4b5f-b965-ddb7fdb16e71 has not completed successfully.
+11:57:37      |   [Trainer] Sampling failed at iteration 0: VeloxQ sampling failed after 3 attempts.
+11:57:37      |   [Trainer] Aborting this experiment.
+11:57:37      | Traceback (most recent call last):
+11:57:37      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 267, in sample
+11:57:37      |     sampleset = self.solver.sample(h, J)
+11:57:37      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/solvers.py", line 161, in sample
+11:57:37      |     return job.result
+11:57:37      |            ^^^^^^^^^^
+11:57:37      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/functools.py", line 1126, in __get__
+11:57:37      |     val = self.func(instance)
+11:57:37      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 387, in result
+11:57:37      |     temp_file = self._get_temp_result()
+11:57:37      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 482, in _get_temp_result
+11:57:37      |     self.download_result(f)
+11:57:37      |     ~~~~~~~~~~~~~~~~~~~~^^^
+11:57:37      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 408, in download_result
+11:57:37      |     raise RuntimeError(msg)
+11:57:37      | RuntimeError: Job 10f41efe-a570-4b5f-b965-ddb7fdb16e71 has not completed successfully.
+11:57:37      | 
+11:57:37      | The above exception was the direct cause of the following exception:
+11:57:37      | 
+11:57:37      | Traceback (most recent call last):
+11:57:37      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:57:37      |     main()
+11:57:37      |     ~~~~^^
+11:57:37      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:57:37      |     history = trainer.train()
+11:57:37      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:57:37      |     samples = self.sampler.sample(
+11:57:37      |         self.rbm,
+11:57:37      |         self.n_samples,
+11:57:37      |         config={"beta_x": self.beta_x},
+11:57:37      |     )
+11:57:37      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 272, in sample
+11:57:37      |     raise RuntimeError(
+11:57:37      |         f"VeloxQ sampling failed after {MAX_VELOX_RETRIES} attempts."
+11:57:37      |     ) from e
+11:57:37      | RuntimeError: VeloxQ sampling failed after 3 attempts.
+11:57:37    Attempt 1/2 failed (exit 1)
+11:57:37    Retrying (attempt 2/2) — [  18/18] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=42
+11:57:46      | <model.FullyConnectedRBM object at 0x719ace67be00>
+11:57:46      | <ising.TransverseFieldIsing2D object at 0x719ad4b4b8c0>
+11:57:46      | None
+11:57:46      |   [VeloxQ] attempt 1/3 failed: Job ddbd7087-0aaf-4f32-aba5-1bc282edb6e2 has not completed successfully.
+11:57:46      |   [VeloxQ] attempt 2/3 failed: Job 2dc29e94-36fd-41a1-93e1-b13131ef1369 has not completed successfully.
+11:57:46      |   [VeloxQ] attempt 3/3 failed: Job d195d67b-4459-4fc0-8555-ef25b672aac4 has not completed successfully.
+11:57:46      |   [Trainer] Sampling failed at iteration 0: VeloxQ sampling failed after 3 attempts.
+11:57:46      |   [Trainer] Aborting this experiment.
+11:57:46      | Traceback (most recent call last):
+11:57:46      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 267, in sample
+11:57:46      |     sampleset = self.solver.sample(h, J)
+11:57:46      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/solvers.py", line 161, in sample
+11:57:46      |     return job.result
+11:57:46      |            ^^^^^^^^^^
+11:57:46      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/functools.py", line 1126, in __get__
+11:57:46      |     val = self.func(instance)
+11:57:46      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 387, in result
+11:57:46      |     temp_file = self._get_temp_result()
+11:57:46      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 482, in _get_temp_result
+11:57:46      |     self.download_result(f)
+11:57:46      |     ~~~~~~~~~~~~~~~~~~~~^^^
+11:57:46      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 408, in download_result
+11:57:46      |     raise RuntimeError(msg)
+11:57:46      | RuntimeError: Job d195d67b-4459-4fc0-8555-ef25b672aac4 has not completed successfully.
+11:57:46      | 
+11:57:46      | The above exception was the direct cause of the following exception:
+11:57:46      | 
+11:57:46      | Traceback (most recent call last):
+11:57:46      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:57:46      |     main()
+11:57:46      |     ~~~~^^
+11:57:46      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:57:46      |     history = trainer.train()
+11:57:46      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:57:46      |     samples = self.sampler.sample(
+11:57:46      |         self.rbm,
+11:57:46      |         self.n_samples,
+11:57:46      |         config={"beta_x": self.beta_x},
+11:57:46      |     )
+11:57:46      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 272, in sample
+11:57:46      |     raise RuntimeError(
+11:57:46      |         f"VeloxQ sampling failed after {MAX_VELOX_RETRIES} attempts."
+11:57:46      |     ) from e
+11:57:46      | RuntimeError: VeloxQ sampling failed after 3 attempts.
+11:57:46    Attempt 2/2 failed (exit 1)
+11:57:46    All 2 attempts failed — skipping.
+11:57:46  
+11:57:46  ============================================================
+11:57:46  Benchmark finished : 2026-03-26 11:57:46
+11:57:46  Completed          : 16 / 18
+11:57:46  Failed (skipped)   : 2
+11:57:46  QPU time this run  : 0.08 min
+11:57:46  QPU time total     : 57.17 min
+11:57:46  ============================================================
