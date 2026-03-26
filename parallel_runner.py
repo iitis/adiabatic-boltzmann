@@ -31,17 +31,21 @@ OUTPUT_DIR = "results/"
 LOG_FILE = "parallel_benchmark.log"
 SCRIPT = "src/single_experiment.py"
 MODEL = "2d"
-SIZES = [6, 8]  # N=4 is complete for all samplers
+SIZES = [4, 6, 8]
 
 N_NH_STEPS = 1  # generates N evenly-spaced steps ending at n_visible
 LEARNING_RATES = [0.1]  # only lr=0.1 is used in plots
 SAMPLERS = [
-    ("custom", "metropolis"),
-    ("dimod", "simulated_annealing"),
+    ("dimod", "pegasus"),
+    ("dimod", "zephyr"),
     ("velox", "velox"),
 ]  # list of (sampler, method) pairs
 RBMS = ["full"]
 H_VALUES = [0.5, 1.0, 2.0]
+
+# Fixed values that single_experiment.py always uses (used for result path check)
+_REG = 0.001
+_NS = 1000
 SEEDS = [1, 42]
 ITERATIONS = 300
 
@@ -160,6 +164,29 @@ def _check_qpu_budget() -> tuple[bool, int]:
     return used < DWAVE_BUDGET_MS, used
 
 
+def result_exists(exp: dict) -> bool:
+    """Return True if the result file for this experiment already exists (2D only)."""
+    path = (
+        Path(OUTPUT_DIR)
+        / str(exp["size"])
+        / exp["sampler"]
+        / exp["method"]
+        / (
+            f"result_{MODEL}"
+            f"_h{exp['h']}"
+            f"_rbm{exp['rbm']}"
+            f"_nh{exp['n_hidden']}"
+            f"_lr{exp['lr']}"
+            f"_reg{_REG}"
+            f"_ns{_NS}"
+            f"_seed{exp['seed']}"
+            f"_iter{ITERATIONS}"
+            f".json"
+        )
+    )
+    return path.exists()
+
+
 # ---------------------------------------------------------------------------
 # Single-experiment worker
 # ---------------------------------------------------------------------------
@@ -174,6 +201,12 @@ def run_experiment(exp: dict, idx: int, total: int, dry_run: bool) -> bool:
         f"rbm={exp['rbm']} h={exp['h']} lr={exp['lr']} "
         f"{exp['sampler']}/{exp['method']} seed={exp['seed']}"
     )
+
+    if result_exists(exp):
+        log(f"  [skip] result already exists — {label}")
+        with _count_lock:
+            _done += 1
+        return True
 
     # QPU budget check — serialised so parallel D-Wave jobs don't race
     if _is_dwave(exp["method"]):
