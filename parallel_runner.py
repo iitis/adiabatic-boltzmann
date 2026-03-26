@@ -36,9 +36,11 @@ SIZES = [4, 6, 8]
 N_NH_STEPS = 1  # generates N evenly-spaced steps ending at n_visible
 LEARNING_RATES = [0.1]  # only lr=0.1 is used in plots
 SAMPLERS = [
+    ("custom", "metropolis"),
     ("velox", "velox"),
+    ("dimod", "simulated_annealing"),
 ]  # list of (sampler, method) pairs
-RBMS = ["full"]
+RBMS = ["pegasus"]
 H_VALUES = [0.5, 1.0, 2.0]
 
 # Fixed values that single_experiment.py always uses (used for result path check)
@@ -159,7 +161,9 @@ def _read_qpu_time_ms() -> int:
     except json.JSONDecodeError:
         # Attempt recovery: strip extra trailing braces (e.g. "}}" → "}")
         cleaned = text.rstrip("}") + "}"
-        log(f"  [warn] time.json parse failed, attempting recovery (stripped extra braces)")
+        log(
+            f"  [warn] time.json parse failed, attempting recovery (stripped extra braces)"
+        )
         return int(json.loads(cleaned).get("time_ms"))
 
 
