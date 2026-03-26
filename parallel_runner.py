@@ -49,7 +49,7 @@ _NS = 1000
 SEEDS = [1, 42]
 ITERATIONS = 300
 
-DWAVE_BUDGET_MS = 1_800_000  # 30 minutes in ms
+DWAVE_BUDGET_MS = 3_600_000  # 30 minutes in ms
 TIME_FILE = Path("time.json")
 
 MAX_RETRIES = 2

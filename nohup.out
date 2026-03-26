@@ -26825,3 +26825,1657 @@ SystemExit: 1
 19:36:28  QPU time this run  : 0.00 min
 19:36:28  QPU time total     : 35.74 min
 19:36:28  ============================================================
+10:58:07  ============================================================
+10:58:07  Parallel runner started : 2026-03-26 10:58:07
+10:58:07  Workers                 : 20
+10:58:07  Total experiments       : 54
+10:58:07  Model                   : 2d  sizes=[4, 6, 8]
+10:58:07  N_NH_STEPS              : 1
+10:58:07  RBMs                    : ['full']
+10:58:07  H values                : [0.5, 1.0, 2.0]
+10:58:07  Samplers                : [('dimod', 'pegasus'), ('dimod', 'zephyr'), ('velox', 'velox')]
+10:58:07  QPU budget              : 60.0 min  (used so far: 35.74 min)
+10:58:07  ============================================================
+10:58:07  [   1/54] size=4 nh=16 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/pegasus seed=1  QPU used=35.74min
+10:58:07    [skip] result already exists — [   5/54] size=4 nh=16 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=1
+10:58:07    [skip] result already exists — [   6/54] size=4 nh=16 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=42
+10:58:07  [   3/54] size=4 nh=16 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/zephyr seed=1  QPU used=35.74min
+10:58:07    [skip] result already exists — [  12/54] size=4 nh=16 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=42
+10:58:07    [skip] result already exists — [   8/54] size=4 nh=16 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/pegasus seed=42
+10:58:07  [   2/54] size=4 nh=16 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/pegasus seed=42  QPU used=35.74min
+10:58:07    [skip] result already exists — [   9/54] size=4 nh=16 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/zephyr seed=1
+10:58:07    [skip] result already exists — [  11/54] size=4 nh=16 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=1
+10:58:07    [skip] result already exists — [  10/54] size=4 nh=16 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/zephyr seed=42
+10:58:07  [   4/54] size=4 nh=16 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/zephyr seed=42  QPU used=35.74min
+10:58:07    [skip] result already exists — [   7/54] size=4 nh=16 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/pegasus seed=1
+10:58:07  [  13/54] size=4 nh=16 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/pegasus seed=1  QPU used=35.74min
+10:58:07  [  14/54] size=4 nh=16 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/pegasus seed=42  QPU used=35.74min
+10:58:07    [skip] result already exists — [  17/54] size=4 nh=16 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=1
+10:58:07  [  15/54] size=4 nh=16 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/zephyr seed=1  QPU used=35.74min
+10:58:07  [  16/54] size=4 nh=16 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/zephyr seed=42  QPU used=35.74min
+10:58:07    [skip] result already exists — [  18/54] size=4 nh=16 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=42
+10:58:07  [  19/54] size=6 nh=36 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/pegasus seed=1  QPU used=35.74min
+10:58:07    [skip] result already exists — [  23/54] size=6 nh=36 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=1
+10:58:07    [skip] result already exists — [  24/54] size=6 nh=36 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=42
+10:58:07  [  21/54] size=6 nh=36 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/zephyr seed=1  QPU used=35.74min
+10:58:07    [skip] result already exists — [  25/54] size=6 nh=36 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/pegasus seed=1
+10:58:07    [skip] result already exists — [  26/54] size=6 nh=36 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/pegasus seed=42
+10:58:07    [skip] result already exists — [  27/54] size=6 nh=36 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/zephyr seed=1
+10:58:07  [  20/54] size=6 nh=36 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/pegasus seed=42  QPU used=35.74min
+10:58:07    [skip] result already exists — [  28/54] size=6 nh=36 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/zephyr seed=42
+10:58:07  [  22/54] size=6 nh=36 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/zephyr seed=42  QPU used=35.74min
+10:58:07    [skip] result already exists — [  29/54] size=6 nh=36 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=1
+10:58:07    [skip] result already exists — [  30/54] size=6 nh=36 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=42
+10:58:07  [  31/54] size=6 nh=36 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/pegasus seed=1  QPU used=35.74min
+10:58:07  [  32/54] size=6 nh=36 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/pegasus seed=42  QPU used=35.74min
+10:58:07  [  33/54] size=6 nh=36 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/zephyr seed=1  QPU used=35.74min
+10:58:07    [skip] result already exists — [  35/54] size=6 nh=36 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=1
+10:58:07  [  34/54] size=6 nh=36 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/zephyr seed=42  QPU used=35.74min
+10:58:07    [skip] result already exists — [  36/54] size=6 nh=36 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=42
+10:58:07  [  37/54] size=8 nh=64 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/pegasus seed=1  QPU used=35.74min
+10:58:07  [  38/54] size=8 nh=64 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/pegasus seed=42  QPU used=35.74min
+10:58:07  [  39/54] size=8 nh=64 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/zephyr seed=1  QPU used=35.74min
+10:58:07  [  40/54] size=8 nh=64 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/zephyr seed=42  QPU used=35.74min
+11:05:46      | <model.FullyConnectedRBM object at 0x7eb04d053e00>
+11:05:46      | <ising.TransverseFieldIsing2D object at 0x7eb05354b8c0>
+11:05:46      | None
+11:05:46      |   [embedding] Running minorminer for (16, 'Advantage_system6.4') — this may take a moment...
+11:05:46      |   [embedding] Embedding found and cached for (16, 'Advantage_system6.4').
+11:05:46      | Iter   0: E = -30.516961 ± 0.125659  β_x = 2.000  CG 51it res=3.96e-09  ‖x‖=23.7278
+11:05:46      | Iter  10: E = -34.252927 ± 0.018502  β_x = 2.199  CG 8it res=1.96e-13  ‖x‖=4.8511
+11:05:46      | Iter  20: E = -40.044767 ± 0.000563  β_x = 2.413  CG 3it res=5.27e-13  ‖x‖=0.0069
+11:05:46      | Iter  30: E = -39.993697 ± 0.000406  β_x = 2.281  CG 3it res=7.02e-13  ‖x‖=0.0309
+11:05:46      | Iter  40: E = -39.957513 ± 0.000199  β_x = 2.377  CG 3it res=5.14e-13  ‖x‖=0.0197
+11:05:46      | Iter  50: E = -39.731249 ± 0.000437  β_x = 1.931  CG 1it res=1.11e-13  ‖x‖=0.0052
+11:05:46      | Iter  60: E = -39.874961 ± 0.000687  β_x = 2.236  CG 2it res=4.13e-14  ‖x‖=0.0083
+11:05:46      | Iter  70: E = -39.875760 ± 0.000321  β_x = 2.336  CG 2it res=2.23e-15  ‖x‖=0.0042
+11:05:46      | Iter  80: E = -39.848791 ± 0.001830  β_x = 2.832  CG 2it res=1.10e-14  ‖x‖=0.4643
+11:05:46      | Iter  90: E = -39.727745 ± 0.000149  β_x = 2.416  CG 3it res=6.16e-13  ‖x‖=0.0018
+11:05:46      | Iter 100: E = -39.928565 ± 0.000498  β_x = 2.289  CG 3it res=1.34e-12  ‖x‖=0.0060
+11:05:46      | Iter 110: E = -39.796878 ± 0.000309  β_x = 1.958  CG 3it res=8.04e-13  ‖x‖=0.0038
+11:05:46      | Iter 120: E = -39.589841 ± 0.003754  β_x = 2.153  CG 3it res=1.45e-11  ‖x‖=0.8317
+11:05:46      | Iter 130: E = -39.815705 ± 0.001424  β_x = 2.250  CG 2it res=6.80e-14  ‖x‖=0.3621
+11:05:46      | Iter 140: E = -39.628614 ± 0.000942  β_x = 2.864  CG 2it res=5.47e-14  ‖x‖=0.1008
+11:05:46      | Iter 150: E = -39.844379 ± 0.000614  β_x = 2.850  CG 2it res=7.52e-15  ‖x‖=0.0075
+11:05:46      | Iter 160: E = -39.742789 ± 0.000083  β_x = 3.134  CG 1it res=4.97e-14  ‖x‖=0.0010
+11:05:46      | Iter 170: E = -39.725075 ± 0.000056  β_x = 3.274  CG 2it res=3.80e-14  ‖x‖=0.0012
+11:05:46      | Iter 180: E = -39.722210 ± 0.000030  β_x = 2.800  CG 1it res=2.49e-14  ‖x‖=0.0004
+11:05:46      | Iter 190: E = -39.746971 ± 0.000329  β_x = 2.647  CG 2it res=3.24e-14  ‖x‖=0.0796
+11:05:46      | Iter 200: E = -39.728100 ± 0.000013  β_x = 2.383  CG 3it res=1.15e-14  ‖x‖=0.0034
+11:05:46      | Iter 210: E = -39.713870 ± 0.000015  β_x = 2.252  CG 2it res=5.95e-14  ‖x‖=0.0002
+11:05:46      | Iter 220: E = -39.713779 ± 0.000020  β_x = 2.731  CG 2it res=3.47e-14  ‖x‖=0.0033
+11:05:46      | Iter 230: E = -39.676541 ± 0.000022  β_x = 2.335  CG 1it res=3.44e-14  ‖x‖=0.0003
+11:05:46      | Iter 240: E = -39.708156 ± 0.000017  β_x = 2.575  CG 2it res=5.33e-14  ‖x‖=0.0004
+11:05:46      | Iter 250: E = -39.708466 ± 0.000007  β_x = 2.312  CG 3it res=6.13e-14  ‖x‖=0.0001
+11:05:46      | Iter 260: E = -39.708183 ± 0.000004  β_x = 2.306  CG 2it res=6.57e-14  ‖x‖=0.0001
+11:05:46      | Iter 270: E = -39.704794 ± 0.000006  β_x = 2.410  CG 1it res=8.51e-14  ‖x‖=0.0001
+11:05:46      | Iter 280: E = -39.611303 ± 0.000167  β_x = 3.068  CG 1it res=2.36e-14  ‖x‖=0.0020
+11:05:46      | Iter 290: E = -39.617267 ± 0.000076  β_x = 2.762  CG 1it res=9.93e-17  ‖x‖=0.0009
+11:05:46      | Saved  → results/4/dimod/pegasus/result_2d_h2.0_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed42_iter300.json
+11:05:46      |   Final energy : -39.696026
+11:05:46      |   Exact energy : -39.278400
+11:05:46      |   Error        : 0.417626
+11:05:46      |   Checkpoint → checkpoints/4/dimod/pegasus/full/checkpoint_2d_h2.0_rbmfull_nh16_lr0.1_iter0300.pkl
+11:05:46    [skip] result already exists — [  41/54] size=8 nh=64 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=1
+11:05:46    [skip] result already exists — [  42/54] size=8 nh=64 (α=1.00) rbm=full h=0.5 lr=0.1 velox/velox seed=42
+11:05:46  [  43/54] size=8 nh=64 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/pegasus seed=1  QPU used=47.37min
+11:06:01      | <model.FullyConnectedRBM object at 0x78b94d78be00>
+11:06:01      | <ising.TransverseFieldIsing2D object at 0x78b953c438c0>
+11:06:01      | None
+11:06:01      |   [embedding] Running minorminer for (16, 'Advantage_system6.4') — this may take a moment...
+11:06:01      |   [embedding] Embedding found and cached for (16, 'Advantage_system6.4').
+11:06:01      | Iter   0: E = -7.873577 ± 0.135696  β_x = 2.000  CG 58it res=3.79e-09  ‖x‖=33.3933
+11:06:01      | Iter  10: E = -33.010229 ± 0.004611  β_x = 1.990  CG 2it res=6.37e-15  ‖x‖=1.1069
+11:06:01      | Iter  20: E = -32.947960 ± 0.000393  β_x = 1.613  CG 1it res=6.58e-14  ‖x‖=0.0048
+11:06:01      | Iter  30: E = -32.893980 ± 0.005004  β_x = 1.765  CG 2it res=5.86e-14  ‖x‖=1.1922
+11:06:01      | Iter  40: E = -32.832057 ± 0.000389  β_x = 2.140  CG 1it res=1.90e-14  ‖x‖=0.0049
+11:06:01      | Iter  50: E = -32.823279 ± 0.003511  β_x = 1.921  CG 2it res=4.58e-14  ‖x‖=0.8428
+11:06:01      | Iter  60: E = -32.796259 ± 0.000339  β_x = 1.816  CG 1it res=4.08e-14  ‖x‖=0.0042
+11:06:01      | Iter  70: E = -32.791560 ± 0.000344  β_x = 1.898  CG 1it res=3.23e-14  ‖x‖=0.0039
+11:06:01      | Iter  80: E = -32.777024 ± 0.000298  β_x = 1.794  CG 1it res=6.48e-14  ‖x‖=0.0037
+11:06:01      | Iter  90: E = -32.705816 ± 0.000176  β_x = 1.457  CG 1it res=3.70e-14  ‖x‖=0.0020
+11:06:01      | Iter 100: E = -32.671788 ± 0.000225  β_x = 1.450  CG 1it res=6.85e-14  ‖x‖=0.0032
+11:06:01      | Iter 110: E = -32.633114 ± 0.000264  β_x = 1.587  CG 1it res=8.43e-14  ‖x‖=0.0032
+11:06:01      | Iter 120: E = -32.618022 ± 0.000274  β_x = 1.741  CG 1it res=1.08e-15  ‖x‖=0.0034
+11:06:01      | Iter 130: E = -32.616907 ± 0.000272  β_x = 1.814  CG 1it res=2.21e-14  ‖x‖=0.0032
+11:06:01      | Iter 140: E = -32.611585 ± 0.000245  β_x = 1.990  CG 1it res=7.32e-14  ‖x‖=0.0029
+11:06:01      | Iter 150: E = -32.615486 ± 0.000156  β_x = 1.791  CG 1it res=4.98e-14  ‖x‖=0.0027
+11:06:01      | Iter 160: E = -32.603633 ± 0.000454  β_x = 1.532  CG 2it res=5.87e-14  ‖x‖=0.1015
+11:06:01      | Iter 170: E = -32.604702 ± 0.000188  β_x = 1.248  CG 1it res=3.01e-14  ‖x‖=0.0023
+11:06:01      | Iter 180: E = -32.605143 ± 0.000182  β_x = 1.304  CG 1it res=1.74e-14  ‖x‖=0.0022
+11:06:01      | Iter 190: E = -32.604094 ± 0.000182  β_x = 1.505  CG 1it res=1.06e-13  ‖x‖=0.0021
+11:06:01      | Iter 200: E = -32.605530 ± 0.000160  β_x = 1.573  CG 1it res=5.37e-14  ‖x‖=0.0020
+11:06:01      | Iter 210: E = -32.604492 ± 0.000164  β_x = 1.730  CG 2it res=6.35e-15  ‖x‖=0.0019
+11:06:01      |   D-Wave sampling attempt 1/3 failed: Expecting value: line 1 column 1 (char 0)
+11:06:01      |   [embedding] Running minorminer for (16, 'Advantage_system6.4') — this may take a moment...
+11:06:01      |   [embedding] Embedding found and cached for (16, 'Advantage_system6.4').
+11:06:01      | Iter 220: E = -32.601253 ± 0.000151  β_x = 1.553  CG 1it res=2.60e-14  ‖x‖=0.0018
+11:06:01      | Iter 230: E = -32.588863 ± 0.000230  β_x = 1.542  CG 1it res=2.38e-14  ‖x‖=0.0026
+11:06:01      | Iter 240: E = -32.586077 ± 0.000197  β_x = 1.695  CG 1it res=8.12e-14  ‖x‖=0.0025
+11:06:01      | Iter 250: E = -32.586124 ± 0.000187  β_x = 1.312  CG 1it res=1.82e-14  ‖x‖=0.0024
+11:06:01      | Iter 260: E = -32.588638 ± 0.000201  β_x = 1.374  CG 1it res=6.50e-14  ‖x‖=0.0023
+11:06:01      | Iter 270: E = -32.578233 ± 0.000219  β_x = 1.364  CG 1it res=6.23e-14  ‖x‖=0.0026
+11:06:01      | Iter 280: E = -32.573289 ± 0.000224  β_x = 1.575  CG 1it res=6.43e-14  ‖x‖=0.0026
+11:06:01      | Iter 290: E = -32.572411 ± 0.000206  β_x = 1.414  CG 1it res=2.20e-14  ‖x‖=0.0025
+11:06:01      | Saved  → results/4/dimod/pegasus/result_2d_h0.5_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed42_iter300.json
+11:06:01      |   Final energy : -32.573003
+11:06:01      |   Exact energy : -32.888000
+11:06:01      |   Error        : 0.314997
+11:06:01      |   Checkpoint → checkpoints/4/dimod/pegasus/full/checkpoint_2d_h0.5_rbmfull_nh16_lr0.1_iter0300.pkl
+11:06:01  [  44/54] size=8 nh=64 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/pegasus seed=42  QPU used=47.72min
+11:06:02      | <model.FullyConnectedRBM object at 0x7d2c06013e00>
+11:06:02      | <ising.TransverseFieldIsing2D object at 0x7d2c0c53b8c0>
+11:06:02      | None
+11:06:02      |   [embedding] Running minorminer for (16, 'Advantage_system6.4') — this may take a moment...
+11:06:02      |   [embedding] Embedding found and cached for (16, 'Advantage_system6.4').
+11:06:02      | Iter   0: E = -30.535350 ± 0.074431  β_x = 2.000  CG 29it res=1.64e-09  ‖x‖=16.5564
+11:06:02      | Iter  10: E = -43.327610 ± 0.000532  β_x = 2.419  CG 6it res=1.02e-13  ‖x‖=0.0367
+11:06:02      | Iter  20: E = -42.828839 ± 0.003575  β_x = 2.527  CG 7it res=3.81e-14  ‖x‖=0.9228
+11:06:02      | Iter  30: E = -41.945172 ± 0.001979  β_x = 2.640  CG 4it res=5.63e-10  ‖x‖=0.0243
+11:06:02      | Iter  40: E = -41.604250 ± 0.003898  β_x = 2.752  CG 3it res=7.04e-12  ‖x‖=0.0481
+11:06:02      | Iter  50: E = -41.261558 ± 0.001760  β_x = 2.353  CG 2it res=4.94e-14  ‖x‖=0.0228
+11:06:02      | Iter  60: E = -41.330144 ± 0.000437  β_x = 2.224  CG 3it res=9.46e-13  ‖x‖=0.0058
+11:06:02      | Iter  70: E = -40.987598 ± 0.001833  β_x = 2.002  CG 2it res=6.31e-14  ‖x‖=0.0237
+11:06:02      | Iter  80: E = -40.995379 ± 0.000754  β_x = 1.798  CG 2it res=6.63e-14  ‖x‖=0.0093
+11:06:02      | Iter  90: E = -40.955698 ± 0.000375  β_x = 1.794  CG 3it res=4.03e-13  ‖x‖=0.0046
+11:06:02      | Iter 100: E = -40.951308 ± 0.000143  β_x = 1.611  CG 3it res=8.18e-14  ‖x‖=0.0019
+11:06:02      | Iter 110: E = -40.796112 ± 0.000588  β_x = 1.450  CG 2it res=2.12e-14  ‖x‖=0.0072
+11:06:02      | Iter 120: E = -40.584286 ± 0.001338  β_x = 1.515  CG 2it res=1.24e-14  ‖x‖=0.0187
+11:06:02      | Iter 130: E = -40.613618 ± 0.000546  β_x = 1.436  CG 3it res=8.76e-13  ‖x‖=0.0074
+11:06:02      | Iter 140: E = -40.657592 ± 0.000180  β_x = 1.579  CG 3it res=2.08e-13  ‖x‖=0.0025
+11:06:02      | Iter 150: E = -40.655077 ± 0.000079  β_x = 1.649  CG 3it res=4.80e-14  ‖x‖=0.0009
+11:06:02      | Iter 160: E = -40.639547 ± 0.000032  β_x = 1.411  CG 2it res=6.33e-14  ‖x‖=0.0007
+11:06:02      | Iter 170: E = -40.646975 ± 0.000051  β_x = 1.551  CG 4it res=5.57e-12  ‖x‖=0.0028
+11:06:02      | Iter 180: E = -40.136393 ± 0.004256  β_x = 1.397  CG 3it res=1.59e-13  ‖x‖=0.8166
+11:06:02      | Iter 190: E = -40.386528 ± 0.000603  β_x = 1.536  CG 3it res=2.44e-13  ‖x‖=0.0079
+11:06:02      | Iter 200: E = -40.361100 ± 0.000612  β_x = 1.314  CG 3it res=5.61e-12  ‖x‖=0.0080
+11:06:02      | Iter 210: E = -40.367401 ± 0.000267  β_x = 1.307  CG 3it res=1.64e-13  ‖x‖=0.0032
+11:06:02      | Iter 220: E = -40.291954 ± 0.001659  β_x = 1.235  CG 7it res=4.57e-15  ‖x‖=0.4112
+11:06:02      | Iter 230: E = -40.174247 ± 0.001077  β_x = 1.294  CG 3it res=1.05e-13  ‖x‖=0.0130
+11:06:02      | Iter 240: E = -40.159258 ± 0.000468  β_x = 1.284  CG 2it res=4.27e-14  ‖x‖=0.0059
+11:06:02      | Iter 250: E = -40.161380 ± 0.000225  β_x = 1.153  CG 3it res=5.83e-13  ‖x‖=0.0027
+11:06:02      | Iter 260: E = -40.159308 ± 0.000095  β_x = 1.148  CG 3it res=5.51e-14  ‖x‖=0.0013
+11:06:02      | Iter 270: E = -40.129825 ± 0.000091  β_x = 1.030  CG 2it res=3.54e-14  ‖x‖=0.0011
+11:06:02      | Iter 280: E = -40.135101 ± 0.000037  β_x = 0.797  CG 2it res=5.30e-14  ‖x‖=0.0005
+11:06:02      | Iter 290: E = -40.135034 ± 0.000016  β_x = 0.877  CG 3it res=2.06e-14  ‖x‖=0.0002
+11:06:02      | Saved  → results/4/dimod/pegasus/result_2d_h2.0_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed1_iter300.json
+11:06:02      |   Final energy : -40.135145
+11:06:02      |   Exact energy : -39.278400
+11:06:02      |   Error        : 0.856745
+11:06:02      |   Checkpoint → checkpoints/4/dimod/pegasus/full/checkpoint_2d_h2.0_rbmfull_nh16_lr0.1_iter0300.pkl
+11:06:02  [  45/54] size=8 nh=64 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/zephyr seed=1  QPU used=47.72min
+11:06:07      | <model.FullyConnectedRBM object at 0x7cbe3d753e00>
+11:06:07      | <ising.TransverseFieldIsing2D object at 0x7cbe43c438c0>
+11:06:07      | None
+11:06:07      |   [embedding] Running minorminer for (16, 'Advantage_system6.4') — this may take a moment...
+11:06:07      |   [embedding] Embedding found and cached for (16, 'Advantage_system6.4').
+11:06:07      | Iter   0: E = -5.780809 ± 0.068023  β_x = 2.000  CG 30it res=1.81e-09  ‖x‖=15.9760
+11:06:07      | Iter  10: E = -34.129111 ± 0.006892  β_x = 1.891  CG 2it res=1.17e-13  ‖x‖=1.4708
+11:06:07      | Iter  20: E = -33.903803 ± 0.002721  β_x = 2.183  CG 1it res=7.23e-15  ‖x‖=0.0331
+11:06:07      | Iter  30: E = -33.807113 ± 0.001417  β_x = 2.521  CG 1it res=1.88e-14  ‖x‖=0.0195
+11:06:07      | Iter  40: E = -33.736401 ± 0.001429  β_x = 2.502  CG 1it res=7.14e-14  ‖x‖=0.0173
+11:06:07      | Iter  50: E = -33.645746 ± 0.000937  β_x = 2.489  CG 1it res=1.18e-15  ‖x‖=0.0129
+11:06:07      | Iter  60: E = -33.593175 ± 0.000984  β_x = 2.230  CG 1it res=3.99e-14  ‖x‖=0.0123
+11:06:07      | Iter  70: E = -33.594884 ± 0.000811  β_x = 2.575  CG 1it res=9.27e-15  ‖x‖=0.0108
+11:06:07      | Iter  80: E = -33.587916 ± 0.000782  β_x = 2.690  CG 1it res=4.83e-15  ‖x‖=0.0095
+11:06:07      | Iter  90: E = -33.496533 ± 0.000426  β_x = 2.186  CG 1it res=2.30e-14  ‖x‖=0.0056
+11:06:07      | Iter 100: E = -33.415390 ± 0.000343  β_x = 1.776  CG 1it res=8.13e-15  ‖x‖=0.0051
+11:06:07      | Iter 110: E = -33.408610 ± 0.000389  β_x = 2.045  CG 1it res=5.19e-14  ‖x‖=0.0045
+11:06:07      | Iter 120: E = -33.328728 ± 0.000248  β_x = 1.428  CG 1it res=6.17e-14  ‖x‖=0.0029
+11:06:07      | Iter 130: E = -33.329158 ± 0.000221  β_x = 1.571  CG 1it res=4.45e-14  ‖x‖=0.0026
+11:06:07      | Iter 140: E = -33.327887 ± 0.000201  β_x = 1.411  CG 1it res=6.83e-14  ‖x‖=0.0023
+11:06:07      | Iter 150: E = -33.329681 ± 0.000174  β_x = 1.404  CG 1it res=2.81e-14  ‖x‖=0.0021
+11:06:07      |   D-Wave sampling attempt 1/3 failed: Expecting value: line 1 column 1 (char 0)
+11:06:07      |   [embedding] Running minorminer for (16, 'Advantage_system6.4') — this may take a moment...
+11:06:07      |   [embedding] Embedding found and cached for (16, 'Advantage_system6.4').
+11:06:07      | Iter 160: E = -33.329031 ± 0.000160  β_x = 1.470  CG 1it res=2.29e-14  ‖x‖=0.0019
+11:06:07      | Iter 170: E = -33.184440 ± 0.000355  β_x = 1.532  CG 1it res=6.04e-15  ‖x‖=0.0041
+11:06:07      | Iter 180: E = -33.128552 ± 0.000568  β_x = 1.765  CG 1it res=3.34e-14  ‖x‖=0.0070
+11:06:07      | Iter 190: E = -33.136466 ± 0.000565  β_x = 1.585  CG 1it res=2.78e-14  ‖x‖=0.0064
+11:06:07      | Iter 200: E = -33.085136 ± 0.000459  β_x = 2.017  CG 1it res=4.11e-14  ‖x‖=0.0053
+11:06:07      | Iter 210: E = -33.084267 ± 0.000418  β_x = 1.812  CG 1it res=1.01e-14  ‖x‖=0.0048
+11:06:07      | Iter 220: E = -33.088050 ± 0.000389  β_x = 1.712  CG 1it res=6.17e-15  ‖x‖=0.0045
+11:06:07      | Iter 230: E = -33.084887 ± 0.000356  β_x = 1.789  CG 1it res=6.97e-14  ‖x‖=0.0041
+11:06:07      | Iter 240: E = -33.085448 ± 0.000329  β_x = 1.530  CG 1it res=7.01e-14  ‖x‖=0.0038
+11:06:07      | Iter 250: E = -33.084751 ± 0.000299  β_x = 1.855  CG 1it res=4.38e-14  ‖x‖=0.0035
+11:06:07      | Iter 260: E = -33.085682 ± 0.000279  β_x = 1.846  CG 1it res=1.42e-14  ‖x‖=0.0032
+11:06:07      | Iter 270: E = -33.084774 ± 0.000252  β_x = 1.741  CG 1it res=6.13e-14  ‖x‖=0.0029
+11:06:07      | Iter 280: E = -33.086500 ± 0.000238  β_x = 1.728  CG 1it res=5.87e-14  ‖x‖=0.0027
+11:06:07      | Iter 290: E = -33.090361 ± 0.000184  β_x = 1.805  CG 1it res=7.14e-14  ‖x‖=0.0025
+11:06:07      | Saved  → results/4/dimod/pegasus/result_2d_h0.5_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed1_iter300.json
+11:06:07      |   Final energy : -33.085805
+11:06:07      |   Exact energy : -32.888000
+11:06:07      |   Error        : 0.197805
+11:06:07      |   Checkpoint → checkpoints/4/dimod/pegasus/full/checkpoint_2d_h0.5_rbmfull_nh16_lr0.1_iter0300.pkl
+11:06:07    [skip] result already exists — [  46/54] size=8 nh=64 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/zephyr seed=42
+11:06:07    [skip] result already exists — [  47/54] size=8 nh=64 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=1
+11:06:07    [skip] result already exists — [  48/54] size=8 nh=64 (α=1.00) rbm=full h=1.0 lr=0.1 velox/velox seed=42
+11:06:07  [  49/54] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/pegasus seed=1  QPU used=47.85min
+11:06:13      | <model.FullyConnectedRBM object at 0x734e6ccbfe00>
+11:06:13      | <ising.TransverseFieldIsing2D object at 0x734e7314b8c0>
+11:06:13      | None
+11:06:13      |   [embedding] Running minorminer for (16, 'Advantage2_system1.13') — this may take a moment...
+11:06:13      |   [embedding] Embedding found and cached for (16, 'Advantage2_system1.13').
+11:06:13      | Iter   0: E = -33.022179 ± 0.080142  β_x = 2.000  CG 25it res=6.68e-10  ‖x‖=9.8046
+11:06:13      | Iter  10: E = -35.829906 ± 0.004592  β_x = 1.393  CG 1it res=3.05e-14  ‖x‖=0.0666
+11:06:13      | Iter  20: E = -34.251816 ± 0.000055  β_x = 1.681  CG 1it res=4.11e-14  ‖x‖=0.0019
+11:06:13      | Iter  30: E = -34.247067 ± 0.000002  β_x = 1.660  CG 1it res=8.69e-15  ‖x‖=0.0001
+11:06:13      | Iter  40: E = -34.246799 ± 0.000000  β_x = 1.812  CG 1it res=1.65e-15  ‖x‖=0.0000
+11:06:13      | Iter  50: E = -34.246785 ± 0.000000  β_x = 1.978  CG 1it res=4.45e-14  ‖x‖=0.0000
+11:06:13      | Iter  60: E = -34.246784 ± 0.000000  β_x = 2.159  CG 1it res=7.35e-14  ‖x‖=0.0000
+11:06:13      | Iter  70: E = -34.246784 ± 0.000000  β_x = 2.035  CG 0it res=6.30e-09  ‖x‖=0.0000
+11:06:13      | Iter  80: E = -34.246784 ± 0.000000  β_x = 2.238  CG 0it res=4.74e-09  ‖x‖=0.0000
+11:06:13      | Iter  90: E = -34.246784 ± 0.000000  β_x = 1.914  CG 0it res=5.31e-09  ‖x‖=0.0000
+11:06:13      | Iter 100: E = -34.246784 ± 0.000000  β_x = 2.000  CG 0it res=8.22e-09  ‖x‖=0.0000
+11:06:13      | Iter 110: E = -34.246784 ± 0.000000  β_x = 1.890  CG 0it res=5.88e-09  ‖x‖=0.0000
+11:06:13      | Iter 120: E = -34.246784 ± 0.000000  β_x = 2.177  CG 0it res=4.81e-09  ‖x‖=0.0000
+11:06:13      | Iter 130: E = -34.869010 ± 0.006019  β_x = 2.401  CG 2it res=1.81e-15  ‖x‖=0.1582
+11:06:13      | Iter 140: E = -34.853102 ± 0.000063  β_x = 2.258  CG 3it res=2.00e-14  ‖x‖=0.0033
+11:06:13      | Iter 150: E = -34.846905 ± 0.000002  β_x = 2.465  CG 2it res=3.58e-09  ‖x‖=0.0001
+11:06:13      | Iter 160: E = -34.846590 ± 0.000000  β_x = 1.992  CG 3it res=1.01e-14  ‖x‖=0.0000
+11:06:13      | Iter 170: E = -34.846574 ± 0.000000  β_x = 1.780  CG 2it res=4.40e-09  ‖x‖=0.0000
+11:06:13      | Iter 180: E = -34.846573 ± 0.000000  β_x = 1.302  CG 1it res=4.70e-09  ‖x‖=0.0000
+11:06:13      | Iter 190: E = -34.846573 ± 0.000000  β_x = 1.428  CG 0it res=6.56e-09  ‖x‖=0.0000
+11:06:13      | Iter 200: E = -34.846573 ± 0.000000  β_x = 1.350  CG 1it res=3.33e-09  ‖x‖=0.0000
+11:06:13      | Iter 210: E = -34.846573 ± 0.000000  β_x = 1.273  CG 0it res=6.02e-09  ‖x‖=0.0000
+11:06:13      | Iter 220: E = -34.846573 ± 0.000000  β_x = 1.544  CG 0it res=8.31e-09  ‖x‖=0.0000
+11:06:13      | Iter 230: E = -41.457098 ± 0.055685  β_x = 1.617  CG 3it res=8.09e-15  ‖x‖=1.7508
+11:06:13      | Iter 240: E = -41.645786 ± 0.000135  β_x = 1.617  CG 1it res=2.67e-15  ‖x‖=0.0033
+11:06:13      | Iter 250: E = -41.653603 ± 0.000009  β_x = 1.617  CG 1it res=6.71e-14  ‖x‖=0.0002
+11:06:13      | Iter 260: E = -41.648503 ± 0.005573  β_x = 1.536  CG 2it res=6.17e-14  ‖x‖=1.8609
+11:06:13      | Iter 270: E = -40.571233 ± 0.000491  β_x = 1.601  CG 1it res=4.25e-14  ‖x‖=0.0066
+11:06:13      | Iter 280: E = -40.567728 ± 0.000037  β_x = 1.668  CG 1it res=6.75e-15  ‖x‖=0.0005
+11:06:13      | Iter 290: E = -40.209548 ± 0.000053  β_x = 1.502  CG 1it res=2.90e-14  ‖x‖=0.0007
+11:06:13      | Saved  → results/4/dimod/zephyr/result_2d_h2.0_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed42_iter300.json
+11:06:13      |   Final energy : -40.210289
+11:06:13      |   Exact energy : -39.278400
+11:06:13      |   Error        : 0.931889
+11:06:13      |   Checkpoint → checkpoints/4/dimod/zephyr/full/checkpoint_2d_h2.0_rbmfull_nh16_lr0.1_iter0300.pkl
+11:06:13  [  50/54] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/pegasus seed=42  QPU used=47.97min
+11:06:15      | <model.FullyConnectedRBM object at 0x7750ab213e00>
+11:06:15      | <ising.TransverseFieldIsing2D object at 0x7750b174b8c0>
+11:06:15      | None
+11:06:15      |   [embedding] Running minorminer for (16, 'Advantage2_system1.13') — this may take a moment...
+11:06:15      |   [embedding] Embedding found and cached for (16, 'Advantage2_system1.13').
+11:06:15      | Iter   0: E = -7.859960 ± 0.026972  β_x = 2.000  CG 10it res=5.52e-10  ‖x‖=6.2227
+11:06:15      | Iter  10: E = -29.198988 ± 0.000601  β_x = 2.309  CG 1it res=5.21e-14  ‖x‖=0.0478
+11:06:15      | Iter  20: E = -28.950833 ± 0.000363  β_x = 3.079  CG 1it res=3.67e-14  ‖x‖=0.0230
+11:06:15      | Iter  30: E = -28.756564 ± 0.000233  β_x = 4.106  CG 1it res=2.51e-14  ‖x‖=0.0135
+11:06:15      | Iter  40: E = -28.743619 ± 0.000171  β_x = 3.669  CG 1it res=4.60e-14  ‖x‖=0.0080
+11:06:15      | Iter  50: E = -28.735911 ± 0.000126  β_x = 3.623  CG 1it res=8.35e-14  ‖x‖=0.0048
+11:06:15      | Iter  60: E = -28.229016 ± 0.000137  β_x = 3.083  CG 1it res=2.80e-14  ‖x‖=0.0160
+11:06:15      | Iter  70: E = -28.241970 ± 0.000075  β_x = 3.083  CG 1it res=6.81e-15  ‖x‖=0.0106
+11:06:15      | Iter  80: E = -28.251424 ± 0.000068  β_x = 3.083  CG 1it res=1.47e-14  ‖x‖=0.0069
+11:06:15      | Iter  90: E = -28.257355 ± 0.000022  β_x = 3.083  CG 1it res=9.20e-15  ‖x‖=0.0042
+11:06:15      | Iter 100: E = -28.001609 ± 0.000123  β_x = 2.153  CG 1it res=4.09e-15  ‖x‖=0.0055
+11:06:15      | Iter 110: E = -27.997199 ± 0.000087  β_x = 2.598  CG 1it res=2.61e-14  ‖x‖=0.0036
+11:06:15      | Iter 120: E = -27.994480 ± 0.000041  β_x = 2.565  CG 1it res=1.23e-15  ‖x‖=0.0024
+11:06:15      | Iter 130: E = -27.992501 ± 0.000032  β_x = 2.800  CG 1it res=5.07e-14  ‖x‖=0.0016
+11:06:15      | Iter 140: E = -27.991236 ± 0.000020  β_x = 2.264  CG 1it res=4.54e-14  ‖x‖=0.0010
+11:06:15      | Iter 150: E = -27.990399 ± 0.000013  β_x = 1.830  CG 1it res=1.88e-14  ‖x‖=0.0007
+11:06:15      | Iter 160: E = -27.989829 ± 0.000010  β_x = 1.338  CG 1it res=3.40e-14  ‖x‖=0.0005
+11:06:15      | Iter 170: E = -27.706871 ± 0.000102  β_x = 1.398  CG 1it res=3.62e-14  ‖x‖=0.0116
+11:06:15      | Iter 180: E = -27.715950 ± 0.000081  β_x = 1.398  CG 1it res=1.09e-14  ‖x‖=0.0080
+11:06:15      | Iter 190: E = -27.722110 ± 0.000048  β_x = 1.398  CG 1it res=3.75e-15  ‖x‖=0.0055
+11:06:15      | Iter 200: E = -27.725975 ± 0.000028  β_x = 1.398  CG 1it res=1.27e-14  ‖x‖=0.0039
+11:06:15      | Iter 210: E = -27.728747 ± 0.000020  β_x = 1.398  CG 1it res=4.45e-14  ‖x‖=0.0028
+11:06:15      | Iter 220: E = -27.730912 ± 0.000014  β_x = 1.398  CG 1it res=7.13e-16  ‖x‖=0.0019
+11:06:15      | Iter 230: E = -27.732142 ± 0.000010  β_x = 1.398  CG 1it res=5.13e-14  ‖x‖=0.0014
+11:06:15      | Iter 240: E = -27.733248 ± 0.000011  β_x = 1.398  CG 1it res=3.92e-14  ‖x‖=0.0010
+11:06:15      | Iter 250: E = -27.733979 ± 0.000000  β_x = 1.398  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:06:15      | Iter 260: E = -27.734426 ± 0.000007  β_x = 1.398  CG 1it res=3.01e-15  ‖x‖=0.0005
+11:06:15      | Iter 270: E = -27.734801 ± 0.000004  β_x = 1.398  CG 1it res=4.59e-14  ‖x‖=0.0003
+11:06:15      | Iter 280: E = -27.735037 ± 0.000002  β_x = 1.398  CG 1it res=2.71e-14  ‖x‖=0.0002
+11:06:15      | Iter 290: E = -27.735222 ± 0.000001  β_x = 1.398  CG 1it res=3.41e-14  ‖x‖=0.0002
+11:06:15      | Saved  → results/4/dimod/zephyr/result_2d_h0.5_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed1_iter300.json
+11:06:15      |   Final energy : -27.735339
+11:06:15      |   Exact energy : -32.888000
+11:06:15      |   Error        : 5.152661
+11:06:15      |   Checkpoint → checkpoints/4/dimod/zephyr/full/checkpoint_2d_h0.5_rbmfull_nh16_lr0.1_iter0300.pkl
+11:06:15  [  51/54] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/zephyr seed=1  QPU used=48.01min
+11:06:15      | <model.FullyConnectedRBM object at 0x72a442057e00>
+11:06:15      | <ising.TransverseFieldIsing2D object at 0x72a4485478c0>
+11:06:15      | None
+11:06:15      |   [embedding] Running minorminer for (16, 'Advantage2_system1.13') — this may take a moment...
+11:06:15      |   [embedding] Embedding found and cached for (16, 'Advantage2_system1.13').
+11:06:15      | Iter   0: E = -2.550182 ± 0.091953  β_x = 2.000  CG 29it res=2.05e-09  ‖x‖=11.0901
+11:06:15      | Iter  10: E = -20.960548 ± 0.003417  β_x = 2.084  CG 3it res=2.37e-14  ‖x‖=0.0524
+11:06:15      | Iter  20: E = -20.945654 ± 0.002060  β_x = 1.872  CG 3it res=2.30e-14  ‖x‖=0.0302
+11:06:15      | Iter  30: E = -20.927109 ± 0.001265  β_x = 1.853  CG 3it res=1.22e-14  ‖x‖=0.0178
+11:06:15      | Iter  40: E = -20.929556 ± 0.000757  β_x = 1.668  CG 3it res=1.40e-14  ‖x‖=0.0105
+11:06:15      | Iter  50: E = -20.925222 ± 0.000452  β_x = 1.573  CG 3it res=1.04e-14  ‖x‖=0.0063
+11:06:15      | Iter  60: E = -20.926270 ± 0.000271  β_x = 1.345  CG 3it res=3.86e-15  ‖x‖=0.0037
+11:06:15      | Iter  70: E = -20.925026 ± 0.000161  β_x = 1.402  CG 3it res=1.46e-15  ‖x‖=0.0022
+11:06:15      | Iter  80: E = -20.925063 ± 0.000096  β_x = 1.465  CG 3it res=6.53e-15  ‖x‖=0.0013
+11:06:15      | Iter  90: E = -20.603607 ± 0.000576  β_x = 1.454  CG 3it res=1.46e-14  ‖x‖=0.0092
+11:06:15      | Iter 100: E = -20.608892 ± 0.000378  β_x = 1.381  CG 3it res=5.83e-15  ‖x‖=0.0058
+11:06:15      | Iter 110: E = -20.610633 ± 0.000220  β_x = 1.374  CG 3it res=1.45e-14  ‖x‖=0.0036
+11:06:15      | Iter 120: E = -20.612735 ± 0.000140  β_x = 1.302  CG 3it res=5.15e-15  ‖x‖=0.0022
+11:06:15      | Iter 130: E = -20.613766 ± 0.000084  β_x = 1.296  CG 3it res=1.09e-15  ‖x‖=0.0014
+11:06:15      | Iter 140: E = -20.614813 ± 0.000057  β_x = 1.231  CG 3it res=1.46e-14  ‖x‖=0.0009
+11:06:15      | Iter 150: E = -20.615244 ± 0.000036  β_x = 1.228  CG 3it res=3.25e-14  ‖x‖=0.0005
+11:06:15      | Iter 160: E = -20.615480 ± 0.000022  β_x = 1.225  CG 3it res=2.00e-14  ‖x‖=0.0003
+11:06:15      | Iter 170: E = -20.615691 ± 0.000014  β_x = 1.161  CG 3it res=2.38e-14  ‖x‖=0.0002
+11:06:15      | Iter 180: E = -20.615790 ± 0.000009  β_x = 1.155  CG 3it res=5.87e-15  ‖x‖=0.0001
+11:06:15      | Iter 190: E = -20.615863 ± 0.000005  β_x = 1.337  CG 3it res=3.19e-14  ‖x‖=0.0001
+11:06:15      | Iter 200: E = -20.615905 ± 0.000003  β_x = 1.203  CG 3it res=3.50e-15  ‖x‖=0.0001
+11:06:15      | Iter 210: E = -20.615921 ± 0.000002  β_x = 1.390  CG 3it res=1.91e-15  ‖x‖=0.0000
+11:06:15      | Iter 220: E = -20.615941 ± 0.000001  β_x = 1.317  CG 3it res=3.49e-15  ‖x‖=0.0000
+11:06:15      | Iter 230: E = -20.615953 ± 0.000001  β_x = 1.310  CG 3it res=2.77e-15  ‖x‖=0.0000
+11:06:15      | Iter 240: E = -20.615959 ± 0.000001  β_x = 1.307  CG 3it res=2.60e-14  ‖x‖=0.0000
+11:06:15      | Iter 250: E = -20.615962 ± 0.000000  β_x = 1.668  CG 3it res=6.70e-15  ‖x‖=0.0000
+11:06:15      | Iter 260: E = -20.615964 ± 0.000000  β_x = 1.834  CG 3it res=5.62e-15  ‖x‖=0.0000
+11:06:15      | Iter 270: E = -20.615966 ± 0.000000  β_x = 1.926  CG 3it res=4.92e-15  ‖x‖=0.0000
+11:06:15      | Iter 280: E = -20.615967 ± 0.000000  β_x = 2.017  CG 3it res=5.80e-15  ‖x‖=0.0000
+11:06:15      | Iter 290: E = -20.615967 ± 0.000000  β_x = 2.007  CG 3it res=2.59e-14  ‖x‖=0.0000
+11:06:15      | Saved  → results/4/dimod/zephyr/result_2d_h0.5_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed42_iter300.json
+11:06:15      |   Final energy : -20.615968
+11:06:15      |   Exact energy : -32.888000
+11:06:15      |   Error        : 12.272032
+11:06:15      |   Checkpoint → checkpoints/4/dimod/zephyr/full/checkpoint_2d_h0.5_rbmfull_nh16_lr0.1_iter0300.pkl
+11:06:15  [  52/54] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/zephyr seed=42  QPU used=48.01min
+11:06:16      | <model.FullyConnectedRBM object at 0x7973ccd8be00>
+11:06:16      | <ising.TransverseFieldIsing2D object at 0x7973d32438c0>
+11:06:16      | None
+11:06:16      |   [embedding] Running minorminer for (16, 'Advantage2_system1.13') — this may take a moment...
+11:06:16      |   [embedding] Embedding found and cached for (16, 'Advantage2_system1.13').
+11:06:16      | Iter   0: E = -29.604190 ± 0.061316  β_x = 2.000  CG 16it res=6.50e-10  ‖x‖=8.2972
+11:06:16      | Iter  10: E = -49.983571 ± 0.000774  β_x = 1.544  CG 1it res=3.39e-14  ‖x‖=0.0328
+11:06:16      | Iter  20: E = -49.909461 ± 0.000084  β_x = 1.379  CG 1it res=8.71e-14  ‖x‖=0.0040
+11:06:16      | Iter  30: E = -49.156454 ± 0.000582  β_x = 1.362  CG 1it res=1.80e-14  ‖x‖=0.0105
+11:06:16      | Iter  40: E = -48.274453 ± 0.000475  β_x = 1.162  CG 1it res=1.90e-14  ‖x‖=0.0153
+11:06:16      | Iter  50: E = -47.677747 ± 0.000398  β_x = 1.272  CG 1it res=4.29e-14  ‖x‖=0.0087
+11:06:16      | Iter  60: E = -47.661417 ± 0.000074  β_x = 1.136  CG 1it res=3.36e-14  ‖x‖=0.0015
+11:06:16      | Iter  70: E = -47.658649 ± 0.000013  β_x = 1.015  CG 1it res=5.58e-14  ‖x‖=0.0003
+11:06:16      | Iter  80: E = -47.658169 ± 0.000002  β_x = 1.003  CG 1it res=3.29e-14  ‖x‖=0.0000
+11:06:16      | Iter  90: E = -47.658086 ± 0.000000  β_x = 1.094  CG 1it res=5.63e-14  ‖x‖=0.0000
+11:06:16      | Iter 100: E = -47.658071 ± 0.000000  β_x = 0.885  CG 1it res=5.86e-14  ‖x‖=0.0000
+11:06:16      | Iter 110: E = -47.658069 ± 0.000000  β_x = 0.966  CG 1it res=8.93e-14  ‖x‖=0.0000
+11:06:16      | Iter 120: E = -47.658069 ± 0.000000  β_x = 0.954  CG 1it res=2.24e-14  ‖x‖=0.0000
+11:06:16      | Iter 130: E = -47.658068 ± 0.000000  β_x = 0.852  CG 1it res=6.37e-14  ‖x‖=0.0000
+11:06:16      | Iter 140: E = -47.658068 ± 0.000000  β_x = 0.727  CG 0it res=5.84e-09  ‖x‖=0.0000
+11:06:16      | Iter 150: E = -47.658068 ± 0.000000  β_x = 0.653  CG 0it res=8.92e-09  ‖x‖=0.0000
+11:06:16      | Iter 160: E = -47.658068 ± 0.000000  β_x = 0.718  CG 0it res=6.89e-09  ‖x‖=0.0000
+11:06:16      | Iter 170: E = -47.058039 ± 0.000493  β_x = 0.784  CG 1it res=4.48e-15  ‖x‖=0.0091
+11:06:16      | Iter 180: E = -47.042872 ± 0.000095  β_x = 0.774  CG 1it res=5.73e-14  ‖x‖=0.0018
+11:06:16      | Iter 190: E = -47.039992 ± 0.000017  β_x = 0.691  CG 1it res=9.60e-14  ‖x‖=0.0003
+11:06:16      | Iter 200: E = -47.039394 ± 0.000003  β_x = 0.683  CG 1it res=4.91e-14  ‖x‖=0.0001
+11:06:16      | Iter 210: E = -47.039282 ± 0.000001  β_x = 0.610  CG 1it res=2.96e-15  ‖x‖=0.0000
+11:06:16      | Iter 220: E = -47.039261 ± 0.000000  β_x = 0.666  CG 1it res=1.90e-15  ‖x‖=0.0000
+11:06:16      | Iter 230: E = -47.039257 ± 0.000000  β_x = 0.658  CG 1it res=6.02e-14  ‖x‖=0.0000
+11:06:16      | Iter 240: E = -47.039256 ± 0.000000  β_x = 0.532  CG 1it res=3.32e-14  ‖x‖=0.0000
+11:06:16      | Iter 250: E = -47.039256 ± 0.000000  β_x = 0.475  CG 1it res=8.46e-14  ‖x‖=0.0000
+11:06:16      | Iter 260: E = -47.039256 ± 0.000000  β_x = 0.633  CG 1it res=4.74e-15  ‖x‖=0.0000
+11:06:16      | Iter 270: E = -47.039256 ± 0.000000  β_x = 0.629  CG 0it res=7.71e-09  ‖x‖=0.0000
+11:06:16      | Iter 280: E = -47.039256 ± 0.000000  β_x = 0.566  CG 0it res=7.25e-09  ‖x‖=0.0000
+11:06:16      | Iter 290: E = -47.039256 ± 0.000000  β_x = 0.591  CG 0it res=7.75e-09  ‖x‖=0.0000
+11:06:16      | Saved  → results/4/dimod/zephyr/result_2d_h2.0_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed1_iter300.json
+11:06:16      |   Final energy : -47.039256
+11:06:16      |   Exact energy : -39.278400
+11:06:16      |   Error        : 7.760856
+11:06:16      |   Checkpoint → checkpoints/4/dimod/zephyr/full/checkpoint_2d_h2.0_rbmfull_nh16_lr0.1_iter0300.pkl
+11:06:16  [  53/54] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=1
+11:06:28      | <model.FullyConnectedRBM object at 0x7ccf7944fe00>
+11:06:28      | <ising.TransverseFieldIsing2D object at 0x7ccf7f9478c0>
+11:06:28      | None
+11:06:28      |   [VeloxQ] attempt 1/3 failed: Job a143fadc-949d-4d3d-b775-4d06a2eca30f has not completed successfully.
+11:06:28      |   [VeloxQ] attempt 2/3 failed: Job c585d2ad-b6c1-425a-bfdf-0720eafc68a8 has not completed successfully.
+11:06:28      |   [VeloxQ] attempt 3/3 failed: Job 5928d78a-e026-4d95-ad55-42f8362cb3f4 has not completed successfully.
+11:06:28      |   [Trainer] Sampling failed at iteration 0: VeloxQ sampling failed after 3 attempts.
+11:06:28      |   [Trainer] Aborting this experiment.
+11:06:28      | Traceback (most recent call last):
+11:06:28      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 266, in sample
+11:06:28      |     sampleset = self.solver.sample(h, J)
+11:06:28      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/solvers.py", line 161, in sample
+11:06:28      |     return job.result
+11:06:28      |            ^^^^^^^^^^
+11:06:28      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/functools.py", line 1126, in __get__
+11:06:28      |     val = self.func(instance)
+11:06:28      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 387, in result
+11:06:28      |     temp_file = self._get_temp_result()
+11:06:28      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 482, in _get_temp_result
+11:06:28      |     self.download_result(f)
+11:06:28      |     ~~~~~~~~~~~~~~~~~~~~^^^
+11:06:28      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 408, in download_result
+11:06:28      |     raise RuntimeError(msg)
+11:06:28      | RuntimeError: Job 5928d78a-e026-4d95-ad55-42f8362cb3f4 has not completed successfully.
+11:06:28      | 
+11:06:28      | The above exception was the direct cause of the following exception:
+11:06:28      | 
+11:06:28      | Traceback (most recent call last):
+11:06:28      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:06:28      |     main()
+11:06:28      |     ~~~~^^
+11:06:28      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:06:28      |     history = trainer.train()
+11:06:28      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:06:28      |     samples = self.sampler.sample(
+11:06:28      |         self.rbm,
+11:06:28      |         self.n_samples,
+11:06:28      |         config={"beta_x": self.beta_x},
+11:06:28      |     )
+11:06:28      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 271, in sample
+11:06:28      |     raise RuntimeError(
+11:06:28      |         f"VeloxQ sampling failed after {MAX_VELOX_RETRIES} attempts."
+11:06:28      |     ) from e
+11:06:28      | RuntimeError: VeloxQ sampling failed after 3 attempts.
+11:06:28    Attempt 1/2 failed (exit 1)
+11:06:28    Retrying (attempt 2/2) — [  53/54] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=1
+11:06:39      | <model.FullyConnectedRBM object at 0x7bf59ddf3e00>
+11:06:39      | <ising.TransverseFieldIsing2D object at 0x7bf5a434b8c0>
+11:06:39      | None
+11:06:39      |   [VeloxQ] attempt 1/3 failed: Job be2e0dc8-426e-4a68-ad1a-f428ec17deec has not completed successfully.
+11:06:39      |   [VeloxQ] attempt 2/3 failed: Job 0eea6920-a598-45ab-9f4a-ec77fca0a05e has not completed successfully.
+11:06:39      |   [VeloxQ] attempt 3/3 failed: Job 7672b34c-843e-430b-a71a-86da6abf99d5 has not completed successfully.
+11:06:39      |   [Trainer] Sampling failed at iteration 0: VeloxQ sampling failed after 3 attempts.
+11:06:39      |   [Trainer] Aborting this experiment.
+11:06:39      | Traceback (most recent call last):
+11:06:39      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 266, in sample
+11:06:39      |     sampleset = self.solver.sample(h, J)
+11:06:39      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/solvers.py", line 161, in sample
+11:06:39      |     return job.result
+11:06:39      |            ^^^^^^^^^^
+11:06:39      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/functools.py", line 1126, in __get__
+11:06:39      |     val = self.func(instance)
+11:06:39      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 387, in result
+11:06:39      |     temp_file = self._get_temp_result()
+11:06:39      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 482, in _get_temp_result
+11:06:39      |     self.download_result(f)
+11:06:39      |     ~~~~~~~~~~~~~~~~~~~~^^^
+11:06:39      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 408, in download_result
+11:06:39      |     raise RuntimeError(msg)
+11:06:39      | RuntimeError: Job 7672b34c-843e-430b-a71a-86da6abf99d5 has not completed successfully.
+11:06:39      | 
+11:06:39      | The above exception was the direct cause of the following exception:
+11:06:39      | 
+11:06:39      | Traceback (most recent call last):
+11:06:39      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:06:39      |     main()
+11:06:39      |     ~~~~^^
+11:06:39      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:06:39      |     history = trainer.train()
+11:06:39      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:06:39      |     samples = self.sampler.sample(
+11:06:39      |         self.rbm,
+11:06:39      |         self.n_samples,
+11:06:39      |         config={"beta_x": self.beta_x},
+11:06:39      |     )
+11:06:39      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 271, in sample
+11:06:39      |     raise RuntimeError(
+11:06:39      |         f"VeloxQ sampling failed after {MAX_VELOX_RETRIES} attempts."
+11:06:39      |     ) from e
+11:06:39      | RuntimeError: VeloxQ sampling failed after 3 attempts.
+11:06:39    Attempt 2/2 failed (exit 1)
+11:06:39    All 2 attempts failed — skipping.
+11:06:39  [  54/54] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=42
+11:06:49      | <model.FullyConnectedRBM object at 0x7030d6c97e00>
+11:06:49      | <ising.TransverseFieldIsing2D object at 0x7030dd2478c0>
+11:06:49      | None
+11:06:49      |   [VeloxQ] attempt 1/3 failed: Job 040d106a-52d9-4b98-8285-ff5e451a747a has not completed successfully.
+11:06:49      |   [VeloxQ] attempt 2/3 failed: Job b4bee074-6e79-461d-8ca4-67b00888422e has not completed successfully.
+11:06:49      |   [VeloxQ] attempt 3/3 failed: Job 4511c7e4-7b81-4c88-a4ea-73f1278a1227 has not completed successfully.
+11:06:49      |   [Trainer] Sampling failed at iteration 0: VeloxQ sampling failed after 3 attempts.
+11:06:49      |   [Trainer] Aborting this experiment.
+11:06:49      | Traceback (most recent call last):
+11:06:49      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 266, in sample
+11:06:49      |     sampleset = self.solver.sample(h, J)
+11:06:49      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/solvers.py", line 161, in sample
+11:06:49      |     return job.result
+11:06:49      |            ^^^^^^^^^^
+11:06:49      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/functools.py", line 1126, in __get__
+11:06:49      |     val = self.func(instance)
+11:06:49      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 387, in result
+11:06:49      |     temp_file = self._get_temp_result()
+11:06:49      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 482, in _get_temp_result
+11:06:49      |     self.download_result(f)
+11:06:49      |     ~~~~~~~~~~~~~~~~~~~~^^^
+11:06:49      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 408, in download_result
+11:06:49      |     raise RuntimeError(msg)
+11:06:49      | RuntimeError: Job 4511c7e4-7b81-4c88-a4ea-73f1278a1227 has not completed successfully.
+11:06:49      | 
+11:06:49      | The above exception was the direct cause of the following exception:
+11:06:49      | 
+11:06:49      | Traceback (most recent call last):
+11:06:49      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:06:49      |     main()
+11:06:49      |     ~~~~^^
+11:06:49      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:06:49      |     history = trainer.train()
+11:06:49      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:06:49      |     samples = self.sampler.sample(
+11:06:49      |         self.rbm,
+11:06:49      |         self.n_samples,
+11:06:49      |         config={"beta_x": self.beta_x},
+11:06:49      |     )
+11:06:49      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 271, in sample
+11:06:49      |     raise RuntimeError(
+11:06:49      |         f"VeloxQ sampling failed after {MAX_VELOX_RETRIES} attempts."
+11:06:49      |     ) from e
+11:06:49      | RuntimeError: VeloxQ sampling failed after 3 attempts.
+11:06:49    Attempt 1/2 failed (exit 1)
+11:06:49    Retrying (attempt 2/2) — [  54/54] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 velox/velox seed=42
+11:06:58      | <model.FullyConnectedRBM object at 0x7fa5ac413e00>
+11:06:58      | <ising.TransverseFieldIsing2D object at 0x7fa5b294b8c0>
+11:06:58      | None
+11:06:58      |   [VeloxQ] attempt 1/3 failed: Job d219d446-f0cc-4f09-98c8-8b458c4f1f93 has not completed successfully.
+11:06:58      |   [VeloxQ] attempt 2/3 failed: Job 8499bc73-8cfe-4137-912e-319d2359816e has not completed successfully.
+11:06:58      |   [VeloxQ] attempt 3/3 failed: Job 88ee49d0-2e18-4567-b6ef-dea5d84f23db has not completed successfully.
+11:06:58      |   [Trainer] Sampling failed at iteration 0: VeloxQ sampling failed after 3 attempts.
+11:06:58      |   [Trainer] Aborting this experiment.
+11:06:58      | Traceback (most recent call last):
+11:06:58      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 266, in sample
+11:06:58      |     sampleset = self.solver.sample(h, J)
+11:06:58      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/solvers.py", line 161, in sample
+11:06:58      |     return job.result
+11:06:58      |            ^^^^^^^^^^
+11:06:58      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/functools.py", line 1126, in __get__
+11:06:58      |     val = self.func(instance)
+11:06:58      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 387, in result
+11:06:58      |     temp_file = self._get_temp_result()
+11:06:58      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 482, in _get_temp_result
+11:06:58      |     self.download_result(f)
+11:06:58      |     ~~~~~~~~~~~~~~~~~~~~^^^
+11:06:58      |   File "/home/phanussek/miniconda3/envs/test/lib/python3.14/site-packages/veloxq_sdk/api/jobs.py", line 408, in download_result
+11:06:58      |     raise RuntimeError(msg)
+11:06:58      | RuntimeError: Job 88ee49d0-2e18-4567-b6ef-dea5d84f23db has not completed successfully.
+11:06:58      | 
+11:06:58      | The above exception was the direct cause of the following exception:
+11:06:58      | 
+11:06:58      | Traceback (most recent call last):
+11:06:58      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:06:58      |     main()
+11:06:58      |     ~~~~^^
+11:06:58      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:06:58      |     history = trainer.train()
+11:06:58      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:06:58      |     samples = self.sampler.sample(
+11:06:58      |         self.rbm,
+11:06:58      |         self.n_samples,
+11:06:58      |         config={"beta_x": self.beta_x},
+11:06:58      |     )
+11:06:58      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 271, in sample
+11:06:58      |     raise RuntimeError(
+11:06:58      |         f"VeloxQ sampling failed after {MAX_VELOX_RETRIES} attempts."
+11:06:58      |     ) from e
+11:06:58      | RuntimeError: VeloxQ sampling failed after 3 attempts.
+11:06:58    Attempt 2/2 failed (exit 1)
+11:06:58    All 2 attempts failed — skipping.
+11:07:46      | <model.FullyConnectedRBM object at 0x77122fc8be00>
+11:07:46      | <ising.TransverseFieldIsing2D object at 0x7712362438c0>
+11:07:46      | None
+11:07:46      |   [embedding] Running minorminer for (36, 'Advantage_system6.4') — this may take a moment...
+11:07:46      |   [embedding] Embedding found and cached for (36, 'Advantage_system6.4').
+11:07:46      | Iter   0: E = -72.990570 ± 0.159431  β_x = 2.000  CG 97it res=9.07e-09  ‖x‖=30.5559
+11:07:46      | Iter  10: E = -80.199048 ± 0.004717  β_x = 2.673  CG 3it res=1.57e-12  ‖x‖=0.1696
+11:07:46      | Iter  20: E = -78.070809 ± 0.011483  β_x = 2.918  CG 6it res=2.93e-11  ‖x‖=2.1072
+11:07:46      | Iter  30: E = -83.780873 ± 0.004148  β_x = 3.193  CG 3it res=1.68e-12  ‖x‖=0.7531
+11:07:46      | Iter  40: E = -82.646742 ± 0.000034  β_x = 3.018  CG 1it res=3.88e-13  ‖x‖=0.0007
+11:07:46      | Iter  50: E = -82.470513 ± 0.000107  β_x = 3.311  CG 1it res=3.77e-13  ‖x‖=0.0029
+11:07:46      | Iter  60: E = -82.354889 ± 0.000674  β_x = 3.138  CG 2it res=9.32e-14  ‖x‖=0.1170
+11:07:46      | Iter  70: E = -82.397248 ± 0.000179  β_x = 3.122  CG 2it res=7.85e-14  ‖x‖=0.0217
+11:07:46      | Iter  80: E = -82.103541 ± 0.000103  β_x = 2.818  CG 2it res=2.01e-13  ‖x‖=0.0043
+11:07:46      | Iter  90: E = -82.115214 ± 0.000039  β_x = 2.663  CG 2it res=2.79e-13  ‖x‖=0.0013
+11:07:46      | Iter 100: E = -82.096014 ± 0.000027  β_x = 2.657  CG 1it res=2.88e-13  ‖x‖=0.0009
+11:07:46      | Iter 110: E = -81.978368 ± 0.000021  β_x = 3.060  CG 1it res=2.75e-13  ‖x‖=0.0005
+11:07:46      | Iter 120: E = -81.934613 ± 0.000208  β_x = 2.885  CG 1it res=1.61e-13  ‖x‖=0.0052
+11:07:46      | Iter 130: E = -81.937654 ± 0.000116  β_x = 2.864  CG 1it res=3.55e-13  ‖x‖=0.0024
+11:07:46      | Iter 140: E = -81.830621 ± 0.000185  β_x = 2.992  CG 1it res=2.65e-13  ‖x‖=0.0033
+11:07:46      | Iter 150: E = -81.853525 ± 0.000080  β_x = 2.992  CG 3it res=8.53e-14  ‖x‖=0.0054
+11:07:46      | Iter 160: E = -81.873569 ± 0.000052  β_x = 2.992  CG 2it res=1.05e-13  ‖x‖=0.0017
+11:07:46      | Iter 170: E = -81.872922 ± 0.000022  β_x = 3.142  CG 1it res=7.57e-14  ‖x‖=0.0006
+11:07:46      | Iter 180: E = -81.820855 ± 0.000001  β_x = 3.446  CG 1it res=1.69e-13  ‖x‖=0.0000
+11:07:46      | Iter 190: E = -81.759894 ± 0.000085  β_x = 3.790  CG 2it res=3.88e-13  ‖x‖=0.0146
+11:07:46      | Iter 200: E = -81.781055 ± 0.000013  β_x = 3.601  CG 1it res=8.47e-14  ‖x‖=0.0005
+11:07:46      | Iter 210: E = -81.807904 ± 0.000096  β_x = 3.601  CG 3it res=3.86e-13  ‖x‖=0.0168
+11:07:46      | Iter 220: E = -81.820735 ± 0.000006  β_x = 3.421  CG 1it res=5.17e-14  ‖x‖=0.0002
+11:07:46      | Iter 230: E = -81.820581 ± 0.000002  β_x = 3.087  CG 1it res=5.94e-13  ‖x‖=0.0001
+11:07:46      | Iter 240: E = -81.807794 ± 0.000007  β_x = 2.925  CG 3it res=7.02e-14  ‖x‖=0.0012
+11:07:46      | Iter 250: E = -81.822011 ± 0.000019  β_x = 2.918  CG 2it res=5.71e-13  ‖x‖=0.0007
+11:07:46      | Iter 260: E = -81.818167 ± 0.000018  β_x = 2.911  CG 1it res=1.22e-13  ‖x‖=0.0003
+11:07:46      | Iter 270: E = -81.810125 ± 0.000007  β_x = 2.896  CG 1it res=3.75e-13  ‖x‖=0.0002
+11:07:46      | Iter 280: E = -81.810902 ± 0.000004  β_x = 3.041  CG 1it res=7.90e-14  ‖x‖=0.0001
+11:07:46      | Iter 290: E = -81.810987 ± 0.000001  β_x = 2.882  CG 1it res=4.22e-14  ‖x‖=0.0000
+11:07:46      | Saved  → results/6/dimod/pegasus/result_2d_h2.0_rbmfull_nh36_lr0.1_reg0.001_ns1000_seed1_iter300.json
+11:07:46      |   Final energy : -81.775164
+11:07:46      |   Exact energy : -88.376400
+11:07:46      |   Error        : 6.601236
+11:07:46      |   Checkpoint → checkpoints/6/dimod/pegasus/full/checkpoint_2d_h2.0_rbmfull_nh36_lr0.1_iter0300.pkl
+11:07:47      | <model.FullyConnectedRBM object at 0x7b6f57f63e00>
+11:07:47      | <ising.TransverseFieldIsing2D object at 0x7b6f5e4438c0>
+11:07:47      | None
+11:07:47      |   [embedding] Running minorminer for (36, 'Advantage_system6.4') — this may take a moment...
+11:07:47      |   [embedding] Embedding found and cached for (36, 'Advantage_system6.4').
+11:07:47      | Iter   0: E = -18.922110 ± 0.143408  β_x = 2.000  CG 102it res=3.81e-09  ‖x‖=35.1684
+11:07:47      | Iter  10: E = -76.107579 ± 0.002660  β_x = 1.891  CG 1it res=4.72e-13  ‖x‖=0.0448
+11:07:47      | Iter  20: E = -75.509084 ± 0.007183  β_x = 1.609  CG 2it res=2.54e-13  ‖x‖=1.1432
+11:07:47      | Iter  30: E = -75.141728 ± 0.001825  β_x = 1.946  CG 1it res=9.41e-14  ‖x‖=0.0222
+11:07:47      | Iter  40: E = -75.073681 ± 0.001462  β_x = 2.028  CG 1it res=3.52e-14  ‖x‖=0.0195
+11:07:47      | Iter  50: E = -75.070273 ± 0.001105  β_x = 2.018  CG 1it res=6.10e-14  ‖x‖=0.0174
+11:07:47      | Iter  60: E = -75.058955 ± 0.001186  β_x = 1.907  CG 1it res=1.40e-13  ‖x‖=0.0155
+11:07:47      | Iter  70: E = -74.988258 ± 0.001067  β_x = 2.197  CG 1it res=1.14e-13  ‖x‖=0.0120
+11:07:47      | Iter  80: E = -74.988734 ± 0.000774  β_x = 2.301  CG 1it res=2.11e-13  ‖x‖=0.0108
+11:07:47      | Iter  90: E = -74.984282 ± 0.000703  β_x = 2.936  CG 1it res=1.16e-13  ‖x‖=0.0096
+11:07:47      | Iter 100: E = -74.978978 ± 0.000694  β_x = 3.068  CG 1it res=1.54e-13  ‖x‖=0.0086
+11:07:47      | Iter 110: E = -74.908983 ± 0.005093  β_x = 2.893  CG 2it res=2.09e-13  ‖x‖=0.8711
+11:07:47      | Iter 120: E = -74.855273 ± 0.000326  β_x = 2.864  CG 1it res=1.30e-13  ‖x‖=0.0057
+11:07:47      | Iter 130: E = -74.786042 ± 0.000165  β_x = 2.842  CG 1it res=3.44e-14  ‖x‖=0.0026
+11:07:47      | Iter 140: E = -74.642480 ± 0.000102  β_x = 2.814  CG 1it res=4.57e-13  ‖x‖=0.0018
+11:07:47      | Iter 150: E = -74.574284 ± 0.000036  β_x = 2.940  CG 1it res=1.74e-13  ‖x‖=0.0009
+11:07:47      | Iter 160: E = -74.573700 ± 0.000051  β_x = 3.064  CG 1it res=1.18e-13  ‖x‖=0.0008
+11:07:47      | Iter 170: E = -74.411744 ± 0.000032  β_x = 4.527  CG 1it res=1.12e-13  ‖x‖=0.0005
+11:07:47      | Iter 180: E = -74.329216 ± 0.000073  β_x = 4.279  CG 1it res=1.32e-13  ‖x‖=0.0008
+11:07:47      | Iter 190: E = -74.310446 ± 0.000038  β_x = 3.852  CG 1it res=1.63e-13  ‖x‖=0.0007
+11:07:47      | Iter 200: E = -74.309848 ± 0.000054  β_x = 3.294  CG 1it res=1.63e-13  ‖x‖=0.0007
+11:07:47      | Iter 210: E = -74.255477 ± 0.000090  β_x = 2.811  CG 1it res=9.50e-14  ‖x‖=0.0013
+11:07:47      | Iter 220: E = -74.246532 ± 0.000136  β_x = 3.237  CG 1it res=3.33e-13  ‖x‖=0.0017
+11:07:47      | Iter 230: E = -74.247017 ± 0.000076  β_x = 3.925  CG 1it res=1.01e-13  ‖x‖=0.0015
+11:07:47      | Iter 240: E = -74.246440 ± 0.000077  β_x = 4.101  CG 1it res=1.56e-13  ‖x‖=0.0014
+11:07:47      | Iter 250: E = -74.245795 ± 0.000084  β_x = 3.876  CG 1it res=5.95e-14  ‖x‖=0.0013
+11:07:47      | Iter 260: E = -74.245185 ± 0.000089  β_x = 3.655  CG 1it res=7.73e-14  ‖x‖=0.0012
+11:07:47      | Iter 270: E = -74.244943 ± 0.000077  β_x = 2.828  CG 1it res=2.16e-13  ‖x‖=0.0011
+11:07:47      | Iter 280: E = -74.244499 ± 0.000077  β_x = 2.955  CG 1it res=5.43e-13  ‖x‖=0.0010
+11:07:47      | Iter 290: E = -74.244706 ± 0.000040  β_x = 2.793  CG 1it res=3.77e-13  ‖x‖=0.0010
+11:07:47      | Saved  → results/6/dimod/pegasus/result_2d_h0.5_rbmfull_nh36_lr0.1_reg0.001_ns1000_seed1_iter300.json
+11:07:47      |   Final energy : -74.236937
+11:07:47      |   Exact energy : -73.998000
+11:07:47      |   Error        : 0.238937
+11:07:47      |   Checkpoint → checkpoints/6/dimod/pegasus/full/checkpoint_2d_h0.5_rbmfull_nh36_lr0.1_iter0300.pkl
+11:07:49      | <model.FullyConnectedRBM object at 0x7dabec1f3e00>
+11:07:49      | <ising.TransverseFieldIsing2D object at 0x7dabf274b8c0>
+11:07:49      | None
+11:07:49      |   [embedding] Running minorminer for (36, 'Advantage2_system1.13') — this may take a moment...
+11:07:49      |   [embedding] Embedding found and cached for (36, 'Advantage2_system1.13').
+11:07:49      | Iter   0: E = -73.442586 ± 0.126578  β_x = 2.000  CG 85it res=4.08e-09  ‖x‖=21.0281
+11:07:49      | Iter  10: E = -76.242878 ± 0.000000  β_x = 1.895  CG 0it res=1.85e-13  ‖x‖=0.0000
+11:07:49      | Iter  20: E = -74.672620 ± 0.000000  β_x = 1.791  CG 0it res=1.90e-13  ‖x‖=0.0000
+11:07:49      | Iter  30: E = -74.262798 ± 0.000000  β_x = 1.787  CG 0it res=3.76e-13  ‖x‖=0.0000
+11:07:49      | Iter  40: E = -73.597355 ± 0.000000  β_x = 1.965  CG 0it res=1.90e-13  ‖x‖=0.0000
+11:07:49      | Iter  50: E = -73.330590 ± 0.002159  β_x = 1.862  CG 1it res=2.63e-13  ‖x‖=0.2874
+11:07:49      | Iter  60: E = -81.007953 ± 0.000000  β_x = 1.769  CG 0it res=1.92e-13  ‖x‖=0.0000
+11:07:49      | Iter  70: E = -80.164142 ± 0.000000  β_x = 1.760  CG 0it res=1.96e-13  ‖x‖=0.0000
+11:07:49      | Iter  80: E = -79.906665 ± 0.000000  β_x = 1.752  CG 0it res=1.96e-13  ‖x‖=0.0000
+11:07:49      | Iter  90: E = -78.885887 ± 0.000671  β_x = 1.656  CG 1it res=4.16e-13  ‖x‖=0.0885
+11:07:49      | Iter 100: E = -78.563376 ± 0.000214  β_x = 1.409  CG 1it res=1.66e-13  ‖x‖=0.0282
+11:07:49      | Iter 110: E = -78.478124 ± 0.000134  β_x = 1.395  CG 1it res=3.85e-14  ‖x‖=0.0126
+11:07:49      | Iter 120: E = -78.342016 ± 0.000000  β_x = 1.607  CG 0it res=1.98e-13  ‖x‖=0.0000
+11:07:49      | Iter 130: E = -78.325960 ± 0.000035  β_x = 1.374  CG 1it res=1.09e-13  ‖x‖=0.0046
+11:07:49      | Iter 140: E = -77.096371 ± 0.000016  β_x = 1.439  CG 1it res=1.32e-13  ‖x‖=0.0022
+11:07:49      | Iter 150: E = -77.104103 ± 0.000006  β_x = 1.439  CG 1it res=2.95e-13  ‖x‖=0.0007
+11:07:49      | Iter 160: E = -77.113941 ± 0.000003  β_x = 1.439  CG 1it res=1.22e-13  ‖x‖=0.0004
+11:07:49      | Iter 170: E = -77.115606 ± 0.000000  β_x = 1.439  CG 0it res=2.00e-13  ‖x‖=0.0000
+11:07:49      | Iter 180: E = -77.118681 ± 0.000002  β_x = 1.439  CG 1it res=4.27e-14  ‖x‖=0.0002
+11:07:49      | Iter 190: E = -76.208921 ± 0.000000  β_x = 1.436  CG 0it res=3.23e-15  ‖x‖=0.0000
+11:07:49      | Iter 200: E = -75.464157 ± 0.000028  β_x = 1.296  CG 1it res=4.50e-13  ‖x‖=0.0036
+11:07:49      | Iter 210: E = -75.476526 ± 0.000010  β_x = 1.296  CG 1it res=2.44e-13  ‖x‖=0.0013
+11:07:49      | Iter 220: E = -75.480603 ± 0.000004  β_x = 1.296  CG 1it res=2.75e-13  ‖x‖=0.0006
+11:07:49      | Iter 230: E = -75.482856 ± 0.000000  β_x = 1.296  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:07:49      | Iter 240: E = -75.488639 ± 0.000004  β_x = 1.296  CG 1it res=4.53e-13  ‖x‖=0.0003
+11:07:49      | Iter 250: E = -75.489746 ± 0.000001  β_x = 1.296  CG 1it res=1.13e-13  ‖x‖=0.0001
+11:07:49      | Iter 260: E = -75.490179 ± 0.000001  β_x = 1.296  CG 1it res=7.36e-14  ‖x‖=0.0000
+11:07:49      | Iter 270: E = -75.490313 ± 0.000000  β_x = 1.296  CG 0it res=2.03e-13  ‖x‖=0.0000
+11:07:49      | Iter 280: E = -75.490355 ± 0.000000  β_x = 1.296  CG 1it res=1.35e-13  ‖x‖=0.0000
+11:07:49      | Iter 290: E = -75.490366 ± 0.000000  β_x = 1.296  CG 1it res=1.27e-13  ‖x‖=0.0000
+11:07:49      | Saved  → results/6/dimod/zephyr/result_2d_h2.0_rbmfull_nh36_lr0.1_reg0.001_ns1000_seed1_iter300.json
+11:07:49      |   Final energy : -75.492745
+11:07:49      |   Exact energy : -88.376400
+11:07:49      |   Error        : 12.883655
+11:07:49      |   Checkpoint → checkpoints/6/dimod/zephyr/full/checkpoint_2d_h2.0_rbmfull_nh36_lr0.1_iter0300.pkl
+11:08:04      | <model.FullyConnectedRBM object at 0x7dd457f57e00>
+11:08:04      | <ising.TransverseFieldIsing2D object at 0x7dd45e4438c0>
+11:08:04      | None
+11:08:04      |   [embedding] Running minorminer for (36, 'Advantage2_system1.13') — this may take a moment...
+11:08:04      |   [embedding] Embedding found and cached for (36, 'Advantage2_system1.13').
+11:08:04      | Iter   0: E = -23.077806 ± 0.253742  β_x = 2.000  CG 80it res=3.59e-09  ‖x‖=28.6487
+11:08:04      | Iter  10: E = -48.658240 ± 0.002929  β_x = 2.095  CG 5it res=4.29e-09  ‖x‖=0.5104
+11:08:04      | Iter  20: E = -48.462151 ± 0.000769  β_x = 2.425  CG 6it res=5.55e-12  ‖x‖=0.0308
+11:08:04      | Iter  30: E = -48.110409 ± 0.000221  β_x = 2.407  CG 7it res=2.83e-11  ‖x‖=0.0131
+11:08:04      | Iter  40: E = -47.827184 ± 0.000061  β_x = 2.156  CG 7it res=1.36e-10  ‖x‖=0.0061
+11:08:04      | Iter  50: E = -47.642987 ± 0.000041  β_x = 1.931  CG 5it res=1.19e-09  ‖x‖=0.0034
+11:08:04      | Iter  60: E = -47.642173 ± 0.000015  β_x = 1.561  CG 5it res=2.29e-10  ‖x‖=0.0012
+11:08:04      | Iter  70: E = -47.641783 ± 0.000005  β_x = 1.542  CG 5it res=1.28e-10  ‖x‖=0.0002
+11:08:04      | Iter  80: E = -47.641651 ± 0.000007  β_x = 1.381  CG 7it res=7.04e-10  ‖x‖=0.0013
+11:08:04      | Iter  90: E = -47.630999 ± 0.000003  β_x = 1.175  CG 4it res=7.48e-09  ‖x‖=0.0001
+11:08:04      | Iter 100: E = -47.416211 ± 0.000016  β_x = 1.000  CG 4it res=2.49e-09  ‖x‖=0.0004
+11:08:04      | Iter 110: E = -47.416678 ± 0.000004  β_x = 1.000  CG 4it res=1.89e-09  ‖x‖=0.0001
+11:08:04      | Iter 120: E = -47.349723 ± 0.000001  β_x = 1.103  CG 5it res=2.29e-10  ‖x‖=0.0002
+11:08:04      | Iter 130: E = -47.349767 ± 0.000006  β_x = 1.097  CG 7it res=2.43e-12  ‖x‖=0.0010
+11:08:04      | Iter 140: E = -47.349763 ± 0.000006  β_x = 1.089  CG 7it res=3.19e-12  ‖x‖=0.0012
+11:08:04      | Iter 150: E = -47.349720 ± 0.000001  β_x = 1.078  CG 5it res=2.33e-11  ‖x‖=0.0001
+11:08:04      | Iter 160: E = -47.349674 ± 0.000001  β_x = 0.966  CG 5it res=1.82e-10  ‖x‖=0.0001
+11:08:04      | Iter 170: E = -47.349002 ± 0.000635  β_x = 0.824  CG 7it res=9.98e-11  ‖x‖=0.0813
+11:08:04      | Iter 180: E = -47.334721 ± 0.000003  β_x = 0.858  CG 4it res=7.91e-09  ‖x‖=0.0002
+11:08:04      | Iter 190: E = -47.327478 ± 0.000003  β_x = 0.939  CG 5it res=2.38e-10  ‖x‖=0.0002
+11:08:04      | Iter 200: E = -47.327402 ± 0.000001  β_x = 1.318  CG 4it res=1.16e-09  ‖x‖=0.0001
+11:08:04      | Iter 210: E = -47.327381 ± 0.000005  β_x = 1.181  CG 7it res=8.77e-13  ‖x‖=0.0009
+11:08:04      | Iter 220: E = -47.327370 ± 0.000001  β_x = 1.360  CG 4it res=4.64e-09  ‖x‖=0.0000
+11:08:04      | Iter 230: E = -47.312251 ± 0.006755  β_x = 1.158  CG 7it res=1.21e-12  ‖x‖=1.2819
+11:08:04      | Iter 240: E = -47.167286 ± 0.000010  β_x = 1.209  CG 5it res=8.01e-10  ‖x‖=0.0003
+11:08:04      | Iter 250: E = -47.159675 ± 0.000007  β_x = 1.264  CG 7it res=3.86e-13  ‖x‖=0.0017
+11:08:04      | Iter 260: E = -47.147331 ± 0.000001  β_x = 1.251  CG 4it res=6.81e-09  ‖x‖=0.0000
+11:08:04      | Iter 270: E = -47.147319 ± 0.000005  β_x = 1.180  CG 7it res=2.25e-12  ‖x‖=0.0010
+11:08:04      | Iter 280: E = -47.147353 ± 0.000005  β_x = 1.115  CG 7it res=3.12e-12  ‖x‖=0.0011
+11:08:04      | Iter 290: E = -47.134493 ± 0.000002  β_x = 1.104  CG 5it res=1.53e-11  ‖x‖=0.0001
+11:08:04      | Saved  → results/6/dimod/zephyr/result_2d_h0.5_rbmfull_nh36_lr0.1_reg0.001_ns1000_seed42_iter300.json
+11:08:04      |   Final energy : -47.128805
+11:08:04      |   Exact energy : -73.998000
+11:08:04      |   Error        : 26.869195
+11:08:04      |   Checkpoint → checkpoints/6/dimod/zephyr/full/checkpoint_2d_h0.5_rbmfull_nh36_lr0.1_iter0300.pkl
+11:08:06      | <model.FullyConnectedRBM object at 0x73cad4acbe00>
+11:08:06      | <ising.TransverseFieldIsing2D object at 0x73cadb0378c0>
+11:08:06      | None
+11:08:06      |   [embedding] Running minorminer for (36, 'Advantage2_system1.13') — this may take a moment...
+11:08:06      |   [embedding] Embedding found and cached for (36, 'Advantage2_system1.13').
+11:08:06      | Iter   0: E = -19.040268 ± 0.130281  β_x = 2.000  CG 79it res=6.29e-09  ‖x‖=21.8491
+11:08:06      | Iter  10: E = -46.838545 ± 0.001476  β_x = 1.895  CG 4it res=2.86e-11  ‖x‖=0.1005
+11:08:06      | Iter  20: E = -50.622559 ± 0.001157  β_x = 1.710  CG 6it res=7.28e-12  ‖x‖=0.1062
+11:08:06      | Iter  30: E = -54.658277 ± 0.012727  β_x = 1.625  CG 13it res=3.98e-10  ‖x‖=0.9123
+11:08:06      | Iter  40: E = -58.200334 ± 0.007166  β_x = 1.617  CG 2it res=1.27e-13  ‖x‖=1.3252
+11:08:06      | Iter  50: E = -57.688221 ± 0.000924  β_x = 1.601  CG 1it res=1.38e-13  ‖x‖=0.0110
+11:08:06      | Iter  60: E = -57.681226 ± 0.000731  β_x = 1.437  CG 1it res=3.59e-14  ‖x‖=0.0088
+11:08:06      | Iter  70: E = -57.674012 ± 0.000630  β_x = 1.498  CG 1it res=1.58e-13  ‖x‖=0.0070
+11:08:06      | Iter  80: E = -57.505184 ± 0.000741  β_x = 1.487  CG 1it res=1.29e-13  ‖x‖=0.0074
+11:08:06      | Iter  90: E = -57.498320 ± 0.000655  β_x = 1.803  CG 1it res=2.61e-13  ‖x‖=0.0059
+11:08:06      | Iter 100: E = -57.340664 ± 0.000545  β_x = 1.879  CG 1it res=4.37e-14  ‖x‖=0.0056
+11:08:06      | Iter 110: E = -57.125102 ± 0.000316  β_x = 2.056  CG 1it res=2.09e-13  ‖x‖=0.0033
+11:08:06      | Iter 120: E = -61.224594 ± 0.001091  β_x = 1.851  CG 1it res=2.42e-13  ‖x‖=0.0114
+11:08:06      | Iter 130: E = -61.101253 ± 0.000790  β_x = 2.132  CG 1it res=1.96e-13  ‖x‖=0.0082
+11:08:06      | Iter 140: E = -61.097470 ± 0.000631  β_x = 2.227  CG 1it res=2.26e-14  ‖x‖=0.0067
+11:08:06      | Iter 150: E = -61.094556 ± 0.000493  β_x = 2.000  CG 1it res=1.94e-13  ‖x‖=0.0055
+11:08:06      | Iter 160: E = -61.091795 ± 0.000390  β_x = 1.890  CG 1it res=2.44e-13  ‖x‖=0.0045
+11:08:06      | Iter 170: E = -61.007080 ± 0.000259  β_x = 2.069  CG 1it res=4.84e-13  ‖x‖=0.0030
+11:08:06      | Iter 180: E = -60.908690 ± 0.000218  β_x = 2.048  CG 1it res=2.10e-13  ‖x‖=0.0027
+11:08:06      |   D-Wave sampling attempt 1/3 failed: Expecting value: line 1 column 1 (char 0)
+11:08:06      |   [embedding] Running minorminer for (36, 'Advantage2_system1.13') — this may take a moment...
+11:08:06      |   [embedding] Embedding found and cached for (36, 'Advantage2_system1.13').
+11:08:06      | Iter 190: E = -60.898976 ± 0.000284  β_x = 2.359  CG 1it res=1.34e-13  ‖x‖=0.0023
+11:08:06      | Iter 200: E = -60.900271 ± 0.000236  β_x = 1.825  CG 1it res=3.38e-13  ‖x‖=0.0019
+11:08:06      | Iter 210: E = -60.900059 ± 0.000195  β_x = 1.907  CG 1it res=1.02e-13  ‖x‖=0.0015
+11:08:06      | Iter 220: E = -60.899856 ± 0.000162  β_x = 1.803  CG 1it res=1.78e-13  ‖x‖=0.0013
+11:08:06      | Iter 230: E = -60.898674 ± 0.000131  β_x = 1.619  CG 1it res=1.88e-13  ‖x‖=0.0011
+11:08:06      | Iter 240: E = -60.899188 ± 0.000110  β_x = 1.869  CG 1it res=2.76e-13  ‖x‖=0.0009
+11:08:06      | Iter 250: E = -60.898742 ± 0.000089  β_x = 1.767  CG 1it res=1.55e-13  ‖x‖=0.0007
+11:08:06      | Iter 260: E = -60.899405 ± 0.000076  β_x = 1.758  CG 1it res=5.69e-14  ‖x‖=0.0006
+11:08:06      | Iter 270: E = -60.720817 ± 0.000323  β_x = 1.832  CG 1it res=1.00e-13  ‖x‖=0.0025
+11:08:06      | Iter 280: E = -60.641843 ± 0.000171  β_x = 2.010  CG 1it res=1.92e-14  ‖x‖=0.0013
+11:08:06      | Iter 290: E = -60.641574 ± 0.000144  β_x = 2.100  CG 1it res=8.15e-15  ‖x‖=0.0011
+11:08:06      | Saved  → results/6/dimod/zephyr/result_2d_h0.5_rbmfull_nh36_lr0.1_reg0.001_ns1000_seed1_iter300.json
+11:08:06      |   Final energy : -60.641694
+11:08:06      |   Exact energy : -73.998000
+11:08:06      |   Error        : 13.356306
+11:08:06      |   Checkpoint → checkpoints/6/dimod/zephyr/full/checkpoint_2d_h0.5_rbmfull_nh36_lr0.1_iter0300.pkl
+11:08:13      | <model.FullyConnectedRBM object at 0x7ff2f7097e00>
+11:08:13      | <ising.TransverseFieldIsing2D object at 0x7ff2fd6438c0>
+11:08:13      | None
+11:08:13      |   [embedding] Running minorminer for (36, 'Advantage_system6.4') — this may take a moment...
+11:08:13      |   [embedding] Embedding found and cached for (36, 'Advantage_system6.4').
+11:08:13      | Iter   0: E = -23.520589 ± 0.283423  β_x = 2.000  CG 109it res=6.52e-09  ‖x‖=48.3971
+11:08:13      | Iter  10: E = -47.058340 ± 0.003484  β_x = 2.304  CG 4it res=8.41e-12  ‖x‖=0.2748
+11:08:13      | Iter  20: E = -47.027809 ± 0.002379  β_x = 2.178  CG 3it res=7.04e-14  ‖x‖=0.0247
+11:08:13      | Iter  30: E = -46.911378 ± 0.001970  β_x = 2.161  CG 3it res=1.29e-13  ‖x‖=0.0166
+11:08:13      | Iter  40: E = -46.930564 ± 0.001522  β_x = 1.946  CG 3it res=2.80e-13  ‖x‖=0.0141
+11:08:13      | Iter  50: E = -47.059912 ± 0.006147  β_x = 1.844  CG 7it res=1.12e-09  ‖x‖=0.9975
+11:08:13      | Iter  60: E = -50.707909 ± 0.003870  β_x = 1.660  CG 4it res=3.02e-11  ‖x‖=0.3042
+11:08:13      | Iter  70: E = -50.581333 ± 0.002702  β_x = 1.565  CG 5it res=5.25e-09  ‖x‖=0.2227
+11:08:13      | Iter  80: E = -50.828110 ± 0.003727  β_x = 1.565  CG 10it res=1.53e-14  ‖x‖=0.0639
+11:08:13      | Iter  90: E = -50.880625 ± 0.001948  β_x = 1.812  CG 9it res=4.38e-10  ‖x‖=0.0241
+11:08:13      | Iter 100: E = -50.889255 ± 0.000992  β_x = 1.549  CG 9it res=6.61e-10  ‖x‖=0.0104
+11:08:13      | Iter 110: E = -50.800584 ± 0.001184  β_x = 1.196  CG 10it res=1.08e-10  ‖x‖=0.1274
+11:08:13      | Iter 120: E = -50.713190 ± 0.000685  β_x = 1.020  CG 8it res=3.28e-09  ‖x‖=0.0065
+11:08:13      | Iter 130: E = -50.732260 ± 0.000773  β_x = 0.918  CG 8it res=3.63e-10  ‖x‖=0.0061
+11:08:13      | Iter 140: E = -50.691300 ± 0.000690  β_x = 0.957  CG 8it res=8.87e-10  ‖x‖=0.0057
+11:08:13      | Iter 150: E = -50.678048 ± 0.004363  β_x = 1.000  CG 11it res=4.59e-12  ‖x‖=0.7111
+11:08:13      | Iter 160: E = -50.637966 ± 0.000589  β_x = 0.810  CG 8it res=9.29e-09  ‖x‖=0.0045
+11:08:13      | Iter 170: E = -50.637120 ± 0.000554  β_x = 0.891  CG 8it res=1.56e-09  ‖x‖=0.0043
+11:08:13      | Iter 180: E = -50.625700 ± 0.000530  β_x = 0.885  CG 8it res=7.89e-10  ‖x‖=0.0041
+11:08:13      | Iter 190: E = -50.718336 ± 0.000545  β_x = 0.927  CG 8it res=5.46e-10  ‖x‖=0.0044
+11:08:13      | Iter 200: E = -50.717844 ± 0.000514  β_x = 0.755  CG 8it res=4.16e-09  ‖x‖=0.0041
+11:08:13      | Iter 210: E = -50.711787 ± 0.000483  β_x = 0.584  CG 8it res=3.42e-09  ‖x‖=0.0038
+11:08:13      | Iter 220: E = -50.711879 ± 0.000454  β_x = 0.552  CG 8it res=2.19e-09  ‖x‖=0.0036
+11:08:13      | Iter 230: E = -50.710583 ± 0.000416  β_x = 0.637  CG 8it res=4.35e-09  ‖x‖=0.0034
+11:08:13      | Iter 240: E = -50.699343 ± 0.000434  β_x = 0.518  CG 8it res=8.42e-09  ‖x‖=0.0035
+11:08:13      | Iter 250: E = -50.720157 ± 0.000427  β_x = 0.541  CG 8it res=6.68e-09  ‖x‖=0.0034
+11:08:13      | Iter 260: E = -50.749509 ± 0.000465  β_x = 0.419  CG 8it res=5.31e-09  ‖x‖=0.0039
+11:08:13      | Iter 270: E = -50.742035 ± 0.000399  β_x = 0.416  CG 8it res=5.00e-09  ‖x‖=0.0034
+11:08:13      | Iter 280: E = -50.774815 ± 0.000458  β_x = 0.355  CG 8it res=1.44e-09  ‖x‖=0.0039
+11:08:13      | Iter 290: E = -50.788278 ± 0.000480  β_x = 0.390  CG 8it res=2.63e-09  ‖x‖=0.0039
+11:08:13      | Saved  → results/6/dimod/pegasus/result_2d_h0.5_rbmfull_nh36_lr0.1_reg0.001_ns1000_seed42_iter300.json
+11:08:13      |   Final energy : -50.907538
+11:08:13      |   Exact energy : -73.998000
+11:08:13      |   Error        : 23.090462
+11:08:13      |   Checkpoint → checkpoints/6/dimod/pegasus/full/checkpoint_2d_h0.5_rbmfull_nh36_lr0.1_iter0300.pkl
+11:08:32      | <model.FullyConnectedRBM object at 0x75a706573e00>
+11:08:32      | <ising.TransverseFieldIsing2D object at 0x75a70ca338c0>
+11:08:32      | None
+11:08:32      |   [embedding] Running minorminer for (36, 'Advantage2_system1.13') — this may take a moment...
+11:08:32      |   [embedding] Embedding found and cached for (36, 'Advantage2_system1.13').
+11:08:32      | Iter   0: E = -73.987881 ± 0.184750  β_x = 2.000  CG 59it res=8.85e-09  ‖x‖=20.4296
+11:08:32      | Iter  10: E = -66.028952 ± 0.000221  β_x = 2.084  CG 3it res=1.94e-13  ‖x‖=0.0458
+11:08:32      | Iter  20: E = -66.515337 ± 0.001695  β_x = 2.298  CG 7it res=2.70e-09  ‖x‖=0.3986
+11:08:32      | Iter  30: E = -66.535432 ± 0.000084  β_x = 2.161  CG 4it res=6.77e-12  ‖x‖=0.0087
+11:08:32      | Iter  40: E = -66.457941 ± 0.000109  β_x = 2.607  CG 4it res=9.62e-12  ‖x‖=0.0083
+11:08:32      | Iter  50: E = -66.603251 ± 0.001951  β_x = 2.875  CG 5it res=1.95e-09  ‖x‖=0.2654
+11:08:32      | Iter  60: E = -66.339719 ± 0.000582  β_x = 2.717  CG 5it res=6.48e-12  ‖x‖=0.1047
+11:08:32      | Iter  70: E = -66.287900 ± 0.000291  β_x = 2.569  CG 6it res=2.48e-10  ‖x‖=0.0704
+11:08:32      | Iter  80: E = -66.241319 ± 0.000170  β_x = 2.549  CG 4it res=1.53e-12  ‖x‖=0.0207
+11:08:32      | Iter  90: E = -66.171189 ± 0.000907  β_x = 2.530  CG 11it res=3.11e-12  ‖x‖=0.2069
+11:08:32      | Iter 100: E = -66.018215 ± 0.000307  β_x = 3.053  CG 13it res=2.26e-15  ‖x‖=0.0905
+11:08:32      | Iter 110: E = -66.001400 ± 0.000200  β_x = 3.340  CG 13it res=6.78e-11  ‖x‖=0.0707
+11:08:32      | Iter 120: E = -65.971175 ± 0.000015  β_x = 3.142  CG 10it res=1.57e-10  ‖x‖=0.0027
+11:08:32      | Iter 130: E = -65.961373 ± 0.000040  β_x = 3.429  CG 10it res=5.21e-10  ‖x‖=0.0024
+11:08:32      | Iter 140: E = -65.950943 ± 0.000026  β_x = 3.743  CG 6it res=1.58e-09  ‖x‖=0.0012
+11:08:32      | Iter 150: E = -65.945061 ± 0.000005  β_x = 4.516  CG 8it res=9.76e-10  ‖x‖=0.0006
+11:08:32      | Iter 160: E = -65.943357 ± 0.000002  β_x = 4.459  CG 6it res=4.03e-09  ‖x‖=0.0001
+11:08:32      |   D-Wave sampling attempt 1/3 failed: Expecting value: line 1 column 1 (char 0)
+11:08:32      |   [embedding] Running minorminer for (36, 'Advantage2_system1.13') — this may take a moment...
+11:08:32      |   [embedding] Embedding found and cached for (36, 'Advantage2_system1.13').
+11:08:32      | Iter 170: E = -65.942406 ± 0.000000  β_x = 4.636  CG 5it res=1.60e-09  ‖x‖=0.0000
+11:08:32      | Iter 180: E = -65.942421 ± 0.000000  β_x = 5.366  CG 5it res=2.83e-10  ‖x‖=0.0000
+11:08:32      | Iter 190: E = -65.942425 ± 0.000000  β_x = 5.340  CG 4it res=5.02e-09  ‖x‖=0.0000
+11:08:32      | Iter 200: E = -65.942428 ± 0.000000  β_x = 5.313  CG 4it res=9.96e-09  ‖x‖=0.0000
+11:08:32      | Iter 210: E = -65.942424 ± 0.000000  β_x = 4.532  CG 4it res=8.66e-09  ‖x‖=0.0000
+11:08:32      | Iter 220: E = -65.942428 ± 0.000000  β_x = 4.521  CG 4it res=3.96e-09  ‖x‖=0.0000
+11:08:32      | Iter 230: E = -65.942425 ± 0.000000  β_x = 5.221  CG 5it res=2.45e-09  ‖x‖=0.0000
+11:08:32      |   D-Wave sampling attempt 1/3 failed: Expecting value: line 1 column 1 (char 0)
+11:08:32      |   [embedding] Running minorminer for (36, 'Advantage2_system1.13') — this may take a moment...
+11:08:32      |   [embedding] Embedding found and cached for (36, 'Advantage2_system1.13').
+11:08:32      | Iter 240: E = -65.942103 ± 0.000001  β_x = 5.427  CG 6it res=4.10e-09  ‖x‖=0.0003
+11:08:32      | Iter 250: E = -65.941958 ± 0.000000  β_x = 5.953  CG 6it res=1.02e-09  ‖x‖=0.0000
+11:08:32      | Iter 260: E = -65.941896 ± 0.000000  β_x = 4.365  CG 4it res=9.41e-09  ‖x‖=0.0000
+11:08:32      | Iter 270: E = -65.941861 ± 0.000000  β_x = 4.116  CG 5it res=7.84e-09  ‖x‖=0.0000
+11:08:32      | Iter 280: E = -65.941875 ± 0.000000  β_x = 4.311  CG 5it res=1.57e-09  ‖x‖=0.0000
+11:08:32      | Iter 290: E = -65.941874 ± 0.000000  β_x = 3.687  CG 6it res=3.57e-09  ‖x‖=0.0000
+11:08:32      | Saved  → results/6/dimod/zephyr/result_2d_h2.0_rbmfull_nh36_lr0.1_reg0.001_ns1000_seed42_iter300.json
+11:08:32      |   Final energy : -65.941869
+11:08:32      |   Exact energy : -88.376400
+11:08:32      |   Error        : 22.434531
+11:08:32      |   Checkpoint → checkpoints/6/dimod/zephyr/full/checkpoint_2d_h2.0_rbmfull_nh36_lr0.1_iter0300.pkl
+11:08:54      | <model.FullyConnectedRBM object at 0x7a14faf4be00>
+11:08:54      | <ising.TransverseFieldIsing2D object at 0x7a15014438c0>
+11:08:54      | None
+11:08:54      |   [embedding] Running minorminer for (36, 'Advantage_system6.4') — this may take a moment...
+11:08:54      |   [embedding] Embedding found and cached for (36, 'Advantage_system6.4').
+11:08:54      | Iter   0: E = -80.582864 ± 0.246542  β_x = 2.000  CG 92it res=6.81e-09  ‖x‖=41.7544
+11:08:54      | Iter  10: E = -62.332246 ± 0.022438  β_x = 2.199  CG 98it res=9.58e-09  ‖x‖=2.8106
+11:08:54      | Iter  20: E = -68.452423 ± 0.034522  β_x = 1.886  CG 123it res=8.96e-09  ‖x‖=1.6175
+11:08:54      | Iter  30: E = -72.590035 ± 0.001666  β_x = 1.867  CG 17it res=3.70e-09  ‖x‖=0.3766
+11:08:54      | Iter  40: E = -72.134259 ± 0.002103  β_x = 2.496  CG 21it res=3.52e-10  ‖x‖=0.2814
+11:08:54      | Iter  50: E = -72.355654 ± 0.001776  β_x = 2.882  CG 12it res=2.35e-10  ‖x‖=0.0233
+11:08:54      | Iter  60: E = -72.283245 ± 0.001066  β_x = 2.860  CG 11it res=6.91e-09  ‖x‖=0.0159
+11:08:54      | Iter  70: E = -72.207423 ± 0.000830  β_x = 3.468  CG 9it res=1.82e-12  ‖x‖=0.0132
+11:08:54      | Iter  80: E = -72.047479 ± 0.000301  β_x = 3.451  CG 14it res=4.73e-14  ‖x‖=0.0243
+11:08:54      | Iter  90: E = -72.010458 ± 0.001176  β_x = 3.985  CG 12it res=3.30e-09  ‖x‖=0.0266
+11:08:54      | Iter 100: E = -71.943047 ± 0.000652  β_x = 3.408  CG 12it res=2.61e-09  ‖x‖=0.0082
+11:08:54      | Iter 110: E = -71.895243 ± 0.000978  β_x = 3.551  CG 15it res=1.59e-13  ‖x‖=0.1449
+11:08:54      | Iter 120: E = -71.788327 ± 0.000258  β_x = 3.710  CG 14it res=1.54e-13  ‖x‖=0.0034
+11:08:54      | Iter 130: E = -71.775416 ± 0.000231  β_x = 3.516  CG 8it res=1.12e-13  ‖x‖=0.0019
+11:08:54      | Iter 140: E = -71.856356 ± 0.000110  β_x = 3.507  CG 17it res=1.00e-10  ‖x‖=0.0035
+11:08:54      | Iter 150: E = -71.939468 ± 0.000214  β_x = 4.040  CG 9it res=4.31e-10  ‖x‖=0.0020
+11:08:54      | Iter 160: E = -71.940427 ± 0.000358  β_x = 3.455  CG 10it res=5.31e-10  ‖x‖=0.0369
+11:08:54      | Iter 170: E = -71.949803 ± 0.000091  β_x = 3.110  CG 8it res=2.06e-13  ‖x‖=0.0066
+11:08:54      | Iter 180: E = -71.893691 ± 0.000570  β_x = 2.933  CG 12it res=6.97e-09  ‖x‖=0.0859
+11:08:54      | Iter 190: E = -71.841728 ± 0.000255  β_x = 3.064  CG 11it res=3.02e-10  ‖x‖=0.0182
+11:08:54      | Iter 200: E = -71.895556 ± 0.000122  β_x = 3.547  CG 11it res=4.85e-09  ‖x‖=0.0078
+11:08:54      | Iter 210: E = -71.948722 ± 0.000164  β_x = 3.538  CG 14it res=1.88e-13  ‖x‖=0.0179
+11:08:54      | Iter 220: E = -71.863330 ± 0.000614  β_x = 3.344  CG 12it res=1.99e-13  ‖x‖=0.0292
+11:08:54      | Iter 230: E = -71.964558 ± 0.000448  β_x = 3.871  CG 14it res=8.63e-09  ‖x‖=0.0241
+11:08:54      | Iter 240: E = -71.940572 ± 0.000143  β_x = 4.247  CG 9it res=1.06e-09  ‖x‖=0.0013
+11:08:54      | Iter 250: E = -71.929992 ± 0.000041  β_x = 4.015  CG 9it res=7.70e-12  ‖x‖=0.0015
+11:08:54      | Iter 260: E = -71.944557 ± 0.000154  β_x = 3.795  CG 10it res=5.46e-11  ‖x‖=0.0238
+11:08:54      | Iter 270: E = -71.885580 ± 0.000606  β_x = 3.416  CG 14it res=4.82e-13  ‖x‖=0.0923
+11:08:54      | Iter 280: E = -71.888568 ± 0.000364  β_x = 3.237  CG 11it res=1.57e-10  ‖x‖=0.0052
+11:08:54      | Iter 290: E = -71.934065 ± 0.000324  β_x = 3.560  CG 14it res=1.97e-13  ‖x‖=0.0200
+11:08:54      | Saved  → results/6/dimod/pegasus/result_2d_h2.0_rbmfull_nh36_lr0.1_reg0.001_ns1000_seed42_iter300.json
+11:08:54      |   Final energy : -71.855425
+11:08:54      |   Exact energy : -88.376400
+11:08:54      |   Error        : 16.520975
+11:08:54      |   Checkpoint → checkpoints/6/dimod/pegasus/full/checkpoint_2d_h2.0_rbmfull_nh36_lr0.1_iter0300.pkl
+11:13:13      | <model.FullyConnectedRBM object at 0x736eb583fe00>
+11:13:13      | <ising.TransverseFieldIsing2D object at 0x736ebbd3b8c0>
+11:13:13      | None
+11:13:13      |   [embedding] Running minorminer for (64, 'Advantage_system6.4') — this may take a moment...
+11:13:13      |   [embedding] Embedding found and cached for (64, 'Advantage_system6.4').
+11:13:13      | Iter   0: E = -30.932965 ± 0.326909  β_x = 2.000  CG 200it res=2.13e-08  ‖x‖=72.4451
+11:13:13      | Iter  10: E = -115.513482 ± 0.053430  β_x = 2.100  CG 56it res=1.74e-11  ‖x‖=1.2657
+11:13:13      | Iter  20: E = -115.401890 ± 0.002988  β_x = 2.079  CG 3it res=9.28e-13  ‖x‖=0.0382
+11:13:13      | Iter  30: E = -115.376139 ± 0.007056  β_x = 2.167  CG 4it res=1.48e-10  ‖x‖=0.8492
+11:13:13      | Iter  40: E = -122.918096 ± 0.021967  β_x = 2.275  CG 8it res=5.79e-09  ‖x‖=2.3640
+11:13:13      | Iter  50: E = -122.532781 ± 0.004744  β_x = 2.247  CG 3it res=1.15e-12  ‖x‖=0.5905
+11:13:13      | Iter  60: E = -122.466692 ± 0.000199  β_x = 2.013  CG 1it res=1.56e-12  ‖x‖=0.0064
+11:13:13      | Iter  70: E = -122.428784 ± 0.000410  β_x = 2.440  CG 2it res=2.44e-13  ‖x‖=0.0063
+11:13:13      | Iter  80: E = -122.410959 ± 0.000325  β_x = 2.082  CG 2it res=6.31e-13  ‖x‖=0.0061
+11:13:13      | Iter  90: E = -122.396082 ± 0.000798  β_x = 2.169  CG 3it res=1.04e-12  ‖x‖=0.0946
+11:13:13      | Iter 100: E = -122.380270 ± 0.000500  β_x = 2.261  CG 3it res=1.09e-12  ‖x‖=0.0054
+11:13:13      | Iter 110: E = -122.350475 ± 0.000407  β_x = 2.025  CG 3it res=7.29e-13  ‖x‖=0.0054
+11:13:13      | Iter 120: E = -122.312002 ± 0.000230  β_x = 2.449  CG 3it res=9.47e-13  ‖x‖=0.0053
+11:13:13      | Iter 130: E = -122.269539 ± 0.000677  β_x = 2.552  CG 4it res=1.90e-10  ‖x‖=0.0443
+11:13:13      | Iter 140: E = -122.264347 ± 0.000301  β_x = 2.940  CG 2it res=8.22e-14  ‖x‖=0.0056
+11:13:13      | Iter 150: E = -122.258509 ± 0.000326  β_x = 2.640  CG 2it res=7.21e-13  ‖x‖=0.0055
+11:13:13      | Iter 160: E = -122.257040 ± 0.000434  β_x = 2.496  CG 2it res=1.05e-12  ‖x‖=0.0051
+11:13:13      | Iter 170: E = -122.219801 ± 0.000756  β_x = 2.607  CG 2it res=5.42e-13  ‖x‖=0.0842
+11:13:13      | Iter 180: E = -122.212103 ± 0.000282  β_x = 2.724  CG 1it res=1.30e-12  ‖x‖=0.0045
+11:13:13      | Iter 190: E = -122.203628 ± 0.000239  β_x = 2.846  CG 2it res=2.51e-14  ‖x‖=0.0043
+11:13:13      | Iter 200: E = -122.204044 ± 0.000185  β_x = 3.122  CG 2it res=1.47e-12  ‖x‖=0.0065
+11:13:13      | Iter 210: E = -122.206984 ± 0.000435  β_x = 3.433  CG 2it res=1.23e-12  ‖x‖=0.0039
+11:13:13      | Iter 220: E = -122.153619 ± 0.000260  β_x = 2.922  CG 1it res=8.60e-13  ‖x‖=0.0040
+11:13:13      | Iter 230: E = -122.159444 ± 0.000480  β_x = 2.769  CG 2it res=4.42e-13  ‖x‖=0.0038
+11:13:13      | Iter 240: E = -122.160581 ± 0.000485  β_x = 2.617  CG 4it res=3.60e-10  ‖x‖=0.0037
+11:13:13      | Iter 250: E = -122.152432 ± 0.000567  β_x = 2.474  CG 5it res=5.63e-13  ‖x‖=0.0075
+11:13:13      | Iter 260: E = -122.143873 ± 0.000290  β_x = 2.338  CG 3it res=7.00e-13  ‖x‖=0.0034
+11:13:13      | Iter 270: E = -122.146149 ± 0.000367  β_x = 2.210  CG 2it res=1.15e-12  ‖x‖=0.0032
+11:13:13      | Iter 280: E = -122.132622 ± 0.000451  β_x = 2.673  CG 3it res=9.30e-13  ‖x‖=0.0493
+11:13:13      | Iter 290: E = -122.103482 ± 0.000260  β_x = 2.933  CG 3it res=7.67e-13  ‖x‖=0.0110
+11:13:13      | Saved  → results/8/dimod/pegasus/result_2d_h0.5_rbmfull_nh64_lr0.1_reg0.001_ns1000_seed42_iter300.json
+11:13:13      |   Final energy : -122.107542
+11:13:13      |   Exact energy : -131.552000
+11:13:13      |   Error        : 9.444458
+11:13:13      |   Checkpoint → checkpoints/8/dimod/pegasus/full/checkpoint_2d_h0.5_rbmfull_nh64_lr0.1_iter0300.pkl
+11:16:41      | <model.FullyConnectedRBM object at 0x7a25f7d73e00>
+11:16:41      | <ising.TransverseFieldIsing2D object at 0x7a25fe2438c0>
+11:16:41      | None
+11:16:41      |   [embedding] Running minorminer for (64, 'Advantage_system6.4') — this may take a moment...
+11:16:41      |   [embedding] Embedding found and cached for (64, 'Advantage_system6.4').
+11:16:41      | Iter   0: E = -30.849326 ± 0.301150  β_x = 2.000  CG 194it res=8.45e-09  ‖x‖=55.9239
+11:16:41      | Iter  10: E = -102.345282 ± 0.012941  β_x = 2.095  CG 12it res=2.43e-09  ‖x‖=1.1014
+11:16:41      | Iter  20: E = -102.149343 ± 0.013953  β_x = 1.980  CG 14it res=1.26e-09  ‖x‖=1.4770
+11:16:41      | Iter  30: E = -101.889281 ± 0.003382  β_x = 1.970  CG 10it res=2.56e-14  ‖x‖=0.0683
+11:16:41      | Iter  40: E = -101.686150 ± 0.001302  β_x = 1.955  CG 10it res=8.49e-15  ‖x‖=0.0239
+11:16:41      | Iter  50: E = -101.652342 ± 0.005566  β_x = 1.664  CG 11it res=1.51e-13  ‖x‖=0.6994
+11:16:41      | Iter  60: E = -101.497341 ± 0.000412  β_x = 1.647  CG 9it res=3.27e-10  ‖x‖=0.0057
+11:16:41      | Iter  70: E = -101.357042 ± 0.001438  β_x = 1.553  CG 9it res=9.68e-10  ‖x‖=0.1894
+11:16:41      | Iter  80: E = -101.474301 ± 0.003117  β_x = 1.468  CG 12it res=1.40e-12  ‖x‖=0.3944
+11:16:41      | Iter  90: E = -101.325379 ± 0.000142  β_x = 1.607  CG 10it res=2.48e-15  ‖x‖=0.0038
+11:16:41      | Iter 100: E = -101.292964 ± 0.000175  β_x = 1.948  CG 9it res=3.76e-10  ‖x‖=0.0025
+11:16:41      | Iter 110: E = -101.280287 ± 0.000090  β_x = 1.837  CG 9it res=9.99e-10  ‖x‖=0.0015
+11:16:41      | Iter 120: E = -101.225230 ± 0.000142  β_x = 2.116  CG 9it res=3.02e-09  ‖x‖=0.0023
+11:16:41      | Iter 130: E = -101.184350 ± 0.000792  β_x = 1.719  CG 11it res=1.15e-13  ‖x‖=0.0952
+11:16:41      | Iter 140: E = -101.177190 ± 0.000110  β_x = 1.327  CG 10it res=7.70e-15  ‖x‖=0.0021
+11:16:41      | Iter 150: E = -101.140171 ± 0.001924  β_x = 1.129  CG 11it res=1.68e-12  ‖x‖=0.2517
+11:16:41      | Iter 160: E = -101.178625 ± 0.000111  β_x = 1.307  CG 10it res=9.47e-15  ‖x‖=0.0021
+11:16:41      | Iter 170: E = -101.117119 ± 0.000095  β_x = 1.294  CG 9it res=2.98e-09  ‖x‖=0.0017
+11:16:41      | Iter 180: E = -100.975990 ± 0.000063  β_x = 1.104  CG 10it res=5.34e-16  ‖x‖=0.0018
+11:16:41      | Iter 190: E = -100.972902 ± 0.000027  β_x = 1.093  CG 9it res=1.23e-09  ‖x‖=0.0014
+11:16:41      | Iter 200: E = -100.904625 ± 0.000147  β_x = 0.886  CG 9it res=7.46e-10  ‖x‖=0.0020
+11:16:41      | Iter 210: E = -100.835371 ± 0.002018  β_x = 0.835  CG 11it res=6.57e-14  ‖x‖=0.2638
+11:16:41      | Iter 220: E = -100.800993 ± 0.003022  β_x = 1.063  CG 12it res=1.37e-12  ‖x‖=0.3949
+11:16:41      | Iter 230: E = -100.785003 ± 0.000074  β_x = 1.166  CG 10it res=3.69e-14  ‖x‖=0.0011
+11:16:41      | Iter 240: E = -100.779867 ± 0.001898  β_x = 1.279  CG 13it res=1.87e-11  ‖x‖=0.2419
+11:16:41      | Iter 250: E = -100.719961 ± 0.000164  β_x = 1.267  CG 10it res=5.29e-14  ‖x‖=0.0017
+11:16:41      | Iter 260: E = -100.722270 ± 0.000092  β_x = 1.463  CG 10it res=1.24e-14  ‖x‖=0.0014
+11:16:41      | Iter 270: E = -100.672669 ± 0.000074  β_x = 1.379  CG 9it res=2.49e-10  ‖x‖=0.0016
+11:16:41      | Iter 280: E = -100.673772 ± 0.002344  β_x = 1.441  CG 11it res=2.80e-13  ‖x‖=0.2966
+11:16:41      | Iter 290: E = -100.672682 ± 0.000022  β_x = 1.294  CG 9it res=7.82e-09  ‖x‖=0.0005
+11:16:41      | Saved  → results/8/dimod/pegasus/result_2d_h0.5_rbmfull_nh64_lr0.1_reg0.001_ns1000_seed1_iter300.json
+11:16:41      |   Final energy : -100.648926
+11:16:41      |   Exact energy : -131.552000
+11:16:41      |   Error        : 30.903074
+11:16:41      |   Checkpoint → checkpoints/8/dimod/pegasus/full/checkpoint_2d_h0.5_rbmfull_nh64_lr0.1_iter0300.pkl
+11:28:55      | <model.FullyConnectedRBM object at 0x7c65bee5be00>
+11:28:55      | <ising.TransverseFieldIsing2D object at 0x7c65c534b8c0>
+11:28:55      | None
+11:28:55      |   [embedding] Running minorminer for (64, 'Advantage_system6.4') — this may take a moment...
+11:28:55      |   [embedding] Embedding found and cached for (64, 'Advantage_system6.4').
+11:28:55      | Iter   0: E = -127.709821 ± 0.327466  β_x = 2.000  CG 200it res=3.39e-08  ‖x‖=69.2756
+11:28:55      | Iter  10: E = -150.158288 ± 0.012647  β_x = 2.095  CG 15it res=1.19e-10  ‖x‖=0.6025
+11:28:55      | Iter  20: E = -150.197758 ± 0.003057  β_x = 1.975  CG 10it res=1.06e-12  ‖x‖=0.2207
+11:28:55      | Iter  30: E = -150.369037 ± 0.002064  β_x = 2.069  CG 7it res=1.95e-13  ‖x‖=0.0306
+11:28:55      | Iter  40: E = -150.437835 ± 0.000796  β_x = 2.161  CG 9it res=1.36e-12  ‖x‖=0.0136
+11:28:55      | Iter  50: E = -150.146043 ± 0.000864  β_x = 1.946  CG 9it res=1.45e-09  ‖x‖=0.0825
+11:28:55      | Iter  60: E = -150.266990 ± 0.000469  β_x = 2.140  CG 8it res=7.70e-10  ‖x‖=0.0065
+11:28:55      | Iter  70: E = -150.695358 ± 0.000811  β_x = 2.477  CG 14it res=4.43e-09  ‖x‖=0.1263
+11:28:55      | Iter  80: E = -150.701699 ± 0.000353  β_x = 2.588  CG 10it res=1.95e-13  ‖x‖=0.0327
+11:28:55      | Iter  90: E = -150.561675 ± 0.002404  β_x = 2.704  CG 3it res=6.45e-13  ‖x‖=0.3132
+11:28:55      | Iter 100: E = -151.036113 ± 0.002403  β_x = 2.981  CG 12it res=4.48e-13  ‖x‖=0.6743
+11:28:55      | Iter 110: E = -150.967904 ± 0.004873  β_x = 3.114  CG 14it res=7.67e-09  ‖x‖=0.3350
+11:28:55      | Iter 120: E = -150.837165 ± 0.000069  β_x = 3.099  CG 9it res=2.24e-09  ‖x‖=0.0062
+11:28:55      | Iter 130: E = -150.698819 ± 0.000152  β_x = 3.076  CG 8it res=3.60e-13  ‖x‖=0.0451
+11:28:55      | Iter 140: E = -151.044924 ± 0.000221  β_x = 3.229  CG 7it res=1.49e-10  ‖x‖=0.0208
+11:28:55      | Iter 150: E = -151.042863 ± 0.000072  β_x = 3.365  CG 8it res=9.07e-10  ‖x‖=0.0077
+11:28:55      | Iter 160: E = -151.033722 ± 0.000067  β_x = 3.692  CG 9it res=6.01e-09  ‖x‖=0.0059
+11:28:55      | Iter 170: E = -151.062784 ± 0.000021  β_x = 4.060  CG 5it res=8.59e-09  ‖x‖=0.0022
+11:28:55      | Iter 180: E = -150.976074 ± 0.000043  β_x = 3.828  CG 7it res=4.15e-10  ‖x‖=0.0054
+11:28:55      | Iter 190: E = -150.991034 ± 0.000016  β_x = 3.118  CG 8it res=7.70e-10  ‖x‖=0.0020
+11:28:55      | Iter 200: E = -151.052103 ± 0.000091  β_x = 3.258  CG 5it res=5.26e-09  ‖x‖=0.0072
+11:28:55      | Iter 210: E = -151.068447 ± 0.001131  β_x = 3.403  CG 7it res=2.52e-09  ‖x‖=0.1507
+11:28:55      | Iter 220: E = -151.011415 ± 0.000092  β_x = 2.765  CG 10it res=2.64e-09  ‖x‖=0.0080
+11:28:55      | Iter 230: E = -150.979379 ± 0.000379  β_x = 2.614  CG 16it res=7.59e-09  ‖x‖=0.0485
+11:28:55      | Iter 240: E = -151.423863 ± 0.000697  β_x = 2.731  CG 10it res=2.76e-11  ‖x‖=0.0867
+11:28:55      | Iter 250: E = -151.569990 ± 0.013881  β_x = 2.717  CG 15it res=5.55e-12  ‖x‖=0.4945
+11:28:55      | Iter 260: E = -151.419435 ± 0.000365  β_x = 2.988  CG 8it res=2.33e-09  ‖x‖=0.0432
+11:28:55      | Iter 270: E = -151.419509 ± 0.000689  β_x = 3.122  CG 8it res=5.00e-10  ‖x‖=0.0384
+11:28:55      | Iter 280: E = -151.539536 ± 0.000060  β_x = 3.114  CG 7it res=1.83e-13  ‖x‖=0.0048
+11:28:55      | Iter 290: E = -151.580724 ± 0.001915  β_x = 2.524  CG 12it res=4.85e-10  ‖x‖=0.1707
+11:28:55      | Saved  → results/8/dimod/pegasus/result_2d_h2.0_rbmfull_nh64_lr0.1_reg0.001_ns1000_seed1_iter300.json
+11:28:55      |   Final energy : -151.478266
+11:28:55      |   Exact energy : -157.113600
+11:28:55      |   Error        : 5.635334
+11:28:55      |   Checkpoint → checkpoints/8/dimod/pegasus/full/checkpoint_2d_h2.0_rbmfull_nh64_lr0.1_iter0300.pkl
+11:29:07      | <model.FullyConnectedRBM object at 0x74ef28a73e00>
+11:29:07      | <ising.TransverseFieldIsing2D object at 0x74ef2ef4b8c0>
+11:29:07      | None
+11:29:07      |   [embedding] Running minorminer for (64, 'Advantage2_system1.13') — this may take a moment...
+11:29:07      |   [embedding] Embedding found and cached for (64, 'Advantage2_system1.13').
+11:29:07      | Iter   0: E = -123.192379 ± 0.368102  β_x = 2.000  CG 200it res=1.04e-08  ‖x‖=76.1487
+11:29:07      | Iter  10: E = -68187656783337155979911878029117377357635742544907227796274848164390504314414563328.000000 ± 25673005787199553949263354841683478935472768860510167930978087033770247516896362496.000000  β_x = 1.805  CG 63it res=1.46e-12  ‖x‖=3863224991005979142811784490639883376768623441919189086120710109252792825170110709760.0000
+11:29:07      | Iter  20: E = -16.000000 ± 0.000000  β_x = 1.800  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter  30: E = -20.000000 ± 0.000000  β_x = 1.791  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter  40: E = -16.000000 ± 0.000000  β_x = 1.881  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter  50: E = -20.000000 ± 0.000000  β_x = 1.975  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter  60: E = -19523565727282637928691764752630285570955447991025208223127764106724403792737992704.000000 ± 13757306470705984708337422500896260721831424883852686150770476198192216094036459520.000000  β_x = 1.867  CG 62it res=5.60e-11  ‖x‖=3937911512312223738580121219410285255446795474181181361441730022099986246838146564096.0000
+11:29:07      | Iter  70: E = -12.000000 ± 0.000000  β_x = 1.765  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter  80: E = -9761782863641318964345882376315142785477723995512604111563882053362201896368996352.000000 ± 9732781363471663053318916140330526773252070591220046502680577171939865573038489600.000000  β_x = 1.677  CG 56it res=1.82e-12  ‖x‖=3295846403749286541535500587528001071802230028072731395487096769162268313229218283520.0000
+11:29:07      | Iter  90: E = -19475291306565279005188665217600744857386006183131541228236988703676100806015188992.000000 ± 13757332545457824013806588191113179811770563852366526227828140088418376366742831104.000000  β_x = 1.668  CG 21it res=4.43e-09  ‖x‖=1198568063334438793866670864550294751584718135228873296387253034304771601813253128192.0000
+11:29:07      | Iter 100: E = -97376456532826395025943326088003724286930030915657706141184943518380504030075944960.000000 ± 33591349186060422442122756382454202921151933447211547162119637381486892402738200576.000000  β_x = 1.835  CG 52it res=1.35e-10  ‖x‖=1701315423700824445649321741632810058746269199533261020072622048774831872822638280704.0000
+11:29:07      | Iter 110: E = -20.000000 ± 0.000000  β_x = 1.917  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter 120: E = -20.000000 ± 0.000000  β_x = 1.917  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter 130: E = -12.000000 ± 0.000000  β_x = 1.912  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter 140: E = -20.000000 ± 0.000000  β_x = 1.907  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter 150: E = -12.000000 ± 0.000000  β_x = 2.002  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter 160: E = -20.000000 ± 0.000000  β_x = 1.803  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter 170: E = -9737645653282639502594332608800372428693003091565770614118494351838050403007594496.000000 ± 9732775612641306186592534007446018674344122900553117735846780476210254115527196672.000000  β_x = 1.983  CG 20it res=1.05e-11  ‖x‖=1189488158156299509534865598172375015668144742491564695225587580152392713617794924544.0000
+11:29:07      | Iter 180: E = -20.000000 ± 0.000000  β_x = 1.879  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter 190: E = -20.000000 ± 0.000000  β_x = 1.879  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter 200: E = -58425873919695837015565995652802234572158018549394623684710966111028302418045566976.000000 ± 23780598698730975869051670858768406626958083869659611378794028066916846951418822656.000000  β_x = 1.780  CG 40it res=3.71e-11  ‖x‖=1204758562001704219064938138286533820245457452364058222445497141848154346751738773504.0000
+11:29:07      | Iter 210: E = -20.000000 ± 0.000000  β_x = 1.771  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter 220: E = -20.000000 ± 0.000000  β_x = 1.771  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter 230: E = -20.000000 ± 0.000000  β_x = 1.771  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter 240: E = -9737645653282639502594332608800372428693003091565770614118494351838050403007594496.000000 ± 9732775612641309556585867401275993007721008778006951940489833293781814253478477824.000000  β_x = 1.683  CG 22it res=8.42e-09  ‖x‖=1189488158177861212160959331059676264990260258476158126946114008724459985779589906432.0000
+11:29:07      | Iter 250: E = -20.000000 ± 0.000000  β_x = 1.855  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter 260: E = -20.000000 ± 0.000000  β_x = 1.855  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter 270: E = -20.000000 ± 0.000000  β_x = 1.855  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter 280: E = -20.000000 ± 0.000000  β_x = 1.855  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Iter 290: E = -20.000000 ± 0.000000  β_x = 1.855  CG 0it res=0.00e+00  ‖x‖=0.0000
+11:29:07      | Saved  → results/8/dimod/zephyr/result_2d_h2.0_rbmfull_nh64_lr0.1_reg0.001_ns1000_seed1_iter300.json
+11:29:07      |   Final energy : -20.000000
+11:29:07      |   Exact energy : -157.113600
+11:29:07      |   Error        : 137.113600
+11:29:07      |   Checkpoint → checkpoints/8/dimod/zephyr/full/checkpoint_2d_h2.0_rbmfull_nh64_lr0.1_iter0300.pkl
+11:30:58      | <model.FullyConnectedRBM object at 0x74836ca53e00>
+11:30:58      | <ising.TransverseFieldIsing2D object at 0x748372f4b8c0>
+11:30:58      | None
+11:30:58      |   [embedding] Running minorminer for (64, 'Advantage2_system1.13') — this may take a moment...
+11:30:58      |   [embedding] Embedding found and cached for (64, 'Advantage2_system1.13').
+11:30:58      | Iter   0: E = -31.265058 ± 0.324613  β_x = 2.000  CG 200it res=1.15e-08  ‖x‖=68.5110
+11:30:58      | Iter  10: E = -92.464312 ± 0.063697  β_x = 1.900  CG 200it res=1.42e-05  ‖x‖=2.5751
+11:30:58      | Iter  20: E = -93.562362 ± 0.036740  β_x = 1.800  CG 200it res=4.01e-07  ‖x‖=4.3899
+11:30:58      | Iter  30: E = -97.054609 ± 0.007998  β_x = 1.796  CG 191it res=7.38e-09  ‖x‖=0.9941
+11:30:58      | Iter  40: E = -98.078426 ± 0.029823  β_x = 1.796  CG 200it res=1.39e-07  ‖x‖=1.5397
+11:30:58      | Iter  50: E = -99.195287 ± 0.010045  β_x = 1.886  CG 154it res=4.58e-09  ‖x‖=0.8483
+11:30:58      | Iter  60: E = -99.118168 ± 0.003059  β_x = 1.783  CG 119it res=7.92e-09  ‖x‖=0.5017
+11:30:58      | Iter  70: E = -99.061173 ± 0.002742  β_x = 1.862  CG 115it res=6.49e-09  ‖x‖=0.3886
+11:30:58      | Iter  80: E = -99.046395 ± 0.002493  β_x = 1.848  CG 119it res=9.93e-09  ‖x‖=0.3284
+11:30:58      | Iter  90: E = -99.034732 ± 0.002856  β_x = 1.835  CG 127it res=9.36e-09  ‖x‖=0.5997
+11:30:58      | Iter 100: E = -99.006557 ± 0.002888  β_x = 2.007  CG 123it res=5.45e-09  ‖x‖=0.8360
+11:30:58      | Iter 110: E = -99.035283 ± 0.007757  β_x = 2.208  CG 130it res=5.49e-09  ‖x‖=0.5581
+11:30:58      | Iter 120: E = -99.123764 ± 0.002629  β_x = 2.312  CG 118it res=4.27e-09  ‖x‖=0.5105
+11:30:58      | Iter 130: E = -99.298513 ± 0.004554  β_x = 2.428  CG 133it res=7.34e-09  ‖x‖=0.3383
+11:30:58      | Iter 140: E = -99.395098 ± 0.002290  β_x = 2.301  CG 118it res=3.48e-09  ‖x‖=0.1677
+11:30:58      | Iter 150: E = -99.381757 ± 0.004377  β_x = 1.780  CG 124it res=5.62e-09  ‖x‖=1.6281
+11:30:58      | Iter 160: E = -99.377264 ± 0.001445  β_x = 1.865  CG 116it res=9.04e-09  ‖x‖=0.1434
+11:30:58      | Iter 170: E = -99.394867 ± 0.001167  β_x = 1.763  CG 114it res=5.35e-09  ‖x‖=0.1240
+11:30:58      | Iter 180: E = -99.392940 ± 0.002827  β_x = 1.583  CG 113it res=4.59e-09  ‖x‖=0.3855
+11:30:58      | Iter 190: E = -99.282953 ± 0.001147  β_x = 1.418  CG 99it res=8.64e-09  ‖x‖=0.0715
+11:30:58      |   D-Wave sampling attempt 1/3 failed: Extra data: line 1 column 31 (char 30)
+11:30:58      |   D-Wave sampling attempt 2/3 failed: Extra data: line 1 column 31 (char 30)
+11:30:58      |   D-Wave sampling attempt 3/3 failed: Extra data: line 1 column 31 (char 30)
+11:30:58      |   [Trainer] Sampling failed at iteration 193: D-Wave sampling failed after 3 attempts.
+11:30:58      |   [Trainer] Aborting this experiment.
+11:30:58      | Traceback (most recent call last):
+11:30:58      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:30:58      |     main()
+11:30:58      |     ~~~~^^
+11:30:58      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:30:58      |     history = trainer.train()
+11:30:58      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:30:58      |     samples = self.sampler.sample(
+11:30:58      |         self.rbm,
+11:30:58      |         self.n_samples,
+11:30:58      |         config={"beta_x": self.beta_x},
+11:30:58      |     )
+11:30:58      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 311, in sample
+11:30:58      |     return self.dwave(bqm, n_samples, config, rbm=rbm)
+11:30:58      |            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:30:58      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 473, in dwave
+11:30:58      |     raise RuntimeError(
+11:30:58      |         f"D-Wave sampling failed after {MAX_DWAVE_RETRIES} attempts."
+11:30:58      |     )
+11:30:58      | RuntimeError: D-Wave sampling failed after 3 attempts.
+11:30:58    Attempt 1/2 failed (exit 1)
+11:30:58    Retrying (attempt 2/2) — [  40/54] size=8 nh=64 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/zephyr seed=42
+11:31:00      | <model.FullyConnectedRBM object at 0x721e3e9d3e00>
+11:31:00      | <ising.TransverseFieldIsing2D object at 0x721e44f4b8c0>
+11:31:00      | None
+11:31:00      |   [embedding] Running minorminer for (64, 'Advantage_system6.4') — this may take a moment...
+11:31:00      |   [embedding] Embedding found and cached for (64, 'Advantage_system6.4').
+11:31:00      | Iter   0: E = -61.294947 ± 0.325885  β_x = 2.000  CG 200it res=1.63e-08  ‖x‖=64.7361
+11:31:00      | Iter  10: E = -109.428162 ± 0.042096  β_x = 2.205  CG 90it res=6.38e-09  ‖x‖=1.6121
+11:31:00      | Iter  20: E = -110.589509 ± 0.007486  β_x = 2.673  CG 7it res=2.08e-09  ‖x‖=0.9714
+11:31:00      | Iter  30: E = -111.591017 ± 0.007110  β_x = 3.095  CG 38it res=1.73e-09  ‖x‖=0.7353
+11:31:00      | Iter  40: E = -111.757690 ± 0.004276  β_x = 3.404  CG 36it res=2.45e-09  ‖x‖=1.1911
+11:31:00      | Iter  50: E = -111.827498 ± 0.004007  β_x = 3.556  CG 45it res=3.24e-10  ‖x‖=0.4748
+11:31:00      | Iter  60: E = -111.546482 ± 0.000945  β_x = 3.911  CG 44it res=8.38e-10  ‖x‖=0.1965
+11:31:00      | Iter  70: E = -111.411527 ± 0.000843  β_x = 3.678  CG 39it res=7.75e-09  ‖x‖=0.0583
+11:31:00      | Iter  80: E = -111.258187 ± 0.000795  β_x = 2.697  CG 41it res=3.41e-11  ‖x‖=0.0916
+11:31:00      | Iter  90: E = -111.101184 ± 0.001209  β_x = 2.543  CG 46it res=4.64e-09  ‖x‖=0.1596
+11:31:00      | Iter 100: E = -116.224905 ± 0.024995  β_x = 2.180  CG 19it res=5.00e-10  ‖x‖=0.6617
+11:31:00      | Iter 110: E = -116.989662 ± 0.014106  β_x = 2.169  CG 15it res=4.18e-10  ‖x‖=1.5241
+11:31:00      | Iter 120: E = -120.513238 ± 0.006456  β_x = 2.159  CG 5it res=3.21e-09  ‖x‖=0.1682
+11:31:00      | Iter 130: E = -120.485007 ± 0.004320  β_x = 2.142  CG 6it res=1.09e-12  ‖x‖=0.5548
+11:31:00      | Iter 140: E = -124.043282 ± 0.021910  β_x = 2.035  CG 10it res=4.04e-12  ‖x‖=0.2737
+11:31:00      | Iter 150: E = -123.606861 ± 0.000890  β_x = 2.462  CG 4it res=2.90e-11  ‖x‖=0.0715
+11:31:00      | Iter 160: E = -123.470348 ± 0.000171  β_x = 2.694  CG 1it res=5.45e-13  ‖x‖=0.0045
+11:31:00      | Iter 170: E = -123.437566 ± 0.000773  β_x = 2.188  CG 2it res=1.95e-12  ‖x‖=0.0924
+11:31:00      | Iter 180: E = -123.501062 ± 0.000247  β_x = 2.069  CG 1it res=1.11e-12  ‖x‖=0.0034
+11:31:00      | Iter 190: E = -123.499829 ± 0.000175  β_x = 1.955  CG 4it res=3.02e-13  ‖x‖=0.0086
+11:31:00      | Iter 200: E = -123.449646 ± 0.000139  β_x = 1.936  CG 1it res=1.06e-12  ‖x‖=0.0027
+11:31:00      | Iter 210: E = -123.456930 ± 0.000200  β_x = 2.023  CG 4it res=1.33e-12  ‖x‖=0.0226
+11:31:00      | Iter 220: E = -123.468170 ± 0.000151  β_x = 2.017  CG 3it res=1.38e-12  ‖x‖=0.0190
+11:31:00      | Iter 230: E = -123.467456 ± 0.000080  β_x = 1.816  CG 1it res=8.15e-13  ‖x‖=0.0015
+11:31:00      | Iter 240: E = -123.450024 ± 0.000103  β_x = 1.898  CG 2it res=7.94e-13  ‖x‖=0.0013
+11:31:00      |   D-Wave sampling attempt 1/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:00      |   D-Wave sampling attempt 2/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:00      |   D-Wave sampling attempt 3/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:00      |   [Trainer] Sampling failed at iteration 244: D-Wave sampling failed after 3 attempts.
+11:31:00      |   [Trainer] Aborting this experiment.
+11:31:00      | Traceback (most recent call last):
+11:31:00      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:31:00      |     main()
+11:31:00      |     ~~~~^^
+11:31:00      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:31:00      |     history = trainer.train()
+11:31:00      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:31:00      |     samples = self.sampler.sample(
+11:31:00      |         self.rbm,
+11:31:00      |         self.n_samples,
+11:31:00      |         config={"beta_x": self.beta_x},
+11:31:00      |     )
+11:31:00      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 311, in sample
+11:31:00      |     return self.dwave(bqm, n_samples, config, rbm=rbm)
+11:31:00      |            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:31:00      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 473, in dwave
+11:31:00      |     raise RuntimeError(
+11:31:00      |         f"D-Wave sampling failed after {MAX_DWAVE_RETRIES} attempts."
+11:31:00      |     )
+11:31:00      | RuntimeError: D-Wave sampling failed after 3 attempts.
+11:31:00    Attempt 1/2 failed (exit 1)
+11:31:00    Retrying (attempt 2/2) — [  44/54] size=8 nh=64 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/pegasus seed=42
+11:31:00      | <model.FullyConnectedRBM object at 0x791f1e563e00>
+11:31:00      | <ising.TransverseFieldIsing2D object at 0x791f24a438c0>
+11:31:00      | None
+11:31:00      |   [embedding] Running minorminer for (64, 'Advantage_system6.4') — this may take a moment...
+11:31:00      |   [embedding] Embedding found and cached for (64, 'Advantage_system6.4').
+11:31:00      | Iter   0: E = -65.068471 ± 0.286097  β_x = 2.000  CG 191it res=9.68e-09  ‖x‖=57.9508
+11:31:00      | Iter  10: E = -108.318379 ± 0.047170  β_x = 2.095  CG 200it res=2.84e-07  ‖x‖=3.2009
+11:31:00      | Iter  20: E = -111.146248 ± 0.048192  β_x = 2.425  CG 145it res=9.93e-09  ‖x‖=2.6191
+11:31:00      | Iter  30: E = -111.364786 ± 0.009579  β_x = 2.413  CG 17it res=1.49e-09  ‖x‖=0.4622
+11:31:00      | Iter  40: E = -112.352049 ± 0.015454  β_x = 2.527  CG 90it res=9.68e-09  ‖x‖=3.4228
+11:31:00      | Iter  50: E = -115.423356 ± 0.006698  β_x = 2.786  CG 24it res=1.22e-09  ‖x‖=0.7181
+11:31:00      | Iter  60: E = -118.392368 ± 0.008811  β_x = 2.911  CG 21it res=1.77e-09  ‖x‖=0.3386
+11:31:00      | Iter  70: E = -118.763341 ± 0.011991  β_x = 2.496  CG 38it res=8.54e-09  ‖x‖=2.9216
+11:31:00      | Iter  80: E = -120.681698 ± 0.009007  β_x = 2.483  CG 31it res=6.75e-09  ‖x‖=0.6448
+11:31:00      | Iter  90: E = -120.112453 ± 0.000857  β_x = 2.336  CG 4it res=3.40e-11  ‖x‖=0.0366
+11:31:00      | Iter 100: E = -127.922032 ± 0.002924  β_x = 2.103  CG 6it res=2.57e-13  ‖x‖=0.3301
+11:31:00      | Iter 110: E = -127.822063 ± 0.000878  β_x = 2.428  CG 2it res=1.10e-13  ‖x‖=0.0116
+11:31:00      | Iter 120: E = -127.728438 ± 0.001379  β_x = 2.295  CG 7it res=3.90e-13  ‖x‖=0.1383
+11:31:00      | Iter 130: E = -127.534280 ± 0.000720  β_x = 2.056  CG 3it res=7.58e-13  ‖x‖=0.0347
+11:31:00      | Iter 140: E = -127.434962 ± 0.001191  β_x = 1.943  CG 5it res=7.73e-10  ‖x‖=0.1382
+11:31:00      | Iter 150: E = -127.403149 ± 0.000675  β_x = 1.832  CG 3it res=8.78e-13  ‖x‖=0.0059
+11:31:00      | Iter 160: E = -127.263756 ± 0.001089  β_x = 2.005  CG 6it res=4.11e-13  ‖x‖=0.1206
+11:31:00      | Iter 170: E = -127.270388 ± 0.000697  β_x = 2.095  CG 6it res=6.66e-13  ‖x‖=0.0404
+11:31:00      | Iter 180: E = -127.259995 ± 0.000690  β_x = 1.980  CG 6it res=1.19e-12  ‖x‖=0.0390
+11:31:00      | Iter 190: E = -127.201588 ± 0.000399  β_x = 2.401  CG 7it res=3.41e-14  ‖x‖=0.1035
+11:31:00      | Iter 200: E = -127.223211 ± 0.000260  β_x = 2.508  CG 3it res=4.49e-13  ‖x‖=0.0037
+11:31:00      | Iter 210: E = -127.198296 ± 0.000220  β_x = 2.252  CG 1it res=8.55e-13  ‖x‖=0.0034
+11:31:00      | Iter 220: E = -127.201579 ± 0.000247  β_x = 1.738  CG 3it res=1.09e-12  ‖x‖=0.0043
+11:31:00      | Iter 230: E = -127.186635 ± 0.000258  β_x = 1.483  CG 3it res=2.54e-13  ‖x‖=0.0032
+11:31:00      | Iter 240: E = -127.093440 ± 0.000459  β_x = 1.265  CG 4it res=6.00e-11  ‖x‖=0.0156
+11:31:00      | Iter 250: E = -127.168854 ± 0.000384  β_x = 1.028  CG 4it res=1.28e-11  ‖x‖=0.0061
+11:31:00      | Iter 260: E = -127.158001 ± 0.000284  β_x = 0.969  CG 7it res=4.59e-13  ‖x‖=0.0074
+11:31:00      | Iter 270: E = -127.246578 ± 0.001291  β_x = 1.069  CG 8it res=7.48e-14  ‖x‖=0.1644
+11:31:00      | Iter 280: E = -127.253019 ± 0.000267  β_x = 1.175  CG 3it res=9.11e-13  ‖x‖=0.0028
+11:31:00      |   D-Wave sampling attempt 1/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:00      |   D-Wave sampling attempt 2/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:00      |   D-Wave sampling attempt 3/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:00      |   [Trainer] Sampling failed at iteration 288: D-Wave sampling failed after 3 attempts.
+11:31:00      |   [Trainer] Aborting this experiment.
+11:31:00      | Traceback (most recent call last):
+11:31:00      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:31:00      |     main()
+11:31:00      |     ~~~~^^
+11:31:00      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:31:00      |     history = trainer.train()
+11:31:00      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:31:00      |     samples = self.sampler.sample(
+11:31:00      |         self.rbm,
+11:31:00      |         self.n_samples,
+11:31:00      |         config={"beta_x": self.beta_x},
+11:31:00      |     )
+11:31:00      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 311, in sample
+11:31:00      |     return self.dwave(bqm, n_samples, config, rbm=rbm)
+11:31:00      |            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:31:00      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 473, in dwave
+11:31:00      |     raise RuntimeError(
+11:31:00      |         f"D-Wave sampling failed after {MAX_DWAVE_RETRIES} attempts."
+11:31:00      |     )
+11:31:00      | RuntimeError: D-Wave sampling failed after 3 attempts.
+11:31:00    Attempt 1/2 failed (exit 1)
+11:31:00    Retrying (attempt 2/2) — [  43/54] size=8 nh=64 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/pegasus seed=1
+11:31:01      | <model.FullyConnectedRBM object at 0x75f153ae3e00>
+11:31:01      | <ising.TransverseFieldIsing2D object at 0x75f15a0378c0>
+11:31:01      | None
+11:31:01      |   [embedding] Running minorminer for (64, 'Advantage_system6.4') — this may take a moment...
+11:31:01      |   [embedding] Embedding found and cached for (64, 'Advantage_system6.4').
+11:31:01      | Iter   0: E = -120.832904 ± 0.349665  β_x = 2.000  CG 196it res=8.41e-09  ‖x‖=65.3252
+11:31:01      | Iter  10: E = -129.245550 ± 0.027570  β_x = 2.199  CG 200it res=7.41e-06  ‖x‖=2.5732
+11:31:01      | Iter  20: E = -135.701358 ± 0.055689  β_x = 1.881  CG 200it res=1.58e-06  ‖x‖=2.8762
+11:31:01      | Iter  30: E = -139.132329 ± 0.018864  β_x = 1.778  CG 100it res=8.90e-09  ‖x‖=1.0885
+11:31:01      | Iter  40: E = -138.495571 ± 0.003436  β_x = 2.269  CG 29it res=5.94e-09  ‖x‖=0.3678
+11:31:01      | Iter  50: E = -138.414321 ± 0.003264  β_x = 2.258  CG 25it res=1.34e-09  ‖x‖=0.3569
+11:31:01      | Iter  60: E = -138.581824 ± 0.001564  β_x = 1.839  CG 42it res=3.06e-09  ‖x‖=0.2809
+11:31:01      | Iter  70: E = -138.717139 ± 0.001933  β_x = 2.124  CG 46it res=8.80e-09  ‖x‖=0.4984
+11:31:01      | Iter  80: E = -139.118845 ± 0.000990  β_x = 2.108  CG 51it res=3.43e-09  ‖x‖=0.2163
+11:31:01      | Iter  90: E = -139.163868 ± 0.001061  β_x = 2.197  CG 29it res=2.47e-09  ‖x‖=0.1458
+11:31:01      | Iter 100: E = -139.227436 ± 0.000872  β_x = 2.301  CG 35it res=2.46e-09  ‖x‖=0.1416
+11:31:01      | Iter 110: E = -138.929459 ± 0.002075  β_x = 2.398  CG 41it res=9.83e-09  ‖x‖=0.3101
+11:31:01      | Iter 120: E = -138.789845 ± 0.001620  β_x = 2.769  CG 27it res=4.55e-09  ‖x‖=0.1933
+11:31:01      | Iter 130: E = -138.954990 ± 0.000474  β_x = 3.045  CG 23it res=6.62e-09  ‖x‖=0.0772
+11:31:01      | Iter 140: E = -139.093877 ± 0.000938  β_x = 3.340  CG 34it res=3.49e-13  ‖x‖=0.1420
+11:31:01      |   D-Wave sampling attempt 1/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:01      |   D-Wave sampling attempt 2/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:01      |   D-Wave sampling attempt 3/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:01      |   [Trainer] Sampling failed at iteration 146: D-Wave sampling failed after 3 attempts.
+11:31:01      |   [Trainer] Aborting this experiment.
+11:31:01      | Traceback (most recent call last):
+11:31:01      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:31:01      |     main()
+11:31:01      |     ~~~~^^
+11:31:01      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:31:01      |     history = trainer.train()
+11:31:01      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:31:01      |     samples = self.sampler.sample(
+11:31:01      |         self.rbm,
+11:31:01      |         self.n_samples,
+11:31:01      |         config={"beta_x": self.beta_x},
+11:31:01      |     )
+11:31:01      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 311, in sample
+11:31:01      |     return self.dwave(bqm, n_samples, config, rbm=rbm)
+11:31:01      |            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:31:01      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 473, in dwave
+11:31:01      |     raise RuntimeError(
+11:31:01      |         f"D-Wave sampling failed after {MAX_DWAVE_RETRIES} attempts."
+11:31:01      |     )
+11:31:01      | RuntimeError: D-Wave sampling failed after 3 attempts.
+11:31:01    Attempt 1/2 failed (exit 1)
+11:31:01    Retrying (attempt 2/2) — [  50/54] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/pegasus seed=42
+11:31:03      | <model.FullyConnectedRBM object at 0x7884b640be00>
+11:31:03      | <ising.TransverseFieldIsing2D object at 0x7884bc94b8c0>
+11:31:03      | None
+11:31:03      |   [embedding] Running minorminer for (64, 'Advantage2_system1.13') — this may take a moment...
+11:31:03      |   [embedding] Embedding found and cached for (64, 'Advantage2_system1.13').
+11:31:03      | Iter   0: E = -130.864801 ± 0.336819  β_x = 2.000  CG 200it res=1.35e-08  ‖x‖=75.1814
+11:31:03      | Iter  10: E = -145.917898 ± 0.167570  β_x = 2.100  CG 200it res=4.27e-03  ‖x‖=15.2812
+11:31:03      | Iter  20: E = -153.690521 ± 0.049147  β_x = 1.995  CG 200it res=5.69e-04  ‖x‖=8.0345
+11:31:03      | Iter  30: E = -154.250773 ± 0.025452  β_x = 1.710  CG 200it res=2.58e-04  ‖x‖=5.0570
+11:31:03      | Iter  40: E = -154.885307 ± 0.032183  β_x = 1.536  CG 200it res=4.16e-04  ‖x‖=6.3332
+11:31:03      | Iter  50: E = -154.853515 ± 0.030240  β_x = 1.689  CG 200it res=1.19e-03  ‖x‖=5.4092
+11:31:03      |   D-Wave sampling attempt 1/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:03      |   D-Wave sampling attempt 2/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:03      |   D-Wave sampling attempt 3/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:03      |   [Trainer] Sampling failed at iteration 55: D-Wave sampling failed after 3 attempts.
+11:31:03      |   [Trainer] Aborting this experiment.
+11:31:03      | Traceback (most recent call last):
+11:31:03      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:31:03      |     main()
+11:31:03      |     ~~~~^^
+11:31:03      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:31:03      |     history = trainer.train()
+11:31:03      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:31:03      |     samples = self.sampler.sample(
+11:31:03      |         self.rbm,
+11:31:03      |         self.n_samples,
+11:31:03      |         config={"beta_x": self.beta_x},
+11:31:03      |     )
+11:31:03      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 311, in sample
+11:31:03      |     return self.dwave(bqm, n_samples, config, rbm=rbm)
+11:31:03      |            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:31:03      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 473, in dwave
+11:31:03      |     raise RuntimeError(
+11:31:03      |         f"D-Wave sampling failed after {MAX_DWAVE_RETRIES} attempts."
+11:31:03      |     )
+11:31:03      | RuntimeError: D-Wave sampling failed after 3 attempts.
+11:31:03    Attempt 1/2 failed (exit 1)
+11:31:03    Retrying (attempt 2/2) — [  52/54] size=8 nh=64 (α=1.00) rbm=full h=2.0 lr=0.1 dimod/zephyr seed=42
+11:31:05      | <model.FullyConnectedRBM object at 0x7315d16cbe00>
+11:31:05      | <ising.TransverseFieldIsing2D object at 0x7315d7c478c0>
+11:31:05      | None
+11:31:05      |   [embedding] Running minorminer for (64, 'Advantage2_system1.13') — this may take a moment...
+11:31:05      |   [embedding] Embedding found and cached for (64, 'Advantage2_system1.13').
+11:31:05      | Iter   0: E = -64.814792 ± 0.358408  β_x = 2.000  CG 200it res=2.33e-08  ‖x‖=80.4980
+11:31:05      | Iter  10: E = -127.476710 ± 0.148684  β_x = 1.900  CG 200it res=4.00e-05  ‖x‖=5.7153
+11:31:05      | Iter  20: E = -133.247092 ± 0.012793  β_x = 2.095  CG 200it res=4.15e-07  ‖x‖=2.6475
+11:31:05      | Iter  30: E = -133.410732 ± 0.011863  β_x = 2.084  CG 200it res=1.73e-08  ‖x‖=1.7190
+11:31:05      | Iter  40: E = -133.445967 ± 0.006110  β_x = 1.876  CG 200it res=6.60e-08  ‖x‖=1.2334
+11:31:05      | Iter  50: E = -133.227220 ± 0.041458  β_x = 1.769  CG 200it res=4.75e-07  ‖x‖=2.0801
+11:31:05      | Iter  60: E = -133.049514 ± 0.011313  β_x = 1.668  CG 200it res=1.44e-07  ‖x‖=2.4205
+11:31:05      |   D-Wave sampling attempt 1/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:05      |   D-Wave sampling attempt 2/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:05      |   D-Wave sampling attempt 3/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:05      |   [Trainer] Sampling failed at iteration 61: D-Wave sampling failed after 3 attempts.
+11:31:05      |   [Trainer] Aborting this experiment.
+11:31:05      | Traceback (most recent call last):
+11:31:05      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:31:05      |     main()
+11:31:05      |     ~~~~^^
+11:31:05      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:31:05      |     history = trainer.train()
+11:31:05      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:31:05      |     samples = self.sampler.sample(
+11:31:05      |         self.rbm,
+11:31:05      |         self.n_samples,
+11:31:05      |         config={"beta_x": self.beta_x},
+11:31:05      |     )
+11:31:05      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 311, in sample
+11:31:05      |     return self.dwave(bqm, n_samples, config, rbm=rbm)
+11:31:05      |            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:31:05      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 473, in dwave
+11:31:05      |     raise RuntimeError(
+11:31:05      |         f"D-Wave sampling failed after {MAX_DWAVE_RETRIES} attempts."
+11:31:05      |     )
+11:31:05      | RuntimeError: D-Wave sampling failed after 3 attempts.
+11:31:05    Attempt 1/2 failed (exit 1)
+11:31:05    Retrying (attempt 2/2) — [  45/54] size=8 nh=64 (α=1.00) rbm=full h=1.0 lr=0.1 dimod/zephyr seed=1
+11:31:06      | <model.FullyConnectedRBM object at 0x776ae434be00>
+11:31:06      | <ising.TransverseFieldIsing2D object at 0x776aea8438c0>
+11:31:06      | None
+11:31:06      |   [embedding] Running minorminer for (64, 'Advantage2_system1.13') — this may take a moment...
+11:31:06      |   [embedding] Embedding found and cached for (64, 'Advantage2_system1.13').
+11:31:06      | Iter   0: E = -31.491183 ± 0.365578  β_x = 2.000  CG 200it res=2.06e-08  ‖x‖=74.1764
+11:31:06      | Iter  10: E = -129.452395 ± 0.095703  β_x = 1.900  CG 194it res=8.98e-09  ‖x‖=2.1649
+11:31:06      | Iter  20: E = -129.677740 ± 0.004364  β_x = 1.796  CG 103it res=7.02e-09  ‖x‖=0.9145
+11:31:06      | Iter  30: E = -129.708426 ± 0.003776  β_x = 1.975  CG 104it res=8.48e-09  ‖x‖=0.4353
+11:31:06      | Iter  40: E = -129.714029 ± 0.002316  β_x = 2.064  CG 102it res=3.73e-09  ‖x‖=0.3717
+11:31:06      | Iter  50: E = -129.720586 ± 0.002326  β_x = 2.053  CG 96it res=7.91e-09  ‖x‖=0.4347
+11:31:06      | Iter  60: E = -129.696700 ± 0.003433  β_x = 2.145  CG 91it res=7.45e-09  ‖x‖=0.3133
+11:31:06      | Iter  70: E = -129.704242 ± 0.002445  β_x = 1.747  CG 101it res=6.51e-09  ‖x‖=0.5598
+11:31:06      | Iter  80: E = -129.719287 ± 0.002433  β_x = 1.738  CG 99it res=9.22e-09  ‖x‖=0.4417
+11:31:06      | Iter  90: E = -129.649536 ± 0.002229  β_x = 1.812  CG 99it res=4.63e-09  ‖x‖=0.2396
+11:31:06      | Iter 100: E = -129.649789 ± 0.002349  β_x = 1.992  CG 94it res=2.78e-09  ‖x‖=0.2251
+11:31:06      | Iter 110: E = -129.658175 ± 0.001766  β_x = 2.082  CG 99it res=8.23e-09  ‖x‖=0.1968
+11:31:06      | Iter 120: E = -129.683387 ± 0.001994  β_x = 1.696  CG 100it res=3.76e-09  ‖x‖=0.4061
+11:31:06      | Iter 130: E = -129.711845 ± 0.001939  β_x = 1.691  CG 102it res=7.51e-09  ‖x‖=0.2413
+11:31:06      | Iter 140: E = -129.698454 ± 0.002235  β_x = 1.446  CG 92it res=9.57e-09  ‖x‖=0.3616
+11:31:06      | Iter 150: E = -129.628469 ± 0.001127  β_x = 1.367  CG 75it res=7.18e-09  ‖x‖=0.0753
+11:31:06      | Iter 160: E = -129.630854 ± 0.001965  β_x = 1.169  CG 97it res=7.48e-09  ‖x‖=0.3917
+11:31:06      | Iter 170: E = -129.632345 ± 0.001363  β_x = 1.161  CG 77it res=4.05e-09  ‖x‖=0.1171
+11:31:06      | Iter 180: E = -129.626779 ± 0.001054  β_x = 1.273  CG 79it res=5.55e-09  ‖x‖=0.0829
+11:31:06      | Iter 190: E = -129.649209 ± 0.001678  β_x = 1.206  CG 90it res=4.37e-09  ‖x‖=0.3009
+11:31:06      | Iter 200: E = -129.650904 ± 0.003844  β_x = 1.083  CG 102it res=8.27e-09  ‖x‖=0.6451
+11:31:06      |   D-Wave sampling attempt 1/3 failed: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+11:31:06      |   [embedding] Running minorminer for (64, 'Advantage2_system1.13') — this may take a moment...
+11:31:06      |   [embedding] Embedding found and cached for (64, 'Advantage2_system1.13').
+11:31:06      | Iter 210: E = -129.347981 ± 0.006209  β_x = 1.081  CG 198it res=6.59e-09  ‖x‖=1.7362
+11:31:06      |   D-Wave sampling attempt 1/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:06      |   D-Wave sampling attempt 2/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:06      |   D-Wave sampling attempt 3/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:06      |   [Trainer] Sampling failed at iteration 212: D-Wave sampling failed after 3 attempts.
+11:31:06      |   [Trainer] Aborting this experiment.
+11:31:06      | Traceback (most recent call last):
+11:31:06      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:31:06      |     main()
+11:31:06      |     ~~~~^^
+11:31:06      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:31:06      |     history = trainer.train()
+11:31:06      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:31:06      |     samples = self.sampler.sample(
+11:31:06      |         self.rbm,
+11:31:06      |         self.n_samples,
+11:31:06      |         config={"beta_x": self.beta_x},
+11:31:06      |     )
+11:31:06      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 311, in sample
+11:31:06      |     return self.dwave(bqm, n_samples, config, rbm=rbm)
+11:31:06      |            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:31:06      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 473, in dwave
+11:31:06      |     raise RuntimeError(
+11:31:06      |         f"D-Wave sampling failed after {MAX_DWAVE_RETRIES} attempts."
+11:31:06      |     )
+11:31:06      | RuntimeError: D-Wave sampling failed after 3 attempts.
+11:31:06    Attempt 1/2 failed (exit 1)
+11:31:06    Retrying (attempt 2/2) — [  39/54] size=8 nh=64 (α=1.00) rbm=full h=0.5 lr=0.1 dimod/zephyr seed=1
+11:31:16      | <model.FullyConnectedRBM object at 0x79cd99ea3e00>
+11:31:16      | <ising.TransverseFieldIsing2D object at 0x79cda04438c0>
+11:31:16      | None
+11:31:16      |   [embedding] Running minorminer for (64, 'Advantage2_system1.13') — this may take a moment...
+11:31:16      |   [embedding] Embedding found and cached for (64, 'Advantage2_system1.13').
+11:31:16      |   D-Wave sampling attempt 1/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:16      |   D-Wave sampling attempt 2/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:16      |   D-Wave sampling attempt 3/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:16      |   [Trainer] Sampling failed at iteration 0: D-Wave sampling failed after 3 attempts.
+11:31:16      |   [Trainer] Aborting this experiment.
+11:31:16      | Traceback (most recent call last):
+11:31:16      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:31:16      |     main()
+11:31:16      |     ~~~~^^
+11:31:16      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:31:16      |     history = trainer.train()
+11:31:16      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:31:16      |     samples = self.sampler.sample(
+11:31:16      |         self.rbm,
+11:31:16      |         self.n_samples,
+11:31:16      |         config={"beta_x": self.beta_x},
+11:31:16      |     )
+11:31:16      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 311, in sample
+11:31:16      |     return self.dwave(bqm, n_samples, config, rbm=rbm)
+11:31:16      |            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:31:16      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 473, in dwave
+11:31:16      |     raise RuntimeError(
+11:31:16      |         f"D-Wave sampling failed after {MAX_DWAVE_RETRIES} attempts."
+11:31:16      |     )
+11:31:16      | RuntimeError: D-Wave sampling failed after 3 attempts.
+11:31:16    Attempt 2/2 failed (exit 1)
+11:31:16    All 2 attempts failed — skipping.
+11:31:20      | <model.FullyConnectedRBM object at 0x7c054a453e00>
+11:31:20      | <ising.TransverseFieldIsing2D object at 0x7c055094b8c0>
+11:31:20      | None
+11:31:20      |   [embedding] Running minorminer for (64, 'Advantage_system6.4') — this may take a moment...
+11:31:20      |   [embedding] Embedding found and cached for (64, 'Advantage_system6.4').
+11:31:20      |   D-Wave sampling attempt 1/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:20      |   D-Wave sampling attempt 2/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:20      |   D-Wave sampling attempt 3/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:20      |   [Trainer] Sampling failed at iteration 0: D-Wave sampling failed after 3 attempts.
+11:31:20      |   [Trainer] Aborting this experiment.
+11:31:20      | Traceback (most recent call last):
+11:31:20      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:31:20      |     main()
+11:31:20      |     ~~~~^^
+11:31:20      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:31:20      |     history = trainer.train()
+11:31:20      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:31:20      |     samples = self.sampler.sample(
+11:31:20      |         self.rbm,
+11:31:20      |         self.n_samples,
+11:31:20      |         config={"beta_x": self.beta_x},
+11:31:20      |     )
+11:31:20      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 311, in sample
+11:31:20      |     return self.dwave(bqm, n_samples, config, rbm=rbm)
+11:31:20      |            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:31:20      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 473, in dwave
+11:31:20      |     raise RuntimeError(
+11:31:20      |         f"D-Wave sampling failed after {MAX_DWAVE_RETRIES} attempts."
+11:31:20      |     )
+11:31:20      | RuntimeError: D-Wave sampling failed after 3 attempts.
+11:31:20    Attempt 2/2 failed (exit 1)
+11:31:20    All 2 attempts failed — skipping.
+11:31:24      | <model.FullyConnectedRBM object at 0x744063b4be00>
+11:31:24      | <ising.TransverseFieldIsing2D object at 0x74406a0438c0>
+11:31:24      | None
+11:31:24      |   [embedding] Running minorminer for (64, 'Advantage2_system1.13') — this may take a moment...
+11:31:24      |   [embedding] Embedding found and cached for (64, 'Advantage2_system1.13').
+11:31:24      |   D-Wave sampling attempt 1/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:24      |   D-Wave sampling attempt 2/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:24      |   D-Wave sampling attempt 3/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:24      |   [Trainer] Sampling failed at iteration 0: D-Wave sampling failed after 3 attempts.
+11:31:24      |   [Trainer] Aborting this experiment.
+11:31:24      | Traceback (most recent call last):
+11:31:24      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:31:24      |     main()
+11:31:24      |     ~~~~^^
+11:31:24      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:31:24      |     history = trainer.train()
+11:31:24      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:31:24      |     samples = self.sampler.sample(
+11:31:24      |         self.rbm,
+11:31:24      |         self.n_samples,
+11:31:24      |         config={"beta_x": self.beta_x},
+11:31:24      |     )
+11:31:24      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 311, in sample
+11:31:24      |     return self.dwave(bqm, n_samples, config, rbm=rbm)
+11:31:24      |            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:31:24      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 473, in dwave
+11:31:24      |     raise RuntimeError(
+11:31:24      |         f"D-Wave sampling failed after {MAX_DWAVE_RETRIES} attempts."
+11:31:24      |     )
+11:31:24      | RuntimeError: D-Wave sampling failed after 3 attempts.
+11:31:24    Attempt 2/2 failed (exit 1)
+11:31:24    All 2 attempts failed — skipping.
+11:31:26      | <model.FullyConnectedRBM object at 0x7857a1587e00>
+11:31:26      | <ising.TransverseFieldIsing2D object at 0x7857a7a338c0>
+11:31:26      | None
+11:31:26      |   [embedding] Running minorminer for (64, 'Advantage_system6.4') — this may take a moment...
+11:31:26      |   [embedding] Embedding found and cached for (64, 'Advantage_system6.4').
+11:31:26      |   D-Wave sampling attempt 1/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:26      |   D-Wave sampling attempt 2/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:26      |   D-Wave sampling attempt 3/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:26      |   [Trainer] Sampling failed at iteration 0: D-Wave sampling failed after 3 attempts.
+11:31:26      |   [Trainer] Aborting this experiment.
+11:31:26      | Traceback (most recent call last):
+11:31:26      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:31:26      |     main()
+11:31:26      |     ~~~~^^
+11:31:26      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:31:26      |     history = trainer.train()
+11:31:26      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:31:26      |     samples = self.sampler.sample(
+11:31:26      |         self.rbm,
+11:31:26      |         self.n_samples,
+11:31:26      |         config={"beta_x": self.beta_x},
+11:31:26      |     )
+11:31:26      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 311, in sample
+11:31:26      |     return self.dwave(bqm, n_samples, config, rbm=rbm)
+11:31:26      |            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:31:26      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 473, in dwave
+11:31:26      |     raise RuntimeError(
+11:31:26      |         f"D-Wave sampling failed after {MAX_DWAVE_RETRIES} attempts."
+11:31:26      |     )
+11:31:26      | RuntimeError: D-Wave sampling failed after 3 attempts.
+11:31:26    Attempt 2/2 failed (exit 1)
+11:31:26    All 2 attempts failed — skipping.
+11:31:32      | <model.FullyConnectedRBM object at 0x7be28a7f3e00>
+11:31:32      | <ising.TransverseFieldIsing2D object at 0x7be290d4b8c0>
+11:31:32      | None
+11:31:32      |   [embedding] Running minorminer for (64, 'Advantage2_system1.13') — this may take a moment...
+11:31:32      |   [embedding] Embedding found and cached for (64, 'Advantage2_system1.13').
+11:31:32      |   D-Wave sampling attempt 1/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:32      |   D-Wave sampling attempt 2/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:32      |   D-Wave sampling attempt 3/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:32      |   [Trainer] Sampling failed at iteration 0: D-Wave sampling failed after 3 attempts.
+11:31:32      |   [Trainer] Aborting this experiment.
+11:31:32      | Traceback (most recent call last):
+11:31:32      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:31:32      |     main()
+11:31:32      |     ~~~~^^
+11:31:32      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:31:32      |     history = trainer.train()
+11:31:32      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:31:32      |     samples = self.sampler.sample(
+11:31:32      |         self.rbm,
+11:31:32      |         self.n_samples,
+11:31:32      |         config={"beta_x": self.beta_x},
+11:31:32      |     )
+11:31:32      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 311, in sample
+11:31:32      |     return self.dwave(bqm, n_samples, config, rbm=rbm)
+11:31:32      |            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:31:32      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 473, in dwave
+11:31:32      |     raise RuntimeError(
+11:31:32      |         f"D-Wave sampling failed after {MAX_DWAVE_RETRIES} attempts."
+11:31:32      |     )
+11:31:32      | RuntimeError: D-Wave sampling failed after 3 attempts.
+11:31:32    Attempt 2/2 failed (exit 1)
+11:31:32    All 2 attempts failed — skipping.
+11:31:40      | <model.FullyConnectedRBM object at 0x79898fe8be00>
+11:31:40      | <ising.TransverseFieldIsing2D object at 0x7989964338c0>
+11:31:40      | None
+11:31:40      |   [embedding] Running minorminer for (64, 'Advantage2_system1.13') — this may take a moment...
+11:31:40      |   [embedding] Embedding found and cached for (64, 'Advantage2_system1.13').
+11:31:40      |   D-Wave sampling attempt 1/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:40      |   D-Wave sampling attempt 2/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:40      |   D-Wave sampling attempt 3/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:40      |   [Trainer] Sampling failed at iteration 0: D-Wave sampling failed after 3 attempts.
+11:31:40      |   [Trainer] Aborting this experiment.
+11:31:40      | Traceback (most recent call last):
+11:31:40      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:31:40      |     main()
+11:31:40      |     ~~~~^^
+11:31:40      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:31:40      |     history = trainer.train()
+11:31:40      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:31:40      |     samples = self.sampler.sample(
+11:31:40      |         self.rbm,
+11:31:40      |         self.n_samples,
+11:31:40      |         config={"beta_x": self.beta_x},
+11:31:40      |     )
+11:31:40      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 311, in sample
+11:31:40      |     return self.dwave(bqm, n_samples, config, rbm=rbm)
+11:31:40      |            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:31:40      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 473, in dwave
+11:31:40      |     raise RuntimeError(
+11:31:40      |         f"D-Wave sampling failed after {MAX_DWAVE_RETRIES} attempts."
+11:31:40      |     )
+11:31:40      | RuntimeError: D-Wave sampling failed after 3 attempts.
+11:31:40    Attempt 2/2 failed (exit 1)
+11:31:40    All 2 attempts failed — skipping.
+11:31:56      | <model.FullyConnectedRBM object at 0x7ee316773e00>
+11:31:56      | <ising.TransverseFieldIsing2D object at 0x7ee31cc338c0>
+11:31:56      | None
+11:31:56      |   [embedding] Running minorminer for (64, 'Advantage_system6.4') — this may take a moment...
+11:31:56      |   [embedding] Embedding found and cached for (64, 'Advantage_system6.4').
+11:31:56      |   D-Wave sampling attempt 1/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:56      |   D-Wave sampling attempt 2/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:56      |   D-Wave sampling attempt 3/3 failed: Extra data: line 1 column 31 (char 30)
+11:31:56      |   [Trainer] Sampling failed at iteration 0: D-Wave sampling failed after 3 attempts.
+11:31:56      |   [Trainer] Aborting this experiment.
+11:31:56      | Traceback (most recent call last):
+11:31:56      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 126, in <module>
+11:31:56      |     main()
+11:31:56      |     ~~~~^^
+11:31:56      |   File "/home/phanussek/adiabatic-boltzmann/src/single_experiment.py", line 118, in main
+11:31:56      |     history = trainer.train()
+11:31:56      |   File "/home/phanussek/adiabatic-boltzmann/src/encoder.py", line 224, in train
+11:31:56      |     samples = self.sampler.sample(
+11:31:56      |         self.rbm,
+11:31:56      |         self.n_samples,
+11:31:56      |         config={"beta_x": self.beta_x},
+11:31:56      |     )
+11:31:56      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 311, in sample
+11:31:56      |     return self.dwave(bqm, n_samples, config, rbm=rbm)
+11:31:56      |            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11:31:56      |   File "/home/phanussek/adiabatic-boltzmann/src/sampler.py", line 473, in dwave
+11:31:56      |     raise RuntimeError(
+11:31:56      |         f"D-Wave sampling failed after {MAX_DWAVE_RETRIES} attempts."
+11:31:56      |     )
+11:31:56      | RuntimeError: D-Wave sampling failed after 3 attempts.
+11:31:56    Attempt 2/2 failed (exit 1)
+11:31:56    All 2 attempts failed — skipping.
+Traceback (most recent call last):
+  File "/home/phanussek/adiabatic-boltzmann/parallel_runner.py", line 366, in <module>
+    main()
+    ~~~~^^
+  File "/home/phanussek/adiabatic-boltzmann/parallel_runner.py", line 354, in main
+    used_ms_end = _read_qpu_time_ms()
+  File "/home/phanussek/adiabatic-boltzmann/parallel_runner.py", line 158, in _read_qpu_time_ms
+    return int(json.loads(TIME_FILE.read_text()).get("time_ms"))
+               ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/phanussek/miniconda3/envs/test/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/home/phanussek/miniconda3/envs/test/lib/python3.14/json/decoder.py", line 348, in decode
+    raise JSONDecodeError("Extra data", s, end)
+json.decoder.JSONDecodeError: Extra data: line 1 column 31 (char 30)
