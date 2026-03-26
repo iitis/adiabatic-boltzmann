@@ -155,7 +155,14 @@ def _is_dwave(method: str) -> bool:
 
 
 def _read_qpu_time_ms() -> int:
-    return int(json.loads(TIME_FILE.read_text()).get("time_ms"))
+    text = TIME_FILE.read_text().strip()
+    try:
+        return int(json.loads(text).get("time_ms"))
+    except json.JSONDecodeError:
+        # Attempt recovery: strip extra trailing braces (e.g. "}}" → "}")
+        cleaned = text.rstrip("}") + "}"
+        log(f"  [warn] time.json parse failed, attempting recovery (stripped extra braces)")
+        return int(json.loads(cleaned).get("time_ms"))
 
 
 def _check_qpu_budget() -> tuple[bool, int]:

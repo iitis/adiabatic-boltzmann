@@ -1,3 +1,5 @@
+import fcntl
+import json
 import numpy as np
 from abc import ABC, abstractmethod
 from model import RBM
@@ -7,7 +9,6 @@ from dwave.samplers import TabuSampler
 from veloxq_sdk import VeloxQSolver
 from veloxq_sdk.config import load_config, VeloxQAPIConfig
 from pathlib import Path
-import json
 from helpers import get_solver_name
 
 
@@ -315,14 +316,20 @@ class DimodSampler(Sampler):
     def _log_access_time(self, access_time_us: float):
         """Log the D-Wave access time to time.json.
 
-        Args:
-            access_time_ms (float): Access time in milliseconds.
+        Uses an exclusive flock for cross-process safety and an atomic
+        write (temp file → rename) to prevent partial/corrupt writes.
         """
-        with self.time_path.open("r") as f:
-            time_dict = json.load(f)
-        time_dict["time_ms"] += access_time_us * 1e-3
-        with self.time_path.open("w") as f:
-            json.dump(time_dict, f)
+        with self.time_path.open("r+") as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            try:
+                time_dict = json.load(f)
+                time_dict["time_ms"] += access_time_us * 1e-3
+                tmp = self.time_path.with_suffix(".tmp")
+                with tmp.open("w") as tf:
+                    json.dump(time_dict, tf)
+                tmp.rename(self.time_path)
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
 
     def simulated_annealing(self, bqm, n_samples: int, config: dict = {}) -> np.ndarray:
         """
