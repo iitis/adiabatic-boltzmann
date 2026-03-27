@@ -36,9 +36,7 @@ SIZES = [4, 6, 8]
 N_NH_STEPS = 1  # generates N evenly-spaced steps ending at n_visible
 LEARNING_RATES = [0.1]  # only lr=0.1 is used in plots
 SAMPLERS = [
-    ("custom", "metropolis"),
     ("velox", "velox"),
-    ("dimod", "simulated_annealing"),
 ]  # list of (sampler, method) pairs
 RBMS = ["pegasus"]
 H_VALUES = [0.5, 1.0, 2.0]
