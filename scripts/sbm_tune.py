@@ -30,9 +30,8 @@ import itertools
 import json
 import os
 import sys
-import threading
 import traceback
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 
@@ -75,8 +74,6 @@ CEM_N_SAMPLES  = 200
 OUTPUT_JSON = ROOT / "results" / "sbm_tune.json"
 PLOTS_DIR   = ROOT / "plots" / "sbm_tune"
 
-_print_lock = threading.Lock()
-_results_lock = threading.Lock()
 _all_results: list[dict] = []
 _done = 0
 _failed = 0
@@ -86,8 +83,7 @@ _failed = 0
 
 
 def tlog(msg: str) -> None:
-    with _print_lock:
-        print(f"[{datetime.now():%H:%M:%S}] {msg}", flush=True)
+    print(f"[{datetime.now():%H:%M:%S}] {msg}", flush=True)
 
 
 def _unique_ratio(v: np.ndarray) -> float:
@@ -200,7 +196,6 @@ def run_experiment(
 
 
 def worker(exp: dict, idx: int, total: int) -> dict | None:
-    global _done, _failed
     label = (
         f"[{idx:>4}/{total}] "
         f"mode={exp['mode']:<10} heated={str(exp['heated']):<5} "
@@ -209,15 +204,10 @@ def worker(exp: dict, idx: int, total: int) -> dict | None:
     )
     try:
         result = run_experiment(**exp)
-        with _results_lock:
-            _all_results.append(result)
-            _done += 1
         tlog(f"OK  {label}  → err={result['rel_error']:.2f}%  "
              f"unique={result['mean_unique']:.3f}")
         return result
     except Exception:
-        with _results_lock:
-            _failed += 1
         tlog(f"FAIL {label}\n{traceback.format_exc()}")
         return None
 
@@ -238,16 +228,22 @@ def build_grid(test_cases: list[tuple]) -> list[dict]:
 
 
 def run_grid(experiments: list[dict], workers: int) -> None:
+    global _all_results, _done, _failed
     total = len(experiments)
     tlog(f"Phase 1 — grid search: {total} experiments on {workers} workers")
 
-    with ThreadPoolExecutor(max_workers=workers) as pool:
+    with ProcessPoolExecutor(max_workers=workers) as pool:
         futures = {
             pool.submit(worker, exp, i + 1, total): exp
             for i, exp in enumerate(experiments)
         }
         for future in as_completed(futures):
-            future.result()  # exceptions already logged in worker
+            result = future.result()
+            if result is not None:
+                _all_results.append(result)
+                _done += 1
+            else:
+                _failed += 1
 
 
 # ── Phase 2: Optuna continuous search ────────────────────────────────────────
