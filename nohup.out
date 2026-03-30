@@ -4087,3 +4087,396 @@ None
 [09:31:49]   iterations/run : 50
 [09:31:49] ======================================================================
 [09:31:49] Phase 1 — grid search: 1152 experiments on 20 workers
+<model.FullyConnectedRBM object at 0x7caada6f06e0>
+<ising.TransverseFieldIsing1D object at 0x7caada6f0590>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[09:37:22] OK  [   5/1152] mode=discrete   heated=False steps=100   cem=False 1d N=8 h=2.0 seed=1  → err=16322740154.50%  unique=0.021
+<model.FullyConnectedRBM object at 0x7caada6f06e0>
+<ising.TransverseFieldIsing1D object at 0x7caada6f0590>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[09:37:27] OK  [   4/1152] mode=discrete   heated=False steps=100   cem=False 1d N=8 h=1.0 seed=42  → err=25885146027.96%  unique=0.060
+<model.FullyConnectedRBM object at 0x7caada6f06e0>
+<ising.TransverseFieldIsing1D object at 0x7caada6f0590>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[09:37:33] OK  [   2/1152] mode=discrete   heated=False steps=100   cem=False 1d N=8 h=0.5 seed=42  → err=10333241.26%  unique=0.114
+<model.FullyConnectedRBM object at 0x7caada6f06e0>
+<ising.TransverseFieldIsing1D object at 0x7caada6f0590>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[09:37:34] OK  [   3/1152] mode=discrete   heated=False steps=100   cem=False 1d N=8 h=1.0 seed=1  → err=620943929.03%  unique=0.097
+<model.FullyConnectedRBM object at 0x7caada6f06e0>
+<ising.TransverseFieldIsing1D object at 0x7caada6f0590>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[09:37:37] OK  [   1/1152] mode=discrete   heated=False steps=100   cem=False 1d N=8 h=0.5 seed=1  → err=9868841.67%  unique=0.110
+<model.FullyConnectedRBM object at 0x7caada6f06e0>
+<ising.TransverseFieldIsing1D object at 0x7caada6f0590>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[09:37:37] OK  [   6/1152] mode=discrete   heated=False steps=100   cem=False 1d N=8 h=2.0 seed=42  → err=6301650295.88%  unique=0.097
+<model.FullyConnectedRBM object at 0x7ca9c02c9bd0>
+<ising.TransverseFieldIsing1D object at 0x7ca9c02c9a90>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[09:42:59] OK  [  25/1152] mode=discrete   heated=False steps=100   cem=True  1d N=8 h=0.5 seed=1  → err=6222549980.08%  unique=0.029
+<model.FullyConnectedRBM object at 0x7ca9c02cd950>
+<ising.TransverseFieldIsing1D object at 0x7ca9c02cd810>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[09:43:09] OK  [  26/1152] mode=discrete   heated=False steps=100   cem=True  1d N=8 h=0.5 seed=42  → err=3126660653.93%  unique=0.073
+<model.FullyConnectedRBM object at 0x7ca9c02c9bd0>
+<ising.TransverseFieldIsing1D object at 0x7ca9c02c9a90>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[09:48:25] OK  [  27/1152] mode=discrete   heated=False steps=100   cem=True  1d N=8 h=1.0 seed=1  → err=5223308248.24%  unique=0.035
+<model.FullyConnectedRBM object at 0x7ca9c02cd950>
+<ising.TransverseFieldIsing1D object at 0x7ca9c02cd810>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[09:48:43] OK  [  28/1152] mode=discrete   heated=False steps=100   cem=True  1d N=8 h=1.0 seed=42  → err=10446742675.14%  unique=0.071
+<model.FullyConnectedRBM object at 0x7ca9ca4a5cd0>
+<ising.TransverseFieldIsing1D object at 0x7ca9ca4a5940>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[09:54:04] OK  [  29/1152] mode=discrete   heated=False steps=100   cem=True  1d N=8 h=2.0 seed=1  → err=1615987.57%  unique=0.045
+<model.FullyConnectedRBM object at 0x7ca9ca4b9a70>
+<ising.TransverseFieldIsing1D object at 0x7ca9ca4b96e0>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[09:54:32] OK  [  30/1152] mode=discrete   heated=False steps=100   cem=True  1d N=8 h=2.0 seed=42  → err=107012.32%  unique=0.125
+<model.FullyConnectedRBM object at 0x7caada6f06e0>
+<ising.TransverseFieldIsing2D object at 0x7caada6f0590>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[10:03:57] OK  [  20/1152] mode=discrete   heated=False steps=100   cem=False 2d N=6 h=0.5 seed=42  → err=94.59%  unique=0.116
+<model.FullyConnectedRBM object at 0x7ca9ca5b3890>
+<ising.TransverseFieldIsing1D object at 0x7cab4b6242f0>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[10:03:59] OK  [  33/1152] mode=discrete   heated=False steps=100   cem=True  1d N=16 h=1.0 seed=1  → err=119.63%  unique=0.141
+<model.FullyConnectedRBM object at 0x7ca9ca5b3ed0>
+<ising.TransverseFieldIsing1D object at 0x7ca9ca5b3890>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[10:04:03] OK  [  34/1152] mode=discrete   heated=False steps=100   cem=True  1d N=16 h=1.0 seed=42  → err=119.63%  unique=0.485
+<model.FullyConnectedRBM object at 0x7ca9ca4b96e0>
+<ising.TransverseFieldIsing1D object at 0x7ca9ca5b39d0>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[10:04:04] OK  [  35/1152] mode=discrete   heated=False steps=100   cem=True  1d N=16 h=2.0 seed=1  → err=100.00%  unique=0.138
+<model.FullyConnectedRBM object at 0x7ca9ca4b9a70>
+<ising.TransverseFieldIsing1D object at 0x7ca9ca4b9940>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[10:04:06] OK  [  36/1152] mode=discrete   heated=False steps=100   cem=True  1d N=16 h=2.0 seed=42  → err=165848245586559860736.00%  unique=0.193
+<model.FullyConnectedRBM object at 0x7ca9ca47bd10>
+<ising.TransverseFieldIsing2D object at 0x7ca9ca5b3890>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[10:04:07] OK  [  37/1152] mode=discrete   heated=False steps=100   cem=True  2d N=4 h=0.5 seed=1  → err=100.00%  unique=0.030
+<model.FullyConnectedRBM object at 0x7ca9ca4c9e10>
+<ising.TransverseFieldIsing2D object at 0x7ca9ca5b3890>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[10:04:08] OK  [  38/1152] mode=discrete   heated=False steps=100   cem=True  2d N=4 h=0.5 seed=42  → err=128558949529903415296.00%  unique=0.044
+/home/phanussek/miniconda3/envs/test/lib/python3.14/multiprocessing/resource_tracker.py:396: UserWarning: resource_tracker: There appear to be 25 leaked semaphore objects to clean up at shutdown: {'/mp-pf9or44o', '/mp-9gi9ieav', '/mp-zv4iprkw', '/mp-xck9knc6', '/mp-6qguppvl', '/mp-46fmm9nd', '/mp-8lhmun9i', '/mp-2o1tun5n', '/mp-w1z56mfq', '/mp-hlfyfzgm', '/mp-nsovuur1', '/mp-37ktrkzk', '/mp-0wydwa_b', '/mp-8claa5kl', '/mp-r84dd7pn', '/mp-v5l2bfcd', '/mp-rjovo6fi', '/mp-73kzjrje', '/mp-yetkuf6_', '/mp-2bhdc19u', '/mp-5v4xu8ha', '/mp-axi4evug', '/mp-6197n1qr', '/mp-s2z5fh0g', '/mp-o60zyq5b'}
+  warnings.warn(
+[10:04:59] ======================================================================
+[10:04:59] SBM tune started : 2026-03-30 10:04:59
+[10:04:59] Workers          : 20
+[10:04:59] Experiments      : 1152
+[10:04:59]   modes          : ['discrete', 'ballistic']
+[10:04:59]   heated         : [False, True]
+[10:04:59]   max_steps      : [100, 300, 500, 1000, 2000, 5000]
+[10:04:59]   CEM            : [False, True]
+[10:04:59]   test cases     : 12  ×  seeds=[1, 42]
+[10:04:59]   iterations/run : 50
+[10:04:59] ======================================================================
+[10:04:59] Phase 1 — grid search: 1152 experiments on 20 workers
+<model.FullyConnectedRBM object at 0x71a98884ae40>
+<ising.TransverseFieldIsing1D object at 0x71a98884acf0>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[10:05:29] OK  [   1/1152] mode=discrete   heated=False steps=100   cem=False 1d N=8 h=0.5 seed=1  → err=7036755101.13%  unique=0.240
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a988469b30>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[10:05:57] OK  [  32/1152] mode=discrete   heated=False steps=100   cem=True  1d N=16 h=0.5 seed=42  → err=76.49%  unique=0.105
+  [CEM iter  15] β_eff = 1000.0000 → beta_x = 20.0000
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a98850b290>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[10:06:34] OK  [  52/1152] mode=discrete   heated=False steps=300   cem=False 1d N=8 h=1.0 seed=42  → err=60.36%  unique=0.079
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a984263590>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[10:07:35] OK  [  70/1152] mode=discrete   heated=False steps=300   cem=False 2d N=6 h=1.0 seed=42  → err=3.04%  unique=0.165
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a9842e83b0>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[10:08:39] OK  [  98/1152] mode=discrete   heated=False steps=500   cem=False 1d N=8 h=0.5 seed=42  → err=2.15%  unique=0.135
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a9842e8e30>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[10:10:05] OK  [ 118/1152] mode=discrete   heated=False steps=500   cem=False 2d N=6 h=1.0 seed=42  → err=3.63%  unique=0.117
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a80c093b30>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[10:11:35] OK  [ 139/1152] mode=discrete   heated=False steps=500   cem=True  2d N=6 h=0.5 seed=1  → err=12.62%  unique=0.112
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a9842e9d90>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[10:13:42] OK  [ 159/1152] mode=discrete   heated=False steps=1000  cem=False 2d N=4 h=1.0 seed=1  → err=45.13%  unique=0.023
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a80cdbfb30>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[10:16:00] OK  [ 179/1152] mode=discrete   heated=False steps=1000  cem=True  1d N=16 h=2.0 seed=1  → err=40.98%  unique=0.006
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a80cdbfb30>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[10:20:00] OK  [ 200/1152] mode=discrete   heated=False steps=2000  cem=False 1d N=16 h=0.5 seed=42  → err=35.38%  unique=0.003
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a80cdbfe30>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[10:24:03] OK  [ 220/1152] mode=discrete   heated=False steps=2000  cem=True  1d N=8 h=1.0 seed=42  → err=19.77%  unique=0.002
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a9842ebbf0>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[10:28:56] OK  [ 240/1152] mode=discrete   heated=False steps=2000  cem=True  2d N=6 h=2.0 seed=42  → err=36.68%  unique=0.008
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a9843283b0>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[10:36:33] OK  [ 260/1152] mode=discrete   heated=False steps=5000  cem=False 2d N=6 h=0.5 seed=42  → err=58.37%  unique=0.004
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a984328b30>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[10:45:21] OK  [ 279/1152] mode=discrete   heated=False steps=5000  cem=True  2d N=4 h=1.0 seed=1  → err=78.96%  unique=0.012
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a9842e8470>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[10:45:58] OK  [ 335/1152] mode=discrete   heated=True  steps=100   cem=True  2d N=6 h=2.0 seed=1  → err=109.05%  unique=0.079
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a988471790>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[10:46:51] OK  [ 345/1152] mode=discrete   heated=True  steps=300   cem=False 1d N=16 h=1.0 seed=1  → err=60.73%  unique=0.024
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a80cdbfad0>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[10:47:57] OK  [ 356/1152] mode=discrete   heated=True  steps=300   cem=False 2d N=6 h=0.5 seed=42  → err=100.00%  unique=0.004
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a988471790>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[10:49:00] OK  [ 371/1152] mode=discrete   heated=True  steps=300   cem=True  1d N=16 h=2.0 seed=1  → err=100.00%  unique=0.137
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a988472690>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[10:50:10] OK  [ 384/1152] mode=discrete   heated=True  steps=300   cem=True  2d N=6 h=2.0 seed=42  → err=104.53%  unique=0.010
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a98850aff0>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[10:51:46] OK  [ 406/1152] mode=discrete   heated=True  steps=500   cem=False 2d N=6 h=1.0 seed=42  → err=1.71%  unique=0.299
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a984364230>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[10:53:29] OK  [ 429/1152] mode=discrete   heated=True  steps=500   cem=True  2d N=6 h=1.0 seed=1  → err=2.49%  unique=0.047
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a80ce299d0>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[10:55:59] OK  [ 449/1152] mode=discrete   heated=True  steps=1000  cem=False 2d N=4 h=2.0 seed=1  → err=64.61%  unique=0.007
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a9840b07d0>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[10:58:44] OK  [ 469/1152] mode=discrete   heated=True  steps=1000  cem=True  2d N=4 h=0.5 seed=1  → err=80.14%  unique=0.011
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a80cdbfef0>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[11:03:27] OK  [ 489/1152] mode=discrete   heated=True  steps=2000  cem=False 1d N=16 h=1.0 seed=1  → err=26.68%  unique=0.008
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a80cdbfef0>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[11:08:10] OK  [ 510/1152] mode=discrete   heated=True  steps=2000  cem=True  1d N=8 h=2.0 seed=42  → err=19.00%  unique=0.003
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a988472090>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[11:17:58] OK  [ 530/1152] mode=discrete   heated=True  steps=5000  cem=False 1d N=8 h=0.5 seed=42  → err=41.07%  unique=0.005
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a80cdbdb50>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[11:26:11] OK  [ 556/1152] mode=discrete   heated=True  steps=5000  cem=True  1d N=8 h=1.0 seed=42  → err=17.36%  unique=0.003
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a80cdbdb50>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[11:38:55] OK  [ 574/1152] mode=discrete   heated=True  steps=5000  cem=True  2d N=6 h=1.0 seed=42  → err=56.50%  unique=0.126
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a80cdbdb50>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[11:40:34] OK  [ 723/1152] mode=ballistic  heated=False steps=1000  cem=False 1d N=8 h=1.0 seed=1  → err=5.42%  unique=0.043
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a984263a70>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[11:42:39] OK  [ 743/1152] mode=ballistic  heated=False steps=1000  cem=False 2d N=6 h=2.0 seed=1  → err=7.74%  unique=0.002
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a9841dc110>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[11:45:02] OK  [ 764/1152] mode=ballistic  heated=False steps=1000  cem=True  2d N=6 h=0.5 seed=42  → err=51.80%  unique=0.001
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a9841dc8f0>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[11:48:46] OK  [ 784/1152] mode=ballistic  heated=False steps=2000  cem=False 2d N=4 h=1.0 seed=42  → err=45.86%  unique=0.001
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a9840b0830>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[11:52:57] OK  [ 806/1152] mode=ballistic  heated=False steps=2000  cem=True  2d N=4 h=0.5 seed=42  → err=56.78%  unique=0.002
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a9841dd8b0>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[11:59:29] OK  [ 826/1152] mode=ballistic  heated=False steps=5000  cem=False 1d N=16 h=1.0 seed=42  → err=11.53%  unique=0.002
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a988472750>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[12:06:34] OK  [ 845/1152] mode=ballistic  heated=False steps=5000  cem=True  1d N=8 h=2.0 seed=1  → err=22.34%  unique=0.001
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a988472b10>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[12:06:55] OK  [ 865/1152] mode=ballistic  heated=True  steps=100   cem=False 1d N=8 h=0.5 seed=1  → err=812947203781.53%  unique=0.124
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a98850b7d0>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[12:07:15] OK  [ 868/1152] mode=ballistic  heated=True  steps=100   cem=False 1d N=8 h=1.0 seed=42  → err=1018100607124.47%  unique=0.153
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a984366db0>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[12:07:50] OK  [ 871/1152] mode=ballistic  heated=True  steps=100   cem=False 1d N=16 h=0.5 seed=1  → err=4335898465054673408.00%  unique=0.284
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a98850bb90>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[12:08:30] OK  [ 874/1152] mode=ballistic  heated=True  steps=100   cem=False 1d N=16 h=1.0 seed=42  → err=222269793810226872320.00%  unique=0.324
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a98850bb90>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[12:09:13] OK  [ 880/1152] mode=ballistic  heated=True  steps=100   cem=False 2d N=4 h=1.0 seed=42  → err=50714568958046633984.00%  unique=0.493
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a9840b05f0>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[12:09:42] OK  [ 890/1152] mode=ballistic  heated=True  steps=100   cem=True  1d N=8 h=0.5 seed=42  → err=297573299208.89%  unique=0.245
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a988472450>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[12:10:42] OK  [ 899/1152] mode=ballistic  heated=True  steps=100   cem=True  1d N=16 h=2.0 seed=1  → err=127675617024192364544.00%  unique=0.486
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a988472330>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[12:11:22] OK  [ 910/1152] mode=ballistic  heated=True  steps=100   cem=True  2d N=6 h=1.0 seed=42  → err=79.11%  unique=0.476
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a984364b90>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[12:12:06] OK  [ 918/1152] mode=ballistic  heated=True  steps=300   cem=False 1d N=8 h=2.0 seed=42  → err=100.00%  unique=0.016
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a98421c2f0>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[12:13:00] OK  [ 930/1152] mode=ballistic  heated=True  steps=300   cem=False 2d N=4 h=2.0 seed=42  → err=120.37%  unique=0.022
+<model.FullyConnectedRBM object at 0x71a80c0523c0>
+<ising.TransverseFieldIsing1D object at 0x71a98421c770>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[12:13:59] OK  [ 943/1152] mode=ballistic  heated=True  steps=300   cem=True  1d N=16 h=0.5 seed=1  → err=123.51%  unique=0.049
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a80cdbfef0>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[12:15:09] OK  [ 958/1152] mode=ballistic  heated=True  steps=300   cem=True  2d N=6 h=1.0 seed=42  → err=105.22%  unique=0.056
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a98421d1f0>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[12:16:33] OK  [ 976/1152] mode=ballistic  heated=True  steps=500   cem=False 2d N=4 h=1.0 seed=42  → err=69.16%  unique=0.018
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a98421d8b0>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[12:18:02] OK  [ 997/1152] mode=ballistic  heated=True  steps=500   cem=True  2d N=4 h=0.5 seed=1  → err=1.71%  unique=0.160
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a984261e50>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[12:20:23] OK  [1018/1152] mode=ballistic  heated=True  steps=1000  cem=False 1d N=16 h=1.0 seed=42  → err=47.21%  unique=0.054
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a80cdbffb0>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[12:22:43] OK  [1038/1152] mode=ballistic  heated=True  steps=1000  cem=True  1d N=8 h=2.0 seed=42  → err=78.57%  unique=0.009
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a80cdbffb0>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[12:26:36] OK  [1058/1152] mode=ballistic  heated=True  steps=2000  cem=False 1d N=8 h=0.5 seed=42  → err=41.30%  unique=0.010
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a80cdbfb90>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[12:31:14] OK  [1078/1152] mode=ballistic  heated=True  steps=2000  cem=False 2d N=6 h=1.0 seed=42  → err=41.86%  unique=0.002
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a9840b0230>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[12:36:14] OK  [1098/1152] mode=ballistic  heated=True  steps=2000  cem=True  2d N=4 h=2.0 seed=42  → err=18.61%  unique=0.002
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing2D object at 0x71a9840b0230>
+None
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+[12:44:32] OK  [1118/1152] mode=ballistic  heated=True  steps=5000  cem=False 2d N=4 h=0.5 seed=42  → err=78.41%  unique=0.002
+<model.FullyConnectedRBM object at 0x71a80cde40c0>
+<ising.TransverseFieldIsing1D object at 0x71a984260e30>
+None
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iterations with 200 samples
+[12:52:21] OK  [1140/1152] mode=ballistic  heated=True  steps=5000  cem=True  1d N=16 h=2.0 seed=42  → err=28.62%  unique=0.002
+  [SBM]   mode=ballistic heated=True unique=2/1000
+  [SBM]   mode=ballistic heated=True unique=1/1000
+  [SBM]   mode=ballistic heated=True unique=1/1000
