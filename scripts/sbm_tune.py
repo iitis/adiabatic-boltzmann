@@ -75,6 +75,7 @@ CEM_N_SAMPLES  = 200
 OUTPUT_JSON = ROOT / "results" / "sbm_tune.json"
 PLOTS_DIR   = ROOT / "plots" / "sbm_tune"
 
+_results_lock = threading.Lock()
 _all_results: list[dict] = []
 _done = 0
 _failed = 0
@@ -200,6 +201,7 @@ def run_experiment(
 
 
 def worker(exp: dict, idx: int, total: int) -> dict | None:
+    global _done, _failed
     label = (
         f"[{idx:>4}/{total}] "
         f"mode={exp['mode']:<10} heated={str(exp['heated']):<5} "
@@ -208,10 +210,15 @@ def worker(exp: dict, idx: int, total: int) -> dict | None:
     )
     try:
         result = run_experiment(**exp)
+        with _results_lock:
+            _all_results.append(result)
+            _done += 1
         tlog(f"OK  {label}  → err={result['rel_error']:.2f}%  "
              f"unique={result['mean_unique']:.3f}")
         return result
     except Exception:
+        with _results_lock:
+            _failed += 1
         tlog(f"FAIL {label}\n{traceback.format_exc()}")
         return None
 
@@ -232,7 +239,6 @@ def build_grid(test_cases: list[tuple]) -> list[dict]:
 
 
 def run_grid(experiments: list[dict], workers: int) -> None:
-    global _all_results, _done, _failed
     total = len(experiments)
     tlog(f"Phase 1 — grid search: {total} experiments on {workers} workers")
 
@@ -242,12 +248,7 @@ def run_grid(experiments: list[dict], workers: int) -> None:
             for i, exp in enumerate(experiments)
         }
         for future in as_completed(futures):
-            result = future.result()
-            if result is not None:
-                _all_results.append(result)
-                _done += 1
-            else:
-                _failed += 1
+            future.result()  # exceptions already logged in worker
 
 
 # ── Phase 2: Optuna continuous search ────────────────────────────────────────
@@ -441,8 +442,8 @@ def summarise(results: list[dict]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="SBM hyperparameter grid search")
-    parser.add_argument("--workers",  type=int, default=os.cpu_count(),
-                        help="Parallel workers (default: cpu count)")
+    parser.add_argument("--workers",  type=int, default=4,
+                        help="Parallel workers (default: 4; GPU workloads saturate quickly)")
     parser.add_argument("--no-2d",   action="store_true",
                         help="Skip 2D models (faster)")
     parser.add_argument("--no-cem",  action="store_true",

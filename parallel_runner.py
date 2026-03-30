@@ -12,7 +12,6 @@ Usage:
 """
 
 import argparse
-import json
 import logging
 import os
 import signal
@@ -30,36 +29,27 @@ from pathlib import Path
 OUTPUT_DIR = "results/"
 LOG_FILE = "parallel_benchmark.log"
 SCRIPT = "src/single_experiment.py"
-MODEL = "2d"
-SIZES = [4, 6, 8]
 
-N_NH_STEPS = 1  # generates N evenly-spaced steps ending at n_visible
-LEARNING_RATES = [0.1]  # only lr=0.1 is used in plots
-SAMPLERS = [
-    ("velox", "velox"),
-]  # list of (sampler, method) pairs
-RBMS = ["pegasus"]
+# ── sweep axes ────────────────────────────────────────────────────────────────
+SIZES_1D = [8, 16, 32, 64]
+SIZES_2D = [4, 6, 8]
 H_VALUES = [0.5, 1.0, 2.0]
-
-# Fixed values that single_experiment.py always uses (used for result path check)
-_REG = 0.001
-_NS = 1000
+LEARNING_RATES = [0.1]
 SEEDS = [1, 42]
-ITERATIONS = 300
 
-LSB_SIGMA = 1.0   # noise std σ for LSBSampler
-LSB_STEPS = 100   # steps per sample M for LSBSampler
+# ── fixed hyperparameters ─────────────────────────────────────────────────────
+SAMPLER  = "custom"
+METHOD   = "sbm"
+RBM      = "full"
+N_NH_STEPS  = 1      # n_hidden = n_visible (α = 1)
+ITERATIONS  = 300
+_REG        = 1e-5   # best reg from sbm_tune results
+_NS         = 1000
 
-SBM_STEPS    = 5000   # num_steps for VeloxQ SBMSolver
-SBM_DT       = 1.0   # dt for VeloxQ SBMSolver
-SBM_DISCRETE = False  # discrete_version for VeloxQ SBMSolver
-
-SB_MODE      = "discrete"  # simulated-bifurcation library mode ('discrete' or 'ballistic')
-SB_HEATED    = False       # heated variant for simulated-bifurcation
-SB_MAX_STEPS = 10000       # max steps per agent for simulated-bifurcation
-
-DWAVE_BUDGET_MS = 3_600_000  # 30 minutes in ms
-TIME_FILE = Path("time.json")
+# ── optimal SBM config (from sbm_tune analysis) ───────────────────────────────
+SB_MODE      = "discrete"   # beats ballistic at equal step budget
+SB_HEATED    = False        # heated consistently hurts
+SB_MAX_STEPS = 500          # sweet spot: best reach-rate, zero divergence
 
 MAX_RETRIES = 2
 
@@ -68,7 +58,6 @@ MAX_RETRIES = 2
 # ---------------------------------------------------------------------------
 
 _log_lock = threading.Lock()
-_qpu_lock = threading.Lock()
 _count_lock = threading.Lock()
 _procs_lock = threading.Lock()
 _done = 0
@@ -128,29 +117,23 @@ def _n_hidden_steps(n_visible: int) -> list[int]:
 
 def build_experiments() -> list[dict]:
     experiments = []
-    for size in SIZES:
-        n_visible = size * size if MODEL == "2d" else size
-        for n_hidden in _n_hidden_steps(n_visible):
-            alpha = n_hidden / n_visible
-            for rbm in RBMS:
+    for model, sizes in [("1d", SIZES_1D), ("2d", SIZES_2D)]:
+        for size in sizes:
+            n_visible = size if model == "1d" else size * size
+            for n_hidden in _n_hidden_steps(n_visible):
                 for h in H_VALUES:
                     for lr in LEARNING_RATES:
-                        for sampler, method in SAMPLERS:
-                            for seed in SEEDS:
-                                experiments.append(
-                                    {
-                                        "size": size,
-                                        "n_visible": n_visible,
-                                        "n_hidden": n_hidden,
-                                        "alpha": alpha,
-                                        "rbm": rbm,
-                                        "h": h,
-                                        "lr": lr,
-                                        "sampler": sampler,
-                                        "method": method,
-                                        "seed": seed,
-                                    }
-                                )
+                        for seed in SEEDS:
+                            experiments.append({
+                                "model":     model,
+                                "size":      size,
+                                "n_visible": n_visible,
+                                "n_hidden":  n_hidden,
+                                "alpha":     n_hidden / n_visible,
+                                "h":         h,
+                                "lr":        lr,
+                                "seed":      seed,
+                            })
     return experiments
 
 
@@ -159,51 +142,23 @@ def build_experiments() -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def _is_dwave(method: str) -> bool:
-    return method in ("pegasus", "zephyr")
-
-
-def _is_lsb(sampler: str) -> bool:
-    return sampler == "lsb"
-
-
-def _read_qpu_time_ms() -> int:
-    text = TIME_FILE.read_text().strip()
-    try:
-        return int(json.loads(text).get("time_ms"))
-    except json.JSONDecodeError:
-        # Attempt recovery: strip extra trailing braces (e.g. "}}" → "}")
-        cleaned = text.rstrip("}") + "}"
-        log(
-            f"  [warn] time.json parse failed, attempting recovery (stripped extra braces)"
-        )
-        return int(json.loads(cleaned).get("time_ms"))
-
-
-def _check_qpu_budget() -> tuple[bool, int]:
-    """Returns (budget_ok, used_ms). Must be called with _qpu_lock held."""
-    used = _read_qpu_time_ms()
-    return used < DWAVE_BUDGET_MS, used
-
-
 def result_exists(exp: dict) -> bool:
-    """Return True if the result file for this experiment already exists (2D only)."""
+    """Return True if the result file for this experiment already exists."""
     path = (
         Path(OUTPUT_DIR)
-        / str(exp["size"])
-        / exp["sampler"]
-        / exp["method"]
+        / str(exp["n_hidden"])
+        / SAMPLER
+        / METHOD
         / (
-            f"result_{MODEL}"
+            f"result_{exp['model']}"
             f"_h{exp['h']}"
-            f"_rbm{exp['rbm']}"
+            f"_rbm{RBM}"
             f"_nh{exp['n_hidden']}"
             f"_lr{exp['lr']}"
             f"_reg{_REG}"
             f"_ns{_NS}"
             f"_seed{exp['seed']}"
             f"_iter{ITERATIONS}"
-            f"_cem0"
             f".json"
         )
     )
@@ -220,9 +175,8 @@ def run_experiment(exp: dict, idx: int, total: int, dry_run: bool) -> bool:
 
     label = (
         f"[{idx:>4}/{total}] "
-        f"size={exp['size']} nh={exp['n_hidden']} (α={exp['alpha']:.2f}) "
-        f"rbm={exp['rbm']} h={exp['h']} lr={exp['lr']} "
-        f"{exp['sampler']}/{exp['method']} seed={exp['seed']}"
+        f"{exp['model']} N={exp['size']} nh={exp['n_hidden']} "
+        f"h={exp['h']} lr={exp['lr']} seed={exp['seed']}"
     )
 
     if result_exists(exp):
@@ -231,60 +185,26 @@ def run_experiment(exp: dict, idx: int, total: int, dry_run: bool) -> bool:
             _done += 1
         return True
 
-    # QPU budget check — serialised so parallel D-Wave jobs don't race
-    if _is_dwave(exp["method"]):
-        with _qpu_lock:
-            ok, used = _check_qpu_budget()
-            if not ok:
-                log(f"  [QPU BUDGET] {used / 60000:.2f} min used — skipping {label}")
-                with _count_lock:
-                    _failed += 1
-                return False
-        qpu_info = f"  QPU used={used / 60000:.2f}min"
-    else:
-        qpu_info = ""
-
-    log(f"{label}{qpu_info}")
+    log(label)
 
     cmd = [
-        "python3",
-        SCRIPT,
-        "--size",
-        str(exp["size"]),
-        "--lr",
-        str(exp["lr"]),
-        "--sampler",
-        exp["sampler"],
-        "--method",
-        exp["method"],
-        "--seed",
-        str(exp["seed"]),
-        "--output-dir",
-        OUTPUT_DIR,
-        "--model",
-        MODEL,
-        "--n-hidden",
-        str(exp["n_hidden"]),
-        "--h",
-        str(exp["h"]),
-        "--iterations",
-        str(ITERATIONS),
-        "--rbm",
-        exp["rbm"],
+        "python3", SCRIPT,
+        "--model",       exp["model"],
+        "--size",        str(exp["size"]),
+        "--n-hidden",    str(exp["n_hidden"]),
+        "--h",           str(exp["h"]),
+        "--lr",          str(exp["lr"]),
+        "--sampler",     SAMPLER,
+        "--method",      METHOD,
+        "--rbm",         RBM,
+        "--iterations",  str(ITERATIONS),
+        "--seed",        str(exp["seed"]),
+        "--output-dir",  OUTPUT_DIR,
+        "--sb-mode",     SB_MODE,
+        "--sb-max-steps", str(SB_MAX_STEPS),
     ]
-
-    if _is_lsb(exp["sampler"]):
-        cmd += ["--lsb-sigma", str(LSB_SIGMA), "--lsb-steps", str(LSB_STEPS)]
-
-    if exp["sampler"] == "velox" and exp["method"] == "sbm":
-        cmd += ["--sbm-steps", str(SBM_STEPS), "--sbm-dt", str(SBM_DT)]
-        if SBM_DISCRETE:
-            cmd += ["--sbm-discrete"]
-
-    if exp["sampler"] == "custom" and exp["method"] == "sbm":
-        cmd += ["--sb-mode", SB_MODE, "--sb-max-steps", str(SB_MAX_STEPS)]
-        if SB_HEATED:
-            cmd += ["--sb-heated"]
+    if SB_HEATED:
+        cmd += ["--sb-heated"]
 
     if dry_run:
         log(f"  [dry-run] {' '.join(cmd)}")
@@ -336,10 +256,8 @@ def main():
     parser.add_argument(
         "--workers",
         type=int,
-        default=os.cpu_count(),
-        help=f"Parallel workers (default: {os.cpu_count()} = cpu count). "
-        "Rule of thumb: cpu_count for CPU-bound runs, "
-        "more for I/O-bound or QPU-queued runs.",
+        default=4,
+        help="Parallel workers (default: 4; SBM is GPU-bound, more workers fragment the GPU).",
     )
     parser.add_argument(
         "--dry-run",
@@ -353,21 +271,17 @@ def main():
 
     experiments = build_experiments()
     total = len(experiments)
-    used_ms_start = _read_qpu_time_ms()
 
     log("=" * 60)
     log(f"Parallel runner started : {datetime.now():%Y-%m-%d %H:%M:%S}")
     log(f"Workers                 : {args.workers}")
     log(f"Total experiments       : {total}")
-    log(f"Model                   : {MODEL}  sizes={SIZES}")
-    log(f"N_NH_STEPS              : {N_NH_STEPS}")
-    log(f"RBMs                    : {RBMS}")
+    log(f"1D sizes                : {SIZES_1D}")
+    log(f"2D sizes                : {SIZES_2D}")
     log(f"H values                : {H_VALUES}")
-    log(f"Samplers                : {SAMPLERS}")
-    log(
-        f"QPU budget              : {DWAVE_BUDGET_MS / 60000:.1f} min  "
-        f"(used so far: {used_ms_start / 60000:.2f} min)"
-    )
+    log(f"Sampler                 : {SAMPLER}/{METHOD}")
+    log(f"SBM config              : mode={SB_MODE}  heated={SB_HEATED}  max_steps={SB_MAX_STEPS}")
+    log(f"Iterations              : {ITERATIONS}  seeds={SEEDS}")
     if args.dry_run:
         log("DRY RUN — no experiments will be executed")
     log("=" * 60)
@@ -387,14 +301,11 @@ def main():
                 with _count_lock:
                     _failed += 1
 
-    used_ms_end = _read_qpu_time_ms()
     log("")
     log("=" * 60)
     log(f"Benchmark finished : {datetime.now():%Y-%m-%d %H:%M:%S}")
     log(f"Completed          : {_done} / {total}")
     log(f"Failed (skipped)   : {_failed}")
-    log(f"QPU time this run  : {(used_ms_end - used_ms_start) / 60000:.2f} min")
-    log(f"QPU time total     : {used_ms_end / 60000:.2f} min")
     log("=" * 60)
 
 

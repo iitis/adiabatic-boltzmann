@@ -207,8 +207,9 @@ class ClassicalSampler(Sampler):
         h_bias[:Nv] = -rbm.a / beta_x
         h_bias[Nv:] = -rbm.b / beta_x
 
-        M_t = torch.tensor(M, dtype=torch.float32)
-        h_t = torch.tensor(h_bias, dtype=torch.float32)
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        M_t = torch.tensor(M, dtype=torch.float32, device=device)
+        h_t = torch.tensor(h_bias, dtype=torch.float32, device=device)
 
         vectors, _ = sb.minimize(
             M_t, h_t, 0.0,
@@ -219,10 +220,11 @@ class ClassicalSampler(Sampler):
             heated=heated,
             max_steps=max_steps,
             verbose=False,
+            device=device,
         )
 
         # vectors shape is (N, n_samples); transpose to (n_samples, N)
-        s = vectors.numpy()
+        s = vectors.cpu().numpy()
         if s.shape[0] == N and s.shape[1] == n_samples:
             s = s.T
 
