@@ -130,8 +130,8 @@ def run_experiment(
 
     # ── initial diversity (untrained RBM) ─────────────────────────────────────
     captured = io.StringIO()
-    devnull  = open(os.devnull, "w")
-    with contextlib.redirect_stdout(captured), contextlib.redirect_stderr(devnull):
+    stderr_sink = io.StringIO()
+    with contextlib.redirect_stdout(captured), contextlib.redirect_stderr(stderr_sink):
         v_init, _ = sampler._sbm_sample(rbm, N_SAMPLES, {})
     init_unique = _unique_ratio(v_init)
 
@@ -147,14 +147,13 @@ def run_experiment(
     }
     trainer = Trainer(rbm, ising, sampler, trainer_config)
 
-    with contextlib.redirect_stdout(captured), contextlib.redirect_stderr(devnull):
+    with contextlib.redirect_stdout(captured), contextlib.redirect_stderr(stderr_sink):
         history = trainer.train()
 
     # ── final diversity (trained RBM) ─────────────────────────────────────────
-    with contextlib.redirect_stdout(captured), contextlib.redirect_stderr(devnull):
+    with contextlib.redirect_stdout(captured), contextlib.redirect_stderr(stderr_sink):
         v_final, _ = sampler._sbm_sample(rbm, N_SAMPLES, {})
     final_unique = _unique_ratio(v_final)
-    devnull.close()
 
     # ── metrics ───────────────────────────────────────────────────────────────
     exact      = float(ising.exact_ground_energy())

@@ -218,6 +218,7 @@ class ClassicalSampler(Sampler):
             mode=mode,
             heated=heated,
             max_steps=max_steps,
+            verbose=False,
         )
 
         # vectors shape is (N, n_samples); transpose to (n_samples, N)
