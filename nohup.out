@@ -36789,3 +36789,1015 @@ SystemExit: 1
 12:11:04      |   Error        : 6.627148
 12:11:04      |   Checkpoint → checkpoints/64/custom/metropolis/zephyr/checkpoint_1d_h2.0_rbmzephyr_nh64_lr0.1_iter0300.pkl
 12:11:04  [  68/84] 1d N=16 nh=16 h=1.0 lr=0.1 seed=42 [custom/sbm/rbm=zephyr]
+12:27:40      | DWaveTopologyRBM(n_visible=36, n_hidden=36, connections=407/1296, sparsity=68.60%)
+12:27:40      | <ising.TransverseFieldIsing2D object at 0x718633699940>
+12:27:40      | None
+12:27:40      |   [CEM] β scheduling disabled — using heuristic beta_x adaptation
+12:27:40      |   [rbm_to_ising] beta_x = 2.0000
+12:27:40      |   unique samples: 1000/1000
+12:27:40      | Iter   0: E = -35.901538 ± 0.263186  β_x = 2.000  CG 56it res=4.06e-09  ‖x‖=115.2693
+12:27:40      |   unique samples: 770/1000
+12:27:40      |   [rbm_to_ising] beta_x = 2.1000
+12:27:40      |   unique samples: 762/1000
+12:27:40      |   unique samples: 516/1000
+12:27:40      |   unique samples: 424/1000
+12:27:40      |   unique samples: 427/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.9950
+12:27:40      |   unique samples: 333/1000
+12:27:40      |   unique samples: 296/1000
+12:27:40      |   unique samples: 249/1000
+12:27:40      |   unique samples: 204/1000
+12:27:40      |   unique samples: 171/1000
+12:27:40      | Iter  10: E = -44.158059 ± 0.170393  β_x = 1.995  CG 154it res=6.02e-09  ‖x‖=4.2652
+12:27:40      |   unique samples: 147/1000
+12:27:40      |   unique samples: 141/1000
+12:27:40      |   unique samples: 132/1000
+12:27:40      |   unique samples: 106/1000
+12:27:40      |   unique samples: 102/1000
+12:27:40      |   unique samples: 102/1000
+12:27:40      |   unique samples: 98/1000
+12:27:40      |   unique samples: 82/1000
+12:27:40      |   unique samples: 84/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.8952
+12:27:40      |   unique samples: 70/1000
+12:27:40      | Iter  20: E = -49.770423 ± 0.071120  β_x = 1.800  CG 59it res=8.56e-09  ‖x‖=2.1282
+12:27:40      |   [rbm_to_ising] beta_x = 1.8005
+12:27:40      |   unique samples: 61/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.7105
+12:27:40      |   unique samples: 62/1000
+12:27:40      |   unique samples: 51/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.6249
+12:27:40      |   unique samples: 50/1000
+12:27:40      |   unique samples: 46/1000
+12:27:40      |   unique samples: 43/1000
+12:27:40      |   unique samples: 55/1000
+12:27:40      |   unique samples: 49/1000
+12:27:40      |   unique samples: 42/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.7062
+12:27:40      |   unique samples: 43/1000
+12:27:40      | Iter  30: E = -50.894800 ± 0.047103  β_x = 1.706  CG 28it res=1.65e-09  ‖x‖=1.4788
+12:27:40      |   unique samples: 59/1000
+12:27:40      |   unique samples: 52/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.6209
+12:27:40      |   unique samples: 53/1000
+12:27:40      |   unique samples: 47/1000
+12:27:40      |   unique samples: 42/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.5398
+12:27:40      |   unique samples: 43/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.4628
+12:27:40      |   unique samples: 36/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.3897
+12:27:40      |   unique samples: 39/1000
+12:27:40      |   unique samples: 32/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.3202
+12:27:40      |   unique samples: 36/1000
+12:27:40      | Iter  40: E = -51.249708 ± 0.054765  β_x = 1.320  CG 27it res=8.81e-10  ‖x‖=1.4407
+12:27:40      |   unique samples: 29/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.2542
+12:27:40      |   unique samples: 34/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.1915
+12:27:40      |   unique samples: 27/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.2511
+12:27:40      |   unique samples: 26/1000
+12:27:40      |   unique samples: 28/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.1885
+12:27:40      |   unique samples: 26/1000
+12:27:40      |   unique samples: 35/1000
+12:27:40      |   unique samples: 30/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.2479
+12:27:40      |   unique samples: 31/1000
+12:27:40      |   unique samples: 28/1000
+12:27:40      | Iter  50: E = -53.826195 ± 0.045695  β_x = 1.248  CG 19it res=9.48e-10  ‖x‖=2.0443
+12:27:40      |   unique samples: 29/1000
+12:27:40      |   unique samples: 35/1000
+12:27:40      |   unique samples: 33/1000
+12:27:40      |   unique samples: 33/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.1855
+12:27:40      |   unique samples: 27/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.2448
+12:27:40      |   unique samples: 31/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.1826
+12:27:40      |   unique samples: 29/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.2417
+12:27:40      |   unique samples: 30/1000
+12:27:40      |   unique samples: 31/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.1796
+12:27:40      |   unique samples: 23/1000
+12:27:40      | Iter  60: E = -53.882939 ± 0.010940  β_x = 1.180  CG 14it res=1.35e-12  ‖x‖=0.5794
+12:27:40      |   unique samples: 26/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.2386
+12:27:40      |   unique samples: 28/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.1767
+12:27:40      |   unique samples: 32/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.2355
+12:27:40      |   unique samples: 27/1000
+12:27:40      |   unique samples: 26/1000
+12:27:40      |   unique samples: 29/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.1737
+12:27:40      |   unique samples: 25/1000
+12:27:40      |   unique samples: 26/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.1150
+12:27:40      |   unique samples: 26/1000
+12:27:40      |   unique samples: 24/1000
+12:27:40      | Iter  70: E = -53.708339 ± 0.013011  β_x = 1.171  CG 14it res=2.27e-10  ‖x‖=1.0284
+12:27:40      |   [rbm_to_ising] beta_x = 1.1708
+12:27:40      |   unique samples: 25/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.1123
+12:27:40      |   unique samples: 27/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.0566
+12:27:40      |   unique samples: 21/1000
+12:27:40      |   unique samples: 20/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.0038
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9536
+12:27:40      |   unique samples: 21/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9059
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8606
+12:27:40      |   unique samples: 20/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8176
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8585
+12:27:40      |   unique samples: 21/1000
+12:27:40      | Iter  80: E = -53.610404 ± 0.002572  β_x = 0.816  CG 11it res=3.56e-10  ‖x‖=0.1076
+12:27:40      |   [rbm_to_ising] beta_x = 0.8156
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.7748
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8135
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.7729
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.7342
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.6975
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.6626
+12:27:40      |   unique samples: 14/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.6295
+12:27:40      |   unique samples: 15/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.5980
+12:27:40      |   unique samples: 15/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.5681
+12:27:40      |   unique samples: 14/1000
+12:27:40      | Iter  90: E = -53.488115 ± 0.001118  β_x = 0.597  CG 7it res=2.37e-11  ‖x‖=0.0361
+12:27:40      |   [rbm_to_ising] beta_x = 0.5965
+12:27:40      |   unique samples: 14/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.6263
+12:27:40      |   unique samples: 14/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.5950
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.6248
+12:27:40      |   unique samples: 14/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.6560
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.6888
+12:27:40      |   unique samples: 14/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.7233
+12:27:40      |   unique samples: 14/1000
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.6871
+12:27:40      |   unique samples: 15/1000
+12:27:40      |   unique samples: 15/1000
+12:27:40      | Iter 100: E = -53.474901 ± 0.000837  β_x = 0.653  CG 7it res=2.41e-11  ‖x‖=0.0273
+12:27:40      |   [rbm_to_ising] beta_x = 0.6527
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   unique samples: 13/1000
+12:27:40      |   unique samples: 15/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.6201
+12:27:40      |   unique samples: 15/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.6511
+12:27:40      |   unique samples: 14/1000
+12:27:40      |   unique samples: 15/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.6186
+12:27:40      |   unique samples: 14/1000
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.6495
+12:27:40      |   unique samples: 14/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.6820
+12:27:40      |   unique samples: 15/1000
+12:27:40      | Iter 110: E = -53.397829 ± 0.000826  β_x = 0.716  CG 10it res=4.03e-15  ‖x‖=0.0302
+12:27:40      |   [rbm_to_ising] beta_x = 0.7161
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   unique samples: 15/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.7519
+12:27:40      |   unique samples: 15/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.7143
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.6786
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.7125
+12:27:40      |   unique samples: 15/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.7481
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.7855
+12:27:40      |   unique samples: 15/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8248
+12:27:40      |   unique samples: 16/1000
+12:27:40      | Iter 120: E = -53.392687 ± 0.000540  β_x = 0.825  CG 9it res=2.33e-09  ‖x‖=0.0254
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.7836
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8227
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8639
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9071
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8617
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   unique samples: 17/1000
+12:27:40      | Iter 130: E = -53.368569 ± 0.000259  β_x = 0.862  CG 9it res=5.61e-10  ‖x‖=0.0225
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9048
+12:27:40      |   unique samples: 15/1000
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8596
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8166
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.7757
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   unique samples: 15/1000
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8145
+12:27:40      |   unique samples: 15/1000
+12:27:40      | Iter 140: E = -53.352924 ± 0.000122  β_x = 0.815  CG 8it res=4.95e-09  ‖x‖=0.0213
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.7738
+12:27:40      |   unique samples: 14/1000
+12:27:40      |   unique samples: 14/1000
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8125
+12:27:40      |   unique samples: 14/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.7719
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   unique samples: 15/1000
+12:27:40      |   unique samples: 14/1000
+12:27:40      | Iter 150: E = -53.353749 ± 0.000134  β_x = 0.772  CG 7it res=6.27e-10  ‖x‖=0.0195
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   unique samples: 14/1000
+12:27:40      |   unique samples: 15/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8105
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8510
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8935
+12:27:40      |   unique samples: 18/1000
+12:27:40      | Iter 160: E = -53.349522 ± 0.000182  β_x = 0.894  CG 9it res=4.68e-11  ‖x‖=0.0186
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8489
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8064
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8467
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8891
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   unique samples: 19/1000
+12:27:40      | Iter 170: E = -53.345544 ± 0.000220  β_x = 0.934  CG 9it res=5.37e-11  ‖x‖=0.0168
+12:27:40      |   [rbm_to_ising] beta_x = 0.9335
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9802
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.0292
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9778
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9289
+12:27:40      |   unique samples: 18/1000
+12:27:40      | Iter 180: E = -53.346333 ± 0.000242  β_x = 0.929  CG 9it res=1.73e-10  ‖x‖=0.0159
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9753
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9265
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9729
+12:27:40      |   unique samples: 20/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9242
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.8780
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9219
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9680
+12:27:40      |   unique samples: 20/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.0164
+12:27:40      |   unique samples: 18/1000
+12:27:40      | Iter 190: E = -53.310511 ± 0.000188  β_x = 1.016  CG 9it res=2.63e-09  ‖x‖=0.0155
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.0672
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.1206
+12:27:40      |   unique samples: 20/1000
+12:27:40      |   unique samples: 20/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.0646
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.0113
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9608
+12:27:40      |   unique samples: 19/1000
+12:27:40      | Iter 200: E = -53.311252 ± 0.000201  β_x = 0.961  CG 9it res=3.67e-10  ‖x‖=0.0140
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.0088
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9584
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.0063
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   unique samples: 15/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9560
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9082
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   unique samples: 15/1000
+12:27:40      | Iter 210: E = -53.307149 ± 0.000216  β_x = 0.908  CG 6it res=2.28e-10  ‖x‖=0.0135
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9536
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   unique samples: 20/1000
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.0013
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.0513
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9988
+12:27:40      |   unique samples: 20/1000
+12:27:40      | Iter 220: E = -53.307991 ± 0.000217  β_x = 0.999  CG 9it res=1.30e-10  ‖x‖=0.0125
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   unique samples: 15/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.0487
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   unique samples: 20/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9963
+12:27:40      |   unique samples: 21/1000
+12:27:40      |   unique samples: 20/1000
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9464
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   unique samples: 17/1000
+12:27:40      | Iter 230: E = -53.309538 ± 0.000214  β_x = 0.994  CG 9it res=2.70e-10  ‖x‖=0.0117
+12:27:40      |   [rbm_to_ising] beta_x = 0.9938
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   unique samples: 20/1000
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9441
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9913
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9417
+12:27:40      |   unique samples: 20/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9888
+12:27:40      |   unique samples: 17/1000
+12:27:40      |   unique samples: 18/1000
+12:27:40      | Iter 240: E = -53.306150 ± 0.000211  β_x = 1.038  CG 8it res=2.25e-09  ‖x‖=0.0110
+12:27:40      |   [rbm_to_ising] beta_x = 1.0382
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9863
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   unique samples: 15/1000
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.0357
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.0874
+12:27:40      |   unique samples: 20/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.1418
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.1989
+12:27:40      |   unique samples: 22/1000
+12:27:40      | Iter 250: E = -53.302515 ± 0.000207  β_x = 1.139  CG 9it res=9.36e-12  ‖x‖=0.0099
+12:27:40      |   [rbm_to_ising] beta_x = 1.1390
+12:27:40      |   unique samples: 22/1000
+12:27:40      |   unique samples: 21/1000
+12:27:40      |   unique samples: 22/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.1959
+12:27:40      |   unique samples: 23/1000
+12:27:40      |   unique samples: 21/1000
+12:27:40      |   unique samples: 23/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.2557
+12:27:40      |   unique samples: 24/1000
+12:27:40      |   unique samples: 23/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.1929
+12:27:40      |   unique samples: 21/1000
+12:27:40      |   unique samples: 20/1000
+12:27:40      | Iter 260: E = -53.302797 ± 0.000869  β_x = 1.253  CG 11it res=4.02e-11  ‖x‖=0.0415
+12:27:40      |   [rbm_to_ising] beta_x = 1.2526
+12:27:40      |   unique samples: 23/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.1899
+12:27:40      |   unique samples: 22/1000
+12:27:40      |   unique samples: 24/1000
+12:27:40      |   unique samples: 22/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.2494
+12:27:40      |   unique samples: 22/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.3119
+12:27:40      |   unique samples: 23/1000
+12:27:40      |   unique samples: 25/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.2463
+12:27:40      |   unique samples: 23/1000
+12:27:40      |   unique samples: 22/1000
+12:27:40      |   unique samples: 21/1000
+12:27:40      | Iter 270: E = -53.297039 ± 0.000186  β_x = 1.246  CG 9it res=4.51e-10  ‖x‖=0.0090
+12:27:40      |   unique samples: 22/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.1840
+12:27:40      |   unique samples: 24/1000
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.1248
+12:27:40      |   unique samples: 23/1000
+12:27:40      |   unique samples: 20/1000
+12:27:40      |   unique samples: 20/1000
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   unique samples: 20/1000
+12:27:40      |   unique samples: 21/1000
+12:27:40      | Iter 280: E = -53.297973 ± 0.000176  β_x = 1.125  CG 9it res=3.16e-11  ‖x‖=0.0079
+12:27:40      |   unique samples: 21/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.0685
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.1220
+12:27:40      |   unique samples: 21/1000
+12:27:40      |   unique samples: 21/1000
+12:27:40      |   unique samples: 23/1000
+12:27:40      |   unique samples: 21/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.0659
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.0126
+12:27:40      |   unique samples: 21/1000
+12:27:40      | Iter 290: E = -53.299017 ± 0.000164  β_x = 1.013  CG 9it res=8.74e-11  ‖x‖=0.0075
+12:27:40      |   unique samples: 20/1000
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9620
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   [rbm_to_ising] beta_x = 1.0101
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   unique samples: 19/1000
+12:27:40      |   [rbm_to_ising] beta_x = 0.9595
+12:27:40      |   unique samples: 18/1000
+12:27:40      |   unique samples: 16/1000
+12:27:40      |   unique samples: 20/1000
+12:27:40      | Saved  → results/6/dimod/simulated_annealing/result_2d_h1.0_rbmzephyr_nh36_lr0.1_reg0.001_ns1000_seed42_iter300_cem0.json
+12:27:40      |   Final energy : -53.300004
+12:27:40      |   Exact energy : -76.593600
+12:27:40      |   Error        : 23.293596
+12:27:40      |   Checkpoint → checkpoints/6/dimod/simulated_annealing/zephyr/checkpoint_2d_h1.0_rbmzephyr_nh36_lr0.1_iter0300.pkl
+12:27:40  [  69/84] 1d N=16 nh=16 h=2.0 lr=0.1 seed=42 [custom/sbm/rbm=zephyr]
+12:36:29      | DWaveTopologyRBM(n_visible=36, n_hidden=36, connections=407/1296, sparsity=68.60%)
+12:36:29      | <ising.TransverseFieldIsing2D object at 0x7f2d7ec21940>
+12:36:29      | None
+12:36:29      |   [CEM] β scheduling disabled — using heuristic beta_x adaptation
+12:36:29      |   [rbm_to_ising] beta_x = 2.0000
+12:36:29      |   unique samples: 1000/1000
+12:36:29      | Iter   0: E = -71.915077 ± 0.263197  β_x = 2.000  CG 56it res=4.07e-09  ‖x‖=115.2574
+12:36:29      |   unique samples: 770/1000
+12:36:29      |   [rbm_to_ising] beta_x = 1.9000
+12:36:29      |   unique samples: 599/1000
+12:36:29      |   unique samples: 517/1000
+12:36:29      |   unique samples: 538/1000
+12:36:29      |   unique samples: 486/1000
+12:36:29      |   unique samples: 463/1000
+12:36:29      |   [rbm_to_ising] beta_x = 1.8050
+12:36:29      |   unique samples: 382/1000
+12:36:29      |   unique samples: 354/1000
+12:36:29      |   unique samples: 311/1000
+12:36:29      |   unique samples: 300/1000
+12:36:29      | Iter  10: E = -59.850999 ± 0.187953  β_x = 1.805  CG 188it res=9.26e-09  ‖x‖=4.5510
+12:36:29      |   unique samples: 292/1000
+12:36:29      |   unique samples: 274/1000
+12:36:29      |   unique samples: 251/1000
+12:36:29      |   unique samples: 198/1000
+12:36:29      |   unique samples: 169/1000
+12:36:29      |   unique samples: 158/1000
+12:36:29      |   unique samples: 145/1000
+12:36:29      |   [rbm_to_ising] beta_x = 1.7147
+12:36:29      |   unique samples: 117/1000
+12:36:29      |   [rbm_to_ising] beta_x = 1.8005
+12:36:29      |   unique samples: 110/1000
+12:36:29      |   unique samples: 120/1000
+12:36:29      | Iter  20: E = -68.818782 ± 0.078280  β_x = 1.710  CG 99it res=6.60e-09  ‖x‖=2.5641
+12:36:29      |   [rbm_to_ising] beta_x = 1.7105
+12:36:29      |   unique samples: 103/1000
+12:36:29      |   unique samples: 103/1000
+12:36:29      |   unique samples: 99/1000
+12:36:29      |   unique samples: 93/1000
+12:36:29      |   unique samples: 101/1000
+12:36:29      |   unique samples: 98/1000
+12:36:29      |   unique samples: 124/1000
+12:36:29      |   unique samples: 128/1000
+12:36:29      |   unique samples: 113/1000
+12:36:29      |   unique samples: 92/1000
+12:36:29      | Iter  30: E = -70.709783 ± 0.072452  β_x = 1.796  CG 58it res=2.77e-09  ‖x‖=2.2967
+12:36:29      |   [rbm_to_ising] beta_x = 1.7960
+12:36:29      |   unique samples: 98/1000
+12:36:29      |   unique samples: 90/1000
+12:36:29      |   unique samples: 81/1000
+12:36:29      |   unique samples: 75/1000
+12:36:29      |   unique samples: 98/1000
+12:36:29      |   unique samples: 89/1000
+12:36:29      |   unique samples: 83/1000
+12:36:29      |   unique samples: 62/1000
+12:36:29      |   unique samples: 47/1000
+12:36:29      |   unique samples: 45/1000
+12:36:29      | Iter  40: E = -77.470187 ± 0.029263  β_x = 1.886  CG 13it res=1.42e-09  ‖x‖=1.2431
+12:36:29      |   [rbm_to_ising] beta_x = 1.8858
+12:36:29      |   unique samples: 42/1000
+12:36:29      |   [rbm_to_ising] beta_x = 1.9801
+12:36:29      |   unique samples: 46/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.0791
+12:36:29      |   unique samples: 50/1000
+12:36:29      |   [rbm_to_ising] beta_x = 1.9751
+12:36:29      |   unique samples: 41/1000
+12:36:29      |   [rbm_to_ising] beta_x = 1.8764
+12:36:29      |   unique samples: 36/1000
+12:36:29      |   [rbm_to_ising] beta_x = 1.9702
+12:36:29      |   unique samples: 32/1000
+12:36:29      |   [rbm_to_ising] beta_x = 1.8717
+12:36:29      |   unique samples: 31/1000
+12:36:29      |   [rbm_to_ising] beta_x = 1.9653
+12:36:29      |   unique samples: 29/1000
+12:36:29      |   [rbm_to_ising] beta_x = 1.8670
+12:36:29      |   unique samples: 30/1000
+12:36:29      |   [rbm_to_ising] beta_x = 1.7736
+12:36:29      |   unique samples: 24/1000
+12:36:29      | Iter  50: E = -75.528335 ± 0.003430  β_x = 1.862  CG 4it res=1.29e-09  ‖x‖=0.4844
+12:36:29      |   [rbm_to_ising] beta_x = 1.8623
+12:36:29      |   unique samples: 30/1000
+12:36:29      |   [rbm_to_ising] beta_x = 1.9554
+12:36:29      |   unique samples: 28/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.0532
+12:36:29      |   unique samples: 33/1000
+12:36:29      |   [rbm_to_ising] beta_x = 1.9506
+12:36:29      |   unique samples: 31/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.0481
+12:36:29      |   unique samples: 28/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.1505
+12:36:29      |   unique samples: 35/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.2580
+12:36:29      |   unique samples: 38/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.1451
+12:36:29      |   unique samples: 27/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.2524
+12:36:29      |   unique samples: 32/1000
+12:36:29      |   unique samples: 36/1000
+12:36:29      | Iter  60: E = -74.497072 ± 0.001219  β_x = 2.365  CG 4it res=7.08e-09  ‖x‖=0.1154
+12:36:29      |   [rbm_to_ising] beta_x = 2.3650
+12:36:29      |   unique samples: 38/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.4832
+12:36:29      |   unique samples: 48/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.6074
+12:36:29      |   unique samples: 46/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.7378
+12:36:29      |   unique samples: 48/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.6009
+12:36:29      |   unique samples: 46/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.4708
+12:36:29      |   unique samples: 33/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.3473
+12:36:29      |   unique samples: 38/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.4647
+12:36:29      |   unique samples: 40/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.5879
+12:36:29      |   unique samples: 53/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.7173
+12:36:29      |   unique samples: 60/1000
+12:36:29      | Iter  70: E = -73.960227 ± 0.003905  β_x = 2.581  CG 10it res=3.08e-12  ‖x‖=0.5706
+12:36:29      |   [rbm_to_ising] beta_x = 2.5814
+12:36:29      |   unique samples: 46/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.7105
+12:36:29      |   unique samples: 45/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.8460
+12:36:29      |   unique samples: 55/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.9883
+12:36:29      |   unique samples: 64/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.8389
+12:36:29      |   unique samples: 57/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.6970
+12:36:29      |   unique samples: 51/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.5621
+12:36:29      |   unique samples: 35/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.6902
+12:36:29      |   unique samples: 45/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.5557
+12:36:29      |   unique samples: 41/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.6835
+12:36:29      |   unique samples: 47/1000
+12:36:29      | Iter  80: E = -73.397861 ± 0.001249  β_x = 2.818  CG 7it res=7.74e-14  ‖x‖=0.1934
+12:36:29      |   [rbm_to_ising] beta_x = 2.8177
+12:36:29      |   unique samples: 39/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.6768
+12:36:29      |   unique samples: 48/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.5429
+12:36:29      |   unique samples: 36/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.4158
+12:36:29      |   unique samples: 30/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.5366
+12:36:29      |   unique samples: 38/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.4098
+12:36:29      |   unique samples: 29/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.5302
+12:36:29      |   unique samples: 41/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.6568
+12:36:29      |   unique samples: 43/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.7896
+12:36:29      |   unique samples: 43/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.6501
+12:36:29      |   unique samples: 56/1000
+12:36:29      | Iter  90: E = -73.026839 ± 0.002297  β_x = 2.783  CG 12it res=4.39e-09  ‖x‖=0.3954
+12:36:29      |   [rbm_to_ising] beta_x = 2.7826
+12:36:29      |   unique samples: 49/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.6435
+12:36:29      |   unique samples: 42/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.5113
+12:36:29      |   unique samples: 35/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.6369
+12:36:29      |   unique samples: 36/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.5050
+12:36:29      |   unique samples: 36/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.6303
+12:36:29      |   unique samples: 34/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.7618
+12:36:29      |   unique samples: 43/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.6237
+12:36:29      |   unique samples: 36/1000
+12:36:29      |   unique samples: 42/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.4925
+12:36:29      |   unique samples: 40/1000
+12:36:29      | Iter 100: E = -72.980653 ± 0.001653  β_x = 2.368  CG 8it res=5.01e-13  ‖x‖=0.2936
+12:36:29      |   [rbm_to_ising] beta_x = 2.3679
+12:36:29      |   unique samples: 33/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.4863
+12:36:29      |   unique samples: 37/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.3620
+12:36:29      |   unique samples: 29/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.2439
+12:36:29      |   unique samples: 27/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.1317
+12:36:29      |   unique samples: 26/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.0251
+12:36:29      |   unique samples: 24/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.1264
+12:36:29      |   unique samples: 22/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.2327
+12:36:29      |   unique samples: 27/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.3443
+12:36:29      |   unique samples: 30/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.4615
+12:36:29      |   unique samples: 39/1000
+12:36:29      | Iter 110: E = -72.809984 ± 0.000147  β_x = 2.338  CG 4it res=3.29e-09  ‖x‖=0.0039
+12:36:29      |   [rbm_to_ising] beta_x = 2.3385
+12:36:29      |   unique samples: 34/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.2215
+12:36:29      |   unique samples: 27/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.3326
+12:36:29      |   unique samples: 34/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.2160
+12:36:29      |   unique samples: 26/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.3268
+12:36:29      |   unique samples: 29/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.2104
+12:36:29      |   unique samples: 23/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.3210
+12:36:29      |   unique samples: 30/1000
+12:36:29      |   unique samples: 28/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.4370
+12:36:29      |   unique samples: 33/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.3152
+12:36:29      |   unique samples: 27/1000
+12:36:29      | Iter 120: E = -72.778163 ± 0.002679  β_x = 2.431  CG 3it res=2.11e-10  ‖x‖=0.4723
+12:36:29      |   [rbm_to_ising] beta_x = 2.4309
+12:36:29      |   unique samples: 30/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.5525
+12:36:29      |   unique samples: 36/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.6801
+12:36:29      |   unique samples: 42/1000
+12:36:29      |   unique samples: 41/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.5461
+12:36:29      |   unique samples: 36/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.4188
+12:36:29      |   unique samples: 31/1000
+12:36:29      |   unique samples: 32/1000
+12:36:29      |   unique samples: 32/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.2978
+12:36:29      |   unique samples: 28/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.4127
+12:36:29      |   unique samples: 27/1000
+12:36:29      | Iter 130: E = -72.343518 ± 0.000141  β_x = 2.413  CG 3it res=1.70e-12  ‖x‖=0.0068
+12:36:29      |   unique samples: 29/1000
+12:36:29      |   unique samples: 28/1000
+12:36:29      |   unique samples: 22/1000
+12:36:29      |   unique samples: 34/1000
+12:36:29      |   unique samples: 34/1000
+12:36:29      |   unique samples: 35/1000
+12:36:29      |   unique samples: 33/1000
+12:36:29      |   unique samples: 29/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.5334
+12:36:29      |   unique samples: 33/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.4067
+12:36:29      |   unique samples: 36/1000
+12:36:29      | Iter 140: E = -72.588511 ± 0.000076  β_x = 2.286  CG 4it res=5.52e-10  ‖x‖=0.0068
+12:36:29      |   [rbm_to_ising] beta_x = 2.2864
+12:36:29      |   unique samples: 30/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.4007
+12:36:29      |   unique samples: 30/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.2806
+12:36:29      |   unique samples: 33/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.3947
+12:36:29      |   unique samples: 32/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.5144
+12:36:29      |   unique samples: 36/1000
+12:36:29      |   unique samples: 34/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.6401
+12:36:29      |   unique samples: 37/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.5081
+12:36:29      |   unique samples: 30/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.6335
+12:36:29      |   unique samples: 36/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.5019
+12:36:29      |   unique samples: 31/1000
+12:36:29      | Iter 150: E = -72.269140 ± 0.000862  β_x = 2.627  CG 3it res=4.11e-11  ‖x‖=0.0076
+12:36:29      |   [rbm_to_ising] beta_x = 2.6269
+12:36:29      |   unique samples: 35/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.4956
+12:36:29      |   unique samples: 32/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.3708
+12:36:29      |   unique samples: 24/1000
+12:36:29      |   unique samples: 28/1000
+12:36:29      |   unique samples: 37/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.4894
+12:36:29      |   unique samples: 33/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.6138
+12:36:29      |   unique samples: 34/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.7445
+12:36:29      |   unique samples: 45/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.8817
+12:36:29      |   unique samples: 47/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.7377
+12:36:29      |   unique samples: 35/1000
+12:36:29      | Iter 160: E = -72.178803 ± 0.000378  β_x = 2.738  CG 3it res=1.04e-11  ‖x‖=0.0041
+12:36:29      |   unique samples: 41/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.6008
+12:36:29      |   unique samples: 44/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.4707
+12:36:29      |   unique samples: 31/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.3472
+12:36:29      |   unique samples: 28/1000
+12:36:29      |   unique samples: 31/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.2298
+12:36:29      |   unique samples: 28/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.3413
+12:36:29      |   unique samples: 25/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.4584
+12:36:29      |   unique samples: 32/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.5813
+12:36:29      |   unique samples: 30/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.7104
+12:36:29      |   unique samples: 42/1000
+12:36:29      | Iter 170: E = -72.108118 ± 0.002477  β_x = 2.846  CG 10it res=2.79e-09  ‖x‖=0.2642
+12:36:29      |   [rbm_to_ising] beta_x = 2.8459
+12:36:29      |   unique samples: 46/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.9882
+12:36:29      |   unique samples: 52/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.8388
+12:36:29      |   unique samples: 49/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.9807
+12:36:29      |   unique samples: 52/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.8317
+12:36:29      |   unique samples: 46/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.9733
+12:36:29      |   unique samples: 42/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.8246
+12:36:29      |   unique samples: 37/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.9658
+12:36:29      |   unique samples: 52/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.1141
+12:36:29      |   unique samples: 52/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.9584
+12:36:29      |   unique samples: 43/1000
+12:36:29      | Iter 180: E = -71.929313 ± 0.003359  β_x = 2.811  CG 7it res=1.52e-09  ‖x‖=0.5960
+12:36:29      |   [rbm_to_ising] beta_x = 2.8105
+12:36:29      |   unique samples: 43/1000
+12:36:29      |   unique samples: 38/1000
+12:36:29      |   unique samples: 43/1000
+12:36:29      |   unique samples: 49/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.9510
+12:36:29      |   unique samples: 53/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.8035
+12:36:29      |   unique samples: 40/1000
+12:36:29      |   unique samples: 46/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.9437
+12:36:29      |   unique samples: 40/1000
+12:36:29      |   unique samples: 52/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.0908
+12:36:29      |   unique samples: 55/1000
+12:36:29      | Iter 190: E = -72.004730 ± 0.002890  β_x = 3.245  CG 13it res=5.48e-10  ‖x‖=0.5133
+12:36:29      |   [rbm_to_ising] beta_x = 3.2454
+12:36:29      |   unique samples: 67/1000
+12:36:29      |   unique samples: 60/1000
+12:36:29      |   unique samples: 58/1000
+12:36:29      |   unique samples: 68/1000
+12:36:29      |   unique samples: 61/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.4076
+12:36:29      |   unique samples: 65/1000
+12:36:29      |   unique samples: 73/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.5780
+12:36:29      |   unique samples: 86/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.7569
+12:36:29      |   unique samples: 88/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.5691
+12:36:29      |   unique samples: 89/1000
+12:36:29      | Iter 200: E = -72.074945 ± 0.022636  β_x = 3.569  CG 20it res=8.24e-10  ‖x‖=3.9232
+12:36:29      |   unique samples: 82/1000
+12:36:29      |   unique samples: 98/1000
+12:36:29      |   unique samples: 96/1000
+12:36:29      |   unique samples: 106/1000
+12:36:29      |   unique samples: 102/1000
+12:36:29      |   unique samples: 106/1000
+12:36:29      |   unique samples: 96/1000
+12:36:29      |   unique samples: 91/1000
+12:36:29      |   unique samples: 72/1000
+12:36:29      |   unique samples: 60/1000
+12:36:29      | Iter 210: E = -80.419514 ± 0.030448  β_x = 3.748  CG 22it res=8.61e-10  ‖x‖=1.6173
+12:36:29      |   [rbm_to_ising] beta_x = 3.7475
+12:36:29      |   unique samples: 70/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.5602
+12:36:29      |   unique samples: 45/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.3822
+12:36:29      |   unique samples: 38/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.2130
+12:36:29      |   unique samples: 27/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.3737
+12:36:29      |   unique samples: 34/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.5424
+12:36:29      |   unique samples: 44/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.7195
+12:36:29      |   unique samples: 39/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.5335
+12:36:29      |   unique samples: 43/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.3568
+12:36:29      |   unique samples: 36/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.1890
+12:36:29      |   unique samples: 21/1000
+12:36:29      | Iter 220: E = -78.668149 ± 0.000381  β_x = 3.348  CG 6it res=3.53e-13  ‖x‖=0.0218
+12:36:29      |   [rbm_to_ising] beta_x = 3.3485
+12:36:29      |   unique samples: 32/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.1810
+12:36:29      |   unique samples: 24/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.0220
+12:36:29      |   unique samples: 27/1000
+12:36:29      |   [rbm_to_ising] beta_x = 2.8709
+12:36:29      |   unique samples: 24/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.0144
+12:36:29      |   unique samples: 23/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.1651
+12:36:29      |   unique samples: 22/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.3234
+12:36:29      |   unique samples: 29/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.4896
+12:36:29      |   unique samples: 37/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.3151
+12:36:29      |   unique samples: 37/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.4809
+12:36:29      |   unique samples: 38/1000
+12:36:29      | Iter 230: E = -78.545886 ± 0.003167  β_x = 3.481  CG 12it res=9.64e-09  ‖x‖=0.5378
+12:36:29      |   unique samples: 34/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.6549
+12:36:29      |   unique samples: 40/1000
+12:36:29      |   unique samples: 40/1000
+12:36:29      |   unique samples: 49/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.8376
+12:36:29      |   unique samples: 49/1000
+12:36:29      |   unique samples: 44/1000
+12:36:29      |   [rbm_to_ising] beta_x = 4.0295
+12:36:29      |   unique samples: 55/1000
+12:36:29      |   unique samples: 59/1000
+12:36:29      |   unique samples: 56/1000
+12:36:29      |   unique samples: 54/1000
+12:36:29      | Iter 240: E = -78.637804 ± 0.002960  β_x = 4.030  CG 17it res=7.44e-09  ‖x‖=0.4873
+12:36:29      |   unique samples: 61/1000
+12:36:29      |   [rbm_to_ising] beta_x = 4.2310
+12:36:29      |   unique samples: 58/1000
+12:36:29      |   [rbm_to_ising] beta_x = 4.4425
+12:36:29      |   unique samples: 74/1000
+12:36:29      |   [rbm_to_ising] beta_x = 4.2204
+12:36:29      |   unique samples: 70/1000
+12:36:29      |   [rbm_to_ising] beta_x = 4.0094
+12:36:29      |   unique samples: 54/1000
+12:36:29      |   unique samples: 48/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.8089
+12:36:29      |   unique samples: 44/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.9994
+12:36:29      |   unique samples: 55/1000
+12:36:29      |   unique samples: 57/1000
+12:36:29      |   unique samples: 56/1000
+12:36:29      | Iter 250: E = -78.713293 ± 0.002451  β_x = 3.999  CG 15it res=6.61e-09  ‖x‖=0.1872
+12:36:29      |   unique samples: 57/1000
+12:36:29      |   unique samples: 51/1000
+12:36:29      |   unique samples: 53/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.7994
+12:36:29      |   unique samples: 48/1000
+12:36:29      |   unique samples: 48/1000
+12:36:29      |   unique samples: 48/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.6094
+12:36:29      |   unique samples: 35/1000
+12:36:29      |   unique samples: 40/1000
+12:36:29      |   unique samples: 41/1000
+12:36:29      |   unique samples: 46/1000
+12:36:29      | Iter 260: E = -78.916438 ± 0.001351  β_x = 3.429  CG 10it res=1.87e-09  ‖x‖=0.0366
+12:36:29      |   [rbm_to_ising] beta_x = 3.4290
+12:36:29      |   unique samples: 33/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.2575
+12:36:29      |   unique samples: 30/1000
+12:36:29      |   unique samples: 30/1000
+12:36:29      |   unique samples: 30/1000
+12:36:29      |   unique samples: 27/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.4204
+12:36:29      |   unique samples: 34/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.2494
+12:36:29      |   unique samples: 26/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.4118
+12:36:29      |   unique samples: 30/1000
+12:36:29      |   unique samples: 35/1000
+12:36:29      |   unique samples: 32/1000
+12:36:29      | Iter 270: E = -78.919452 ± 0.003226  β_x = 3.412  CG 10it res=7.74e-10  ‖x‖=0.5384
+12:36:29      |   unique samples: 36/1000
+12:36:29      |   unique samples: 36/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.5824
+12:36:29      |   unique samples: 35/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.7616
+12:36:29      |   unique samples: 40/1000
+12:36:29      |   unique samples: 43/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.9496
+12:36:29      |   unique samples: 56/1000
+12:36:29      |   unique samples: 47/1000
+12:36:29      |   unique samples: 59/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.7522
+12:36:29      |   unique samples: 48/1000
+12:36:29      |   [rbm_to_ising] beta_x = 3.9398
+12:36:29      |   unique samples: 58/1000
+12:36:29      | Iter 280: E = -78.923127 ± 0.005492  β_x = 3.940  CG 20it res=2.29e-11  ‖x‖=0.6450
+12:36:29      |   unique samples: 55/1000
+12:36:29      |   unique samples: 48/1000
+12:36:29      |   unique samples: 50/1000
+12:36:29      |   unique samples: 51/1000
+12:36:29      |   unique samples: 55/1000
+12:36:29      |   [rbm_to_ising] beta_x = 4.1367
+12:36:29      |   unique samples: 63/1000
+12:36:29      |   [rbm_to_ising] beta_x = 4.3436
+12:36:29      |   unique samples: 84/1000
+12:36:29      |   unique samples: 68/1000
+12:36:29      |   unique samples: 73/1000
+12:36:29      |   [rbm_to_ising] beta_x = 4.1264
+12:36:29      |   unique samples: 72/1000
+12:36:29      | Iter 290: E = -78.992595 ± 0.002796  β_x = 4.126  CG 23it res=3.41e-09  ‖x‖=0.4454
+12:36:29      |   unique samples: 66/1000
+12:36:29      |   unique samples: 53/1000
+12:36:29      |   unique samples: 57/1000
+12:36:29      |   [rbm_to_ising] beta_x = 4.3327
+12:36:29      |   unique samples: 71/1000
+12:36:29      |   unique samples: 69/1000
+12:36:29      |   [rbm_to_ising] beta_x = 4.5494
+12:36:29      |   unique samples: 90/1000
+12:36:29      |   unique samples: 96/1000
+12:36:29      |   unique samples: 89/1000
+12:36:29      |   unique samples: 85/1000
+12:36:29      | Saved  → results/6/dimod/simulated_annealing/result_2d_h2.0_rbmzephyr_nh36_lr0.1_reg0.001_ns1000_seed42_iter300_cem0.json
+12:36:29      |   Final energy : -79.370460
+12:36:29      |   Exact energy : -88.376400
+12:36:29      |   Error        : 9.005940
+12:36:29      |   Checkpoint → checkpoints/6/dimod/simulated_annealing/zephyr/checkpoint_2d_h2.0_rbmzephyr_nh36_lr0.1_iter0300.pkl
+12:36:29  [  70/84] 1d N=32 nh=32 h=0.5 lr=0.1 seed=42 [custom/sbm/rbm=zephyr]
