@@ -33,15 +33,15 @@ SCRIPT = "src/single_experiment.py"
 
 # ── sweep axes ────────────────────────────────────────────────────────────────
 SIZES_1D = [96, 128, 192, 256]
-SIZES_2D = []          # not running 2D in this sweep
+SIZES_2D = [12, 14, 16]  # not running 2D in this sweep
 H_VALUES = [0.5, 1.0, 2.0]
 LEARNING_RATES = [0.1]
 SEEDS = [42]
 
 # ── (sampler, method, rbm) combos to run ─────────────────────────────────────
 COMBOS = [
-    ("custom", "metropolis", "full"),
-    ("custom", "metropolis", "zephyr"),
+    ("dimod", "zephyr", "full"),
+    ("dimod", "zephyr", "zephyr"),
 ]
 
 # ── fixed hyperparameters ─────────────────────────────────────────────────────
@@ -56,7 +56,7 @@ SB_HEATED = False  # heated consistently hurts
 SB_MAX_STEPS = 500  # sweet spot: best reach-rate, zero divergence
 
 DWAVE_BUDGET_MS = 1_800_000  # 30 minutes in ms
-TIME_FILE = Path("src/time.json")
+TIME_FILE = Path("time.json")
 
 MAX_RETRIES = 2
 
@@ -64,8 +64,8 @@ MAX_RETRIES = 2
 # Thread-safe shared counters + locks
 # ---------------------------------------------------------------------------
 
-_log_lock   = threading.Lock()
-_qpu_lock   = threading.Lock()
+_log_lock = threading.Lock()
+_qpu_lock = threading.Lock()
 _count_lock = threading.Lock()
 _procs_lock = threading.Lock()
 _done = 0

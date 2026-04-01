@@ -1,7 +1,7 @@
 import math
 import time
 import numpy as np
-from helpers import save_rbm_checkpoint
+from helpers import save_rbm_checkpoint, save_dwave_samples
 
 
 # ---------------------------------------------------------------------------
@@ -146,6 +146,9 @@ def conjugate_gradient(
 # ---------------------------------------------------------------------------
 
 
+KL_EXACT_MAX_N = 16  # enumerate all 2^N configs for exact KL when N ≤ this
+
+
 class Trainer:
     """
     Variational Monte Carlo trainer using Stochastic Reconfiguration.
@@ -227,7 +230,71 @@ class Trainer:
             "cg_iterations": [],
             "cg_residual": [],
             "sampling_time_s": [],
+            "ess": [],           # effective sample size, normalised to [0, 1]
+            "kl_exact": [],      # KL(q_empirical ‖ p_exact); None when N > KL_EXACT_MAX_N
         }
+
+        # Pre-build exact enumeration for small N (cached across iterations)
+        self._kl_all_v = None       # (2^N, N) array of all configs
+        self._kl_config_idx = None  # tuple → index mapping
+
+    def _build_kl_cache(self):
+        """Pre-compute all 2^N configs and index map for exact KL. Called once."""
+        N = self.rbm.n_visible
+        indices = np.arange(2 ** N, dtype=np.int32)
+        # Vectorised binary → ±1 spin: bit k → 1 if set, else -1
+        all_v = ((indices[:, None] >> np.arange(N - 1, -1, -1)) & 1).astype(np.float64) * 2 - 1
+        config_idx = {tuple(row.astype(int).tolist()): i for i, row in enumerate(all_v)}
+        self._kl_all_v = all_v
+        self._kl_config_idx = config_idx
+
+    def _compute_sample_metrics(self, V: np.ndarray, Theta: np.ndarray):
+        """
+        Compute ESS and (optionally) exact KL from a batch of samples.
+
+        V     : (ns, N)  visible spin configs
+        Theta : (ns, M)  pre-activations b + W^T v, already computed in train()
+
+        Returns (ess_norm, kl) where
+          ess_norm ∈ [0, 1] — ESS / n_samples
+          kl       — KL(q_empirical ‖ p_exact) or None when N > KL_EXACT_MAX_N
+        """
+        ns = V.shape[0]
+
+        # ── ESS ──────────────────────────────────────────────────────────────
+        # log |Ψ(v)|^2 = -a·v + Σ_j logcosh(θ_j)
+        # logcosh = logaddexp(x, -x) = log(e^x + e^{-x})
+        log_psi2 = -(V @ self.rbm.a) + np.sum(np.logaddexp(Theta, -Theta), axis=1)
+        # Subtract max for numerical stability before normalising
+        lw = log_psi2 - log_psi2.max()
+        w = np.exp(lw)
+        w /= w.sum()
+        ess_norm = float(1.0 / np.sum(w ** 2)) / ns   # normalised to [0, 1]
+
+        # ── Exact KL ─────────────────────────────────────────────────────────
+        if self.rbm.n_visible > KL_EXACT_MAX_N:
+            return ess_norm, None
+
+        if self._kl_all_v is None:
+            self._build_kl_cache()
+
+        all_v = self._kl_all_v
+        Theta_all = all_v @ self.rbm.W + self.rbm.b[None, :]
+        log_psi2_all = -(all_v @ self.rbm.a) + np.sum(np.logaddexp(Theta_all, -Theta_all), axis=1)
+        lw_all = log_psi2_all - log_psi2_all.max()
+        p_true = np.exp(lw_all)
+        p_true /= p_true.sum()
+
+        counts = np.zeros(len(all_v))
+        for row in V.astype(int).tolist():
+            idx = self._kl_config_idx.get(tuple(row))
+            if idx is not None:
+                counts[idx] += 1
+        q_emp = counts / ns
+
+        mask = q_emp > 0
+        kl = float(np.sum(q_emp[mask] * (np.log(q_emp[mask]) - np.log(p_true[mask]))))
+        return ess_norm, kl
 
     def train(self) -> dict:
         prev_energy = None
@@ -257,6 +324,13 @@ class Trainer:
             # θ[s, j] = b_j + Σ_i W_ij v_si
             Theta = V @ self.rbm.W + self.rbm.b[None, :]  # (ns, M)
             TanH = np.tanh(Theta)  # (ns, M)
+
+            # ── Sample quality metrics (ESS + KL) — reuse Theta ───────────
+            ess_norm, kl = self._compute_sample_metrics(V, Theta)
+
+            # ── Save D-Wave samples to disk for post-hoc analysis ──────────
+            if self.args and getattr(self.args, "sampling_method", "") in ("pegasus", "zephyr"):
+                save_dwave_samples(V, self.args, iteration)
 
             # ── 4. Build SR system and solve with CG ──────────────────────
             # SRLinearSystem expects H = tanh(θ),  W layout (M, N)
@@ -327,6 +401,8 @@ class Trainer:
             self.history["beta_eff_cem"].append(beta_eff_this_iter)
             self.history["cg_iterations"].append(int(cg_info["iterations"]))
             self.history["cg_residual"].append(float(cg_info["residual_norm"]))
+            self.history["ess"].append(ess_norm)
+            self.history["kl_exact"].append(kl)
 
             if iteration % 10 == 0:
                 print(

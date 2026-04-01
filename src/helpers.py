@@ -1,3 +1,4 @@
+import gzip
 import json
 from pathlib import Path
 import numpy as np
@@ -110,6 +111,9 @@ def save_results(args, history, ising, rbm=None):
         "error": abs(history["energy"][-1] - ising.exact_ground_energy()),
         "sparsity": float(rbm.sparsity()) if rbm is not None else None,
         "sampling_time_s": float(sum(history.get("sampling_time_s", []))),
+        "final_ess": history["ess"][-1] if history.get("ess") else None,
+        "mean_ess": float(np.mean(history["ess"])) if history.get("ess") else None,
+        "final_kl_exact": history["kl_exact"][-1] if history.get("kl_exact") else None,
     }
 
     # Filename encodes every axis that varies in the sweep
@@ -170,6 +174,45 @@ def save_results(args, history, ising, rbm=None):
 
         except ImportError:
             print("Matplotlib not available, skipping visualization")
+
+
+def save_dwave_samples(V: np.ndarray, args, iteration: int) -> Path:
+    """
+    Save raw D-Wave visible-unit samples for one training iteration.
+
+    Stored as gzip-compressed pickle under:
+        dwave_samples/{n_hidden}/{sampler}/{method}/
+            samples_{model}_h{h}_rbm{rbm}_nh{n_hidden}_lr{lr}
+            _reg{reg}_ns{ns}_seed{seed}_iter{IIII}.pkl.gz
+
+    Content: {"v": ndarray(ns, N), "iteration": int, "config": dict}
+
+    The .pkl.gz is intentionally small: only visible-unit spin configs are
+    stored.  Hidden units and RBM weights can be reconstructed from the
+    config and checkpoint files.  The goal is to avoid re-querying the QPU
+    when new metrics need to be computed post-hoc.
+    """
+    out_dir = Path(
+        f"dwave_samples/{args.n_hidden}/{args.sampler}/{args.sampling_method}"
+    )
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    fname = (
+        f"samples_{args.model}"
+        f"_h{args.h}"
+        f"_rbm{args.rbm}"
+        f"_nh{args.n_hidden}"
+        f"_lr{args.learning_rate}"
+        f"_reg{args.regularization}"
+        f"_ns{args.n_samples}"
+        f"_seed{args.seed}"
+        f"_iter{iteration:04d}"
+        f".pkl.gz"
+    )
+    path = out_dir / fname
+    with gzip.open(path, "wb") as f:
+        pickle.dump({"v": V, "iteration": iteration, "config": vars(args)}, f, protocol=5)
+    return path
 
 
 def get_solver_name(architecture="pegasus"):
