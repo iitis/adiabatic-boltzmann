@@ -40,7 +40,6 @@ SEEDS = [42]
 
 # ── (sampler, method, rbm) combos to run ─────────────────────────────────────
 COMBOS = [
-    ("dimod", "zephyr", "full"),
     ("dimod", "zephyr", "zephyr"),
 ]
 

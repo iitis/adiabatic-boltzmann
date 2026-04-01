@@ -161,7 +161,7 @@ def main():
         else:
             print("  [resume] No checkpoint found for this config — starting from scratch.")
 
-    trainer = Trainer(rbm, ising, sampler, trainer_config)
+    trainer = Trainer(rbm, ising, sampler, trainer_config, args=ns_args)
     history = trainer.train()
     save_results(ns_args, history, ising, rbm)
 
