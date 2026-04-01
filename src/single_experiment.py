@@ -125,7 +125,7 @@ def main():
         "n_samples": 1000,
         "regularization": 1e-3,
         "stop_at_convergence": False,
-        "save_checkpoints": True,
+        "save_checkpoints": args.method in ("pegasus", "zephyr"),
         "checkpoint_interval": 10,
     }
 
