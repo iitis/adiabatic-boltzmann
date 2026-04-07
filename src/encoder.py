@@ -2,6 +2,7 @@ import math
 import time
 import numpy as np
 from helpers import save_rbm_checkpoint, save_dwave_samples
+from sampler import ClassicalSampler
 
 
 # ---------------------------------------------------------------------------
@@ -191,7 +192,10 @@ class Trainer:
         self.cg_tol = config.get("cg_tol", 1e-8)
         self.cg_maxiter = config.get("cg_maxiter", 200)
 
-        self.beta_x = config.get("beta_x_init", 2.0)
+        # For samplers that ignore beta_x (metropolis, gibbs) lock it to 1.0
+        _method = getattr(sampler, "method", "") if isinstance(sampler, ClassicalSampler) else ""
+        self._beta_fixed = _method in ("metropolis", "gibbs")
+        self.beta_x = 1.0 if self._beta_fixed else config.get("beta_x_init", 2.0)
         self.beta_adapt = config.get("beta_adapt", 0.05)
         self.beta_min = config.get("beta_min", 0.05)
         self.beta_max = config.get("beta_max", 20.0)
@@ -230,8 +234,9 @@ class Trainer:
             "cg_iterations": [],
             "cg_residual": [],
             "sampling_time_s": [],
-            "ess": [],           # effective sample size, normalised to [0, 1]
-            "kl_exact": [],      # KL(q_empirical ‖ p_exact); None when N > KL_EXACT_MAX_N
+            "ess": [],              # effective sample size, normalised to [0, 1]
+            "kl_exact": [],         # KL(q_empirical ‖ p_exact); None when N > KL_EXACT_MAX_N
+            "n_unique_ratio": [],   # unique configs / n_samples  [0, 1]
         }
 
         # Pre-build exact enumeration for small N (cached across iterations)
@@ -250,16 +255,20 @@ class Trainer:
 
     def _compute_sample_metrics(self, V: np.ndarray, Theta: np.ndarray):
         """
-        Compute ESS and (optionally) exact KL from a batch of samples.
+        Compute ESS, unique-sample ratio, and (optionally) exact KL from a batch of samples.
 
         V     : (ns, N)  visible spin configs
         Theta : (ns, M)  pre-activations b + W^T v, already computed in train()
 
-        Returns (ess_norm, kl) where
-          ess_norm ∈ [0, 1] — ESS / n_samples
-          kl       — KL(q_empirical ‖ p_exact) or None when N > KL_EXACT_MAX_N
+        Returns (ess_norm, kl, n_unique_ratio) where
+          ess_norm      ∈ [0, 1] — ESS / n_samples
+          kl                     — KL(q_empirical ‖ p_exact) or None when N > KL_EXACT_MAX_N
+          n_unique_ratio ∈ [0, 1] — distinct configs / n_samples
         """
         ns = V.shape[0]
+
+        # ── Unique samples ────────────────────────────────────────────────────
+        n_unique_ratio = float(len(np.unique(V, axis=0))) / ns
 
         # ── ESS ──────────────────────────────────────────────────────────────
         # log |Ψ(v)|^2 = -a·v + Σ_j logcosh(θ_j)
@@ -273,7 +282,7 @@ class Trainer:
 
         # ── Exact KL ─────────────────────────────────────────────────────────
         if self.rbm.n_visible > KL_EXACT_MAX_N:
-            return ess_norm, None
+            return ess_norm, None, n_unique_ratio
 
         if self._kl_all_v is None:
             self._build_kl_cache()
@@ -294,7 +303,7 @@ class Trainer:
 
         mask = q_emp > 0
         kl = float(np.sum(q_emp[mask] * (np.log(q_emp[mask]) - np.log(p_true[mask]))))
-        return ess_norm, kl
+        return ess_norm, kl, n_unique_ratio
 
     def train(self) -> dict:
         prev_energy = None
@@ -325,8 +334,8 @@ class Trainer:
             Theta = V @ self.rbm.W + self.rbm.b[None, :]  # (ns, M)
             TanH = np.tanh(Theta)  # (ns, M)
 
-            # ── Sample quality metrics (ESS + KL) — reuse Theta ───────────
-            ess_norm, kl = self._compute_sample_metrics(V, Theta)
+            # ── Sample quality metrics (ESS + KL + unique) — reuse Theta ──
+            ess_norm, kl, n_unique_ratio = self._compute_sample_metrics(V, Theta)
 
             # ── Save D-Wave samples to disk for post-hoc analysis ──────────
             if self.args and getattr(self.args, "sampling_method", "") in ("pegasus", "zephyr"):
@@ -360,7 +369,9 @@ class Trainer:
             E_mean = float(np.mean(local_energies))
             beta_eff_this_iter = None
 
-            if self.use_cem and iteration % self.cem_interval == 0:
+            if self._beta_fixed:
+                pass  # metropolis/gibbs: beta_x is meaningless, keep at 1.0
+            elif self.use_cem and iteration % self.cem_interval == 0:
                 beta_eff = self.sampler.estimate_beta_eff(
                     self.rbm, n_samples=self.cem_n_samples
                 )
@@ -403,6 +414,7 @@ class Trainer:
             self.history["cg_residual"].append(float(cg_info["residual_norm"]))
             self.history["ess"].append(ess_norm)
             self.history["kl_exact"].append(kl)
+            self.history["n_unique_ratio"].append(n_unique_ratio)
 
             if iteration % 10 == 0:
                 print(

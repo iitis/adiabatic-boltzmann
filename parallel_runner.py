@@ -32,22 +32,15 @@ LOG_FILE = "parallel_benchmark.log"
 SCRIPT = "src/single_experiment.py"
 
 # ── sweep axes ────────────────────────────────────────────────────────────────
-SIZES_1D = [16, 24, 42]
-SIZES_2D = [4, 6, 8]  # not running 2D in this sweep
+SIZES_1D = [6, 8]
+SIZES_2D = []
 H_VALUES = [0.5, 1.0, 2.0]
 LEARNING_RATES = [0.1]
 SEEDS = [42]
 
 # ── (sampler, method, rbm) combos to run ─────────────────────────────────────
 COMBOS = [
-    ("custom", "metropolis", "zephyr"),
-    ("custom", "metropolis", "full"),
-    ("velox", "velox", "zephyr"),
-    ("velox", "velox", "full"),
-    ("custom", "sbm", "zephyr"),
-    ("custom", "sbm", "full"),
-    ("dimos", "sa", "zephyr"),
-    ("dimod", "sa", "full"),
+    ("dimod", "zephyr", "full"),
 ]
 
 # ── fixed hyperparameters ─────────────────────────────────────────────────────

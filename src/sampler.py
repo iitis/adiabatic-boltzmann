@@ -8,12 +8,14 @@ import dimod
 
 try:
     import numba as nb
+
     _HAS_NUMBA = True
 except ImportError:
     _HAS_NUMBA = False
 
 try:
     import cupy as cp
+
     _xp = cp
     _DEVICE = "gpu"
 except ImportError:
@@ -35,6 +37,7 @@ def _logcosh_xp(xp, x):
 
 
 if _HAS_NUMBA:
+
     @nb.njit(cache=True)
     def _mh_sweep_nb(v, theta, W, a, flip_indices, rand_u):
         """Numba-compiled MH sweep. Mutates v and theta in-place. Returns n_accepted."""
@@ -49,8 +52,12 @@ if _HAS_NUMBA:
                 t = theta[j]
                 atf = abs(tf)
                 at = abs(t)
-                log_ratio += 0.5 * (atf + _math.log1p(_math.exp(-2.0 * atf))
-                                    - at  - _math.log1p(_math.exp(-2.0 * at)))
+                log_ratio += 0.5 * (
+                    atf
+                    + _math.log1p(_math.exp(-2.0 * atf))
+                    - at
+                    - _math.log1p(_math.exp(-2.0 * at))
+                )
             log_accept = 2.0 * log_ratio
             if rand_u[k] < (1.0 if log_accept >= 0.0 else _math.exp(log_accept)):
                 v[i] = -vi
@@ -73,8 +80,12 @@ if _HAS_NUMBA:
                 t = theta[j]
                 atf = abs(tf)
                 at = abs(t)
-                log_ratio += 0.5 * (atf + _math.log1p(_math.exp(-2.0 * atf))
-                                    - at  - _math.log1p(_math.exp(-2.0 * at)))
+                log_ratio += 0.5 * (
+                    atf
+                    + _math.log1p(_math.exp(-2.0 * atf))
+                    - at
+                    - _math.log1p(_math.exp(-2.0 * at))
+                )
             log_accept = 2.0 * log_ratio / T
             if rand_u[k] < (1.0 if log_accept >= 0.0 else _math.exp(log_accept)):
                 v[i] = -vi
@@ -92,10 +103,11 @@ def _cem_fit_beta(h_mean: np.ndarray, activation: np.ndarray) -> float:
     h_mean:     (n_hidden,) empirical conditional mean  ⟨h_j⟩_{r,C}
     activation: (n_hidden,) pre-activations  a_j = b_j + Σ_i r_i W_{ij}
     """
+
     def objective(beta):
         return float(np.sum((h_mean - np.tanh(beta * activation)) ** 2))
 
-    result = minimize_scalar(objective, bounds=(1e-3, 1e3), method="bounded")
+    result = minimize_scalar(objective, bounds=(1e-2, 10.0), method="bounded")
     return float(result.x)
 
 
@@ -115,7 +127,7 @@ def _cem_fit_beta_joint(v_samples: np.ndarray, h_samples: np.ndarray, rbm) -> fl
     def objective(beta):
         return float(np.sum((h_samples - np.tanh(beta * activation)) ** 2))
 
-    result = minimize_scalar(objective, bounds=(1e-3, 1e3), method="bounded")
+    result = minimize_scalar(objective, bounds=(1e-2, 10.0), method="bounded")
     return float(result.x)
 
 
@@ -159,7 +171,9 @@ class Sampler(ABC):
         return quadratic, linear
 
     @abstractmethod
-    def sample(self, rbm, n_samples: int, config: dict = None, return_hidden: bool = False):
+    def sample(
+        self, rbm, n_samples: int, config: dict = None, return_hidden: bool = False
+    ):
         """
         Generate samples from the RBM distribution.
 
@@ -173,7 +187,9 @@ class Sampler(ABC):
         """
         pass
 
-    def estimate_beta_eff(self, rbm: RBM, r: np.ndarray = None, n_samples: int = 500) -> float:
+    def estimate_beta_eff(
+        self, rbm: RBM, r: np.ndarray = None, n_samples: int = 500
+    ) -> float:
         """
         Estimate the effective inverse temperature β_eff of this sampler via
         Conditional Expectation Matching (CEM).
@@ -186,7 +202,9 @@ class Sampler(ABC):
 
         Returns β_eff.  For an ideal β=1 sampler the result should be ≈ 1.0.
         """
-        raise NotImplementedError(f"{type(self).__name__} does not implement estimate_beta_eff.")
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement estimate_beta_eff."
+        )
 
 
 class ClassicalSampler(Sampler):
@@ -229,14 +247,16 @@ class ClassicalSampler(Sampler):
         self.gibbs_reinit_fraction = gibbs_reinit_fraction
 
         # Persistent chain state for Gibbs sampler (initialised on first call)
-        self._gibbs_v = None   # (_xp array) (n_chains, n_visible)
+        self._gibbs_v = None  # (_xp array) (n_chains, n_visible)
 
-    def sample(self, rbm: RBM, n_samples: int, config: dict = None, return_hidden: bool = False):
+    def sample(
+        self, rbm: RBM, n_samples: int, config: dict = None, return_hidden: bool = False
+    ):
         if config is None:
             config = {}
 
-        if self.method == "sbm":
-            v, h = self._sbm_sample(rbm, n_samples, config)
+        if self.method == "lsb":
+            v, h = self._lsb_sample(rbm, n_samples, config)
             if return_hidden:
                 return v, h
             return v
@@ -258,65 +278,63 @@ class ClassicalSampler(Sampler):
             return v, self._sample_hidden(rbm, v)
         return v
 
-    def _sbm_sample(self, rbm: RBM, n_samples: int, config: dict):
-        """
-        Sample from the full (v, h) RBM Boltzmann distribution using the
-        simulated-bifurcation library (Ageron et al., 2025).
-
-        Runs n_samples agents in parallel on the Ising problem defined by
-        the full (v, h) coupling matrix and bias vector.
-
-        Energy convention (library minimises):
-            -(1/2) s^T M s + h_bias · s
-
-        Mapping from RBM parameters scaled by beta_x:
-            M[:Nv, Nv:] = W / beta_x    (off-diagonal, symmetric)
-            h_bias       = -(a, b) / beta_x
-        """
-        import simulated_bifurcation as sb
+    def _lsb_sample(self, rbm: RBM, n_samples: int, config: dict):
         import torch
 
-        beta_x    = config.get("beta_x", 1.0)
-        mode      = config.get("sb_mode",      self.sb_mode)
-        heated    = config.get("sb_heated",    self.sb_heated)
-        max_steps = config.get("sb_max_steps", self.sb_max_steps)
-
+        beta_x = config.get("beta_x", 2.0)
+        steps = config.get("lsb_steps", 1000)
+        delta = config.get("lsb_delta", 1.0)
+        # sigma=0 → auto-scale to RMS of local fields (same as LSBSampler).
+        # A fixed sigma risks collapse when weights grow: if ||force|| >> sigma
+        # all spins align with the field and samples become degenerate.
+        sigma = config.get("lsb_sigma", 0.0)
         Nv, Nh = rbm.n_visible, rbm.n_hidden
         N = Nv + Nh
 
         M = np.zeros((N, N))
+        if getattr(rbm, "V", None) is not None:
+            M[:Nv, :Nv] = rbm.V / beta_x   # visible-visible couplings (SRBM)
         M[:Nv, Nv:] = rbm.W / beta_x
         M[Nv:, :Nv] = rbm.W.T / beta_x
+        f = np.empty(N)
+        f[:Nv] = rbm.a / beta_x
+        f[Nv:] = rbm.b / beta_x
 
-        h_bias = np.empty(N)
-        h_bias[:Nv] = -rbm.a / beta_x
-        h_bias[Nv:] = -rbm.b / beta_x
+        # --- Adaptive sigma: set σ = RMS(force) over random probe configs ---
+        if sigma <= 0:
+            rng_probe = np.random.default_rng()
+            x_probe = rng_probe.choice([-1.0, 1.0], size=(200, N))
+            g_probe = x_probe @ M + f[None, :]
+            sigma = float(np.sqrt(np.mean(g_probe**2))) + 1e-6
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
         M_t = torch.tensor(M, dtype=torch.float32, device=device)
-        h_t = torch.tensor(h_bias, dtype=torch.float32, device=device)
+        f_t = torch.tensor(f, dtype=torch.float32, device=device)
 
-        vectors, _ = sb.minimize(
-            M_t, h_t, 0.0,
-            domain="spin",
-            agents=n_samples,
-            best_only=False,
-            mode=mode,
-            heated=heated,
-            max_steps=max_steps,
-            verbose=False,
-            device=device,
-        )
+        # --- Initialize: x ~ Uniform{-1,+1},  y ~ N(0, σ) ---
+        x = torch.randint(0, 2, (n_samples, N), device=device).float() * 2 - 1
+        y = sigma * torch.randn(n_samples, N, device=device)
 
-        # vectors shape is (N, n_samples); transpose to (n_samples, N)
-        s = vectors.cpu().numpy()
-        if s.shape[0] == N and s.shape[1] == n_samples:
-            s = s.T
+        # --- Dynamics: symplectic Euler + discretize + re-init momentum ---
+        for _ in range(steps):
+            s = torch.sign(x)
+            s[s == 0] = 1.0
+            force = torch.matmul(s, M_t.T) + f_t  # Σ_j J_ij sgn(x_j) + f_i
+            y = y + delta * force  # y(k+1) = y(k) + Δ·force
+            x = x + delta * y  # x(k+1) = x(k) + Δ·y(k+1)
+            x = torch.sign(x)
+            x[x == 0] = 1.0
+            y = sigma * torch.randn_like(y)  # re-init momentum
 
+        # --- Extract final spins (OUTSIDE loop) ---
+        s = torch.sign(x).cpu().numpy()
         v = s[:, :Nv]
         h = s[:, Nv:]
+
         unique = len(set(map(tuple, v.tolist())))
-        print(f"  [SBM]   mode={mode} heated={heated} unique={unique}/{n_samples}")
+        print(
+            f"  [LSB] steps={steps} delta={delta} sigma={sigma:.4f} unique={unique}/{n_samples}"
+        )
         return v, h
 
     def _gibbs_sample(self, rbm: RBM, n_samples: int, config: dict):
@@ -331,8 +349,6 @@ class ClassicalSampler(Sampler):
             p(v_i = +1 | h) = σ( 2(W[i,:]·h  - a_i) )
 
         Note: no beta_x scaling — Gibbs is exact at T=1 by construction.
-        The trainer's beta_x adaptation is ignored here.
-
         GPU: if CuPy is available all arrays live on the GPU; otherwise
         NumPy is used transparently (same code path via _xp).
         """
@@ -394,7 +410,9 @@ class ClassicalSampler(Sampler):
         h_np = _xp.asnumpy(H) if _xp is not np else np.asarray(H)
 
         restart_str = f"  restarted={restarted}" if restarted else ""
-        print(f"  [Gibbs] device={_DEVICE}  k={n_sweeps}  unique={unique}/{n_samples}{restart_str}")
+        print(
+            f"  [Gibbs] device={_DEVICE}  k={n_sweeps}  unique={unique}/{n_samples}{restart_str}"
+        )
         return v_np, h_np
 
     def _sample_hidden(self, rbm: RBM, v_samples: np.ndarray) -> np.ndarray:
@@ -404,7 +422,9 @@ class ClassicalSampler(Sampler):
         rng = np.random.default_rng()
         return np.where(rng.random(prob_plus.shape) < prob_plus, 1.0, -1.0)
 
-    def estimate_beta_eff(self, rbm: RBM, r: np.ndarray = None, n_samples: int = 500) -> float:
+    def estimate_beta_eff(
+        self, rbm: RBM, r: np.ndarray = None, n_samples: int = 500
+    ) -> float:
         """
         Estimate β_eff via CEM.
 
@@ -466,7 +486,9 @@ class ClassicalSampler(Sampler):
             flip_indices = rng.integers(0, N, size=N).astype(np.int64)
             rand_u = rng.random(N)
             if _HAS_NUMBA:
-                n_accepted += _mh_sweep_nb(v, theta, W_cont, a_cont, flip_indices, rand_u)
+                n_accepted += _mh_sweep_nb(
+                    v, theta, W_cont, a_cont, flip_indices, rand_u
+                )
             else:
                 for k in range(N):
                     flip_idx = flip_indices[k]
@@ -506,7 +528,9 @@ class ClassicalSampler(Sampler):
 
         return np.array(samples)
 
-    def _metropolis_hastings_batched(self, rbm: RBM, n_samples: int, config: dict) -> np.ndarray:
+    def _metropolis_hastings_batched(
+        self, rbm: RBM, n_samples: int, config: dict
+    ) -> np.ndarray:
         """
         Batched Metropolis-Hastings: all n_samples chains run in parallel on the GPU.
 
@@ -525,13 +549,13 @@ class ClassicalSampler(Sampler):
         n_warmup = config.get("n_warmup", self.n_warmup)
         n_sweeps = config.get("n_sweeps", self.n_sweeps)
 
-        W = xp.asarray(rbm.W, dtype=np.float64)   # (N, Nh)
-        a = xp.asarray(rbm.a, dtype=np.float64)   # (N,)
-        b = xp.asarray(rbm.b, dtype=np.float64)   # (Nh,)
+        W = xp.asarray(rbm.W, dtype=np.float64)  # (N, Nh)
+        a = xp.asarray(rbm.a, dtype=np.float64)  # (N,)
+        b = xp.asarray(rbm.b, dtype=np.float64)  # (Nh,)
 
         # Initialise C independent chains with random ±1 spins
         v = (xp.random.randint(0, 2, (C, N)) * 2 - 1).astype(np.float64)  # (C, N)
-        theta = b[None, :] + v @ W                # (C, Nh)
+        theta = b[None, :] + v @ W  # (C, Nh)
         ci = xp.arange(C)
 
         n_accepted_total = 0
@@ -542,18 +566,18 @@ class ClassicalSampler(Sampler):
             n_proposed_total += C * N
             for _ in range(N):
                 # Draw one random flip site per chain
-                flip_idx = xp.random.randint(0, N, (C,))           # (C,)
-                vi = v[ci, flip_idx]                                 # (C,)
-                W_row = W[flip_idx]                                  # (C, Nh)
+                flip_idx = xp.random.randint(0, N, (C,))  # (C,)
+                vi = v[ci, flip_idx]  # (C,)
+                W_row = W[flip_idx]  # (C, Nh)
 
                 # Compute theta if this flip were accepted (O(C*Nh), fully vectorised)
-                theta_flip = theta - 2.0 * vi[:, None] * W_row      # (C, Nh)
+                theta_flip = theta - 2.0 * vi[:, None] * W_row  # (C, Nh)
 
                 # Log acceptance ratio: 2 * [ a_i * v_i + 0.5 * Σ_j Δlogcosh_j ]
                 lc_diff = 0.5 * xp.sum(
                     _logcosh_xp(xp, theta_flip) - _logcosh_xp(xp, theta), axis=1
-                )                                                    # (C,)
-                log_ratio = a[flip_idx] * vi + lc_diff               # (C,)
+                )  # (C,)
+                log_ratio = a[flip_idx] * vi + lc_diff  # (C,)
 
                 # Accept with probability min(1, exp(2*log_ratio))
                 accept = xp.log(xp.random.rand(C)) < 2.0 * log_ratio  # (C,) bool
@@ -649,7 +673,9 @@ class ClassicalSampler(Sampler):
             flip_indices = rng.integers(0, N, size=N).astype(np.int64)
             rand_u = rng.random(N)
             if _HAS_NUMBA:
-                n_accepted += _sa_sweep_nb(v, theta, W_cont, a_cont, flip_indices, rand_u, T)
+                n_accepted += _sa_sweep_nb(
+                    v, theta, W_cont, a_cont, flip_indices, rand_u, T
+                )
             else:
                 for k in range(N):
                     flip_idx = flip_indices[k]
@@ -693,7 +719,9 @@ class ClassicalSampler(Sampler):
 
         return np.array(samples)
 
-    def _simulated_annealing_batched(self, rbm: RBM, n_samples: int, config: dict) -> np.ndarray:
+    def _simulated_annealing_batched(
+        self, rbm: RBM, n_samples: int, config: dict
+    ) -> np.ndarray:
         """
         Batched SA: C chains cooled in parallel on GPU (or CPU via NumPy).
 
@@ -704,10 +732,14 @@ class ClassicalSampler(Sampler):
         xp = _xp
         N, Nh = rbm.n_visible, rbm.n_hidden
         C = n_samples
-        T_initial = config.get("T_initial", self.T_initial if hasattr(self, "T_initial") else 5.0)
-        T_final   = config.get("T_final",   self.T_final   if hasattr(self, "T_final")   else 1.0)
-        n_warmup  = config.get("n_warmup",  self.n_warmup)
-        n_sweeps  = config.get("n_sweeps",  self.n_sweeps)
+        T_initial = config.get(
+            "T_initial", self.T_initial if hasattr(self, "T_initial") else 5.0
+        )
+        T_final = config.get(
+            "T_final", self.T_final if hasattr(self, "T_final") else 1.0
+        )
+        n_warmup = config.get("n_warmup", self.n_warmup)
+        n_sweeps = config.get("n_sweeps", self.n_sweeps)
 
         W = xp.asarray(rbm.W, dtype=np.float64)
         a = xp.asarray(rbm.a, dtype=np.float64)
@@ -722,19 +754,21 @@ class ClassicalSampler(Sampler):
         def schedule(step):
             if T_initial == T_final:
                 return T_final
-            return T_initial * (T_final / T_initial) ** (step / max(n_total_steps - 1, 1))
+            return T_initial * (T_final / T_initial) ** (
+                step / max(n_total_steps - 1, 1)
+            )
 
         def sweep(v, theta, T):
             for _ in range(N):
-                flip_idx  = xp.random.randint(0, N, (C,))
-                vi        = v[ci, flip_idx]
-                W_row     = W[flip_idx]
+                flip_idx = xp.random.randint(0, N, (C,))
+                vi = v[ci, flip_idx]
+                W_row = W[flip_idx]
                 theta_flip = theta - 2.0 * vi[:, None] * W_row
-                lc_diff   = 0.5 * xp.sum(
+                lc_diff = 0.5 * xp.sum(
                     _logcosh_xp(xp, theta_flip) - _logcosh_xp(xp, theta), axis=1
                 )
                 log_ratio = a[flip_idx] * vi + lc_diff
-                accept    = xp.log(xp.random.rand(C)) < 2.0 * log_ratio / T
+                accept = xp.log(xp.random.rand(C)) < 2.0 * log_ratio / T
                 v[ci, flip_idx] = xp.where(accept, -vi, vi)
                 theta = xp.where(accept[:, None], theta_flip, theta)
             return v, theta
@@ -759,8 +793,13 @@ class ClassicalSampler(Sampler):
 
 
 class VeloxSampler(Sampler):
-    def __init__(self, method: str, sbm_steps: int = 5000, sbm_dt: float = 1.0,
-                 sbm_discrete: bool = False):
+    def __init__(
+        self,
+        method: str,
+        sbm_steps: int = 5000,
+        sbm_dt: float = 1.0,
+        sbm_discrete: bool = False,
+    ):
         self.method = method
 
         load_config("velox_api_config.py")
@@ -778,7 +817,9 @@ class VeloxSampler(Sampler):
         else:
             self.solver = VeloxQSolver()
 
-    def sample(self, rbm, n_samples: int, config: dict = {}, return_hidden: bool = False):
+    def sample(
+        self, rbm, n_samples: int, config: dict = {}, return_hidden: bool = False
+    ):
         self.n_visible = rbm.n_visible
         beta_x = config.get("beta_x", 1.0) if config else 1.0
         J, h = self.rbm_to_ising(rbm, beta_x)
@@ -800,11 +841,15 @@ class VeloxSampler(Sampler):
         df = df.loc[df.index.repeat(df["num_occurrences"])].reset_index(drop=True)
         v = df.loc[:, list(range(self.n_visible))].to_numpy()
         if return_hidden:
-            h_samples = df.loc[:, list(range(self.n_visible, self.n_visible + rbm.n_hidden))].to_numpy()
+            h_samples = df.loc[
+                :, list(range(self.n_visible, self.n_visible + rbm.n_hidden))
+            ].to_numpy()
             return v, h_samples
         return v
 
-    def estimate_beta_eff(self, rbm: RBM, r: np.ndarray = None, n_samples: int = 500) -> float:
+    def estimate_beta_eff(
+        self, rbm: RBM, r: np.ndarray = None, n_samples: int = 500
+    ) -> float:
         """
         Estimate β_eff via the joint-samples variant of CEM.
 
@@ -812,111 +857,6 @@ class VeloxSampler(Sampler):
         conditional sampling on VeloxQ would trivially return ground states.
         Instead, joint (v, h) samples are drawn from the full interacting
         problem and β is fit via _cem_fit_beta_joint.  r is unused.
-        """
-        v, h = self.sample(rbm, n_samples, return_hidden=True)
-        return _cem_fit_beta_joint(v, h, rbm)
-
-
-class LSBSampler(Sampler):
-    """
-    Langevin Simulated Bifurcation (LSB) sampler.
-
-    Based on Kubo & Goto (2025), arXiv:2512.02323, Sec. II A 1.
-
-    Runs n_samples parallel Ising chains on the full (v, h) state for n_steps
-    steps. Each step applies the discretised LSB update with stochastic
-    momentum re-initialisation (Eqs. 6-9 with Δ=1):
-
-        g = x @ J + f               (local field at current binary state)
-        ξ ~ N(0, σ)                 (fresh momentum noise every step)
-        x = sgn(x + g + ξ)         (update + discretise)
-
-    All n_samples chains run in parallel (fully vectorised).
-
-    σ controls exploration: larger σ → more randomness → higher effective
-    temperature.  β_eff is unknown a priori and must be estimated via CEM.
-    """
-
-    def __init__(self, sigma: float = 0.0, n_steps: int = 100, sigma_scale: float = 1.0):
-        # sigma=0 (default) → auto-scale to RMS of local fields each call
-        self.sigma = sigma
-        self.n_steps = n_steps
-        self.sigma_scale = sigma_scale
-
-    def _adaptive_sigma(self, J: np.ndarray, f: np.ndarray, n_probe: int = 200) -> float:
-        """
-        Estimate σ as sigma_scale × RMS of local fields over random probe configs.
-
-        The LSB noise must be comparable to the local field magnitude so that
-        spins can flip against the field.  For a trained RBM, ||W|| grows during
-        training, so a fixed σ=1 becomes insufficient.  This measures the
-        actual field scale from the current weights.
-        """
-        rng = np.random.default_rng()
-        x = rng.choice(np.array([-1.0, 1.0]), size=(n_probe, J.shape[0]))
-        g = x @ J + f[None, :]
-        return float(np.sqrt(np.mean(g ** 2))) * self.sigma_scale
-
-    def _build_ising(self, rbm, beta_x: float = 1.0):
-        """
-        Build dense J matrix and bias vector f for the full (v, h) system.
-
-        J is block off-diagonal (RBM has no v-v or h-h couplings):
-            J[:Nv, Nv:] = W / beta_x
-            J[Nv:, :Nv] = W.T / beta_x
-        f = (a, b) / beta_x
-        """
-        Nv, Nh = rbm.n_visible, rbm.n_hidden
-        N = Nv + Nh
-
-        J = np.zeros((N, N))
-        J[:Nv, Nv:] = rbm.W / beta_x
-        J[Nv:, :Nv] = rbm.W.T / beta_x
-
-        f = np.empty(N)
-        f[:Nv] = rbm.a / beta_x
-        f[Nv:] = rbm.b / beta_x
-
-        return J, f
-
-    def sample(self, rbm, n_samples: int, config: dict = None, return_hidden: bool = False):
-        if config is None:
-            config = {}
-        beta_x = config.get("beta_x", 1.0)
-        sigma   = config.get("lsb_sigma",  self.sigma)
-        n_steps = config.get("lsb_steps",  self.n_steps)
-
-        J, f = self._build_ising(rbm, beta_x)
-        rng = np.random.default_rng()
-
-        if sigma <= 0:
-            sigma = self._adaptive_sigma(J, f)
-
-        # Initialise all chains uniformly in {-1, +1}
-        x = rng.choice(np.array([-1.0, 1.0]), size=(n_samples, J.shape[0]))
-
-        for _ in range(n_steps):
-            g  = x @ J + f[None, :]                          # (L, N) local field
-            xi = rng.normal(0, sigma, size=x.shape)          # (L, N) momentum noise
-            x  = np.sign(x + g + xi)
-            x[x == 0] = 1.0                                  # break ties (rare)
-
-        v = x[:, :rbm.n_visible]
-        unique = len(set(map(tuple, v.tolist())))
-        print(f"  [LSB]   sigma={sigma:.3f}  steps={n_steps}  unique={unique}/{n_samples}")
-
-        if return_hidden:
-            return v, x[:, rbm.n_visible:]
-        return v
-
-    def estimate_beta_eff(self, rbm, r: np.ndarray = None, n_samples: int = 500) -> float:
-        """
-        Estimate β_eff via the joint-samples CEM variant.
-
-        LSB samples the full (v, h) state jointly, so the conditional CEM
-        variant (which fixes v=r) is not applicable.  Instead, fit β from
-        joint (v, h) pairs — same approach as D-Wave and VeloxQ.
-        r is unused.
         """
         v, h = self.sample(rbm, n_samples, return_hidden=True)
         return _cem_fit_beta_joint(v, h, rbm)
@@ -932,7 +872,9 @@ class DimodSampler(Sampler):
 
         self._embedding_cache: dict = {}
 
-    def sample(self, rbm, n_samples: int, config: dict = {}, return_hidden: bool = False):
+    def sample(
+        self, rbm, n_samples: int, config: dict = {}, return_hidden: bool = False
+    ):
         """
         Sample from the RBM distribution using a classical/quantum sampler from the dimod library.
         Args:
@@ -953,11 +895,15 @@ class DimodSampler(Sampler):
             return self.tabu_search(bqm, n_samples, config, return_hidden)
         elif self.method == "pegasus" or self.method == "zephyr":
             config["solver"] = get_solver_name(self.method)
-            return self.dwave(bqm, n_samples, config, rbm=rbm, return_hidden=return_hidden)
+            return self.dwave(
+                bqm, n_samples, config, rbm=rbm, return_hidden=return_hidden
+            )
         else:
             raise ValueError(f"Unknown method: {self.method}")
 
-    def estimate_beta_eff(self, rbm: RBM, r: np.ndarray = None, n_samples: int = 500) -> float:
+    def estimate_beta_eff(
+        self, rbm: RBM, r: np.ndarray = None, n_samples: int = 500
+    ) -> float:
         """
         Estimate β_eff via CEM (Kubo & Goto 2025, Sec. II A 2).
 
@@ -1020,7 +966,9 @@ class DimodSampler(Sampler):
             finally:
                 fcntl.flock(f, fcntl.LOCK_UN)
 
-    def simulated_annealing(self, bqm, n_samples: int, config: dict = {}, return_hidden: bool = False):
+    def simulated_annealing(
+        self, bqm, n_samples: int, config: dict = {}, return_hidden: bool = False
+    ):
         """
         Run simulated annealing using the neal library.
 
@@ -1038,7 +986,11 @@ class DimodSampler(Sampler):
             num_sweeps=1000,  # more sweeps per read
             beta_schedule_type="geometric",
         )
-        samples = sampleset.record.sample
+        # Sort columns by variable index — sampleset.variables is not
+        # guaranteed to be ordered, so raw slicing [:, :n_visible] would
+        # silently mix visible and hidden units.
+        sort_idx = np.argsort(list(sampleset.variables))
+        samples = sampleset.record.sample[:, sort_idx]
         unique_samples = len(set(map(tuple, samples)))
         print(f"  unique samples: {unique_samples}/{len(samples)}")
         v = samples[:, : self.n_visible]
@@ -1046,7 +998,9 @@ class DimodSampler(Sampler):
             return v, samples[:, self.n_visible : self.n_visible + self.n_hidden]
         return v
 
-    def tabu_search(self, bqm, n_samples: int, config: dict = {}, return_hidden: bool = False):
+    def tabu_search(
+        self, bqm, n_samples: int, config: dict = {}, return_hidden: bool = False
+    ):
         """
         Run tabu search using the neal library.
 
@@ -1059,13 +1013,22 @@ class DimodSampler(Sampler):
         sampler = TabuSampler()
         sampleset = sampler.sample(bqm, num_reads=n_samples)
 
-        samples = sampleset.record.sample
+        # Sort columns by variable index — same reason as in simulated_annealing.
+        sort_idx = np.argsort(list(sampleset.variables))
+        samples = sampleset.record.sample[:, sort_idx]
         v = samples[:, : self.n_visible]
         if return_hidden:
             return v, samples[:, self.n_visible : self.n_visible + self.n_hidden]
         return v
 
-    def dwave(self, bqm, n_samples: int, config: dict = {}, rbm=None, return_hidden: bool = False):
+    def dwave(
+        self,
+        bqm,
+        n_samples: int,
+        config: dict = {},
+        rbm=None,
+        return_hidden: bool = False,
+    ):
         from dwave.system import (
             DWaveSampler,
             EmbeddingComposite,
@@ -1149,7 +1112,7 @@ class DimodSampler(Sampler):
             try:
                 sampleset = composite.sample(bqm, **sample_kwargs)
                 access_time_us = sampleset.info["timing"]["qpu_access_time"]
-                self._log_access_time(access_time_us * tries)
+                self._log_access_time(access_time_us)
                 success = True
             except Exception as e:
                 print(

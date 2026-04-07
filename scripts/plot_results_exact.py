@@ -415,6 +415,108 @@ def plot_summary_pages(results):
     return figs
 
 
+def plot_beta_overview(results):
+    """
+    Summary grid (same layout as plot_summary_pages) showing beta_x dynamics.
+
+    One figure per (model, rbm).  Each cell = one (N, h) combo.
+    Each cell shows:
+      - beta_x trajectory per sampler  (solid line, mean over seeds)
+      - beta_eff_cem scatter points     (open markers, same colour)
+      - dashed reference line at β = 1
+    Saved as plots/{model}/{rbm}/beta_overview.png.
+    """
+    colors = METHOD_COLORS
+
+    model_rbm_groups = defaultdict(list)
+    for model, N, h, rbm in sorted(results.keys()):
+        model_rbm_groups[(model, rbm)].append((N, h))
+
+    figs = []
+
+    for (model, rbm), nh_list in sorted(model_rbm_groups.items()):
+        n = len(nh_list)
+        ncols = min(3, n)
+        nrows = (n + ncols - 1) // ncols
+
+        fig = plt.figure(figsize=(7 * ncols, 4 * nrows))
+        fig.suptitle(
+            f"β_x Dynamics — model={model}, RBM={rbm}",
+            fontsize=14, fontweight="bold",
+        )
+
+        subfigs = np.array(
+            fig.subfigures(nrows, ncols, wspace=0.04, hspace=0.10)
+        ).reshape(nrows, ncols)
+
+        for idx, (N, h) in enumerate(sorted(nh_list)):
+            row, col = divmod(idx, ncols)
+            subfig = subfigs[row, col]
+            subfig.patch.set_facecolor("#f5f5f5")
+            subfig.patch.set_edgecolor("#aaaaaa")
+            subfig.patch.set_linewidth(1.2)
+
+            ax = subfig.subplots(1, 1)
+            methods_data = results[(model, N, h, rbm)]
+
+            for method_name in sorted(methods_data.keys()):
+                runs = methods_data[method_name]
+                c = colors.get(method_name, None)
+
+                # ── beta_x mean trajectory ────────────────────────────────
+                bx_arrays = [
+                    r["data"]["history"].get("beta_x", [])
+                    for r in runs
+                    if r["data"]["history"].get("beta_x")
+                ]
+                if bx_arrays:
+                    max_len = max(len(a) for a in bx_arrays)
+                    mat = np.full((len(bx_arrays), max_len), np.nan)
+                    for i, a in enumerate(bx_arrays):
+                        mat[i, : len(a)] = a
+                    mean_bx = np.nanmean(mat, axis=0)
+                    ax.plot(
+                        np.arange(len(mean_bx)), mean_bx,
+                        color=c, linewidth=1.8, alpha=0.85,
+                        label=method_name,
+                    )
+
+                # ── beta_eff_cem scatter (sparse — only non-None entries) ──
+                for r in runs:
+                    raw = r["data"]["history"].get("beta_eff_cem", [])
+                    iters = [i for i, v in enumerate(raw) if v is not None]
+                    vals  = [v for v in raw if v is not None]
+                    if iters:
+                        ax.scatter(
+                            iters, vals,
+                            color=c, s=20, marker="o",
+                            edgecolors="black", linewidths=0.4,
+                            zorder=5, alpha=0.8,
+                        )
+
+            ax.axhline(1.0, color="grey", lw=1.2, ls="--", alpha=0.6)
+            subfig.suptitle(f"N={N}, h={h}", fontsize=10, fontweight="bold")
+            ax.set_xlabel("Iteration", fontsize=8)
+            ax.set_ylabel("β_x", fontsize=8)
+            ax.legend(fontsize=6, loc="best")
+            ax.grid(True, alpha=0.3)
+
+        # Hide unused cells
+        for idx in range(n, nrows * ncols):
+            row, col = divmod(idx, ncols)
+            subfigs[row, col].set_visible(False)
+
+        rbm_dir = PLOTS_DIR / model / rbm
+        rbm_dir.mkdir(parents=True, exist_ok=True)
+        filename = rbm_dir / "beta_overview.png"
+        plt.savefig(filename, dpi=150, bbox_inches="tight")
+        print(f"Saved: {filename}")
+        figs.append(str(filename))
+        plt.close(fig)
+
+    return figs
+
+
 def print_summary(results):
     """Print summary statistics grouped by (N, h, RBM)."""
     print("\n" + "="*80)
@@ -482,5 +584,11 @@ if __name__ == "__main__":
     figs3 = plot_summary_pages(results)
 
     print("\n" + "="*80)
-    print(f"Done! Generated {len(figs1)} convergence plots, {len(figs2)} RBM comparison plots, {len(figs3)} summary pages.")
+    print("Generating beta_x overview (one per model/RBM)...")
+    print("="*80)
+    figs4 = plot_beta_overview(results)
+
+    print("\n" + "="*80)
+    print(f"Done! Generated {len(figs1)} convergence plots, {len(figs2)} RBM comparison plots, "
+          f"{len(figs3)} summary pages, {len(figs4)} beta overview plots.")
     print("="*80)

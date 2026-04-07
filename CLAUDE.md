@@ -79,7 +79,7 @@ results/{n_hidden}/{sampler}/{method}/result_{model}_h{h}_rbm{rbm}_nh{n_hidden}_
 
 ### D-Wave budget tracking
 
-`DimodSampler` accumulates QPU access time (microseconds → milliseconds) in `src/time.json`. `performance_run.py` enforces a 20-minute cumulative budget and aborts D-Wave experiments when exceeded. This file persists across sessions and is never reset automatically.
+`DimodSampler` accumulates QPU access time (microseconds → milliseconds) in `time.json`. `performance_run.py` enforces a 20-minute cumulative budget and aborts D-Wave experiments when exceeded. This file persists across sessions and is never reset automatically.
 
 ### Tests (`src/test_e2e.py`)
 

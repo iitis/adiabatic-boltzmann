@@ -18,11 +18,11 @@ class RBM(ABC):
     def __init__(self, n_visible: int, n_hidden: int):
         self.n_visible = n_visible
         self.n_hidden = n_hidden
-        scale = 0.01
+        self.scale = 0.01
 
-        self.a = np.random.normal(0, scale, n_visible)
-        self.b = np.random.normal(0, scale, n_hidden)
-        self.W = np.random.normal(0, scale, (n_visible, n_hidden))
+        self.a = np.random.normal(0, self.scale, n_visible)
+        self.b = np.random.normal(0, self.scale, n_hidden)
+        self.W = np.random.normal(0, self.scale, (n_visible, n_hidden))
 
         # Apply mask immediately so W is sparse from init
         mask = self.get_connectivity_mask()
@@ -133,6 +133,17 @@ class RBM(ABC):
 
 class FullyConnectedRBM(RBM):
     """RBM with all visible-hidden connections (no topology constraint)."""
+
+    def get_connectivity_mask(self) -> np.ndarray:
+        return np.ones((self.n_visible, self.n_hidden))
+
+
+class SRBM(RBM):
+    def __init__(self, n_visible: int, n_hidden: int):
+        super().__init__(n_visible, n_hidden)
+        self.U = self.W = np.random.normal(0, self.scale, (n_visible, n_hidden))
+
+        np.fill_diagonal(self.U, 0.0)
 
     def get_connectivity_mask(self) -> np.ndarray:
         return np.ones((self.n_visible, self.n_hidden))

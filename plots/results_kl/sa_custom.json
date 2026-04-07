@@ -1,0 +1,55 @@
+{
+  "label": "SA (custom)",
+  "results": [
+    {
+      "kl": 1.9033266090522272,
+      "beta_eff_kl": 0.48729965006766385,
+      "beta_eff_cem": null
+    },
+    {
+      "kl": 1.9744812757045367,
+      "beta_eff_kl": 0.46247942381673407,
+      "beta_eff_cem": null
+    },
+    {
+      "kl": 1.7935590574906195,
+      "beta_eff_kl": 0.5161764279754351,
+      "beta_eff_cem": null
+    },
+    {
+      "kl": 1.9402254437933848,
+      "beta_eff_kl": 0.37644864320079374,
+      "beta_eff_cem": null
+    },
+    {
+      "kl": 1.7496559902849982,
+      "beta_eff_kl": 0.5929805702181975,
+      "beta_eff_cem": null
+    },
+    {
+      "kl": 1.926676311485551,
+      "beta_eff_kl": 0.4882648705580309,
+      "beta_eff_cem": null
+    },
+    {
+      "kl": 1.7650436068896802,
+      "beta_eff_kl": 0.4783192786177675,
+      "beta_eff_cem": null
+    },
+    {
+      "kl": 1.885829922561685,
+      "beta_eff_kl": 0.4143466191991376,
+      "beta_eff_cem": null
+    },
+    {
+      "kl": 2.1232483501947006,
+      "beta_eff_kl": 0.44780237017619356,
+      "beta_eff_cem": null
+    },
+    {
+      "kl": 1.485298418323888,
+      "beta_eff_kl": 0.44374102476678423,
+      "beta_eff_cem": null
+    }
+  ]
+}

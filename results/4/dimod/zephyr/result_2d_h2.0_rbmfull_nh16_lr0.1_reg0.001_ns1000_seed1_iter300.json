@@ -3039,5 +3039,19 @@
   },
   "final_energy": -47.039255762433996,
   "exact_energy": -39.2784,
-  "error": 7.760855762433998
+  "error": 7.760855762433998,
+  "kl_hardware": 4.176096642358589,
+  "ess_hardware": 0.8700683347932175,
+  "kl_metro_baseline": 2.872518182285546,
+  "ess_metro": 0.11006409819545493,
+  "kl_eval": {
+    "n_samples": 1000,
+    "beta_x": 1.0,
+    "kl_max_n": 20,
+    "bias_est": 0.4345341673966088,
+    "k_eff": 870.0683347932176,
+    "n_unique_hw": 2,
+    "n_unique_metro": 889,
+    "eval_date": "2026-04-02T11:01:41"
+  }
 }

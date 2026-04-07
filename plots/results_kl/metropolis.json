@@ -1,0 +1,55 @@
+{
+  "label": "Metropolis",
+  "results": [
+    {
+      "kl": 1.4110566853442787,
+      "beta_eff_kl": 0.7823925541044131,
+      "beta_eff_cem": null
+    },
+    {
+      "kl": 1.3210107123078862,
+      "beta_eff_kl": 0.9600437990742973,
+      "beta_eff_cem": null
+    },
+    {
+      "kl": 1.2853931716367717,
+      "beta_eff_kl": 1.0074651306233602,
+      "beta_eff_cem": null
+    },
+    {
+      "kl": 0.7183028870670662,
+      "beta_eff_kl": 1.0195789574066332,
+      "beta_eff_cem": null
+    },
+    {
+      "kl": 0.7801296194360585,
+      "beta_eff_kl": 0.9695986499573896,
+      "beta_eff_cem": null
+    },
+    {
+      "kl": 1.1583823517983705,
+      "beta_eff_kl": 0.8376098273409587,
+      "beta_eff_cem": null
+    },
+    {
+      "kl": 0.35821642497154427,
+      "beta_eff_kl": 1.3092178243964459,
+      "beta_eff_cem": null
+    },
+    {
+      "kl": 0.9156961473435064,
+      "beta_eff_kl": 1.0097088570478467,
+      "beta_eff_cem": null
+    },
+    {
+      "kl": 0.5750231077975595,
+      "beta_eff_kl": 1.1924552876056287,
+      "beta_eff_cem": null
+    },
+    {
+      "kl": 0.3228188011797376,
+      "beta_eff_kl": 1.0235531392933517,
+      "beta_eff_cem": null
+    }
+  ]
+}

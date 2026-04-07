@@ -1,3 +1,4 @@
+import fcntl
 import gzip
 import json
 from pathlib import Path
@@ -8,12 +9,12 @@ import pickle
 def save_rbm_checkpoint(rbm, args, iteration):
     """
     Save RBM parameters (weights, biases) to a checkpoint file.
-    
+
     Args:
         rbm: RBM model instance
         args: argparse Namespace with training config
         iteration: current iteration number
-    
+
     Returns:
         Path to saved checkpoint
     """
@@ -22,7 +23,7 @@ def save_rbm_checkpoint(rbm, args, iteration):
         f"{args.output_dir.replace('results', 'checkpoints')}/{args.size}/{args.sampler}/{args.sampling_method}/{args.rbm}"
     )
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Create checkpoint data
     checkpoint = {
         "iteration": iteration,
@@ -33,9 +34,9 @@ def save_rbm_checkpoint(rbm, args, iteration):
             "W": rbm.W.tolist(),
             "n_visible": rbm.n_visible,
             "n_hidden": rbm.n_hidden,
-        }
+        },
     }
-    
+
     checkpoint_file = checkpoint_dir / (
         f"checkpoint"
         f"_{args.model}"
@@ -46,49 +47,49 @@ def save_rbm_checkpoint(rbm, args, iteration):
         f"_iter{iteration:04d}"
         f".pkl"
     )
-    
+
     with open(checkpoint_file, "wb") as f:
         pickle.dump(checkpoint, f)
-    
+
     return checkpoint_file
 
 
 def load_rbm_checkpoint(checkpoint_path):
     """
     Load RBM parameters from a checkpoint file.
-    
+
     Args:
         checkpoint_path: Path to checkpoint file
-    
+
     Returns:
         Tuple of (rbm_state_dict, config, iteration)
     """
     with open(checkpoint_path, "rb") as f:
         checkpoint = pickle.load(f)
-    
+
     return checkpoint["rbm_state"], checkpoint["config"], checkpoint["iteration"]
 
 
 def restore_rbm_from_checkpoint(rbm, checkpoint_path):
     """
     Restore RBM parameters from checkpoint into an RBM instance.
-    
+
     Args:
         rbm: RBM model instance to update
         checkpoint_path: Path to checkpoint file
-    
+
     Returns:
         iteration number from checkpoint
     """
     rbm_state, config, iteration = load_rbm_checkpoint(checkpoint_path)
-    
+
     rbm.a = np.array(rbm_state["a"])
     rbm.b = np.array(rbm_state["b"])
     rbm.W = np.array(rbm_state["W"])
-    
+
     print(f"Restored RBM from checkpoint: {checkpoint_path}")
     print(f"  Starting from iteration {iteration}")
-    
+
     return iteration
 
 
@@ -211,8 +212,39 @@ def save_dwave_samples(V: np.ndarray, args, iteration: int) -> Path:
     )
     path = out_dir / fname
     with gzip.open(path, "wb") as f:
-        pickle.dump({"v": V, "iteration": iteration, "config": vars(args)}, f, protocol=5)
+        pickle.dump(
+            {"v": V, "iteration": iteration, "config": vars(args)}, f, protocol=5
+        )
     return path
+
+
+def log_solver_time_ms(
+    elapsed_ms: float, time_path: Path = Path("time.json"), key="time_ms"
+):
+    """
+    Thread/process-safe append of solver elapsed time (ms) to time.json.
+
+    Uses the same exclusive-flock + atomic-rename pattern as
+    DimodSampler._log_access_time so all solvers share a single file safely.
+
+    key         : e.g. "time_ms" (D-Wave QPU), "velox_time_ms" (VeloxQ)
+    elapsed_ms  : wall time in milliseconds to add
+    time_path   : path to the shared JSON counter file
+    """
+    if not time_path.exists():
+        with time_path.open("w") as f:
+            json.dump({}, f)
+    with time_path.open("r+") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        try:
+            data = json.load(f)
+            data[key] = data.get(key, 0.0) + elapsed_ms
+            tmp = time_path.with_suffix(".tmp")
+            with tmp.open("w") as tf:
+                json.dump(data, tf)
+            tmp.rename(time_path)
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)
 
 
 def get_solver_name(architecture="pegasus"):

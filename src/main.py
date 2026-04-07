@@ -64,6 +64,7 @@ def parse_arguments():
             "simulated_annealing",
             "tabu",
             "gibbs",
+            "lsb",
         ],
         default="simulated_annealing",
         help="Classical sampling algorithm",
@@ -168,12 +169,13 @@ def main():
         sampler = VeloxSampler(method=args.sampling_method)
 
     # 4. Build trainer config
+    _is_dwave = args.sampling_method in ("pegasus", "zephyr")
     trainer_config = {
         "learning_rate": args.learning_rate,
         "n_iterations": args.iterations,
         "n_samples": args.n_samples,
         "regularization": args.regularization,
-        "save_checkpoints": False,
+        "save_checkpoints": _is_dwave,
         "checkpoint_interval": 10,
         "use_cem": args.cem,
         "cem_interval": args.cem_interval,
