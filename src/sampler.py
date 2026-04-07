@@ -107,7 +107,7 @@ def _cem_fit_beta(h_mean: np.ndarray, activation: np.ndarray) -> float:
     def objective(beta):
         return float(np.sum((h_mean - np.tanh(beta * activation)) ** 2))
 
-    result = minimize_scalar(objective, bounds=(1e-3, 1e3), method="bounded")
+    result = minimize_scalar(objective, bounds=(1e-2, 10.0), method="bounded")
     return float(result.x)
 
 
@@ -127,7 +127,7 @@ def _cem_fit_beta_joint(v_samples: np.ndarray, h_samples: np.ndarray, rbm) -> fl
     def objective(beta):
         return float(np.sum((h_samples - np.tanh(beta * activation)) ** 2))
 
-    result = minimize_scalar(objective, bounds=(1e-3, 1e3), method="bounded")
+    result = minimize_scalar(objective, bounds=(1e-2, 10.0), method="bounded")
     return float(result.x)
 
 
@@ -292,6 +292,8 @@ class ClassicalSampler(Sampler):
         N = Nv + Nh
 
         M = np.zeros((N, N))
+        if getattr(rbm, "V", None) is not None:
+            M[:Nv, :Nv] = rbm.V / beta_x   # visible-visible couplings (SRBM)
         M[:Nv, Nv:] = rbm.W / beta_x
         M[Nv:, :Nv] = rbm.W.T / beta_x
         f = np.empty(N)
@@ -984,7 +986,11 @@ class DimodSampler(Sampler):
             num_sweeps=1000,  # more sweeps per read
             beta_schedule_type="geometric",
         )
-        samples = sampleset.record.sample
+        # Sort columns by variable index — sampleset.variables is not
+        # guaranteed to be ordered, so raw slicing [:, :n_visible] would
+        # silently mix visible and hidden units.
+        sort_idx = np.argsort(list(sampleset.variables))
+        samples = sampleset.record.sample[:, sort_idx]
         unique_samples = len(set(map(tuple, samples)))
         print(f"  unique samples: {unique_samples}/{len(samples)}")
         v = samples[:, : self.n_visible]
@@ -1007,7 +1013,9 @@ class DimodSampler(Sampler):
         sampler = TabuSampler()
         sampleset = sampler.sample(bqm, num_reads=n_samples)
 
-        samples = sampleset.record.sample
+        # Sort columns by variable index — same reason as in simulated_annealing.
+        sort_idx = np.argsort(list(sampleset.variables))
+        samples = sampleset.record.sample[:, sort_idx]
         v = samples[:, : self.n_visible]
         if return_hidden:
             return v, samples[:, self.n_visible : self.n_visible + self.n_hidden]

@@ -685,7 +685,7 @@ def plot_beta_x_analysis(df: pd.DataFrame, output_dir: Path):
 def plot_correlations(df: pd.DataFrame, output_dir: Path):
     """Pearson correlations between all scalar metrics and final relative error."""
     numeric_cols = [
-        "rel_error", "mean_beta_x", "final_beta_x",
+        "final_error", "rel_error", "mean_beta_x", "final_beta_x",
         "mean_grad_norm", "final_grad_norm", "mean_cg_iter",
         "mean_ess", "final_ess", "final_kl_exact",
         "sampling_time_s", "sparsity", "n_iterations",
