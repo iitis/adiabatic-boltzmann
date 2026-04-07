@@ -50,9 +50,10 @@ Usage
 
 import argparse
 import json
+import multiprocessing
 import sys
-import traceback
-from dataclasses import dataclass, field
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -265,11 +266,39 @@ def execute_run(run: Run) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Failure log
+# Samplers that use batched GPU kernels (CuPy) vs. CPU-only
 # ---------------------------------------------------------------------------
 
+# ClassicalSampler methods dispatch to a GPU-batched path when CuPy is
+# available (_DEVICE == "gpu" in sampler.py).  Multiple GPU processes compete
+# for VRAM and SM time, so we limit their concurrency separately.
+# DimodSampler (neal, TabuSampler) is pure CPU — use all available cores.
+_GPU_SAMPLERS = {"metropolis", "gibbs", "sa_custom"}
+_CPU_SAMPLERS = {"sa_dimod", "tabu"}
 
-def append_failure_log(log_path: Path, run: Run, exc: Exception):
+
+# ---------------------------------------------------------------------------
+# Worker (top-level so ProcessPoolExecutor can pickle it)
+# ---------------------------------------------------------------------------
+
+def _worker(run: Run) -> tuple:
+    """
+    Execute one run in a subprocess.
+    Returns (run, summary_dict, exception_or_None).
+    Never raises — exceptions are returned so the main process can log them.
+    """
+    try:
+        summary = execute_run(run)
+        return run, summary, None
+    except Exception as exc:
+        return run, None, exc
+
+
+# ---------------------------------------------------------------------------
+# Failure log (written only by the main process — no locking needed)
+# ---------------------------------------------------------------------------
+
+def _write_failure(log_path: Path, run: Run, exc: Exception):
     entry = dict(
         timestamp=datetime.now().isoformat(),
         model=run.model,
@@ -289,103 +318,106 @@ def append_failure_log(log_path: Path, run: Run, exc: Exception):
 # Main driver
 # ---------------------------------------------------------------------------
 
-
 def main():
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument(
-        "--part",
-        type=int,
-        choices=[1, 2, 3],
-        default=None,
-        help="Run only this part (default: all three)",
-    )
-    parser.add_argument(
-        "--dry-run", action="store_true", help="Print the run grid without executing"
-    )
-    parser.add_argument(
-        "--sampler",
-        choices=list(SAMPLERS),
-        default=None,
-        help="Restrict to a single sampler (for parallelism)",
-    )
-    args = parser.parse_args()
+    parser.add_argument("--part", type=int, choices=[1, 2, 3], default=None,
+                        help="Run only this part (default: all three)")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Print the run grid without executing")
+    parser.add_argument("--sampler", choices=list(SAMPLERS), default=None,
+                        help="Restrict to a single sampler")
+    parser.add_argument("--workers", type=int, default=21,
+                        help="Max parallel workers for CPU-only samplers (default: 21)")
+    parser.add_argument("--gpu-workers", type=int, default=4,
+                        help="Max parallel workers for GPU-batched samplers "
+                             "(metropolis/gibbs/sa_custom). Lower = less VRAM contention. "
+                             "(default: 4)")
+    cli = parser.parse_args()
 
-    parts = [args.part] if args.part else [1, 2, 3]
-    grid = build_grid(parts)
-
-    if args.sampler:
-        grid = [r for r in grid if r.sampler == args.sampler]
+    parts = [cli.part] if cli.part else [1, 2, 3]
+    grid  = build_grid(parts)
+    if cli.sampler:
+        grid = [r for r in grid if r.sampler == cli.sampler]
 
     # ── Dry run ──────────────────────────────────────────────────────────────
-    if args.dry_run:
-        print(
-            f"{'Part':>4}  {'Model':>4}  {'N':>3}  {'h':>4}  {'Sampler':>12}  {'Seed':>4}  {'Exists':>6}"
-        )
-        print("-" * 65)
-        n_todo = 0
+    if cli.dry_run:
+        pending = sum(1 for r in grid if not result_path(r).exists())
+        print(f"{'Part':>4}  {'Model':>4}  {'N':>3}  {'h':>4}  "
+              f"{'Sampler':>12}  {'Seed':>4}  {'Pool':>3}  {'Done':>4}")
+        print("-" * 72)
         for r in grid:
-            exists = result_path(r).exists()
-            n_todo += 0 if exists else 1
-            print(
-                f"{r.part:>4}  {r.model:>4}  {r.size:>3}  {r.h:>4}  "
-                f"{r.sampler:>12}  {r.seed:>4}  {'yes' if exists else 'no':>6}"
-            )
-        print(
-            f"\nTotal: {len(grid)} runs, {n_todo} pending, {len(grid) - n_todo} already done."
-        )
+            pool = "GPU" if r.sampler in _GPU_SAMPLERS else "CPU"
+            done = "yes" if result_path(r).exists() else "no"
+            print(f"{r.part:>4}  {r.model:>4}  {r.size:>3}  {r.h:>4}  "
+                  f"{r.sampler:>12}  {r.seed:>4}  {pool:>3}  {done:>4}")
+        print(f"\nTotal: {len(grid)} runs | pending: {pending} | "
+              f"done: {len(grid) - pending}")
+        print(f"CPU pool: {cli.workers} workers  |  GPU pool: {cli.gpu_workers} workers")
         return
 
-    # ── Execute ───────────────────────────────────────────────────────────────
-    log_path = Path("experiment_failures.jsonl")
+    # ── Build pending lists per pool ─────────────────────────────────────────
+    pending_gpu = [r for r in grid
+                   if r.sampler in _GPU_SAMPLERS and not result_path(r).exists()]
+    pending_cpu = [r for r in grid
+                   if r.sampler in _CPU_SAMPLERS and not result_path(r).exists()]
+    n_skip  = sum(1 for r in grid if result_path(r).exists())
     n_total = len(grid)
-    n_done = 0
-    n_skip = 0
-    n_fail = 0
 
-    print(
-        f"[{datetime.now():%H:%M:%S}] Starting experiment — {n_total} runs scheduled."
-    )
-    print(f"  Parts: {parts}  |  Samplers: {args.sampler or 'all'}")
-    print(
-        f"  Fixed: lr={FIXED['lr']}  reg={FIXED['reg']}  "
-        f"ns={FIXED['n_samples']}  iter={FIXED['iterations']}\n"
-    )
+    print(f"[{datetime.now():%H:%M:%S}] Experiment start — {n_total} total runs")
+    print(f"  Parts   : {parts}  |  Sampler filter: {cli.sampler or 'all'}")
+    print(f"  Pending : {len(pending_gpu)} GPU-pool  +  {len(pending_cpu)} CPU-pool  "
+          f"({n_skip} already done)")
+    print(f"  Workers : GPU={cli.gpu_workers}  CPU={cli.workers}")
+    print(f"  Fixed   : lr={FIXED['lr']}  reg={FIXED['reg']}  "
+          f"ns={FIXED['n_samples']}  iter={FIXED['iterations']}\n")
 
-    for i, run in enumerate(grid, 1):
-        path = result_path(run)
-        tag = (
-            f"[{i}/{n_total}] Part{run.part} {run.model.upper()} N={run.size} "
-            f"h={run.h} {run.sampler} seed={run.seed}"
-        )
+    log_path = Path("experiment_failures.jsonl")
+    n_done = n_fail = 0
 
-        if path.exists():
-            print(f"  SKIP  {tag}")
-            n_skip += 1
-            continue
+    # Use spawn to avoid inheriting any CUDA context from the parent process.
+    # Fork + CUDA is undefined behaviour and causes random hangs/crashes.
+    mp_ctx = multiprocessing.get_context("spawn")
 
-        print(f"  RUN   {tag}")
-        try:
-            summary = execute_run(run)
-            n_done += 1
-            print(
-                f"         rel_err={summary['rel_error']:.4f}  "
-                f"kl={summary['final_kl']:.4f}  "
-                f"grad_norm={summary['grad_norm']:.4f}"
-            )
-        except Exception as exc:
-            n_fail += 1
-            print(f"  FAIL  {tag}")
-            print(f"         {type(exc).__name__}: {exc}")
-            traceback.print_exc()
-            append_failure_log(log_path, run, exc)
-            # Do NOT re-raise — continue with next run
+    futures: dict = {}   # future → Run
 
-    print(f"\n[{datetime.now():%H:%M:%S}] Done.")
+    with (
+        ProcessPoolExecutor(max_workers=cli.gpu_workers, mp_context=mp_ctx) as gpu_pool,
+        ProcessPoolExecutor(max_workers=cli.workers,     mp_context=mp_ctx) as cpu_pool,
+    ):
+        for run in pending_gpu:
+            futures[gpu_pool.submit(_worker, run)] = run
+        for run in pending_cpu:
+            futures[cpu_pool.submit(_worker, run)] = run
+
+        completed = 0
+        total_pending = len(pending_gpu) + len(pending_cpu)
+
+        for future in as_completed(futures):
+            completed += 1
+            run, summary, exc = future.result()
+            tag = (f"[{completed}/{total_pending}] "
+                   f"Part{run.part} {run.model.upper()} N={run.size} "
+                   f"h={run.h} {run.sampler} seed={run.seed}")
+
+            if exc is not None:
+                n_fail += 1
+                print(f"  FAIL  {tag}")
+                print(f"         {type(exc).__name__}: {exc}")
+                _write_failure(log_path, run, exc)
+            else:
+                n_done += 1
+                kl_str = f"{summary['final_kl']:.4f}" if summary['final_kl'] is not None else "N/A"
+                print(f"  DONE  {tag}")
+                print(f"         rel_err={summary['rel_error']:.4f}  "
+                      f"kl={kl_str}  "
+                      f"grad_norm={summary['grad_norm']:.4f}")
+
+    print(f"\n[{datetime.now():%H:%M:%S}] Finished.")
     print(f"  Completed : {n_done}")
-    print(f"  Skipped   : {n_skip}  (results already exist)")
-    print(f"  Failed    : {n_fail}  (see {log_path})")
+    print(f"  Skipped   : {n_skip}  (already existed)")
+    print(f"  Failed    : {n_fail}" + (f"  → see {log_path}" if n_fail else ""))
 
     if n_fail > 0:
         sys.exit(1)
