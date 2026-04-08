@@ -63,44 +63,44 @@ from pathlib import Path
 # is missing.
 PROBE_CSV = Path("probe_results/zephyr_capacity.csv")
 
-H_VALUES       = [0.5, 1.0, 2.0]
+H_VALUES = [0.5, 1.0, 2.0]
 LEARNING_RATES = [0.1]
-SEEDS          = [42, 43, 44, 45, 46]
-ITERATIONS     = 300
-_REG           = 1e-3
-_NS            = 1000
+SEEDS = [42]
+ITERATIONS = 300
+_REG = 1e-3
+_NS = 1000
 
 # All three samplers use the same DWaveTopologyRBM (rbm="zephyr")
 # so only the sampler changes.  Classical combos consume no QPU budget.
 COMBOS = [
     # (sampler,  method,                rbm)
-    ("dimod",   "zephyr",               "zephyr"),   # D-Wave QPU
-    ("custom",  "metropolis",           "zephyr"),   # classical MH
-    ("custom",  "simulated_annealing",  "zephyr"),   # classical SA
+    ("dimod", "zephyr", "zephyr"),  # D-Wave QPU
+    ("custom", "metropolis", "zephyr"),  # classical MH
+    ("custom", "simulated_annealing", "zephyr"),  # classical SA
 ]
 
-DWAVE_BUDGET_MS = 3_600_000   # 60 minutes
+DWAVE_BUDGET_MS = 3_600_000  # 60 minutes
 
 # ---------------------------------------------------------------------------
 # Fixed paths / limits
 # ---------------------------------------------------------------------------
 
-OUTPUT_DIR  = "results/"
-LOG_FILE    = "dwave_scaling_benchmark.log"
-SCRIPT      = "src/single_experiment.py"
-TIME_FILE   = Path("time.json")
+OUTPUT_DIR = "results/"
+LOG_FILE = "dwave_scaling_benchmark.log"
+SCRIPT = "src/single_experiment.py"
+TIME_FILE = Path("time.json")
 MAX_RETRIES = 2
 
 # ---------------------------------------------------------------------------
 # Thread-safe counters and locks
 # ---------------------------------------------------------------------------
 
-_log_lock   = threading.Lock()
-_qpu_lock   = threading.Lock()
+_log_lock = threading.Lock()
+_qpu_lock = threading.Lock()
 _count_lock = threading.Lock()
 _procs_lock = threading.Lock()
 
-_done   = 0
+_done = 0
 _failed = 0
 _active_procs: list[subprocess.Popen] = []
 
@@ -168,7 +168,7 @@ def load_probe_sizes(csv_path: Path) -> tuple[list[int], list[int]]:
 
     with csv_path.open(newline="") as f:
         for row in csv.DictReader(f):
-            if row.get("error"):          # skip failed probe entries
+            if row.get("error"):  # skip failed probe entries
                 continue
             if row["model"] == "1d":
                 rows_1d.append(row)
@@ -191,7 +191,7 @@ def load_probe_sizes(csv_path: Path) -> tuple[list[int], list[int]]:
             "The Zephyr topology may not support the requested model sizes."
         )
 
-    sizes_1d   = _pick(rows_1d, "1D")
+    sizes_1d = _pick(rows_1d, "1D")
     l_values_2d = _pick(rows_2d, "2D")
     return sizes_1d, l_values_2d
 
@@ -208,22 +208,24 @@ def build_experiments(sizes_1d: list[int], l_values_2d: list[int]) -> list[dict]
             raw_sizes = sizes_1d if model == "1d" else l_values_2d
             for raw_size in raw_sizes:
                 n_visible = raw_size if model == "1d" else raw_size * raw_size
-                n_hidden  = n_visible  # α = 1
+                n_hidden = n_visible  # α = 1
                 for h in H_VALUES:
                     for lr in LEARNING_RATES:
                         for seed in SEEDS:
-                            experiments.append({
-                                "model":     model,
-                                "size":      raw_size,
-                                "n_visible": n_visible,
-                                "n_hidden":  n_hidden,
-                                "h":         h,
-                                "lr":        lr,
-                                "seed":      seed,
-                                "sampler":   sampler,
-                                "method":    method,
-                                "rbm":       rbm,
-                            })
+                            experiments.append(
+                                {
+                                    "model": model,
+                                    "size": raw_size,
+                                    "n_visible": n_visible,
+                                    "n_hidden": n_hidden,
+                                    "h": h,
+                                    "lr": lr,
+                                    "seed": seed,
+                                    "sampler": sampler,
+                                    "method": method,
+                                    "rbm": rbm,
+                                }
+                            )
     return experiments
 
 
@@ -244,9 +246,7 @@ def _read_qpu_time_ms() -> int:
             f"QPU time file {TIME_FILE} not found — cannot enforce budget."
         )
     except Exception as exc:
-        raise RuntimeError(
-            f"Failed to read QPU time from {TIME_FILE}: {exc}"
-        ) from exc
+        raise RuntimeError(f"Failed to read QPU time from {TIME_FILE}: {exc}") from exc
 
 
 def _check_qpu_budget() -> tuple[bool, int]:
@@ -314,7 +314,9 @@ def run_experiment(exp: dict, idx: int, total: int, dry_run: bool) -> bool:
         with _qpu_lock:
             ok, used = _check_qpu_budget()
             if not ok:
-                log(f"  [QPU BUDGET EXHAUSTED] {used / 60000:.2f} min used — skipping {label}")
+                log(
+                    f"  [QPU BUDGET EXHAUSTED] {used / 60000:.2f} min used — skipping {label}"
+                )
                 with _count_lock:
                     _failed += 1
                 return False
@@ -325,18 +327,30 @@ def run_experiment(exp: dict, idx: int, total: int, dry_run: bool) -> bool:
     log(f"  {label}{qpu_info}")
 
     cmd = [
-        "python3", SCRIPT,
-        "--model",       exp["model"],
-        "--size",        str(exp["size"]),
-        "--n-hidden",    str(exp["n_hidden"]),
-        "--h",           str(exp["h"]),
-        "--lr",          str(exp["lr"]),
-        "--sampler",     exp["sampler"],
-        "--method",      exp["method"],
-        "--rbm",         exp["rbm"],
-        "--iterations",  str(ITERATIONS),
-        "--seed",        str(exp["seed"]),
-        "--output-dir",  OUTPUT_DIR,
+        "python3",
+        SCRIPT,
+        "--model",
+        exp["model"],
+        "--size",
+        str(exp["size"]),
+        "--n-hidden",
+        str(exp["n_hidden"]),
+        "--h",
+        str(exp["h"]),
+        "--lr",
+        str(exp["lr"]),
+        "--sampler",
+        exp["sampler"],
+        "--method",
+        exp["method"],
+        "--rbm",
+        exp["rbm"],
+        "--iterations",
+        str(ITERATIONS),
+        "--seed",
+        str(exp["seed"]),
+        "--output-dir",
+        OUTPUT_DIR,
     ]
 
     if dry_run:
@@ -387,14 +401,19 @@ def run_experiment(exp: dict, idx: int, total: int, dry_run: bool) -> bool:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="D-Wave vs classical scaling benchmark")
-    parser.add_argument(
-        "--workers", type=int, default=4,
-        help="Parallel workers (default: 4). D-Wave jobs are further serialised "
-             "by the QPU budget lock, so extra workers mainly speed up classical runs.",
+    parser = argparse.ArgumentParser(
+        description="D-Wave vs classical scaling benchmark"
     )
     parser.add_argument(
-        "--dry-run", action="store_true",
+        "--workers",
+        type=int,
+        default=4,
+        help="Parallel workers (default: 4). D-Wave jobs are further serialised "
+        "by the QPU budget lock, so extra workers mainly speed up classical runs.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
         help="Print all commands without executing.",
     )
     args = parser.parse_args()
@@ -406,14 +425,16 @@ def main():
     experiments = build_experiments(sizes_1d, l_values_2d)
     total = len(experiments)
 
-    n_dwave     = sum(1 for e in experiments if _is_dwave(e["method"]))
+    n_dwave = sum(1 for e in experiments if _is_dwave(e["method"]))
     n_classical = total - n_dwave
     used_ms_start = _read_qpu_time_ms()
 
     log("=" * 70)
     log(f"D-Wave scaling benchmark  : {datetime.now():%Y-%m-%d %H:%M:%S}")
     log(f"Workers                   : {args.workers}")
-    log(f"Total experiments         : {total}  ({n_dwave} QPU + {n_classical} classical)")
+    log(
+        f"Total experiments         : {total}  ({n_dwave} QPU + {n_classical} classical)"
+    )
     log(f"1D sizes (from probe)     : {sizes_1d}")
     log(f"2D L-values (from probe)  : {l_values_2d}")
     log(f"H values                  : {H_VALUES}")
