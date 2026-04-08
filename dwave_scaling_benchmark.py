@@ -17,7 +17,9 @@ architecture effects are held fixed and only the sampling strategy varies:
   C) custom / simulated_annealing — SA, same RBM connectivity
 
 Sweep axes:
-  * sizes_1d / L_values_2d   — set AFTER running probe_capacity.py
+  * sizes_1d / L_values_2d   — loaded automatically from probe_results/zephyr_capacity.csv
+                                (run probe_capacity.py first; the script will error if the
+                                CSV is missing)
   * h ∈ {0.5, 1.0, 2.0}     — ordered / critical / disordered
   * seeds × 5                — for error bars
   * 300 iterations each
@@ -41,6 +43,7 @@ Usage (from project root, venv active):
 """
 
 import argparse
+import csv
 import json
 import logging
 import signal
@@ -52,15 +55,13 @@ from datetime import datetime
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# Sweep configuration  ← EDIT THESE after running probe_capacity.py
+# Sweep configuration
 # ---------------------------------------------------------------------------
 
-# 1D: fill in the max well-connected size found by probe_capacity.py.
-# Include smaller sizes for a scaling study (log-spaced is ideal).
-SIZES_1D = [8, 16, 32, 64, 128]   # ← update upper bound from probe results
-
-# 2D: fill in the max well-connected L value.
-L_VALUES_2D = [4, 6, 8]           # ← update upper bound from probe results
+# Sizes are loaded at runtime from the probe CSV (see load_probe_sizes below).
+# Run probe_capacity.py first — the benchmark will raise an error if the CSV
+# is missing.
+PROBE_CSV = Path("probe_results/zephyr_capacity.csv")
 
 H_VALUES       = [0.5, 1.0, 2.0]
 LEARNING_RATES = [0.1]
@@ -141,15 +142,70 @@ def log(msg: str):
 
 
 # ---------------------------------------------------------------------------
+# Probe CSV loader
+# ---------------------------------------------------------------------------
+
+
+def load_probe_sizes(csv_path: Path) -> tuple[list[int], list[int]]:
+    """
+    Read probe_capacity.py output and return (sizes_1d, l_values_2d).
+
+    Selects all "well_connected" rows; falls back to all "viable" rows
+    (with a warning) if no well-connected rows exist for a model.
+
+    Raises FileNotFoundError if the CSV is absent — run probe_capacity.py first.
+    Raises RuntimeError if the CSV contains no usable rows at all.
+    """
+    if not csv_path.exists():
+        raise FileNotFoundError(
+            f"Probe results not found: {csv_path}\n"
+            "Run probe_capacity.py first:\n"
+            "    cd src && python ../probe_capacity.py"
+        )
+
+    rows_1d: list[dict] = []
+    rows_2d: list[dict] = []
+
+    with csv_path.open(newline="") as f:
+        for row in csv.DictReader(f):
+            if row.get("error"):          # skip failed probe entries
+                continue
+            if row["model"] == "1d":
+                rows_1d.append(row)
+            elif row["model"] == "2d":
+                rows_2d.append(row)
+
+    def _pick(rows: list[dict], model_label: str) -> list[int]:
+        wc = [r for r in rows if r["well_connected"] == "True"]
+        if wc:
+            return sorted({int(r["size"]) for r in wc})
+        viable = [r for r in rows if r["viable"] == "True"]
+        if viable:
+            print(
+                f"  [probe] WARNING: no well-connected {model_label} sizes found; "
+                f"falling back to viable sizes (deg_vis_min > 0)."
+            )
+            return sorted({int(r["size"]) for r in viable})
+        raise RuntimeError(
+            f"No viable {model_label} sizes found in {csv_path}. "
+            "The Zephyr topology may not support the requested model sizes."
+        )
+
+    sizes_1d   = _pick(rows_1d, "1D")
+    l_values_2d = _pick(rows_2d, "2D")
+    return sizes_1d, l_values_2d
+
+
+# ---------------------------------------------------------------------------
 # Experiment list
 # ---------------------------------------------------------------------------
 
 
-def build_experiments() -> list[dict]:
+def build_experiments(sizes_1d: list[int], l_values_2d: list[int]) -> list[dict]:
     experiments = []
     for sampler, method, rbm in COMBOS:
         for model in ("1d", "2d"):
-            raw_sizes = SIZES_1D if model == "1d" else L_VALUES_2D
+            raw_sizes = sizes_1d if model == "1d" else l_values_2d
             for raw_size in raw_sizes:
                 n_visible = raw_size if model == "1d" else raw_size * raw_size
                 n_hidden  = n_visible  # α = 1
@@ -346,7 +402,8 @@ def main():
     _setup_logging()
     Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 
-    experiments = build_experiments()
+    sizes_1d, l_values_2d = load_probe_sizes(PROBE_CSV)
+    experiments = build_experiments(sizes_1d, l_values_2d)
     total = len(experiments)
 
     n_dwave     = sum(1 for e in experiments if _is_dwave(e["method"]))
@@ -357,8 +414,8 @@ def main():
     log(f"D-Wave scaling benchmark  : {datetime.now():%Y-%m-%d %H:%M:%S}")
     log(f"Workers                   : {args.workers}")
     log(f"Total experiments         : {total}  ({n_dwave} QPU + {n_classical} classical)")
-    log(f"1D sizes                  : {SIZES_1D}")
-    log(f"2D L-values               : {L_VALUES_2D}")
+    log(f"1D sizes (from probe)     : {sizes_1d}")
+    log(f"2D L-values (from probe)  : {l_values_2d}")
     log(f"H values                  : {H_VALUES}")
     log(f"Seeds                     : {SEEDS}")
     log(f"Iterations                : {ITERATIONS}")
