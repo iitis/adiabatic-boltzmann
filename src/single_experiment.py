@@ -10,7 +10,7 @@ import numpy as np
 from pathlib import Path
 from helpers import save_results, save_rbm_checkpoint, restore_rbm_from_checkpoint
 from model import FullyConnectedRBM, DWaveTopologyRBM
-from sampler import ClassicalSampler, DimodSampler, VeloxSampler, LSBSampler
+from sampler import ClassicalSampler, DimodSampler, VeloxSampler
 from encoder import Trainer
 from ising import TransverseFieldIsing1D, TransverseFieldIsing2D
 from argparse import Namespace
