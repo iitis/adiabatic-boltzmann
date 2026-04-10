@@ -2031,3 +2031,635 @@
 10:21:44      |   Error        : 121.607198
 10:21:44      |   Checkpoint → checkpoints/768/dimod/zephyr/zephyr/checkpoint_1d_h0.5_rbmzephyr_nh768_lr0.1_iter0300.pkl
 10:21:44    [   8/90] 1d N=1024 nh=1024 h=1.0 lr=0.1 seed=42 [dimod/zephyr]  QPU used=35.11min
+21:47:15      | DWaveTopologyRBM(n_visible=768, n_hidden=768, connections=10930/589824, sparsity=98.15%)
+21:47:15      | <ising.TransverseFieldIsing1D object at 0x7f593c9812b0>
+21:47:15      | Namespace(model='1d', size=768, h=1.0, rbm='zephyr', n_hidden=768, sampler='dimod', sampling_method='zephyr', iterations=300, learning_rate=0.1, regularization=0.001, n_samples=1000, output_dir='results/', seed=42, visualize=False, cem=False, lsb_sigma=0.0, lsb_sigma_scale=1.0, lsb_steps=100, sbm_steps=5000, sbm_dt=1.0, sbm_discrete=False, sb_mode='discrete', sb_heated=False, sb_max_steps=10000)
+21:47:15      |   [CEM] β scheduling disabled — using heuristic beta_x adaptation
+21:47:15      |   [rbm_to_ising] beta_x = 2.0000
+21:47:15      |   [embedding] Trivial identity embedding cached for (768, 'Advantage2_system1.13').
+21:47:15      | Iter   0: E = -749.179464 ± 0.681687  β_x = 2.000  CG 200it res=4.57e-04  ‖x‖=41.1079
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0000.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.9000
+21:47:15      |   [rbm_to_ising] beta_x = 1.8050
+21:47:15      |   [rbm_to_ising] beta_x = 1.7147
+21:47:15      | Iter  10: E = -884.306560 ± 0.708249  β_x = 1.715  CG 200it res=9.43e-02  ‖x‖=15.7965
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0010.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.8005
+21:47:15      |   [rbm_to_ising] beta_x = 1.7105
+21:47:15      |   [rbm_to_ising] beta_x = 1.7960
+21:47:15      | Iter  20: E = -968.329561 ± 0.512272  β_x = 1.796  CG 200it res=4.23e-02  ‖x‖=9.0148
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0020.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.8858
+21:47:15      |   [rbm_to_ising] beta_x = 1.7915
+21:47:15      | Iter  30: E = -988.303430 ± 0.484250  β_x = 1.791  CG 200it res=1.12e-01  ‖x‖=7.4907
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0030.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.7019
+21:47:15      |   [rbm_to_ising] beta_x = 1.6168
+21:47:15      |   [rbm_to_ising] beta_x = 1.6977
+21:47:15      |   [rbm_to_ising] beta_x = 1.7826
+21:47:15      | Iter  40: E = -1000.957534 ± 0.652591  β_x = 1.783  CG 200it res=7.37e-02  ‖x‖=6.1842
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0040.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.6934
+21:47:15      |   [rbm_to_ising] beta_x = 1.6088
+21:47:15      |   [rbm_to_ising] beta_x = 1.5283
+21:47:15      |   [rbm_to_ising] beta_x = 1.6047
+21:47:15      |   [rbm_to_ising] beta_x = 1.6850
+21:47:15      | Iter  50: E = -1003.371848 ± 0.632452  β_x = 1.685  CG 200it res=5.59e-02  ‖x‖=4.4649
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0050.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.6007
+21:47:15      |   [rbm_to_ising] beta_x = 1.5207
+21:47:15      |   [rbm_to_ising] beta_x = 1.4446
+21:47:15      |   [rbm_to_ising] beta_x = 1.5169
+21:47:15      | Iter  60: E = -1025.359549 ± 0.534483  β_x = 1.517  CG 200it res=1.34e-01  ‖x‖=4.6966
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0060.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.5927
+21:47:15      |   [rbm_to_ising] beta_x = 1.6724
+21:47:15      | Iter  70: E = -1040.360499 ± 0.518181  β_x = 1.672  CG 200it res=6.25e-02  ‖x‖=4.7202
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0070.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.5887
+21:47:15      |   [rbm_to_ising] beta_x = 1.5093
+21:47:15      |   [rbm_to_ising] beta_x = 1.4338
+21:47:15      |   [rbm_to_ising] beta_x = 1.3621
+21:47:15      | Iter  80: E = -1025.320255 ± 0.466301  β_x = 1.294  CG 200it res=3.73e-02  ‖x‖=4.9970
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0080.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.2940
+21:47:15      |   [rbm_to_ising] beta_x = 1.2293
+21:47:15      |   [rbm_to_ising] beta_x = 1.1679
+21:47:15      | Iter  90: E = -1045.397186 ± 0.375391  β_x = 1.226  CG 200it res=5.73e-02  ‖x‖=3.6208
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0090.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.2263
+21:47:15      |   [rbm_to_ising] beta_x = 1.1650
+21:47:15      |   [rbm_to_ising] beta_x = 1.1067
+21:47:15      |   [rbm_to_ising] beta_x = 1.1620
+21:47:15      |   [rbm_to_ising] beta_x = 1.2201
+21:47:15      |   [rbm_to_ising] beta_x = 1.1591
+21:47:15      | Iter 100: E = -1046.355671 ± 0.305128  β_x = 1.217  CG 200it res=4.54e-02  ‖x‖=3.2741
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0100.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.2171
+21:47:15      |   [rbm_to_ising] beta_x = 1.2779
+21:47:15      |   [rbm_to_ising] beta_x = 1.3418
+21:47:15      |   [rbm_to_ising] beta_x = 1.2748
+21:47:15      | Iter 110: E = -1050.608249 ± 0.411832  β_x = 1.275  CG 200it res=4.43e-02  ‖x‖=3.2117
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0110.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.2110
+21:47:15      |   [rbm_to_ising] beta_x = 1.1505
+21:47:15      |   [rbm_to_ising] beta_x = 1.0929
+21:47:15      | Iter 120: E = -1060.098069 ± 0.393771  β_x = 1.038  CG 200it res=2.89e-02  ‖x‖=2.9909
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0120.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.0383
+21:47:15      |   [rbm_to_ising] beta_x = 0.9864
+21:47:15      |   [rbm_to_ising] beta_x = 1.0357
+21:47:15      |   [rbm_to_ising] beta_x = 0.9839
+21:47:15      |   [rbm_to_ising] beta_x = 0.9347
+21:47:15      |   [rbm_to_ising] beta_x = 0.9815
+21:47:15      | Iter 130: E = -1058.617621 ± 0.357986  β_x = 0.932  CG 200it res=4.95e-02  ‖x‖=3.4031
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0130.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 0.9324
+21:47:15      |   [rbm_to_ising] beta_x = 0.9790
+21:47:15      | Iter 140: E = -1068.378292 ± 0.355383  β_x = 0.979  CG 200it res=1.54e-01  ‖x‖=3.0623
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0140.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.0279
+21:47:15      |   [rbm_to_ising] beta_x = 0.9766
+21:47:15      |   [rbm_to_ising] beta_x = 1.0254
+21:47:15      |   [rbm_to_ising] beta_x = 1.0766
+21:47:15      |   [rbm_to_ising] beta_x = 1.1305
+21:47:15      | Iter 150: E = -1062.833361 ± 0.323524  β_x = 1.074  CG 200it res=3.43e-02  ‖x‖=2.2714
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0150.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.0740
+21:47:15      |   [rbm_to_ising] beta_x = 1.1277
+21:47:15      |   [rbm_to_ising] beta_x = 1.0713
+21:47:15      |   [rbm_to_ising] beta_x = 1.1248
+21:47:15      |   [rbm_to_ising] beta_x = 1.1811
+21:47:15      |   [rbm_to_ising] beta_x = 1.1220
+21:47:15      | Iter 160: E = -1065.930551 ± 0.374703  β_x = 1.122  CG 200it res=3.38e-02  ‖x‖=1.9149
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0160.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.1781
+21:47:15      |   [rbm_to_ising] beta_x = 1.2370
+21:47:15      | Iter 170: E = -1072.783988 ± 0.390712  β_x = 1.175  CG 200it res=1.61e-02  ‖x‖=1.9223
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0170.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.1752
+21:47:15      |   [rbm_to_ising] beta_x = 1.1164
+21:47:15      |   [rbm_to_ising] beta_x = 1.0606
+21:47:15      |   [rbm_to_ising] beta_x = 1.1136
+21:47:15      |   [rbm_to_ising] beta_x = 1.0579
+21:47:15      | Iter 180: E = -1074.766187 ± 0.388315  β_x = 1.058  CG 200it res=2.63e-02  ‖x‖=2.0069
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0180.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.0050
+21:47:15      |   [rbm_to_ising] beta_x = 0.9548
+21:47:15      |   [rbm_to_ising] beta_x = 1.0025
+21:47:15      |   [rbm_to_ising] beta_x = 0.9524
+21:47:15      | Iter 190: E = -1074.174244 ± 0.438267  β_x = 0.952  CG 200it res=3.21e-02  ‖x‖=2.1522
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0190.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.0000
+21:47:15      |   [rbm_to_ising] beta_x = 1.0500
+21:47:15      |   [rbm_to_ising] beta_x = 1.1025
+21:47:15      | Iter 200: E = -1073.882759 ± 0.358458  β_x = 1.047  CG 200it res=7.37e-03  ‖x‖=1.6446
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0200.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.0474
+21:47:15      |   [rbm_to_ising] beta_x = 1.0998
+21:47:15      |   [rbm_to_ising] beta_x = 1.0448
+21:47:15      |   [rbm_to_ising] beta_x = 1.0970
+21:47:15      |   [rbm_to_ising] beta_x = 1.0422
+21:47:15      |   [rbm_to_ising] beta_x = 1.0943
+21:47:15      | Iter 210: E = -1072.384756 ± 0.349669  β_x = 1.094  CG 200it res=1.25e-02  ‖x‖=1.6415
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0210.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.0396
+21:47:15      |   [rbm_to_ising] beta_x = 1.0915
+21:47:15      |   [rbm_to_ising] beta_x = 1.0370
+21:47:15      |   [rbm_to_ising] beta_x = 0.9851
+21:47:15      | Iter 220: E = -1069.299167 ± 0.407956  β_x = 1.034  CG 200it res=3.18e-03  ‖x‖=1.6422
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0220.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.0344
+21:47:15      |   [rbm_to_ising] beta_x = 1.0861
+21:47:15      |   [rbm_to_ising] beta_x = 1.1404
+21:47:15      |   [rbm_to_ising] beta_x = 1.1974
+21:47:15      |   [rbm_to_ising] beta_x = 1.1376
+21:47:15      |   [rbm_to_ising] beta_x = 1.0807
+21:47:15      |   [rbm_to_ising] beta_x = 1.1347
+21:47:15      |   [rbm_to_ising] beta_x = 1.1914
+21:47:15      |   [rbm_to_ising] beta_x = 1.2510
+21:47:15      | Iter 230: E = -1062.663934 ± 0.495692  β_x = 1.251  CG 200it res=9.00e-02  ‖x‖=2.5536
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0230.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 1.1885
+21:47:15      |   [rbm_to_ising] beta_x = 1.1290
+21:47:15      |   [rbm_to_ising] beta_x = 1.0726
+21:47:15      |   [rbm_to_ising] beta_x = 1.0190
+21:47:15      |   [rbm_to_ising] beta_x = 0.9680
+21:47:15      |   [rbm_to_ising] beta_x = 0.9196
+21:47:15      | Iter 240: E = -1053.582160 ± 0.348252  β_x = 0.874  CG 200it res=1.58e-02  ‖x‖=2.6288
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0240.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 0.8736
+21:47:15      |   [rbm_to_ising] beta_x = 0.8299
+21:47:15      |   [rbm_to_ising] beta_x = 0.7885
+21:47:15      |   [rbm_to_ising] beta_x = 0.7490
+21:47:15      |   [rbm_to_ising] beta_x = 0.7865
+21:47:15      |   [rbm_to_ising] beta_x = 0.7472
+21:47:15      | Iter 250: E = -1053.689160 ± 0.293284  β_x = 0.710  CG 200it res=2.33e-02  ‖x‖=1.7125
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0250.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 0.7098
+21:47:15      |   [rbm_to_ising] beta_x = 0.7453
+21:47:15      |   [rbm_to_ising] beta_x = 0.7826
+21:47:15      |   [rbm_to_ising] beta_x = 0.8217
+21:47:15      |   [rbm_to_ising] beta_x = 0.7806
+21:47:15      |   [rbm_to_ising] beta_x = 0.8196
+21:47:15      | Iter 260: E = -1050.676191 ± 0.274914  β_x = 0.779  CG 200it res=1.02e-02  ‖x‖=1.4297
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0260.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 0.7786
+21:47:15      |   [rbm_to_ising] beta_x = 0.8176
+21:47:15      |   [rbm_to_ising] beta_x = 0.7767
+21:47:15      |   [rbm_to_ising] beta_x = 0.7379
+21:47:15      |   [rbm_to_ising] beta_x = 0.7748
+21:47:15      | Iter 270: E = -1051.368397 ± 0.255808  β_x = 0.775  CG 200it res=5.61e-03  ‖x‖=1.4321
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0270.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 0.7360
+21:47:15      |   [rbm_to_ising] beta_x = 0.7728
+21:47:15      |   [rbm_to_ising] beta_x = 0.8115
+21:47:15      |   [rbm_to_ising] beta_x = 0.8520
+21:47:15      |   [rbm_to_ising] beta_x = 0.8094
+21:47:15      | Iter 280: E = -1052.039461 ± 0.363581  β_x = 0.769  CG 200it res=3.18e-02  ‖x‖=1.8659
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0280.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 0.7690
+21:47:15      |   [rbm_to_ising] beta_x = 0.7305
+21:47:15      |   [rbm_to_ising] beta_x = 0.7670
+21:47:15      |   [rbm_to_ising] beta_x = 0.7287
+21:47:15      |   [rbm_to_ising] beta_x = 0.7651
+21:47:15      |   [rbm_to_ising] beta_x = 0.8034
+21:47:15      | Iter 290: E = -1047.074527 ± 0.365215  β_x = 0.803  CG 200it res=2.24e-02  ‖x‖=2.0633
+21:47:15      |   → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0290.pkl
+21:47:15      |   [rbm_to_ising] beta_x = 0.7632
+21:47:15      |   [rbm_to_ising] beta_x = 0.7250
+21:47:15      |   [rbm_to_ising] beta_x = 0.7613
+21:47:15      |   [rbm_to_ising] beta_x = 0.7994
+21:47:15      |   [rbm_to_ising] beta_x = 0.7594
+21:47:15      | Saved  → results/768/dimod/zephyr/result_1d_h1.0_rbmzephyr_nh768_lr0.1_reg0.001_ns1000_seed42_iter300_cem0.json
+21:47:15      |   Final energy : -1043.828336
+21:47:15      |   Exact energy : -977.847970
+21:47:15      |   Error        : 65.980365
+21:47:15      |   Checkpoint → checkpoints/768/dimod/zephyr/zephyr/checkpoint_1d_h1.0_rbmzephyr_nh768_lr0.1_iter0300.pkl
+21:47:15    [   9/90] 1d N=1024 nh=1024 h=2.0 lr=0.1 seed=42 [dimod/zephyr]  QPU used=36.69min
+22:23:28      | DWaveTopologyRBM(n_visible=768, n_hidden=768, connections=10930/589824, sparsity=98.15%)
+22:23:28      | <ising.TransverseFieldIsing1D object at 0x7fe821bb12b0>
+22:23:28      | Namespace(model='1d', size=768, h=2.0, rbm='zephyr', n_hidden=768, sampler='dimod', sampling_method='zephyr', iterations=300, learning_rate=0.1, regularization=0.001, n_samples=1000, output_dir='results/', seed=42, visualize=False, cem=False, lsb_sigma=0.0, lsb_sigma_scale=1.0, lsb_steps=100, sbm_steps=5000, sbm_dt=1.0, sbm_discrete=False, sb_mode='discrete', sb_heated=False, sb_max_steps=10000)
+22:23:28      |   [CEM] β scheduling disabled — using heuristic beta_x adaptation
+22:23:28      |   [rbm_to_ising] beta_x = 2.0000
+22:23:28      |   [embedding] Trivial identity embedding cached for (768, 'Advantage2_system1.13').
+22:23:28      | Iter   0: E = -1520.874556 ± 0.696479  β_x = 2.000  CG 200it res=1.74e-04  ‖x‖=40.0633
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0000.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 1.9000
+22:23:28      |   [rbm_to_ising] beta_x = 1.8050
+22:23:28      |   [rbm_to_ising] beta_x = 1.8953
+22:23:28      |   [rbm_to_ising] beta_x = 1.9900
+22:23:28      |   [rbm_to_ising] beta_x = 1.8905
+22:23:28      | Iter  10: E = -1643.024320 ± 0.993118  β_x = 1.985  CG 200it res=4.99e-02  ‖x‖=15.7233
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0010.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 1.9850
+22:23:28      |   [rbm_to_ising] beta_x = 2.0843
+22:23:28      |   [rbm_to_ising] beta_x = 2.1885
+22:23:28      |   [rbm_to_ising] beta_x = 2.0791
+22:23:28      | Iter  20: E = -1714.979779 ± 0.571553  β_x = 2.079  CG 200it res=1.64e-02  ‖x‖=7.9449
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0020.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 2.1830
+22:23:28      | Iter  30: E = -1762.417389 ± 0.454201  β_x = 2.183  CG 200it res=5.30e-02  ‖x‖=6.1977
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0030.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 2.0739
+22:23:28      |   [rbm_to_ising] beta_x = 2.1776
+22:23:28      |   [rbm_to_ising] beta_x = 2.0687
+22:23:28      |   [rbm_to_ising] beta_x = 1.9653
+22:23:28      | Iter  40: E = -1746.774849 ± 1.158756  β_x = 1.867  CG 200it res=2.79e-02  ‖x‖=5.9679
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0040.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 1.8670
+22:23:28      |   [rbm_to_ising] beta_x = 1.7736
+22:23:28      |   [rbm_to_ising] beta_x = 1.8623
+22:23:28      |   [rbm_to_ising] beta_x = 1.9554
+22:23:28      |   [rbm_to_ising] beta_x = 2.0532
+22:23:28      |   [rbm_to_ising] beta_x = 2.1559
+22:23:28      | Iter  50: E = -1723.909689 ± 0.553189  β_x = 2.156  CG 200it res=4.40e-02  ‖x‖=5.6688
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0050.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 2.2637
+22:23:28      |   [rbm_to_ising] beta_x = 2.3769
+22:23:28      |   [rbm_to_ising] beta_x = 2.4957
+22:23:28      |   [rbm_to_ising] beta_x = 2.3709
+22:23:28      | Iter  60: E = -1728.476474 ± 0.360946  β_x = 2.489  CG 200it res=4.05e-02  ‖x‖=4.1913
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0060.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 2.4895
+22:23:28      | Iter  70: E = -1745.832533 ± 0.422961  β_x = 2.489  CG 200it res=9.69e-02  ‖x‖=4.0119
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0070.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 2.3650
+22:23:28      |   [rbm_to_ising] beta_x = 2.4832
+22:23:28      |   [rbm_to_ising] beta_x = 2.3591
+22:23:28      |   [rbm_to_ising] beta_x = 2.2411
+22:23:28      | Iter  80: E = -1756.634107 ± 0.291428  β_x = 2.241  CG 200it res=7.85e-02  ‖x‖=4.2190
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0080.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 2.3532
+22:23:28      |   [rbm_to_ising] beta_x = 2.2355
+22:23:28      |   [rbm_to_ising] beta_x = 2.3473
+22:23:28      | Iter  90: E = -1769.059297 ± 0.224664  β_x = 2.347  CG 200it res=1.86e-02  ‖x‖=3.1580
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0090.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 2.4647
+22:23:28      |   [rbm_to_ising] beta_x = 2.5879
+22:23:28      |   [rbm_to_ising] beta_x = 2.7173
+22:23:28      |   [rbm_to_ising] beta_x = 2.8532
+22:23:28      |   [rbm_to_ising] beta_x = 2.9958
+22:23:28      |   [rbm_to_ising] beta_x = 3.1456
+22:23:28      | Iter 100: E = -1765.534391 ± 0.171841  β_x = 3.303  CG 200it res=5.12e-03  ‖x‖=2.4899
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0100.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 3.3029
+22:23:28      |   [rbm_to_ising] beta_x = 3.1377
+22:23:28      |   [rbm_to_ising] beta_x = 2.9809
+22:23:28      |   [rbm_to_ising] beta_x = 2.8318
+22:23:28      |   [rbm_to_ising] beta_x = 2.9734
+22:23:28      |   [rbm_to_ising] beta_x = 3.1221
+22:23:28      | Iter 110: E = -1765.268145 ± 0.145009  β_x = 3.122  CG 200it res=8.31e-03  ‖x‖=2.1457
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0110.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 2.9660
+22:23:28      |   [rbm_to_ising] beta_x = 3.1143
+22:23:28      |   [rbm_to_ising] beta_x = 3.2700
+22:23:28      |   [rbm_to_ising] beta_x = 3.1065
+22:23:28      | Iter 120: E = -1765.170230 ± 0.142873  β_x = 3.106  CG 200it res=4.29e-03  ‖x‖=2.3996
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0120.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 2.9512
+22:23:28      |   [rbm_to_ising] beta_x = 2.8036
+22:23:28      |   [rbm_to_ising] beta_x = 2.6634
+22:23:28      |   [rbm_to_ising] beta_x = 2.5302
+22:23:28      |   [rbm_to_ising] beta_x = 2.4037
+22:23:28      | Iter 130: E = -1762.365586 ± 0.117063  β_x = 2.524  CG 200it res=3.73e-03  ‖x‖=2.5727
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0130.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 2.5239
+22:23:28      |   [rbm_to_ising] beta_x = 2.6501
+22:23:28      |   [rbm_to_ising] beta_x = 2.5176
+22:23:28      |   [rbm_to_ising] beta_x = 2.3917
+22:23:28      | Iter 140: E = -1764.723335 ± 0.115888  β_x = 2.511  CG 200it res=5.04e-04  ‖x‖=2.0918
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0140.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 2.5113
+22:23:28      |   [rbm_to_ising] beta_x = 2.6369
+22:23:28      |   [rbm_to_ising] beta_x = 2.7687
+22:23:28      |   [rbm_to_ising] beta_x = 2.6303
+22:23:28      |   [rbm_to_ising] beta_x = 2.4988
+22:23:28      |   [rbm_to_ising] beta_x = 2.6237
+22:23:28      |   [rbm_to_ising] beta_x = 2.7549
+22:23:28      | Iter 150: E = -1766.133473 ± 0.144436  β_x = 2.755  CG 200it res=8.99e-04  ‖x‖=2.3976
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0150.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 2.6172
+22:23:28      |   [rbm_to_ising] beta_x = 2.4863
+22:23:28      |   [rbm_to_ising] beta_x = 2.6106
+22:23:28      |   [rbm_to_ising] beta_x = 2.7411
+22:23:28      | Iter 160: E = -1764.142945 ± 0.169198  β_x = 2.878  CG 200it res=5.61e-03  ‖x‖=1.9810
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0160.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 2.8782
+22:23:28      |   [rbm_to_ising] beta_x = 3.0221
+22:23:28      |   [rbm_to_ising] beta_x = 3.1732
+22:23:28      |   [rbm_to_ising] beta_x = 3.3319
+22:23:28      |   [rbm_to_ising] beta_x = 3.4985
+22:23:28      |   [rbm_to_ising] beta_x = 3.3235
+22:23:28      | Iter 170: E = -1762.544368 ± 0.168522  β_x = 3.324  CG 200it res=3.70e-03  ‖x‖=2.5586
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0170.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 3.1574
+22:23:28      |   [rbm_to_ising] beta_x = 3.3152
+22:23:28      | Iter 180: E = -1766.483103 ± 0.243875  β_x = 3.481  CG 200it res=5.45e-03  ‖x‖=2.5085
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0180.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 3.4810
+22:23:28      |   [rbm_to_ising] beta_x = 3.6550
+22:23:28      |   [rbm_to_ising] beta_x = 3.4723
+22:23:28      | Iter 190: E = -1769.566688 ± 0.225620  β_x = 3.646  CG 200it res=4.93e-03  ‖x‖=2.5914
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0190.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 3.6459
+22:23:28      |   [rbm_to_ising] beta_x = 3.4636
+22:23:28      |   [rbm_to_ising] beta_x = 3.2904
+22:23:28      |   [rbm_to_ising] beta_x = 3.4550
+22:23:28      |   [rbm_to_ising] beta_x = 3.2822
+22:23:28      | Iter 200: E = -1768.544478 ± 0.232947  β_x = 3.446  CG 200it res=6.61e-03  ‖x‖=2.0041
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0200.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 3.4463
+22:23:28      |   [rbm_to_ising] beta_x = 3.6186
+22:23:28      |   [rbm_to_ising] beta_x = 3.4377
+22:23:28      |   [rbm_to_ising] beta_x = 3.6096
+22:23:28      |   [rbm_to_ising] beta_x = 3.4291
+22:23:28      |   [rbm_to_ising] beta_x = 3.6006
+22:23:28      | Iter 210: E = -1768.433507 ± 0.212226  β_x = 3.781  CG 200it res=1.39e-02  ‖x‖=4.7171
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0210.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 3.7806
+22:23:28      |   [rbm_to_ising] beta_x = 3.9696
+22:23:28      |   [rbm_to_ising] beta_x = 3.7711
+22:23:28      |   [rbm_to_ising] beta_x = 3.9597
+22:23:28      |   [rbm_to_ising] beta_x = 4.1577
+22:23:28      | Iter 220: E = -1770.046390 ± 0.210766  β_x = 4.158  CG 200it res=5.28e-03  ‖x‖=2.2644
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0220.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 4.3656
+22:23:28      |   [rbm_to_ising] beta_x = 4.1473
+22:23:28      |   [rbm_to_ising] beta_x = 4.3547
+22:23:28      | Iter 230: E = -1773.363571 ± 0.218972  β_x = 4.355  CG 200it res=3.32e-02  ‖x‖=2.9122
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0230.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 4.1369
+22:23:28      |   [rbm_to_ising] beta_x = 3.9301
+22:23:28      |   [rbm_to_ising] beta_x = 3.7336
+22:23:28      | Iter 240: E = -1776.307835 ± 0.192204  β_x = 3.920  CG 200it res=3.90e-03  ‖x‖=2.4250
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0240.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 3.9202
+22:23:28      |   [rbm_to_ising] beta_x = 3.7242
+22:23:28      |   [rbm_to_ising] beta_x = 3.5380
+22:23:28      |   [rbm_to_ising] beta_x = 3.3611
+22:23:28      |   [rbm_to_ising] beta_x = 3.5292
+22:23:28      | Iter 250: E = -1778.928947 ± 0.193041  β_x = 3.529  CG 200it res=1.22e-02  ‖x‖=2.2015
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0250.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 3.7056
+22:23:28      |   [rbm_to_ising] beta_x = 3.8909
+22:23:28      |   [rbm_to_ising] beta_x = 3.6964
+22:23:28      |   [rbm_to_ising] beta_x = 3.5116
+22:23:28      | Iter 260: E = -1779.677194 ± 0.179808  β_x = 3.687  CG 200it res=2.09e-03  ‖x‖=2.1689
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0260.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 3.6871
+22:23:28      |   [rbm_to_ising] beta_x = 3.5028
+22:23:28      |   [rbm_to_ising] beta_x = 3.6779
+22:23:28      |   [rbm_to_ising] beta_x = 3.8618
+22:23:28      |   [rbm_to_ising] beta_x = 3.6687
+22:23:28      | Iter 270: E = -1778.869075 ± 0.224845  β_x = 3.669  CG 200it res=1.16e-02  ‖x‖=2.5139
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0270.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 3.8522
+22:23:28      |   [rbm_to_ising] beta_x = 3.6595
+22:23:28      |   [rbm_to_ising] beta_x = 3.8425
+22:23:28      |   [rbm_to_ising] beta_x = 4.0347
+22:23:28      |   [rbm_to_ising] beta_x = 3.8329
+22:23:28      | Iter 280: E = -1778.089608 ± 0.245474  β_x = 3.641  CG 200it res=1.20e-03  ‖x‖=1.4663
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0280.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 3.6413
+22:23:28      |   [rbm_to_ising] beta_x = 3.4592
+22:23:28      |   [rbm_to_ising] beta_x = 3.6322
+22:23:28      |   [rbm_to_ising] beta_x = 3.4506
+22:23:28      |   [rbm_to_ising] beta_x = 3.6231
+22:23:28      |   [rbm_to_ising] beta_x = 3.8042
+22:23:28      | Iter 290: E = -1775.017182 ± 0.261938  β_x = 3.994  CG 200it res=1.12e-02  ‖x‖=1.9021
+22:23:28      |   → Checkpoint saved: checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0290.pkl
+22:23:28      |   [rbm_to_ising] beta_x = 3.9945
+22:23:28      |   [rbm_to_ising] beta_x = 4.1942
+22:23:28      |   [rbm_to_ising] beta_x = 4.4039
+22:23:28      |   [rbm_to_ising] beta_x = 4.6241
+22:23:28      |   [rbm_to_ising] beta_x = 4.8553
+22:23:28      | Saved  → results/768/dimod/zephyr/result_1d_h2.0_rbmzephyr_nh768_lr0.1_reg0.001_ns1000_seed42_iter300_cem0.json
+22:23:28      |   Final energy : -1776.213207
+22:23:28      |   Exact energy : -1633.604214
+22:23:28      |   Error        : 142.608993
+22:23:28      |   Checkpoint → checkpoints/768/dimod/zephyr/zephyr/checkpoint_1d_h2.0_rbmzephyr_nh768_lr0.1_iter0300.pkl
+22:23:28    [  10/90] 1d N=1536 nh=1536 h=0.5 lr=0.1 seed=42 [dimod/zephyr]  QPU used=36.76min
+13:38:44      | DWaveTopologyRBM(n_visible=1024, n_hidden=1024, connections=14735/1048576, sparsity=98.59%)
+13:38:44      | <ising.TransverseFieldIsing1D object at 0x7f8b0039d2b0>
+13:38:44      | Namespace(model='1d', size=1024, h=0.5, rbm='zephyr', n_hidden=1024, sampler='dimod', sampling_method='zephyr', iterations=300, learning_rate=0.1, regularization=0.001, n_samples=1000, output_dir='results/', seed=42, visualize=False, cem=False, lsb_sigma=0.0, lsb_sigma_scale=1.0, lsb_steps=100, sbm_steps=5000, sbm_dt=1.0, sbm_discrete=False, sb_mode='discrete', sb_heated=False, sb_max_steps=10000)
+13:38:44      |   [CEM] β scheduling disabled — using heuristic beta_x adaptation
+13:38:44      |   [rbm_to_ising] beta_x = 2.0000
+13:38:44      |   [embedding] Trivial identity embedding cached for (1024, 'Advantage2_system1.13').
+13:38:44      | Iter   0: E = -510.219452 ± 0.576207  β_x = 2.000  CG 200it res=9.69e-05  ‖x‖=32.3720
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0000.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 2.1000
+13:38:44      |   [rbm_to_ising] beta_x = 2.2050
+13:38:44      |   [rbm_to_ising] beta_x = 2.3153
+13:38:44      | Iter  10: E = -668.632214 ± 0.960389  β_x = 2.431  CG 200it res=1.62e-02  ‖x‖=15.4546
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0010.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 2.4310
+13:38:44      |   [rbm_to_ising] beta_x = 2.5526
+13:38:44      |   [rbm_to_ising] beta_x = 2.4249
+13:38:44      |   [rbm_to_ising] beta_x = 2.5462
+13:38:44      |   [rbm_to_ising] beta_x = 2.4189
+13:38:44      | Iter  20: E = -829.806080 ± 1.007057  β_x = 2.419  CG 200it res=1.85e-01  ‖x‖=9.4538
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0020.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 2.2979
+13:38:44      |   [rbm_to_ising] beta_x = 2.4128
+13:38:44      |   [rbm_to_ising] beta_x = 2.5335
+13:38:44      |   [rbm_to_ising] beta_x = 2.4068
+13:38:44      | Iter  30: E = -865.140540 ± 0.883962  β_x = 2.407  CG 200it res=1.39e-01  ‖x‖=6.4492
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0030.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 2.5271
+13:38:44      |   [rbm_to_ising] beta_x = 2.4008
+13:38:44      |   [rbm_to_ising] beta_x = 2.5208
+13:38:44      |   [rbm_to_ising] beta_x = 2.3948
+13:38:44      |   [rbm_to_ising] beta_x = 2.2750
+13:38:44      |   [rbm_to_ising] beta_x = 2.1613
+13:38:44      | Iter  40: E = -858.725340 ± 0.973514  β_x = 2.161  CG 200it res=8.01e-02  ‖x‖=5.3443
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0040.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 2.2693
+13:38:44      |   [rbm_to_ising] beta_x = 2.1559
+13:38:44      |   [rbm_to_ising] beta_x = 2.0481
+13:38:44      |   [rbm_to_ising] beta_x = 2.1505
+13:38:44      |   [rbm_to_ising] beta_x = 2.2580
+13:38:44      | Iter  50: E = -862.230259 ± 0.630977  β_x = 2.371  CG 200it res=1.09e-01  ‖x‖=4.4703
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0050.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 2.3709
+13:38:44      |   [rbm_to_ising] beta_x = 2.4895
+13:38:44      |   [rbm_to_ising] beta_x = 2.3650
+13:38:44      |   [rbm_to_ising] beta_x = 2.2467
+13:38:44      |   [rbm_to_ising] beta_x = 2.3591
+13:38:44      |   [rbm_to_ising] beta_x = 2.4770
+13:38:44      | Iter  60: E = -878.287170 ± 0.850364  β_x = 2.477  CG 200it res=1.32e-01  ‖x‖=4.2906
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0060.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 2.3532
+13:38:44      |   [rbm_to_ising] beta_x = 2.4708
+13:38:44      |   [rbm_to_ising] beta_x = 2.5944
+13:38:44      |   [rbm_to_ising] beta_x = 2.4647
+13:38:44      | Iter  70: E = -893.607730 ± 0.721359  β_x = 2.465  CG 200it res=1.71e-01  ‖x‖=3.9679
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0070.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 2.3414
+13:38:44      |   [rbm_to_ising] beta_x = 2.2244
+13:38:44      |   [rbm_to_ising] beta_x = 2.1131
+13:38:44      |   [rbm_to_ising] beta_x = 2.0075
+13:38:44      |   [rbm_to_ising] beta_x = 2.1079
+13:38:44      | Iter  80: E = -893.213900 ± 0.552689  β_x = 2.002  CG 200it res=1.12e-01  ‖x‖=3.4664
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0080.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 2.0025
+13:38:44      |   [rbm_to_ising] beta_x = 1.9023
+13:38:44      |   [rbm_to_ising] beta_x = 1.9975
+13:38:44      |   [rbm_to_ising] beta_x = 2.0973
+13:38:44      | Iter  90: E = -901.094724 ± 0.505150  β_x = 2.202  CG 200it res=4.77e-02  ‖x‖=3.2221
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0090.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 2.2022
+13:38:44      |   [rbm_to_ising] beta_x = 2.0921
+13:38:44      |   [rbm_to_ising] beta_x = 2.1967
+13:38:44      |   [rbm_to_ising] beta_x = 2.0869
+13:38:44      |   [rbm_to_ising] beta_x = 2.1912
+13:38:44      | Iter 100: E = -894.707464 ± 0.681173  β_x = 2.082  CG 200it res=2.03e-01  ‖x‖=3.3987
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0100.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 2.0816
+13:38:44      |   [rbm_to_ising] beta_x = 2.1857
+13:38:44      |   [rbm_to_ising] beta_x = 2.2950
+13:38:44      |   [rbm_to_ising] beta_x = 2.1803
+13:38:44      | Iter 110: E = -900.234701 ± 0.519304  β_x = 2.180  CG 200it res=4.73e-02  ‖x‖=2.8312
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0110.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 2.0712
+13:38:44      |   [rbm_to_ising] beta_x = 1.9677
+13:38:44      |   [rbm_to_ising] beta_x = 1.8693
+13:38:44      |   [rbm_to_ising] beta_x = 1.7758
+13:38:44      | Iter 120: E = -900.751366 ± 0.525929  β_x = 1.687  CG 200it res=6.52e-02  ‖x‖=3.0287
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0120.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 1.6870
+13:38:44      |   [rbm_to_ising] beta_x = 1.7714
+13:38:44      |   [rbm_to_ising] beta_x = 1.8600
+13:38:44      |   [rbm_to_ising] beta_x = 1.9530
+13:38:44      |   [rbm_to_ising] beta_x = 1.8553
+13:38:44      |   [rbm_to_ising] beta_x = 1.7625
+13:38:44      | Iter 130: E = -903.115568 ± 0.464255  β_x = 1.763  CG 200it res=5.45e-02  ‖x‖=3.0689
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0130.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 1.8507
+13:38:44      |   [rbm_to_ising] beta_x = 1.7581
+13:38:44      |   [rbm_to_ising] beta_x = 1.6702
+13:38:44      | Iter 140: E = -905.720753 ± 0.514590  β_x = 1.587  CG 200it res=3.81e-02  ‖x‖=2.8435
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0140.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 1.5867
+13:38:44      |   [rbm_to_ising] beta_x = 1.6661
+13:38:44      |   [rbm_to_ising] beta_x = 1.7494
+13:38:44      |   [rbm_to_ising] beta_x = 1.6619
+13:38:44      |   [rbm_to_ising] beta_x = 1.7450
+13:38:44      |   [rbm_to_ising] beta_x = 1.6577
+13:38:44      |   [rbm_to_ising] beta_x = 1.5749
+13:38:44      |   [rbm_to_ising] beta_x = 1.6536
+13:38:44      | Iter 150: E = -906.587271 ± 0.388830  β_x = 1.654  CG 200it res=8.90e-02  ‖x‖=3.2988
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0150.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 1.5709
+13:38:44      |   [rbm_to_ising] beta_x = 1.6495
+13:38:44      |   [rbm_to_ising] beta_x = 1.5670
+13:38:44      |   [rbm_to_ising] beta_x = 1.6453
+13:38:44      |   [rbm_to_ising] beta_x = 1.7276
+13:38:44      | Iter 160: E = -900.822874 ± 0.610192  β_x = 1.814  CG 200it res=9.71e-02  ‖x‖=2.9139
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0160.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 1.8140
+13:38:44      |   [rbm_to_ising] beta_x = 1.9047
+13:38:44      |   [rbm_to_ising] beta_x = 1.9999
+13:38:44      |   [rbm_to_ising] beta_x = 1.8999
+13:38:44      | Iter 170: E = -896.163888 ± 0.726805  β_x = 1.995  CG 200it res=3.15e-02  ‖x‖=2.6547
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0170.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 1.9949
+13:38:44      |   [rbm_to_ising] beta_x = 2.0947
+13:38:44      |   [rbm_to_ising] beta_x = 1.9899
+13:38:44      |   [rbm_to_ising] beta_x = 1.8904
+13:38:44      |   [rbm_to_ising] beta_x = 1.9850
+13:38:44      |   [rbm_to_ising] beta_x = 2.0842
+13:38:44      |   [rbm_to_ising] beta_x = 1.9800
+13:38:44      |   [rbm_to_ising] beta_x = 2.0790
+13:38:44      | Iter 180: E = -895.053051 ± 0.825571  β_x = 2.079  CG 200it res=6.47e-02  ‖x‖=2.7431
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0180.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 1.9750
+13:38:44      |   [rbm_to_ising] beta_x = 1.8763
+13:38:44      |   [rbm_to_ising] beta_x = 1.7825
+13:38:44      |   [rbm_to_ising] beta_x = 1.6934
+13:38:44      | Iter 190: E = -897.089340 ± 0.694859  β_x = 1.693  CG 200it res=1.89e-02  ‖x‖=2.6575
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0190.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 1.6087
+13:38:44      |   [rbm_to_ising] beta_x = 1.5283
+13:38:44      |   [rbm_to_ising] beta_x = 1.4518
+13:38:44      |   [rbm_to_ising] beta_x = 1.3792
+13:38:44      |   [rbm_to_ising] beta_x = 1.3103
+13:38:44      |   [rbm_to_ising] beta_x = 1.2448
+13:38:44      | Iter 200: E = -894.323572 ± 0.707592  β_x = 1.307  CG 200it res=3.11e-02  ‖x‖=2.4321
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0200.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 1.3070
+13:38:44      |   [rbm_to_ising] beta_x = 1.2417
+13:38:44      |   [rbm_to_ising] beta_x = 1.3037
+13:38:44      |   [rbm_to_ising] beta_x = 1.3689
+13:38:44      |   [rbm_to_ising] beta_x = 1.3005
+13:38:44      | Iter 210: E = -897.868901 ± 0.605106  β_x = 1.235  CG 200it res=3.16e-02  ‖x‖=2.3683
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0210.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 1.2355
+13:38:44      |   [rbm_to_ising] beta_x = 1.1737
+13:38:44      |   [rbm_to_ising] beta_x = 1.1150
+13:38:44      |   [rbm_to_ising] beta_x = 1.0592
+13:38:44      | Iter 220: E = -900.560938 ± 0.585195  β_x = 1.006  CG 200it res=1.96e-02  ‖x‖=2.1970
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0220.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 1.0063
+13:38:44      |   [rbm_to_ising] beta_x = 1.0566
+13:38:44      |   [rbm_to_ising] beta_x = 1.1094
+13:38:44      |   [rbm_to_ising] beta_x = 1.1649
+13:38:44      |   [rbm_to_ising] beta_x = 1.2231
+13:38:44      |   [rbm_to_ising] beta_x = 1.2843
+13:38:44      | Iter 230: E = -892.668574 ± 0.544276  β_x = 1.220  CG 200it res=4.87e-02  ‖x‖=2.5960
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0230.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 1.2201
+13:38:44      |   [rbm_to_ising] beta_x = 1.2811
+13:38:44      |   [rbm_to_ising] beta_x = 1.2170
+13:38:44      |   [rbm_to_ising] beta_x = 1.2779
+13:38:44      | Iter 240: E = -895.061366 ± 0.492379  β_x = 1.278  CG 200it res=5.55e-02  ‖x‖=2.5181
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0240.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 1.2140
+13:38:44      |   [rbm_to_ising] beta_x = 1.2747
+13:38:44      |   [rbm_to_ising] beta_x = 1.2110
+13:38:44      |   [rbm_to_ising] beta_x = 1.2715
+13:38:44      | Iter 250: E = -895.499668 ± 0.555158  β_x = 1.272  CG 200it res=7.84e-02  ‖x‖=2.6093
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0250.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 1.3351
+13:38:44      |   [rbm_to_ising] beta_x = 1.4018
+13:38:44      |   [rbm_to_ising] beta_x = 1.4719
+13:38:44      |   [rbm_to_ising] beta_x = 1.3983
+13:38:44      |   [rbm_to_ising] beta_x = 1.3284
+13:38:44      |   [rbm_to_ising] beta_x = 1.3948
+13:38:44      | Iter 260: E = -891.097228 ± 0.657517  β_x = 1.395  CG 200it res=2.08e-02  ‖x‖=2.5513
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0260.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 1.3251
+13:38:44      |   [rbm_to_ising] beta_x = 1.3914
+13:38:44      |   [rbm_to_ising] beta_x = 1.4609
+13:38:44      | Iter 270: E = -897.723995 ± 0.577862  β_x = 1.534  CG 200it res=1.05e-01  ‖x‖=2.1277
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0270.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 1.5340
+13:38:44      |   [rbm_to_ising] beta_x = 1.6107
+13:38:44      |   [rbm_to_ising] beta_x = 1.6912
+13:38:44      |   [rbm_to_ising] beta_x = 1.7758
+13:38:44      |   [rbm_to_ising] beta_x = 1.6870
+13:38:44      |   [rbm_to_ising] beta_x = 1.6026
+13:38:44      |   [rbm_to_ising] beta_x = 1.6828
+13:38:44      |   [rbm_to_ising] beta_x = 1.5986
+13:38:44      | Iter 280: E = -893.619956 ± 0.524926  β_x = 1.599  CG 200it res=3.85e-02  ‖x‖=2.1233
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0280.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 1.5187
+13:38:44      |   [rbm_to_ising] beta_x = 1.4428
+13:38:44      |   [rbm_to_ising] beta_x = 1.3706
+13:38:44      |   [rbm_to_ising] beta_x = 1.3021
+13:38:44      |   [rbm_to_ising] beta_x = 1.2370
+13:38:44      |   [rbm_to_ising] beta_x = 1.2988
+13:38:44      | Iter 290: E = -891.446673 ± 0.509619  β_x = 1.364  CG 200it res=1.36e-02  ‖x‖=2.2387
+13:38:44      |   → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0290.pkl
+13:38:44      |   [rbm_to_ising] beta_x = 1.3638
+13:38:44      |   [rbm_to_ising] beta_x = 1.2956
+13:38:44      |   [rbm_to_ising] beta_x = 1.3604
+13:38:44      |   [rbm_to_ising] beta_x = 1.4284
+13:38:44      |   [rbm_to_ising] beta_x = 1.3570
+13:38:44      |   [rbm_to_ising] beta_x = 1.4248
+13:38:44      | Saved  → results/1024/dimod/zephyr/result_1d_h0.5_rbmzephyr_nh1024_lr0.1_reg0.001_ns1000_seed42_iter300_cem0.json
+13:38:44      |   Final energy : -890.365532
+13:38:44      |   Exact energy : -1089.069476
+13:38:44      |   Error        : 198.703943
+13:38:44      |   Checkpoint → checkpoints/1024/dimod/zephyr/zephyr/checkpoint_1d_h0.5_rbmzephyr_nh1024_lr0.1_iter0300.pkl
+13:38:44    [  11/90] 1d N=1536 nh=1536 h=1.0 lr=0.1 seed=42 [dimod/zephyr]  QPU used=38.24min
