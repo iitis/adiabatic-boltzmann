@@ -20,8 +20,8 @@ class RBM(ABC):
         self.n_hidden = n_hidden
         self.scale = 0.01
 
-        self.a = np.random.normal(0, self.scale, n_visible)
-        self.b = np.random.normal(0, self.scale, n_hidden)
+        self.a = np.zeros(n_visible)
+        self.b = np.zeros(n_hidden)
         self.W = np.random.normal(0, self.scale, (n_visible, n_hidden))
 
         # Apply mask immediately so W is sparse from init

@@ -1,4 +1,0 @@
-numpy
-scipy
-matplotlib
-dwave-ocean-sdk>=9.0

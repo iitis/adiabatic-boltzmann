@@ -17,8 +17,11 @@ Run from src/:
 """
 
 import sys, os, json
+from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_HERE = Path(__file__).resolve().parent
+ROOT  = _HERE.parent.parent.parent          # repo root
+sys.path.insert(0, str(_HERE.parent))       # make src/ importable
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -34,7 +37,8 @@ from kl_utils import (
     estimate_beta_kl,
 )
 
-RESULTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "plots", "results_kl")
+RESULTS_DIR = str(ROOT / "plots" / "kl_data")
+FIGURES_DIR = ROOT / "figures" / "fig_kl_samplers"
 
 
 # ---------------------------------------------------------------------------
@@ -774,7 +778,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    os.makedirs("plots", exist_ok=True)
+    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
     if args.run_samplers:
         for entry in SAMPLER_REGISTRY:
@@ -794,7 +798,7 @@ if __name__ == "__main__":
                     results,
                     label=label,
                     has_joint_h=entry["has_joint_h"],
-                    save_path=f"plots/kl_{slug}.png",
+                    save_path=str(FIGURES_DIR / f"kl_{slug}.png"),
                 )
             except Exception as e:
                 print(f"  SKIPPED: {e}")
@@ -804,7 +808,7 @@ if __name__ == "__main__":
         if scaling_results:
             plot_dwave_size_scaling(
                 scaling_results,
-                save_path="plots/kl_dwave_size_scaling.png",
+                save_path=str(FIGURES_DIR / "kl_dwave_size_scaling.png"),
             )
 
     if args.overview:
@@ -812,10 +816,10 @@ if __name__ == "__main__":
         if not all_results:
             print(f"No saved results found in {RESULTS_DIR}. Run --run-samplers first.")
         else:
-            plot_overview(all_results, save_path="plots/kl_overview.png")
+            plot_overview(all_results, save_path=str(FIGURES_DIR / "kl_overview.png"))
 
     if args.comparison:
-        plot_comparison(save_path="plots/kl_comparison.png")
+        plot_comparison(save_path=str(FIGURES_DIR / "kl_comparison.png"))
 
     if not any(vars(args).values()):
         parser.print_help()
