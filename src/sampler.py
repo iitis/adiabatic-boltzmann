@@ -1,6 +1,13 @@
 import fcntl
 import json
 import math as _math
+import os
+import subprocess
+import tempfile
+import threading
+import time
+import uuid
+import sys as _sys
 import numpy as np
 from abc import ABC, abstractmethod
 from model import RBM
@@ -768,6 +775,299 @@ class VeloxSampler(Sampler):
             h_samples = df.loc[
                 :, list(range(self.n_visible, self.n_visible + rbm.n_hidden))
             ].to_numpy()
+            return v, h_samples
+        return v
+
+
+class FPGASampler(Sampler):
+    """
+    FPGA sampler wrapper that delegates sampling to the VeloxQFPGA Julia stack.
+
+    Uses a small Julia bridge script (scripts/fpga_sa_bridge.jl) to call FPGASA
+    and writes samples to a temporary text file which we parse back into numpy.
+
+    Default transport is JTAG (transport="jtag").
+    """
+
+    _ENV_MAP = {
+        "fpga_syscon_path": "FPGA_SYSCON_PATH",
+        "fpga_bulk_dir": "FPGA_BULK_DIR",
+        "fpga_bulk_load": "FPGA_BULK_LOAD",
+        "fpga_bitstream": "FPGA_BITSTREAM",
+        "fpga_quartus_root": "FPGA_QUARTUS_ROOT",
+        "fpga_pcie_device": "FPGA_PCIE_DEVICE",
+        "fpga_pcie_bar_size": "FPGA_PCIE_BAR_SIZE",
+        "fpga_core_clock_hz": "FPGA_CORE_CLOCK_HZ",
+        "fpga_timeout_s": "FPGA_TIMEOUT_S",
+        "fpga_verbose": "FPGA_VERBOSE",
+    }
+
+    def __init__(
+        self,
+        transport: str = "jtag",
+        julia_cmd: str = "julia",
+        project_path=None,
+        script_path=None,
+        num_rep: int = 1024,
+        num_steps: int = 100,
+        num_sweeps: int = 1,
+        start_temp: float = -1.0,
+        stop_temp: float = -1.0,
+        schedule_type: str = "geometric",
+        keep_files: bool = False,
+    ):
+        repo_root = Path(__file__).resolve().parent.parent
+        default_project = (repo_root.parent / "veloxQFPGA").resolve()
+        default_script = repo_root / "scripts" / "fpga_sa_bridge.jl"
+
+        self.transport = transport
+        self.julia_cmd = julia_cmd
+        self.project_path = Path(project_path).resolve() if project_path else default_project
+        self.script_path = Path(script_path).resolve() if script_path else default_script
+        self.num_rep = int(num_rep)
+        self.num_steps = int(num_steps)
+        self.num_sweeps = int(num_sweeps)
+        self.start_temp = float(start_temp)
+        self.stop_temp = float(stop_temp)
+        self.schedule_type = str(schedule_type)
+        self.keep_files = keep_files
+
+        self._tmpdir = tempfile.TemporaryDirectory(prefix="fpga_sampler_")
+        self._tmp_root = Path(self._tmpdir.name)
+
+        if not self.project_path.exists():
+            raise FileNotFoundError(
+                f"VeloxQFPGA project not found at {self.project_path}. "
+                "Expected a sibling repo named 'veloxQFPGA'."
+            )
+        if not self.script_path.exists():
+            raise FileNotFoundError(
+                f"FPGA Julia bridge script not found at {self.script_path}."
+            )
+        self.last_sampling_time_s = None
+
+    def _write_ising_csv(
+        self, path: Path, linear: dict, quadratic: dict, n_vars: int
+    ) -> None:
+        # CSV_Format expects 1-indexed (i, j, v) rows. Diagonal entries encode biases.
+        with path.open("w") as f:
+            for i in range(n_vars):
+                # CSV_Format duplicates each row as (i,j) and (j,i); for i==j this
+                # doubles the bias, so write half to preserve the intended value.
+                val = float(linear.get(i, 0.0)) * 0.5
+                f.write(f"{i + 1},{i + 1},{val:.16g}\n")
+            for (i, j), val in sorted(quadratic.items()):
+                f.write(f"{i + 1},{j + 1},{float(val):.16g}\n")
+
+    def _apply_env_overrides(self, env: dict, config: dict) -> None:
+        for key, env_key in self._ENV_MAP.items():
+            if key not in config:
+                continue
+            val = config[key]
+            if isinstance(val, bool):
+                env[env_key] = "true" if val else "false"
+            else:
+                env[env_key] = str(val)
+
+    def _bool_from_env(self, env: dict, key: str) -> bool:
+        val = env.get(key, "")
+        if not val:
+            return False
+        return str(val).strip().lower() in ("1", "true", "yes", "on")
+
+    def _timeout_from_env(self, env: dict, key: str):
+        val = env.get(key, "")
+        if not val:
+            return None
+        try:
+            return float(val)
+        except ValueError:
+            return None
+
+    def sample(
+        self, rbm, n_samples: int, config: dict = None, return_hidden: bool = False
+    ):
+        if config is None:
+            config = {}
+
+        self.last_sampling_time_s = None
+
+        beta_x = config.get("beta_x", 1.0)
+        quadratic, linear = self.rbm_to_ising(rbm, beta_x)
+
+        n_vars = rbm.n_visible + rbm.n_hidden
+        model_path = self._tmp_root / f"ising_{uuid.uuid4().hex}.csv"
+        out_path = self._tmp_root / f"states_{uuid.uuid4().hex}.txt"
+        meta_path = self._tmp_root / f"meta_{uuid.uuid4().hex}.txt"
+        self._write_ising_csv(model_path, linear, quadratic, n_vars)
+
+        num_rep = int(config.get("fpga_num_rep", self.num_rep))
+        if n_samples > num_rep:
+            raise ValueError(
+                f"Requested n_samples={n_samples} exceeds FPGA num_rep={num_rep}."
+            )
+
+        num_steps = int(config.get("fpga_num_steps", self.num_steps))
+        num_sweeps = int(config.get("fpga_num_sweeps", self.num_sweeps))
+        start_temp = float(config.get("fpga_start_temp", self.start_temp))
+        stop_temp = float(config.get("fpga_stop_temp", self.stop_temp))
+        schedule_type = str(config.get("fpga_schedule", self.schedule_type))
+        transport = str(config.get("fpga_transport", self.transport))
+
+        cmd = [
+            self.julia_cmd,
+            f"--project={self.project_path}",
+            str(self.script_path),
+            str(model_path),
+            str(out_path),
+            str(num_rep),
+            str(num_steps),
+            str(num_sweeps),
+            str(start_temp),
+            str(stop_temp),
+            schedule_type,
+            transport,
+            str(meta_path),
+        ]
+
+        env = os.environ.copy()
+        self._apply_env_overrides(env, config)
+
+        stream_output = bool(
+            config.get("fpga_stream_output")
+            if "fpga_stream_output" in config
+            else self._bool_from_env(env, "FPGA_STREAM_OUTPUT")
+            or self._bool_from_env(env, "FPGA_VERBOSE")
+        )
+        timeout_s = config.get("fpga_timeout_s", None)
+        if timeout_s is None:
+            timeout_s = self._timeout_from_env(env, "FPGA_TIMEOUT_S")
+
+        if stream_output:
+            stdout_lines: list[str] = []
+            stderr_lines: list[str] = []
+
+            def _reader(stream, sink, collector):
+                try:
+                    for line in iter(stream.readline, ""):
+                        if not line:
+                            break
+                        sink.write(line)
+                        sink.flush()
+                        collector.append(line)
+                finally:
+                    try:
+                        stream.close()
+                    except Exception:
+                        pass
+
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+                env=env,
+            )
+            t_out = threading.Thread(
+                target=_reader, args=(proc.stdout, _sys.stdout, stdout_lines)
+            )
+            t_err = threading.Thread(
+                target=_reader, args=(proc.stderr, _sys.stderr, stderr_lines)
+            )
+            t_out.daemon = True
+            t_err.daemon = True
+            t_out.start()
+            t_err.start()
+
+            try:
+                if timeout_s is None:
+                    returncode = proc.wait()
+                else:
+                    returncode = proc.wait(timeout=timeout_s)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                returncode = proc.wait()
+                msg = f"FPGA sampler timed out after {timeout_s} seconds."
+                if stdout_lines:
+                    msg += "\nstdout:\n" + "".join(stdout_lines[-200:])
+                if stderr_lines:
+                    msg += "\nstderr:\n" + "".join(stderr_lines[-200:])
+                raise RuntimeError(msg)
+            finally:
+                t_out.join(timeout=2)
+                t_err.join(timeout=2)
+
+            if returncode != 0:
+                msg = f"FPGA sampler failed (exit {returncode})."
+                if stdout_lines:
+                    msg += "\nstdout:\n" + "".join(stdout_lines[-200:])
+                if stderr_lines:
+                    msg += "\nstderr:\n" + "".join(stderr_lines[-200:])
+                raise RuntimeError(msg)
+        else:
+            try:
+                result = subprocess.run(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    env=env,
+                    timeout=timeout_s,
+                )
+            except subprocess.TimeoutExpired as e:
+                msg = f"FPGA sampler timed out after {timeout_s} seconds."
+                if e.stdout:
+                    msg += f"\nstdout:\n{e.stdout}"
+                if e.stderr:
+                    msg += f"\nstderr:\n{e.stderr}"
+                raise RuntimeError(msg) from e
+            if result.returncode != 0:
+                msg = f"FPGA sampler failed (exit {result.returncode})."
+                if result.stdout:
+                    msg += f"\nstdout:\n{result.stdout}"
+                if result.stderr:
+                    msg += f"\nstderr:\n{result.stderr}"
+                raise RuntimeError(msg)
+
+        samples = np.loadtxt(out_path, dtype=np.int8)
+        if samples.ndim == 1:
+            samples = samples[None, :]
+
+        if samples.shape[1] != n_vars:
+            raise RuntimeError(
+                f"FPGA sampler returned {samples.shape[1]} vars, expected {n_vars}."
+            )
+        if samples.shape[0] < n_samples:
+            raise RuntimeError(
+                f"FPGA sampler returned {samples.shape[0]} samples, expected {n_samples}."
+            )
+        if samples.shape[0] > n_samples:
+            samples = samples[:n_samples]
+
+        if meta_path.exists():
+            try:
+                self.last_sampling_time_s = float(meta_path.read_text().strip())
+            except Exception:
+                self.last_sampling_time_s = None
+
+        if not self.keep_files:
+            try:
+                model_path.unlink()
+            except FileNotFoundError:
+                pass
+            try:
+                out_path.unlink()
+            except FileNotFoundError:
+                pass
+            try:
+                meta_path.unlink()
+            except FileNotFoundError:
+                pass
+
+        v = samples[:, : rbm.n_visible]
+        if return_hidden:
+            h_samples = samples[:, rbm.n_visible : rbm.n_visible + rbm.n_hidden]
             return v, h_samples
         return v
 
