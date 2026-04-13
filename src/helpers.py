@@ -100,6 +100,20 @@ def save_results(args, history, ising, rbm=None):
     )
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    try:
+        import torch as _torch
+        _torch_cuda = _torch.cuda.is_available()
+        _torch_device = _torch.cuda.get_device_name(0) if _torch_cuda else "cpu"
+    except Exception:
+        _torch_cuda = False
+        _torch_device = "cpu"
+
+    try:
+        import cupy as _cupy  # noqa: F401
+        _cupy_available = True
+    except Exception:
+        _cupy_available = False
+
     use_cem = getattr(args, "cem", False)
     results = {
         "config": vars(args),
@@ -112,6 +126,11 @@ def save_results(args, history, ising, rbm=None):
         "error": abs(history["energy"][-1] - ising.exact_ground_energy()),
         "sparsity": float(rbm.sparsity()) if rbm is not None else None,
         "sampling_time_s": float(sum(history.get("sampling_time_s", []))),
+        "cuda": {
+            "torch_cuda_available": _torch_cuda,
+            "torch_device": _torch_device,
+            "cupy_available": _cupy_available,
+        },
         "final_ess": history["ess"][-1] if history.get("ess") else None,
         "mean_ess": float(np.mean(history["ess"])) if history.get("ess") else None,
         "final_kl_exact": history["kl_exact"][-1] if history.get("kl_exact") else None,

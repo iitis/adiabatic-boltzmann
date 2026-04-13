@@ -254,7 +254,7 @@ class Trainer:
         self.checkpoint_interval = config.get(
             "checkpoint_interval", 10
         )  # Save every N iterations
-
+        print("Checkpoint interval:", self.checkpoint_interval)
         self.history = {
             "energy": [],
             "error": [],
