@@ -2,6 +2,7 @@ Implementation of [Quantum neural networks to simulate many-body quantum systems
 
 Install:
 - `pip install -r requirements.txt`
+- `pip install -r req_torch.txt`
 
 Run:
 - `python src/main.py` to train the model and plot the results.
