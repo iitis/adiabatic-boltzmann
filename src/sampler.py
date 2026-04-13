@@ -5,6 +5,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 from model import RBM
 import dimod
+import torch
 
 try:
     import numba as nb
@@ -95,42 +96,6 @@ if _HAS_NUMBA:
         return n_accepted
 
 
-def _cem_fit_beta(h_mean: np.ndarray, activation: np.ndarray) -> float:
-    """
-    CEM scalar fit (conditional variant): find β minimising
-        Σ_j (⟨h_j⟩_{r,C} - tanh(β·a_j))²
-
-    h_mean:     (n_hidden,) empirical conditional mean  ⟨h_j⟩_{r,C}
-    activation: (n_hidden,) pre-activations  a_j = b_j + Σ_i r_i W_{ij}
-    """
-
-    def objective(beta):
-        return float(np.sum((h_mean - np.tanh(beta * activation)) ** 2))
-
-    result = minimize_scalar(objective, bounds=(1e-2, 10.0), method="bounded")
-    return float(result.x)
-
-
-def _cem_fit_beta_joint(v_samples: np.ndarray, h_samples: np.ndarray, rbm) -> float:
-    """
-    CEM scalar fit (joint-samples variant): find β minimising
-        Σ_{l,j} (h^(l)_j - tanh(β · a^(l)_j))²
-    where  a^(l)_j = b_j + Σ_i v^(l)_i W_{ij}.
-
-    Used when the sampler returns joint (v, h) pairs from the full interacting
-    (v-h) Ising problem.  Applicable to D-Wave and VeloxQ on RBMs, where the
-    conditional h-only problem has no quadratic terms and conditional CEM is
-    not meaningful.
-    """
-    activation = v_samples @ rbm.W + rbm.b[None, :]  # (n_samples, n_hidden)
-
-    def objective(beta):
-        return float(np.sum((h_samples - np.tanh(beta * activation)) ** 2))
-
-    result = minimize_scalar(objective, bounds=(1e-2, 10.0), method="bounded")
-    return float(result.x)
-
-
 class Sampler(ABC):
     """Abstract sampling interface."""
 
@@ -187,25 +152,6 @@ class Sampler(ABC):
         """
         pass
 
-    def estimate_beta_eff(
-        self, rbm: RBM, r: np.ndarray = None, n_samples: int = 500
-    ) -> float:
-        """
-        Estimate the effective inverse temperature β_eff of this sampler via
-        Conditional Expectation Matching (CEM).
-
-        Procedure (Kubo & Goto 2025, Sec. II A 2):
-          1. Pick condition vector r (random if not provided).
-          2. Run the sampler conditionally: fix v = r, sample h.
-          3. Compute empirical ⟨h_j⟩_{r,C} = mean of sampled h values.
-          4. Fit β by minimising Σ_j (⟨h_j⟩_{r,C} - tanh(β·(b_j + Σ_i r_i W_{ij})))².
-
-        Returns β_eff.  For an ideal β=1 sampler the result should be ≈ 1.0.
-        """
-        raise NotImplementedError(
-            f"{type(self).__name__} does not implement estimate_beta_eff."
-        )
-
 
 class ClassicalSampler(Sampler):
     """
@@ -248,12 +194,16 @@ class ClassicalSampler(Sampler):
 
         # Persistent chain state for Gibbs sampler (initialised on first call)
         self._gibbs_v = None  # (_xp array) (n_chains, n_visible)
+        # Last config passed to sample(); cached so estimate_beta_eff can reuse
+        # the same hyperparameters (sigma, steps, delta) with only beta_x=1.
+        self._last_sample_config: dict = {}
 
     def sample(
         self, rbm: RBM, n_samples: int, config: dict = None, return_hidden: bool = False
     ):
         if config is None:
             config = {}
+        self._last_sample_config = dict(config)
 
         if self.method == "lsb":
             v, h = self._lsb_sample(rbm, n_samples, config)
@@ -279,55 +229,53 @@ class ClassicalSampler(Sampler):
         return v
 
     def _lsb_sample(self, rbm: RBM, n_samples: int, config: dict):
-        import torch
+        # Langevin Simulated Bifurcation (Kubo & Goto 2025, Sec. II B 1).
+        # Symplectic Euler integration of:
+        #   y[k+1] = y[k] + Δ·(Σⱼ Jᵢⱼ xⱼ[k] + fᵢ) + σ·ξ   ξ ~ N(0,1)  (Eq. 6)
+        #   x[k+1] = x[k] + Δ·y[k+1]                                       (Eq. 7)
+        #   x      ← clip(x, −1, +1)                                        (Eq. 8)
+        # Init: x ~ U[−1,1],  y ~ N(0, σ²)
+        # Discretize only at the end: s = sgn(x)
 
-        beta_x = config.get("beta_x", 2.0)
+        beta_x = config.get("beta_x", 1.0)
         steps = config.get("lsb_steps", 1000)
         delta = config.get("lsb_delta", 1.0)
-        # sigma=0 → auto-scale to RMS of local fields (same as LSBSampler).
-        # A fixed sigma risks collapse when weights grow: if ||force|| >> sigma
-        # all spins align with the field and samples become degenerate.
-        sigma = config.get("lsb_sigma", 0.0)
+        # lsb_sigma is σ⁻² (precision, paper convention). Convert to σ = 1/√(σ⁻²).
+        sigma_inv2 = config.get("lsb_sigma", 1.0)
+        sigma = 1.0 / np.sqrt(sigma_inv2)
         Nv, Nh = rbm.n_visible, rbm.n_hidden
         N = Nv + Nh
-
+        print(f"    beta x {beta_x}")
         M = np.zeros((N, N))
         if getattr(rbm, "V", None) is not None:
-            M[:Nv, :Nv] = rbm.V / beta_x   # visible-visible couplings (SRBM)
+            M[:Nv, :Nv] = rbm.V / beta_x
         M[:Nv, Nv:] = rbm.W / beta_x
         M[Nv:, :Nv] = rbm.W.T / beta_x
         f = np.empty(N)
         f[:Nv] = rbm.a / beta_x
         f[Nv:] = rbm.b / beta_x
 
-        # --- Adaptive sigma: set σ = RMS(force) over random probe configs ---
-        if sigma <= 0:
-            rng_probe = np.random.default_rng()
-            x_probe = rng_probe.choice([-1.0, 1.0], size=(200, N))
-            g_probe = x_probe @ M + f[None, :]
-            sigma = float(np.sqrt(np.mean(g_probe**2))) + 1e-6
-
         device = "cuda" if torch.cuda.is_available() else "cpu"
         M_t = torch.tensor(M, dtype=torch.float32, device=device)
         f_t = torch.tensor(f, dtype=torch.float32, device=device)
 
-        # --- Initialize: x ~ Uniform{-1,+1},  y ~ N(0, σ) ---
-        x = torch.randint(0, 2, (n_samples, N), device=device).float() * 2 - 1
+        # Init: x ~ U[−1,1],  y ~ N(0, σ²)
+        x = torch.rand(n_samples, N, device=device) * 2.0 - 1.0
         y = sigma * torch.randn(n_samples, N, device=device)
 
-        # --- Dynamics: symplectic Euler + discretize + re-init momentum ---
+        # Symplectic Euler + soft clip (Eqs. 6–8)
         for _ in range(steps):
-            s = torch.sign(x)
-            s[s == 0] = 1.0
-            force = torch.matmul(s, M_t.T) + f_t  # Σ_j J_ij sgn(x_j) + f_i
-            y = y + delta * force  # y(k+1) = y(k) + Δ·force
-            x = x + delta * y  # x(k+1) = x(k) + Δ·y(k+1)
-            x = torch.sign(x)
-            x[x == 0] = 1.0
-            y = sigma * torch.randn_like(y)  # re-init momentum
+            force = x @ M_t.T + f_t  # Σⱼ Jᵢⱼ xⱼ + fᵢ  (continuous x)
+            y = (
+                y + delta * force + sigma * torch.randn_like(y)
+            )  # additive Langevin noise
+            x = x + delta * y
+            x = torch.clamp(x, -1.0, 1.0)  # soft clip, not hard sign
 
-        # --- Extract final spins (OUTSIDE loop) ---
-        s = torch.sign(x).cpu().numpy()
+        # Discretize once at the end: s = sgn(x)
+        s_final = torch.sign(x)
+        s_final[s_final == 0] = 1.0
+        s = s_final.cpu().numpy()
         v = s[:, :Nv]
         h = s[:, Nv:]
 
@@ -421,32 +369,6 @@ class ClassicalSampler(Sampler):
         prob_plus = 1.0 / (1.0 + np.exp(-2.0 * activation))
         rng = np.random.default_rng()
         return np.where(rng.random(prob_plus.shape) < prob_plus, 1.0, -1.0)
-
-    def estimate_beta_eff(
-        self, rbm: RBM, r: np.ndarray = None, n_samples: int = 500
-    ) -> float:
-        """
-        Estimate β_eff via CEM.
-
-        SBM samples the full (v, h) state jointly → joint-samples variant.
-        Metropolis / SA target |Ψ(v)|² at β=1 exactly → conditional variant
-        (result should be ≈ 1.0).
-        """
-        if self.method == "sbm":
-            v, h = self._sbm_sample(rbm, n_samples, config={})
-            return _cem_fit_beta_joint(v, h, rbm)
-
-        rng = np.random.default_rng()
-        if r is None:
-            r = rng.choice([-1.0, 1.0], size=rbm.n_visible)
-
-        activation = rbm.b + r @ rbm.W  # (n_hidden,)
-        prob_plus = 1.0 / (1.0 + np.exp(-2.0 * activation))
-        h_samples = np.where(
-            rng.random((n_samples, rbm.n_hidden)) < prob_plus[None, :], 1.0, -1.0
-        )
-        h_mean = h_samples.mean(axis=0)
-        return _cem_fit_beta(h_mean, activation)
 
     def _metropolis_hastings(
         self, rbm: RBM, n_samples: int, config: dict
@@ -824,7 +746,6 @@ class VeloxSampler(Sampler):
         beta_x = config.get("beta_x", 1.0) if config else 1.0
         J, h = self.rbm_to_ising(rbm, beta_x)
         self.solver.parameters.num_rep = n_samples
-
         MAX_VELOX_RETRIES = 3
         for attempt in range(1, MAX_VELOX_RETRIES + 1):
             try:
@@ -846,20 +767,6 @@ class VeloxSampler(Sampler):
             ].to_numpy()
             return v, h_samples
         return v
-
-    def estimate_beta_eff(
-        self, rbm: RBM, r: np.ndarray = None, n_samples: int = 500
-    ) -> float:
-        """
-        Estimate β_eff via the joint-samples variant of CEM.
-
-        The conditional h problem has no h-h interactions in an RBM, so
-        conditional sampling on VeloxQ would trivially return ground states.
-        Instead, joint (v, h) samples are drawn from the full interacting
-        problem and β is fit via _cem_fit_beta_joint.  r is unused.
-        """
-        v, h = self.sample(rbm, n_samples, return_hidden=True)
-        return _cem_fit_beta_joint(v, h, rbm)
 
 
 class DimodSampler(Sampler):
@@ -900,53 +807,6 @@ class DimodSampler(Sampler):
             )
         else:
             raise ValueError(f"Unknown method: {self.method}")
-
-    def estimate_beta_eff(
-        self, rbm: RBM, r: np.ndarray = None, n_samples: int = 500
-    ) -> float:
-        """
-        Estimate β_eff via CEM (Kubo & Goto 2025, Sec. II A 2).
-
-        SA / tabu  — conditional variant:
-          Builds the h-only conditional BQM for a fixed visible configuration r
-          (linear biases b_j + Σ_i r_i W_{ij}, no quadratic terms).
-          Runs the same sampler on this reduced problem, computes ⟨h_j⟩_{r,C},
-          then fits β via _cem_fit_beta.
-
-        D-Wave (pegasus / zephyr) — joint-samples variant:
-          The conditional h problem has no h-h interactions in an RBM, so
-          D-Wave trivially finds the ground state.  Instead, joint (v, h)
-          samples are drawn from the full interacting problem and β is fit via
-          _cem_fit_beta_joint.  r is unused in this branch.
-        """
-        if self.method in ("pegasus", "zephyr"):
-            config = {"solver": get_solver_name(self.method)}
-            v, h = self.sample(rbm, n_samples, config=config, return_hidden=True)
-            return _cem_fit_beta_joint(v, h, rbm)
-
-        rng = np.random.default_rng()
-        if r is None:
-            r = rng.choice([-1.0, 1.0], size=rbm.n_visible)
-
-        activation = rbm.b + r @ rbm.W  # (n_hidden,)
-        linear = {j: -float(activation[j]) for j in range(rbm.n_hidden)}
-        bqm = dimod.BinaryQuadraticModel.from_ising(linear, {}, 0.0)
-
-        if self.method == "simulated_annealing":
-            sampleset = neal.SimulatedAnnealingSampler().sample(
-                bqm,
-                num_reads=n_samples,
-                beta_range=(0.01, 10.0),
-                num_sweeps=1000,
-                beta_schedule_type="geometric",
-            )
-        elif self.method == "tabu":
-            sampleset = TabuSampler().sample(bqm, num_reads=n_samples)
-        else:
-            raise ValueError(f"Unknown method: {self.method}")
-
-        h_mean = sampleset.record.sample.mean(axis=0)  # (n_hidden,)
-        return _cem_fit_beta(h_mean, activation)
 
     def _log_access_time(self, access_time_us: float):
         """Log the D-Wave access time to time.json.

@@ -200,7 +200,6 @@ def build_args(run: Run) -> SimpleNamespace:
         regularization=FIXED["reg"],
         cem=FIXED["use_cem"],
         cem_interval=5,
-        cem_n_samples=200,
         seed=run.seed,
         visualize=FIXED["visualize"],
         output_dir=FIXED["output_dir"],
@@ -245,7 +244,6 @@ def execute_run(run: Run) -> dict:
         checkpoint_interval=10,
         use_cem=FIXED["use_cem"],
         cem_interval=5,
-        cem_n_samples=200,
     )
 
     trainer = Trainer(rbm, ising, sampler, trainer_config, args=args)

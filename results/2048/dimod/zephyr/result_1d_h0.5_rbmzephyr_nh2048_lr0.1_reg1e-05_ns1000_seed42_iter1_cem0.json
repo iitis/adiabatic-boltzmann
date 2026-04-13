@@ -1,0 +1,78 @@
+{
+  "config": {
+    "model": "1d",
+    "size": 2048,
+    "h": 0.5,
+    "rbm": "zephyr",
+    "n_hidden": 2048,
+    "sampler": "dimod",
+    "sampling_method": "zephyr",
+    "n_samples": 1000,
+    "iterations": 1,
+    "learning_rate": 0.1,
+    "regularization": 1e-05,
+    "cem": false,
+    "cem_interval": 5,
+    "cem_n_samples": 200,
+    "output_dir": "results/",
+    "seed": 42,
+    "visualize": true
+  },
+  "history": {
+    "energy": [
+      -1015.745942210858
+    ],
+    "error": [
+      34.38373242649084
+    ],
+    "energy_error": [
+      1.0873090892549908
+    ],
+    "learning_rate": [
+      0.1
+    ],
+    "grad_norm": [
+      21.6998771912624
+    ],
+    "weight_norm": [
+      2.859948703434714
+    ],
+    "s_condition_number": [
+      1.4636215339965081e-08
+    ],
+    "beta_x": [
+      2.0
+    ],
+    "beta_eff_cem": [
+      null
+    ],
+    "cg_iterations": [
+      200.0
+    ],
+    "cg_residual": [
+      1.4636215339965081e-08
+    ],
+    "sampling_time_s": [
+      6.496987304999493
+    ],
+    "ess": [
+      0.9425266202798037
+    ],
+    "kl_exact": [
+      null
+    ],
+    "n_unique_ratio": [
+      1.0
+    ]
+  },
+  "final_energy": -1015.745942210858,
+  "exact_energy": -2178.1389516254653,
+  "error": 1162.3930094146074,
+  "sparsity": 0.9928693771362305,
+  "sampling_time_s": 6.496987304999493,
+  "final_ess": 0.9425266202798037,
+  "mean_ess": 0.9425266202798037,
+  "final_kl_exact": null,
+  "final_n_unique_ratio": 1.0,
+  "mean_n_unique_ratio": 1.0
+}

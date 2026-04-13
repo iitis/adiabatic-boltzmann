@@ -115,8 +115,14 @@ def save_results(args, history, ising, rbm=None):
         "final_ess": history["ess"][-1] if history.get("ess") else None,
         "mean_ess": float(np.mean(history["ess"])) if history.get("ess") else None,
         "final_kl_exact": history["kl_exact"][-1] if history.get("kl_exact") else None,
-        "final_n_unique_ratio": history["n_unique_ratio"][-1] if history.get("n_unique_ratio") else None,
-        "mean_n_unique_ratio": float(np.mean([x for x in history["n_unique_ratio"] if x is not None])) if history.get("n_unique_ratio") else None,
+        "final_n_unique_ratio": history["n_unique_ratio"][-1]
+        if history.get("n_unique_ratio")
+        else None,
+        "mean_n_unique_ratio": float(
+            np.mean([x for x in history["n_unique_ratio"] if x is not None])
+        )
+        if history.get("n_unique_ratio")
+        else None,
     }
 
     # Filename encodes every axis that varies in the sweep
@@ -132,6 +138,7 @@ def save_results(args, history, ising, rbm=None):
         f"_seed{args.seed}"
         f"_iter{args.iterations}"
         f"_cem{int(use_cem)}"
+        f"_sigma{float(args.sigma)}"
         f".json"
     )
 

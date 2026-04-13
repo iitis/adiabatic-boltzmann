@@ -17,7 +17,11 @@ Run from repo root:
 """
 
 import sys, os, json
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from pathlib import Path
+
+_HERE = Path(__file__).resolve().parent
+ROOT  = _HERE.parent.parent.parent
+sys.path.insert(0, str(_HERE.parent))
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -27,7 +31,8 @@ from ising import TransverseFieldIsing1D, TransverseFieldIsing2D
 from encoder import Trainer
 from sampler import ClassicalSampler, DimodSampler
 
-RESULTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "plots", "results_kl")
+RESULTS_DIR = str(ROOT / "plots" / "kl_data")
+FIGURES_DIR = ROOT / "figures" / "fig_kl_vmc"
 
 # ---------------------------------------------------------------------------
 # TFIM instances  (2×1D + 3×2D)
@@ -468,9 +473,8 @@ if __name__ == "__main__":
                         help="Skip training; load saved JSON results and plot.")
     args = parser.parse_args()
 
-    plots_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "plots")
-    os.makedirs(RESULTS_DIR, exist_ok=True)
-    os.makedirs(plots_root, exist_ok=True)
+    FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+    Path(RESULTS_DIR).mkdir(parents=True, exist_ok=True)
 
     if not args.plot_only:
         run_vmc_experiments()
@@ -481,19 +485,19 @@ if __name__ == "__main__":
     else:
         plot_vmc_comparison(
             vmc_data,
-            save_path=os.path.join(plots_root, "kl_vmc_comparison_final.png"),
+            save_path=str(FIGURES_DIR / "kl_vmc_comparison_final.png"),
             use_mean_kl=False,
         )
         plot_vmc_comparison(
             vmc_data,
-            save_path=os.path.join(plots_root, "kl_vmc_comparison_mean.png"),
+            save_path=str(FIGURES_DIR / "kl_vmc_comparison_mean.png"),
             use_mean_kl=True,
         )
         plot_convergence(
             vmc_data,
-            save_dir=plots_root,
+            save_dir=str(FIGURES_DIR),
         )
         plot_scatter(
             vmc_data,
-            save_path=os.path.join(plots_root, "kl_vmc_scatter.png"),
+            save_path=str(FIGURES_DIR / "kl_vmc_scatter.png"),
         )

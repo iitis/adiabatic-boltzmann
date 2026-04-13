@@ -98,10 +98,10 @@ def parse_arguments():
         help="Iterations between β_eff estimates when --cem is active",
     )
     parser.add_argument(
-        "--cem-n-samples",
-        type=int,
-        default=200,
-        help="Samples used for each β_eff estimate",
+        "--sigma",
+        type=float,
+        default=1.0,
+        help='LSB noise precision σ⁻² (paper convention). σ = 1/√(σ⁻²). Default 1.0 → σ=1.0. Only used if --sampling-method is "lsb".',
     )
 
     # Output
@@ -179,7 +179,7 @@ def main():
         "checkpoint_interval": 10,
         "use_cem": args.cem,
         "cem_interval": args.cem_interval,
-        "cem_n_samples": args.cem_n_samples,
+        "lsb_sigma": args.sigma,
     }
 
     # 5. Create trainer and run

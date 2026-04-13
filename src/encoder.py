@@ -3,6 +3,7 @@ import time
 import numpy as np
 from helpers import save_rbm_checkpoint, save_dwave_samples
 from sampler import ClassicalSampler
+from scipy.optimize import minimize_scalar
 
 
 # ---------------------------------------------------------------------------
@@ -150,6 +151,36 @@ def conjugate_gradient(
 KL_EXACT_MAX_N = 16  # enumerate all 2^N configs for exact KL when N ≤ this
 
 
+def estimate_beta_eff_cem(V: np.ndarray, H: np.ndarray, rbm) -> float:
+    """
+    CEM estimate of β_eff from joint LSB samples (V, H).
+
+    For each sample s and hidden unit j, the analytical conditional expectation is:
+        ⟨h_j⟩_{v_s, β} = tanh(β · (b_j + Σ_i v_{si} W_{ij}))
+
+    Find β_eff ∈ (0, 50] minimising the squared discrepancy against observed h_j:
+        F(β) = Σ_{s,j} (H_{sj} − tanh(β · Θ_{sj}))²
+    where Θ_{sj} = b_j + Σ_i v_{si} W_{ij}  (pre-activations of the hidden units).
+
+    Parameters
+    ----------
+    V   : (ns, n_visible)  visible spin configs from LSB
+    H   : (ns, n_hidden)   hidden spin configs from the same LSB batch
+    rbm : RBM with .W (n_visible, n_hidden) and .b (n_hidden,)
+
+    Returns
+    -------
+    β_eff : float
+    """
+    Theta = V @ rbm.W + rbm.b[None, :]  # (ns, n_hidden)
+
+    def F(beta):
+        return float(np.sum((H - np.tanh(beta * Theta)) ** 2))
+
+    result = minimize_scalar(F, bounds=(0.01, 50.0), method="bounded")
+    return float(result.x)
+
+
 class Trainer:
     """
     Variational Monte Carlo trainer using Stochastic Reconfiguration.
@@ -184,7 +215,7 @@ class Trainer:
         print(self.args)
         if config is None:
             config = {}
-
+        self.config = config
         self.learning_rate = config.get("learning_rate", 0.1)
         self.n_iterations = config.get("n_iterations", 50)
         self.n_samples = config.get("n_samples", 1000)
@@ -193,21 +224,24 @@ class Trainer:
         self.cg_maxiter = config.get("cg_maxiter", 200)
 
         # For samplers that ignore beta_x (metropolis, gibbs) lock it to 1.0
-        _method = getattr(sampler, "method", "") if isinstance(sampler, ClassicalSampler) else ""
+        _method = (
+            getattr(sampler, "method", "")
+            if isinstance(sampler, ClassicalSampler)
+            else ""
+        )
         self._beta_fixed = _method in ("metropolis", "gibbs")
-        self.beta_x = 1.0 if self._beta_fixed else config.get("beta_x_init", 2.0)
+        self.beta_x = 1.0 if self._beta_fixed else config.get("beta_x_init", 1.0)
         self.beta_adapt = config.get("beta_adapt", 0.05)
         self.beta_min = config.get("beta_min", 0.05)
         self.beta_max = config.get("beta_max", 20.0)
 
         self.use_cem = config.get("use_cem", False)
-        self.cem_interval = config.get("cem_interval", 5)
-        self.cem_n_samples = config.get("cem_n_samples", 200)
+        self.cem_interval = config.get("cem_interval", 1)
 
         if self.use_cem:
             print(
                 f"  [CEM] β scheduling ENABLED — estimating β_eff every "
-                f"{self.cem_interval} iterations with {self.cem_n_samples} samples"
+                f"{self.cem_interval} iteration(s) from joint LSB samples"
             )
         else:
             print("  [CEM] β scheduling disabled — using heuristic beta_x adaptation")
@@ -234,21 +268,23 @@ class Trainer:
             "cg_iterations": [],
             "cg_residual": [],
             "sampling_time_s": [],
-            "ess": [],              # effective sample size, normalised to [0, 1]
-            "kl_exact": [],         # KL(q_empirical ‖ p_exact); None when N > KL_EXACT_MAX_N
-            "n_unique_ratio": [],   # unique configs / n_samples  [0, 1]
+            "ess": [],  # effective sample size, normalised to [0, 1]
+            "kl_exact": [],  # KL(q_empirical ‖ p_exact); None when N > KL_EXACT_MAX_N
+            "n_unique_ratio": [],  # unique configs / n_samples  [0, 1]
         }
 
         # Pre-build exact enumeration for small N (cached across iterations)
-        self._kl_all_v = None       # (2^N, N) array of all configs
+        self._kl_all_v = None  # (2^N, N) array of all configs
         self._kl_config_idx = None  # tuple → index mapping
 
     def _build_kl_cache(self):
         """Pre-compute all 2^N configs and index map for exact KL. Called once."""
         N = self.rbm.n_visible
-        indices = np.arange(2 ** N, dtype=np.int32)
+        indices = np.arange(2**N, dtype=np.int32)
         # Vectorised binary → ±1 spin: bit k → 1 if set, else -1
-        all_v = ((indices[:, None] >> np.arange(N - 1, -1, -1)) & 1).astype(np.float64) * 2 - 1
+        all_v = ((indices[:, None] >> np.arange(N - 1, -1, -1)) & 1).astype(
+            np.float64
+        ) * 2 - 1
         config_idx = {tuple(row.astype(int).tolist()): i for i, row in enumerate(all_v)}
         self._kl_all_v = all_v
         self._kl_config_idx = config_idx
@@ -278,7 +314,7 @@ class Trainer:
         lw = log_psi2 - log_psi2.max()
         w = np.exp(lw)
         w /= w.sum()
-        ess_norm = float(1.0 / np.sum(w ** 2)) / ns   # normalised to [0, 1]
+        ess_norm = float(1.0 / np.sum(w**2)) / ns  # normalised to [0, 1]
 
         # ── Exact KL ─────────────────────────────────────────────────────────
         if self.rbm.n_visible > KL_EXACT_MAX_N:
@@ -289,7 +325,9 @@ class Trainer:
 
         all_v = self._kl_all_v
         Theta_all = all_v @ self.rbm.W + self.rbm.b[None, :]
-        log_psi2_all = -(all_v @ self.rbm.a) + np.sum(np.logaddexp(Theta_all, -Theta_all), axis=1)
+        log_psi2_all = -(all_v @ self.rbm.a) + np.sum(
+            np.logaddexp(Theta_all, -Theta_all), axis=1
+        )
         lw_all = log_psi2_all - log_psi2_all.max()
         p_true = np.exp(lw_all)
         p_true /= p_true.sum()
@@ -311,19 +349,25 @@ class Trainer:
         consecutive_converged = 0  # ← add this
         for iteration in range(self.n_iterations):
             # ── 1. Sample ──────────────────────────────────────────────────
+            _need_hidden = self.use_cem and not self._beta_fixed
             try:
                 _t0 = time.perf_counter()
-                samples = self.sampler.sample(
+                _result = self.sampler.sample(
                     self.rbm,
                     self.n_samples,
-                    config={"beta_x": self.beta_x},
+                    config={**self.config, "beta_x": self.beta_x},
+                    return_hidden=_need_hidden,
                 )
                 self.history["sampling_time_s"].append(time.perf_counter() - _t0)
             except Exception as e:
                 print(f"  [Trainer] Sampling failed at iteration {iteration}: {e}")
                 print("  [Trainer] Aborting this experiment.")
                 raise
-            V = np.array([v.copy() for v in samples], dtype=np.float64)  # (ns, N)
+            if _need_hidden and isinstance(_result, tuple):
+                _V_raw, _H_raw = _result
+            else:
+                _V_raw, _H_raw = _result, None
+            V = np.asarray(_V_raw, dtype=np.float64)  # (ns, N)
             ns = V.shape[0]
 
             # ── 2. Batch local energies ────────────────────────────────────
@@ -338,7 +382,10 @@ class Trainer:
             ess_norm, kl, n_unique_ratio = self._compute_sample_metrics(V, Theta)
 
             # ── Save D-Wave samples to disk for post-hoc analysis ──────────
-            if self.args and getattr(self.args, "sampling_method", "") in ("pegasus", "zephyr"):
+            if self.args and getattr(self.args, "sampling_method", "") in (
+                "pegasus",
+                "zephyr",
+            ):
                 save_dwave_samples(V, self.args, iteration)
 
             # ── 4. Build SR system and solve with CG ──────────────────────
@@ -371,11 +418,14 @@ class Trainer:
 
             if self._beta_fixed:
                 pass  # metropolis/gibbs: beta_x is meaningless, keep at 1.0
-            elif self.use_cem and iteration % self.cem_interval == 0:
-                beta_eff = self.sampler.estimate_beta_eff(
-                    self.rbm, n_samples=self.cem_n_samples
-                )
-                self.beta_x = float(np.clip(beta_eff, self.beta_min, self.beta_max))
+            elif (
+                self.use_cem
+                and iteration % self.cem_interval == 0
+                and _H_raw is not None
+            ):
+                H_cem = np.asarray(_H_raw, dtype=np.float64)
+                beta_eff = estimate_beta_eff_cem(V, H_cem, self.rbm)
+                self.beta_x = beta_eff
                 beta_eff_this_iter = self.beta_x
                 print(
                     f"  [CEM iter {iteration:3d}] β_eff = {beta_eff:.4f}"
