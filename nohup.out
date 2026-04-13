@@ -6477,3 +6477,132 @@
 19:53:44  QPU time this run         : 8.68 min
 19:53:44  QPU time total            : 38.75 min
 19:53:44  ======================================================================
+Velox could not be imported
+Configuration:
+  Model: 1d with h=0.5
+  System size: 16
+  RBM: full
+  Sampler: custom (lsb)
+  Training: 100 iterations, lr=0.0003
+  CEM β scheduling: OFF
+<model.FullyConnectedRBM object at 0x7f6ab0887620>
+<ising.TransverseFieldIsing1D object at 0x7f6b1a118d70>
+Namespace(model='1d', size=16, h=0.5, rbm='full', n_hidden=16, sampler='custom', sampling_method='lsb', n_samples=1000, iterations=100, learning_rate=0.0003, regularization=1e-05, cem=False, cem_interval=5, cem_n_samples=200, output_dir='results/', seed=42, visualize=True)
+  [CEM] β scheduling disabled — using heuristic beta_x adaptation
+
+Starting training...
+  [LSB] steps=1000 delta=1.0 sigma=0.0206 unique=998/1000
+Iter   0: E = -8.008125 ± 0.123800  β_x = 2.000  CG 172it res=8.32e-09  ‖x‖=208.3210
+  [LSB] steps=1000 delta=1.0 sigma=0.0223 unique=996/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0277 unique=994/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0326 unique=992/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0367 unique=993/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0390 unique=992/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0405 unique=987/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0462 unique=988/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0494 unique=992/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0523 unique=994/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0533 unique=991/1000
+Iter  10: E = -8.020572 ± 0.126779  β_x = 2.090  CG 178it res=5.04e-09  ‖x‖=72.6564
+  [LSB] steps=1000 delta=1.0 sigma=0.0545 unique=991/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0594 unique=993/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0628 unique=995/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0684 unique=988/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0675 unique=992/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0696 unique=990/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0714 unique=992/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0777 unique=992/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0759 unique=989/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0743 unique=995/1000
+Iter  20: E = -8.136604 ± 0.124509  β_x = 2.074  CG 190it res=5.89e-09  ‖x‖=53.3715
+  [LSB] steps=1000 delta=1.0 sigma=0.0758 unique=996/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0742 unique=996/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0805 unique=991/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0819 unique=992/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0873 unique=991/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0862 unique=990/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0871 unique=994/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0927 unique=991/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0954 unique=996/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0969 unique=991/1000
+Iter  30: E = -8.147726 ± 0.120030  β_x = 1.960  CG 200it res=2.28e-07  ‖x‖=45.0551
+  [LSB] steps=1000 delta=1.0 sigma=0.0988 unique=990/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0943 unique=994/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1028 unique=993/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0989 unique=994/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1013 unique=993/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1077 unique=995/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1081 unique=990/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1053 unique=996/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1015 unique=996/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1030 unique=992/1000
+Iter  40: E = -7.896598 ± 0.123902  β_x = 2.258  CG 200it res=6.38e-07  ‖x‖=41.0223
+  [LSB] steps=1000 delta=1.0 sigma=0.0985 unique=991/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0984 unique=993/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1005 unique=988/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0983 unique=992/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0976 unique=996/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.0998 unique=995/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1062 unique=990/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1072 unique=992/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1135 unique=993/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1155 unique=994/1000
+Iter  50: E = -7.856216 ± 0.120319  β_x = 2.033  CG 200it res=3.23e-06  ‖x‖=38.8028
+  [LSB] steps=1000 delta=1.0 sigma=0.1232 unique=992/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1234 unique=993/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1246 unique=992/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1333 unique=991/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1354 unique=992/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1282 unique=995/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1281 unique=993/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1384 unique=990/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1336 unique=992/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1347 unique=991/1000
+Iter  60: E = -8.126886 ± 0.120600  β_x = 2.124  CG 200it res=8.50e-07  ‖x‖=37.6442
+  [LSB] steps=1000 delta=1.0 sigma=0.1295 unique=992/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1242 unique=996/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1310 unique=995/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1392 unique=992/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1390 unique=998/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1395 unique=991/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1433 unique=989/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1373 unique=991/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1392 unique=994/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1331 unique=994/1000
+Iter  70: E = -7.982747 ± 0.120105  β_x = 2.219  CG 200it res=5.45e-06  ‖x‖=37.0268
+  [LSB] steps=1000 delta=1.0 sigma=0.1333 unique=995/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1284 unique=996/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1226 unique=994/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1228 unique=992/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1244 unique=991/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1186 unique=996/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1203 unique=995/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1218 unique=990/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1156 unique=991/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1163 unique=995/1000
+Iter  80: E = -8.018648 ± 0.118704  β_x = 2.832  CG 200it res=2.86e-06  ‖x‖=35.4659
+  [LSB] steps=1000 delta=1.0 sigma=0.1113 unique=992/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1076 unique=991/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1078 unique=994/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1155 unique=994/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1205 unique=997/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1200 unique=993/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1230 unique=994/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1287 unique=989/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1307 unique=993/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1372 unique=997/1000
+Iter  90: E = -7.972840 ± 0.117025  β_x = 2.422  CG 200it res=3.89e-06  ‖x‖=35.1952
+  [LSB] steps=1000 delta=1.0 sigma=0.1392 unique=997/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1400 unique=996/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1339 unique=990/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1283 unique=995/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1224 unique=993/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1232 unique=993/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1236 unique=992/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1248 unique=994/1000
+  [LSB] steps=1000 delta=1.0 sigma=0.1318 unique=990/1000
+Saved  → results/16/custom/lsb/result_1d_h0.5_rbmfull_nh16_lr0.0003_reg1e-05_ns1000_seed42_iter100_cem0.json
+  Final energy : -7.960541
+  Exact energy : -17.016711
+  Error        : 9.056169
+Plot saved to results/16/custom/lsb/plots/plot_1d_h0.5_rbmfull.png

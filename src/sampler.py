@@ -23,8 +23,11 @@ except ImportError:
     _DEVICE = "cpu"
 import neal
 from dwave.samplers import TabuSampler
-from veloxq_sdk import VeloxQSolver, SBMSolver, SBMParameters
-from veloxq_sdk.config import load_config, VeloxQAPIConfig
+try:
+    from veloxq_sdk import VeloxQSolver, SBMSolver, SBMParameters
+    from veloxq_sdk.config import load_config, VeloxQAPIConfig
+except:
+    print("Velox could not be imported")
 from pathlib import Path
 from helpers import get_solver_name
 from scipy.optimize import minimize_scalar

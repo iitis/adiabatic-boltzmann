@@ -1,6 +1,7 @@
 veloxq_api_config.py
 velox_token.txt
-
+dwave_samples/
+checkpoints/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
