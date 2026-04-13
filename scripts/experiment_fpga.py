@@ -1,7 +1,7 @@
 """
 FPGA sampler sweep.
 
-Sweeps: N=24, h ∈ {0.5, 1.0, 2.0}, lr over LEARNING_RATES, 5 seeds.
+Sweeps: N=24, h ∈ {0.5, 1.0, 2.0}, lr over LEARNING_RATES, 1 seeds.
 Sampler: fpga / fpga  (FPGASampler — not yet implemented in sampler.py).
 
 Usage
@@ -47,7 +47,7 @@ FIXED = dict(
 SIZES = [24]
 H_VALUES = [0.5, 1.0, 2.0]
 LEARNING_RATES = [1e-4, 3e-4, 1e-3, 3e-3, 1e-2]
-SEEDS = list(range(1, 6))
+SEEDS = [1]
 
 SAMPLERS = {
     "fpga": ("fpga", "fpga"),
@@ -200,10 +200,12 @@ def main():
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Print the run grid without executing")
-    parser.add_argument("--workers", type=int, default=4,
-                        help="Parallel workers (default: 4)")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Print the run grid without executing"
+    )
+    parser.add_argument(
+        "--workers", type=int, default=1, help="Parallel workers (default: 1)"
+    )
     cli = parser.parse_args()
 
     grid = build_grid()
@@ -215,7 +217,9 @@ def main():
         for r in grid:
             done = "yes" if result_path(r).exists() else "no"
             print(f"{r.size:>4}  {r.h:>4}  {r.lr:>8.4g}  {r.seed:>4}  {done:>4}")
-        print(f"\nTotal: {len(grid)} runs | pending: {pending} | done: {len(grid) - pending}")
+        print(
+            f"\nTotal: {len(grid)} runs | pending: {pending} | done: {len(grid) - pending}"
+        )
         return
 
     pending = [r for r in grid if not result_path(r).exists()]
@@ -235,8 +239,10 @@ def main():
         for future in as_completed(futures):
             completed += 1
             run, summary, exc = future.result()
-            tag = (f"[{completed}/{len(pending)}] "
-                   f"N={run.size} h={run.h} lr={run.lr:.4g} seed={run.seed}")
+            tag = (
+                f"[{completed}/{len(pending)}] "
+                f"N={run.size} h={run.h} lr={run.lr:.4g} seed={run.seed}"
+            )
             if exc is not None:
                 n_fail += 1
                 print(f"  FAIL  {tag}")
@@ -244,9 +250,15 @@ def main():
                 _write_failure(log_path, run, exc)
             else:
                 n_done += 1
-                kl_str = f"{summary['final_kl']:.4f}" if summary["final_kl"] is not None else "N/A"
+                kl_str = (
+                    f"{summary['final_kl']:.4f}"
+                    if summary["final_kl"] is not None
+                    else "N/A"
+                )
                 print(f"  DONE  {tag}")
-                print(f"         rel_err={summary['rel_error']:.4f}  kl={kl_str}  grad_norm={summary['grad_norm']:.4f}")
+                print(
+                    f"         rel_err={summary['rel_error']:.4f}  kl={kl_str}  grad_norm={summary['grad_norm']:.4f}"
+                )
 
     print(f"\n[{datetime.now():%H:%M:%S}] Finished.")
     print(f"  Completed : {n_done}")
