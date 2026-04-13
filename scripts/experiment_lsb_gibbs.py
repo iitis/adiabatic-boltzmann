@@ -386,7 +386,7 @@ def main():
         print("-" * 80)
         for r in grid:
             pool = "GPU" if r.sampler in _GPU_SAMPLERS else "CPU"
-            done = "yes" if result_path(r).exists() else "no"
+            done = 'no'
             print(
                 f"{r.model:>4}  {r.size:>3}  {r.h:>4}  "
                 f"{r.sampler:>12}  {r.lr:>8.4g}  {'Y' if r.use_cem else 'N':>3}  "
