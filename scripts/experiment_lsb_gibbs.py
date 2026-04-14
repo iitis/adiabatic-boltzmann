@@ -98,7 +98,6 @@ SAMPLERS = {
     "metropolis": ("custom", "metropolis"),
     "gibbs": ("custom", "gibbs"),
     "lsb": ("custom", "lsb"),
-    "zephyr": ("dimod", "zephyr"),
 }
 
 
@@ -140,7 +139,7 @@ def build_grid() -> list[Run]:
                             )
 
     # 2D geometry
-    for size in [24]:
+    for size in [8]:
         for h in [0.5, 1.0, 2.0]:
             for sampler in sampler_keys:
                 for lr in LEARNING_RATES:
