@@ -38,7 +38,7 @@ from sampler import FPGASampler
 FIXED = dict(
     n_samples=1000,
     reg=1e-5,
-    iterations=100,
+    iterations=300,
     rbm="full",
     visualize=False,
     output_dir=str(_SRC / "results"),
@@ -211,7 +211,7 @@ def main():
         "--iterations",
         type=int,
         default=FIXED["iterations"],
-        help="Training iterations per run (default: 100)",
+        help="Training iterations per run (default: 300)",
     )
     parser.add_argument(
         "--serial",
