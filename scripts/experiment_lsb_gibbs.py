@@ -1,34 +1,6 @@
 """
 Experiment: KL divergence as predictor of VMC convergence quality.
 Includes extensive LR sweep for LSB and Gibbs samplers.
-
-Scientific question
--------------------
-Is the KL divergence D_KL(q_sampler ∥ |Ψ|²) the primary determinant of VMC
-convergence quality, and does this relationship intensify at the quantum
-critical point of the 1D TFIM?
-
-Competing hypotheses
---------------------
-H1 (KL hypothesis):   final KL is the primary predictor of final energy error.
-H2 (SR hypothesis):   SR optimizer ill-conditioning (grad norm) is the primary
-                       predictor, independently of sampler quality.
-
-Experiment structure
---------------------
-Part 1 — h-sweep (main result):
-    1D, N=8, h ∈ {0.5, 1.0, 1.5, 2.0}, 6 samplers, 15 seeds → ~1440 runs.
-    LSB and Gibbs: 5 LRs × 2 CEM variants × 15 seeds per h.
-    Others (metro/SA/tabu): lr=0.1, CEM=off × 15 seeds per h.
-    Primary output: Spearman ρ(KL, error) and ρ(grad_norm, error) per h.
-Part 3 — 2D geometry (supplementary):
-    2D, L=2 (N=4 spins), h ∈ {0.5, 1.0}, 6 samplers, 10 seeds → ~480 runs.
-    Primary output: does the 1D result hold in 2D?
-
-Total: ~2400 runs (after dedup), all free classical samplers (no QPU).
-
-Controlled hyperparameters
---------------------------
   n_hidden    = n_visible  (α = 1 hidden-to-visible ratio)
   n_samples   = 1000
   lr          = 0.1 for metropolis/SA/tabu; swept over LEARNING_RATES for lsb/gibbs
@@ -98,7 +70,6 @@ SAMPLERS = {
     "metropolis": ("custom", "metropolis"),
     "gibbs": ("custom", "gibbs"),
     "lsb": ("custom", "lsb"),
-    "zephyr": ("dimod", "zephyr"),
 }
 
 
@@ -121,26 +92,25 @@ class Run:
 def build_grid() -> list[Run]:
     grid = []
     sampler_keys = list(SAMPLERS.keys())
-    if False:
-        for size in [8, 16, 32, 64, 128]:
-            for h in [0.5, 1.0, 2.0]:
-                for sampler in sampler_keys:
-                    for lr in LEARNING_RATES:
-                        for use_cem in [False, True] if sampler == "lsb" else [False]:
-                            grid.append(
-                                Run(
-                                    "1d",
-                                    size,
-                                    h,
-                                    sampler,
-                                    seed=1,
-                                    lr=lr,
-                                    use_cem=use_cem,
-                                )
+    for size in [8, 16, 32]:
+        for h in [0.5, 1.0, 2.0]:
+            for sampler in sampler_keys:
+                for lr in LEARNING_RATES:
+                    for use_cem in [False, True] if sampler == "lsb" else [False]:
+                        grid.append(
+                            Run(
+                                "1d",
+                                size,
+                                h,
+                                sampler,
+                                seed=1,
+                                lr=lr,
+                                use_cem=use_cem,
                             )
+                        )
 
     # 2D geometry
-    for size in [24]:
+    for size in [4, 6, 8]:
         for h in [0.5, 1.0, 2.0]:
             for sampler in sampler_keys:
                 for lr in LEARNING_RATES:
