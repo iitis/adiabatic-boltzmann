@@ -233,7 +233,30 @@ class DWaveTopologyRBM(RBM):
         return DWaveTopologyRBM._mask_from_graph(mapped, n_visible, n_hidden)
 
     @staticmethod
+    def _cache_path(solver: str, n_nodes: int, seed: int):
+        from pathlib import Path
+
+        cache_dir = Path(__file__).parent.parent / "embeddings"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        safe_solver = solver.replace("/", "_").replace(".", "_")
+        return cache_dir / f"{safe_solver}_{n_nodes}_seed{seed}.json"
+
+    @staticmethod
     def _subgraph_from_solver(solver: str, n_nodes: int, seed: int):
+        import json
+        import networkx as nx
+
+        cache_path = DWaveTopologyRBM._cache_path(solver, n_nodes, seed)
+
+        if cache_path.exists():
+            print(f"[DWaveTopologyRBM] Loading cached embedding from {cache_path}")
+            with open(cache_path) as f:
+                data = json.load(f)
+            g = nx.Graph()
+            g.add_nodes_from(data["nodes"])
+            g.add_edges_from(data["edges"])
+            return g
+
         from dwave.system import DWaveSampler
 
         sampler = DWaveSampler(solver=solver)
@@ -246,7 +269,20 @@ class DWaveTopologyRBM(RBM):
             )
 
         selected = _dense_subgraph(hw_graph, n_nodes, seed)
-        return hw_graph.subgraph(selected)
+        subgraph = hw_graph.subgraph(selected)
+
+        data = {
+            "solver": solver,
+            "n_nodes": n_nodes,
+            "seed": seed,
+            "nodes": sorted(subgraph.nodes()),
+            "edges": [list(e) for e in subgraph.edges()],
+        }
+        with open(cache_path, "w") as f:
+            json.dump(data, f, indent=2)
+        print(f"[DWaveTopologyRBM] Saved embedding to {cache_path}")
+
+        return subgraph
 
     @staticmethod
     def _remap_graph(qpu_subgraph):

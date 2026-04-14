@@ -80,7 +80,7 @@ FIXED = dict(
     lr=0.1,  # default lr for samplers that are NOT in _LR_SWEEP_SAMPLERS
     reg=1e-5,
     iterations=300,
-    rbm="full",
+    rbm="zephyr",
     use_cem=False,
     visualize=False,
     output_dir=str(_SRC / "results"),
@@ -100,6 +100,7 @@ SAMPLERS = {
     "metropolis": ("custom", "metropolis"),
     "gibbs": ("custom", "gibbs"),
     "lsb": ("custom", "lsb"),
+    "zephyr": ("dimod", "zephyr"),
 }
 
 
@@ -122,26 +123,27 @@ class Run:
 def build_grid() -> list[Run]:
     grid = []
     sampler_keys = list(SAMPLERS.keys())
-    for size in [8, 16, 32, 64, 128]:
-        for h in [0.5, 1.0, 2.0]:
-            for sampler in sampler_keys:
-                for lr in LEARNING_RATES:
-                    for use_cem in [False, True] if sampler == "lsb" else [False]:
-                        grid.append(
-                            Run(
-                                "1d",
-                                size,
-                                h,
-                                sampler,
-                                seed=1,
-                                lr=lr,
-                                use_cem=use_cem,
+    if False:
+        for size in [8, 16, 32, 64, 128]:
+            for h in [0.5, 1.0, 2.0]:
+                for sampler in sampler_keys:
+                    for lr in LEARNING_RATES:
+                        for use_cem in [False, True] if sampler == "lsb" else [False]:
+                            grid.append(
+                                Run(
+                                    "1d",
+                                    size,
+                                    h,
+                                    sampler,
+                                    seed=1,
+                                    lr=lr,
+                                    use_cem=use_cem,
+                                )
                             )
-                        )
 
     # 2D geometry
-    for size in [4, 8, 10, 12]:
-        for h in [0.5, 1.0]:
+    for size in [24]:
+        for h in [0.5, 1.0, 2.0]:
             for sampler in sampler_keys:
                 for lr in LEARNING_RATES:
                     for use_cem in [False, True] if sampler == "lsb" else [False]:
@@ -386,7 +388,7 @@ def main():
         print("-" * 80)
         for r in grid:
             pool = "GPU" if r.sampler in _GPU_SAMPLERS else "CPU"
-            done = 'no'
+            done = "no"
             print(
                 f"{r.model:>4}  {r.size:>3}  {r.h:>4}  "
                 f"{r.sampler:>12}  {r.lr:>8.4g}  {'Y' if r.use_cem else 'N':>3}  "

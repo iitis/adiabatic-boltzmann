@@ -109,10 +109,14 @@ def save_results(args, history, ising, rbm=None):
         _torch_device = "cpu"
 
     try:
-        import cupy as _cupy  # noqa: F401
+        import cupy as _cupy
         _cupy_available = True
+        _cupy_device_name = _cupy.cuda.runtime.getDeviceProperties(
+            _cupy.cuda.Device().id
+        )["name"].decode("utf-8")
     except Exception:
         _cupy_available = False
+        _cupy_device_name = None
 
     use_cem = getattr(args, "cem", False)
     results = {
@@ -130,6 +134,7 @@ def save_results(args, history, ising, rbm=None):
             "torch_cuda_available": _torch_cuda,
             "torch_device": _torch_device,
             "cupy_available": _cupy_available,
+            "cupy_device": _cupy_device_name,
         },
         "final_ess": history["ess"][-1] if history.get("ess") else None,
         "mean_ess": float(np.mean(history["ess"])) if history.get("ess") else None,
