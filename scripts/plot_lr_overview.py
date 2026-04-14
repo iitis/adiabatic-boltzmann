@@ -45,6 +45,7 @@ METHOD_COLORS = {
     "dimod/zephyr":              "#d62728",
     "dimod/tabu":                "#8c564b",
     "velox/velox":               "#9467bd",
+    "fpga/fpga":                 "#bcbd22",
 }
 
 
@@ -60,12 +61,32 @@ EXACT_ENERGY_2D_PER_SPIN = {
 }
 
 
+EXACT_ENERGY_CACHE_FILE = ROOT / "scripts" / "exact_energy_cache.json"
+
+
+def _load_cache() -> dict:
+    if EXACT_ENERGY_CACHE_FILE.exists():
+        with open(EXACT_ENERGY_CACHE_FILE) as f:
+            return json.load(f)
+    return {}
+
+
+def _save_cache(cache: dict) -> None:
+    with open(EXACT_ENERGY_CACHE_FILE, "w") as f:
+        json.dump(cache, f, indent=2)
+
+
 def compute_exact_energy(model: str, N: int, h: float) -> float | None:
     if model == "2d":
         val = EXACT_ENERGY_2D_PER_SPIN.get(h)
         if val is None:
             print(f"No 2D reference energy for h={h}")
         return val
+
+    cache_key = f"1d_N{N}_h{h}"
+    cache = _load_cache()
+    if cache_key in cache:
+        return cache[cache_key]
 
     try:
         result = subprocess.run(
@@ -83,7 +104,10 @@ def compute_exact_energy(model: str, N: int, h: float) -> float | None:
             print(f"Error computing exact energy: {result.stderr}")
             return None
         line = result.stdout.strip().split("\n")[-1]
-        return float(line.split(": ")[-1])
+        energy = float(line.split(": ")[-1])
+        cache[cache_key] = energy
+        _save_cache(cache)
+        return energy
     except Exception as e:
         print(f"Failed to compute exact energy for N={N}, h={h}: {e}")
         return None

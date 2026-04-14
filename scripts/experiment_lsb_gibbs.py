@@ -67,7 +67,7 @@ from encoder import Trainer
 from helpers import save_results
 from ising import TransverseFieldIsing1D, TransverseFieldIsing2D
 from model import FullyConnectedRBM, DWaveTopologyRBM
-from sampler import ClassicalSampler, DimodSampler
+from sampler import ClassicalSampler, DimodSampler, _DEVICE
 
 # ---------------------------------------------------------------------------
 # Fixed hyperparameters — do NOT change between parts or seeds
@@ -330,7 +330,15 @@ def main():
         default=None,
         help="Restrict to a single sampler",
     )
+    parser.add_argument(
+        "--gpu",
+        action="store_true",
+        help="Require GPU (CuPy) — exit with error if unavailable",
+    )
     cli = parser.parse_args()
+
+    if cli.gpu and _DEVICE != "gpu":
+        sys.exit("ERROR: --gpu specified but CuPy is not available (device=cpu).")
 
     grid = build_grid()
     if cli.sampler:
