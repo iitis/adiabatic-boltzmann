@@ -184,37 +184,54 @@ def _mean_energy_curve(runs: list, n_visible: int):
     return np.arange(min_len), mean
 
 
-def plot_lr_overview(results, size_key):
+def _fill_cell(ax, methods_data: dict, exact_E: float | None, mode: str) -> None:
+    """Populate one grid cell.
+
+    mode='error'  — semilogy |ΔE per spin|; falls back to raw energy if exact_E is None.
+    mode='energy' — linear energy per spin with a dashed exact-energy reference line.
     """
-    Build the overview figure for one (model, size) key.
-    size_key = (model, N)
-    """
-    model, N = size_key
+    for method_name in sorted(methods_data.keys()):
+        runs = methods_data[method_name]
+        n_visible = runs[0]["n_visible"]
+        iters, mean_energy = _mean_energy_curve(runs, n_visible)
+        if iters is None or mean_energy is None:
+            continue
 
-    # Collect distinct h and lr values present for this size
-    h_values = sorted({key[2] for key in results if key[0] == model and key[1] == N})
-    lr_values = sorted({key[3] for key in results if key[0] == model and key[1] == N})
+        color = METHOD_COLORS.get(method_name)
+        n_seeds = len(runs)
+        label = method_name + (f" [n={n_seeds}]" if n_seeds > 1 else "")
 
-    if not h_values or not lr_values:
-        return
+        if mode == "error":
+            if exact_E is not None:
+                delta = np.abs(mean_energy - exact_E)
+                delta = np.where(delta > 0, delta, np.nan)
+                ax.semilogy(iters, delta, label=label, color=color,
+                            linewidth=1.8, alpha=0.85)
+            else:
+                ax.plot(iters, mean_energy, label=label, color=color,
+                        linewidth=1.8, alpha=0.85)
+        else:  # energy
+            ax.plot(iters, mean_energy, label=label, color=color,
+                    linewidth=1.8, alpha=0.85)
 
-    n_rows = len(h_values)
-    n_cols = len(lr_values)
+    if mode == "energy" and exact_E is not None:
+        ax.axhline(exact_E, color="black", linestyle="--", linewidth=1.5,
+                   label=f"exact: {exact_E:.5f}", zorder=10)
 
+
+def _build_grid(results, model: str, N: int, h_values: list, lr_values: list,
+                exact_per_h: dict, mode: str, title_suffix: str):
+    """Create and return a filled (fig, out_stem) pair for the given mode."""
+    n_rows, n_cols = len(h_values), len(lr_values)
     fig, axes = plt.subplots(
         n_rows, n_cols,
         figsize=(5 * n_cols, 4 * n_rows),
         squeeze=False,
     )
     fig.suptitle(
-        f"Learning-rate overview — model={model}, N={N}",
+        f"LR overview ({title_suffix}) — model={model}, N={N}",
         fontsize=13, fontweight="bold",
     )
-
-    # Pre-compute exact energies (one per h)
-    exact_per_h = {}
-    for h in h_values:
-        exact_per_h[h] = compute_exact_energy(model, N, h)
 
     for row_idx, h in enumerate(h_values):
         for col_idx, lr in enumerate(lr_values):
@@ -225,34 +242,14 @@ def plot_lr_overview(results, size_key):
                 ax.set_visible(False)
                 continue
 
-            methods_data = results[key]
             exact_E = exact_per_h.get(h)
-
-            for method_name in sorted(methods_data.keys()):
-                runs = methods_data[method_name]
-                n_visible = runs[0]["n_visible"]
-                iters, mean_energy = _mean_energy_curve(runs, n_visible)
-                if iters is None:
-                    continue
-
-                color = METHOD_COLORS.get(method_name)
-                n_seeds = len(runs)
-                label = f"{method_name}" + (f" [n={n_seeds}]" if n_seeds > 1 else "")
-
-                if exact_E is not None:
-                    delta = np.abs(mean_energy - exact_E)
-                    # Guard against zero before log
-                    delta = np.where(delta > 0, delta, np.nan)
-                    ax.semilogy(iters, delta, label=label, color=color,
-                                linewidth=1.8, alpha=0.85)
-                else:
-                    ax.plot(iters, mean_energy, label=label, color=color,
-                            linewidth=1.8, alpha=0.85)
+            _fill_cell(ax, results[key], exact_E, mode)
 
             ax.set_xscale("log")
             ax.set_xlabel("# iterations", fontsize=9)
-            if exact_E is not None:
-                ax.set_ylabel("|ΔE per spin|", fontsize=9)
+            if mode == "error":
+                ax.set_ylabel("|ΔE per spin|" if exact_E is not None else "Energy per spin",
+                              fontsize=9)
             else:
                 ax.set_ylabel("Energy per spin", fontsize=9)
             ax.set_title(f"h={h},  lr={lr}", fontsize=9, fontweight="bold")
@@ -260,13 +257,37 @@ def plot_lr_overview(results, size_key):
             ax.legend(fontsize=7, loc="best")
 
     plt.tight_layout()
+    return fig
+
+
+def plot_lr_overview(results, size_key):
+    """
+    Build two overview figures for one (model, size) key:
+      - lr_overview_N{N}.png        — |ΔE per spin| (semilogy)
+      - lr_overview_N{N}_energy.png — Energy per spin (linear, with exact reference)
+    """
+    model, N = size_key
+
+    h_values = sorted({key[2] for key in results if key[0] == model and key[1] == N})
+    lr_values = sorted({key[3] for key in results if key[0] == model and key[1] == N})
+
+    if not h_values or not lr_values:
+        return
+
+    exact_per_h = {h: compute_exact_energy(model, N, h) for h in h_values}
 
     out_dir = PLOTS_DIR / model
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / f"lr_overview_N{N}.png"
-    plt.savefig(out_path, dpi=150, bbox_inches="tight")
-    print(f"Saved: {out_path}")
-    plt.close(fig)
+
+    for mode, suffix, stem in [
+        ("error",  "|ΔE per spin|",    f"lr_overview_N{N}"),
+        ("energy", "energy per spin",  f"lr_overview_N{N}_energy"),
+    ]:
+        fig = _build_grid(results, model, N, h_values, lr_values, exact_per_h, mode, suffix)
+        out_path = out_dir / f"{stem}.png"
+        fig.savefig(out_path, dpi=150, bbox_inches="tight")
+        print(f"Saved: {out_path}")
+        plt.close(fig)
 
 
 # ---------------------------------------------------------------------------

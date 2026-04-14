@@ -95,7 +95,7 @@ def result_path(run: Run) -> Path:
         f"_ns{FIXED['n_samples']}"
         f"_seed{run.seed}"
         f"_iter{FIXED['iterations']}"
-        f"_cem0"
+        f"_cem1"
         f"_sigma{float(FIXED['sigma'])}"
         f".json"
     )
@@ -120,7 +120,7 @@ def build_args(run: Run) -> SimpleNamespace:
         iterations=FIXED["iterations"],
         learning_rate=run.lr,
         regularization=FIXED["reg"],
-        cem=False,
+        cem=True,
         cem_interval=5,
         seed=run.seed,
         visualize=FIXED["visualize"],
@@ -148,7 +148,7 @@ def execute_run(run: Run) -> dict:
         regularization=FIXED["reg"],
         save_checkpoints=False,
         checkpoint_interval=10,
-        use_cem=False,
+        use_cem=True,
         cem_interval=5,
     )
 
