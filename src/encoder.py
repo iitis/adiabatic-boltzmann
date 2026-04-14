@@ -358,7 +358,13 @@ class Trainer:
                     config={**self.config, "beta_x": self.beta_x},
                     return_hidden=_need_hidden,
                 )
-                self.history["sampling_time_s"].append(time.perf_counter() - _t0)
+                elapsed = time.perf_counter() - _t0
+                fpga_time = getattr(self.sampler, "last_sampling_time_s", None)
+                if fpga_time is None:
+                    sample_time_s = elapsed
+                else:
+                    sample_time_s = float(fpga_time)
+                self.history["sampling_time_s"].append(sample_time_s)
             except Exception as e:
                 print(f"  [Trainer] Sampling failed at iteration {iteration}: {e}")
                 print("  [Trainer] Aborting this experiment.")
@@ -467,12 +473,14 @@ class Trainer:
             self.history["n_unique_ratio"].append(n_unique_ratio)
 
             if iteration % 10 == 0:
+                time_label = "fpga_time" if fpga_time is not None else "sample_time"
                 print(
                     f"Iter {iteration:3d}: "
                     f"E = {E_mean:.6f} ± {E_error:.6f}  "
                     f"β_x = {self.beta_x:.3f}  "
                     f"CG {cg_info['iterations']}it "
                     f"res={cg_info['residual_norm']:.2e}  "
+                    f"{time_label}={sample_time_s:.3f}s  "
                     f"‖x‖={np.linalg.norm(x):.4f}"
                 )
 

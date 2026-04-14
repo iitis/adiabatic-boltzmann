@@ -2,7 +2,7 @@
 FPGA sampler sweep.
 
 Sweeps: N=24, h ∈ {0.5, 1.0, 2.0}, lr over LEARNING_RATES, 1 seeds.
-Sampler: fpga / fpga  (FPGASampler — not yet implemented in sampler.py).
+Sampler: fpga / fpga  (FPGASampler via VeloxQFPGA JTAG).
 
 Usage
 -----
@@ -29,6 +29,7 @@ from encoder import Trainer
 from helpers import save_results
 from ising import TransverseFieldIsing1D
 from model import FullyConnectedRBM
+from sampler import FPGASampler
 
 # ---------------------------------------------------------------------------
 # Fixed hyperparameters
@@ -129,7 +130,7 @@ def build_args(run: Run) -> SimpleNamespace:
 
 
 def make_sampler(run: Run):
-    raise NotImplementedError("FPGASampler is not yet implemented in sampler.py")
+    return FPGASampler(transport="jtag")
 
 
 def execute_run(run: Run) -> dict:
@@ -206,7 +207,19 @@ def main():
     parser.add_argument(
         "--workers", type=int, default=1, help="Parallel workers (default: 1)"
     )
+    parser.add_argument(
+        "--iterations",
+        type=int,
+        default=FIXED["iterations"],
+        help="Training iterations per run (default: 100)",
+    )
+    parser.add_argument(
+        "--serial",
+        action="store_true",
+        help="Run in-process (no multiprocessing). Recommended for FPGA/JTAG debugging.",
+    )
     cli = parser.parse_args()
+    FIXED["iterations"] = cli.iterations
 
     grid = build_grid()
 
@@ -232,13 +245,11 @@ def main():
     log_path = Path(__file__).resolve().parent / "experiment_fpga_failures.jsonl"
     n_done = n_fail = 0
 
-    mp_ctx = multiprocessing.get_context("spawn")
-    with ProcessPoolExecutor(max_workers=cli.workers, mp_context=mp_ctx) as pool:
-        futures = {pool.submit(_worker, run): run for run in pending}
+    if cli.serial:
         completed = 0
-        for future in as_completed(futures):
+        for run in pending:
             completed += 1
-            run, summary, exc = future.result()
+            run, summary, exc = _worker(run)
             tag = (
                 f"[{completed}/{len(pending)}] "
                 f"N={run.size} h={run.h} lr={run.lr:.4g} seed={run.seed}"
@@ -259,6 +270,34 @@ def main():
                 print(
                     f"         rel_err={summary['rel_error']:.4f}  kl={kl_str}  grad_norm={summary['grad_norm']:.4f}"
                 )
+    else:
+        mp_ctx = multiprocessing.get_context("spawn")
+        with ProcessPoolExecutor(max_workers=cli.workers, mp_context=mp_ctx) as pool:
+            futures = {pool.submit(_worker, run): run for run in pending}
+            completed = 0
+            for future in as_completed(futures):
+                completed += 1
+                run, summary, exc = future.result()
+                tag = (
+                    f"[{completed}/{len(pending)}] "
+                    f"N={run.size} h={run.h} lr={run.lr:.4g} seed={run.seed}"
+                )
+                if exc is not None:
+                    n_fail += 1
+                    print(f"  FAIL  {tag}")
+                    print(f"         {type(exc).__name__}: {exc}")
+                    _write_failure(log_path, run, exc)
+                else:
+                    n_done += 1
+                    kl_str = (
+                        f"{summary['final_kl']:.4f}"
+                        if summary["final_kl"] is not None
+                        else "N/A"
+                    )
+                    print(f"  DONE  {tag}")
+                    print(
+                        f"         rel_err={summary['rel_error']:.4f}  kl={kl_str}  grad_norm={summary['grad_norm']:.4f}"
+                    )
 
     print(f"\n[{datetime.now():%H:%M:%S}] Finished.")
     print(f"  Completed : {n_done}")
