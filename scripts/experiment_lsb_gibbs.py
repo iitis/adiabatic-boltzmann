@@ -53,9 +53,7 @@ Usage
 
 import argparse
 import json
-import multiprocessing
 import sys
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -68,7 +66,7 @@ sys.path.insert(0, str(_SRC))
 from encoder import Trainer
 from helpers import save_results
 from ising import TransverseFieldIsing1D, TransverseFieldIsing2D
-from model import FullyConnectedRBM
+from model import FullyConnectedRBM, DWaveTopologyRBM
 from sampler import ClassicalSampler, DimodSampler
 
 # ---------------------------------------------------------------------------
@@ -254,7 +252,11 @@ def execute_run(run: Run) -> dict:
     else:
         ising = TransverseFieldIsing2D(run.size, run.h)
 
-    rbm = FullyConnectedRBM(n_visible, n_hidden)
+    if FIXED["rbm"] == "full":
+        rbm = FullyConnectedRBM(n_visible, n_hidden)
+    else:
+        rbm = DWaveTopologyRBM(n_visible, n_hidden, solver=FIXED["rbm"])
+
     sampler = make_sampler(run)
 
     trainer_config = dict(
@@ -289,37 +291,7 @@ def execute_run(run: Run) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Samplers that use batched GPU kernels (CuPy) vs. CPU-only
-# ---------------------------------------------------------------------------
-
-# ClassicalSampler methods dispatch to a GPU-batched path when CuPy is
-# available (_DEVICE == "gpu" in sampler.py).  Multiple GPU processes compete
-# for VRAM and SM time, so we limit their concurrency separately.
-# DimodSampler (neal, TabuSampler) is pure CPU — use all available cores.
-_GPU_SAMPLERS = {"metropolis", "gibbs", "lsb"}
-_CPU_SAMPLERS: set[str] = set()
-
-
-# ---------------------------------------------------------------------------
-# Worker (top-level so ProcessPoolExecutor can pickle it)
-# ---------------------------------------------------------------------------
-
-
-def _worker(run: Run) -> tuple:
-    """
-    Execute one run in a subprocess.
-    Returns (run, summary_dict, exception_or_None).
-    Never raises — exceptions are returned so the main process can log them.
-    """
-    try:
-        summary = execute_run(run)
-        return run, summary, None
-    except Exception as exc:
-        return run, None, exc
-
-
-# ---------------------------------------------------------------------------
-# Failure log (written only by the main process — no locking needed)
+# Failure log
 # ---------------------------------------------------------------------------
 
 
@@ -358,20 +330,6 @@ def main():
         default=None,
         help="Restrict to a single sampler",
     )
-    parser.add_argument(
-        "--workers",
-        type=int,
-        default=1,
-        help="Max parallel workers for CPU-only samplers (default: 21)",
-    )
-    parser.add_argument(
-        "--gpu-workers",
-        type=int,
-        default=1,
-        help="Max parallel workers for GPU-batched samplers "
-        "(metropolis/gibbs/sa_custom). Lower = less VRAM contention. "
-        "(default: 4)",
-    )
     cli = parser.parse_args()
 
     grid = build_grid()
@@ -383,42 +341,28 @@ def main():
         pending = sum(1 for r in grid if not result_path(r).exists())
         print(
             f"{'Model':>4}  {'N':>3}  {'h':>4}  "
-            f"{'Sampler':>12}  {'LR':>8}  {'CEM':>3}  {'Seed':>4}  {'Pool':>3}  {'Done':>4}"
+            f"{'Sampler':>12}  {'LR':>8}  {'CEM':>3}  {'Seed':>4}  {'Done':>4}"
         )
-        print("-" * 80)
+        print("-" * 72)
         for r in grid:
-            pool = "GPU" if r.sampler in _GPU_SAMPLERS else "CPU"
-            done = "no"
+            done = "yes" if result_path(r).exists() else "no"
             print(
                 f"{r.model:>4}  {r.size:>3}  {r.h:>4}  "
                 f"{r.sampler:>12}  {r.lr:>8.4g}  {'Y' if r.use_cem else 'N':>3}  "
-                f"{r.seed:>4}  {pool:>3}  {done:>4}"
+                f"{r.seed:>4}  {done:>4}"
             )
         print(
             f"\nTotal: {len(grid)} runs | pending: {pending} | "
             f"done: {len(grid) - pending}"
         )
-        print(
-            f"CPU pool: {cli.workers} workers  |  GPU pool: {cli.gpu_workers} workers"
-        )
         return
 
-    # ── Build pending lists per pool ─────────────────────────────────────────
-    pending_gpu = [
-        r for r in grid if r.sampler in _GPU_SAMPLERS and not result_path(r).exists()
-    ]
-    pending_cpu = [
-        r for r in grid if r.sampler in _CPU_SAMPLERS and not result_path(r).exists()
-    ]
-    n_skip = sum(1 for r in grid if result_path(r).exists())
+    pending = [r for r in grid if not result_path(r).exists()]
+    n_skip = len(grid) - len(pending)
     n_total = len(grid)
 
     print(f"[{datetime.now():%H:%M:%S}] Experiment start — {n_total} total runs")
-    print(
-        f"  Pending : {len(pending_gpu)} GPU-pool  +  {len(pending_cpu)} CPU-pool  "
-        f"({n_skip} already done)"
-    )
-    print(f"  Workers : GPU={cli.gpu_workers}  CPU={cli.workers}")
+    print(f"  Pending : {len(pending)}  ({n_skip} already done)")
     print(
         f"  Fixed   : reg={FIXED['reg']}  ns={FIXED['n_samples']}  "
         f"iter={FIXED['iterations']}  sigma={FIXED['sigma']}\n"
@@ -428,52 +372,35 @@ def main():
     log_path = Path(__file__).resolve().parent / "experiment_lsb_gibbs_failures.jsonl"
     n_done = n_fail = 0
 
-    # Use spawn to avoid inheriting any CUDA context from the parent process.
-    # Fork + CUDA is undefined behaviour and causes random hangs/crashes.
-    mp_ctx = multiprocessing.get_context("spawn")
-
-    futures: dict = {}  # future → Run
-
-    with (
-        ProcessPoolExecutor(max_workers=cli.gpu_workers, mp_context=mp_ctx) as gpu_pool,
-        ProcessPoolExecutor(max_workers=cli.workers, mp_context=mp_ctx) as cpu_pool,
-    ):
-        for run in pending_gpu:
-            futures[gpu_pool.submit(_worker, run)] = run
-        for run in pending_cpu:
-            futures[cpu_pool.submit(_worker, run)] = run
-
-        completed = 0
-        total_pending = len(pending_gpu) + len(pending_cpu)
-
-        for future in as_completed(futures):
-            completed += 1
-            run, summary, exc = future.result()
-            tag = (
-                f"[{completed}/{total_pending}] "
-                f"{run.model.upper()} N={run.size} "
-                f"h={run.h} {run.sampler} lr={run.lr:.4g} "
-                f"cem={'Y' if run.use_cem else 'N'} seed={run.seed}"
+    for i, run in enumerate(pending, 1):
+        tag = (
+            f"[{i}/{len(pending)}] "
+            f"{run.model.upper()} N={run.size} "
+            f"h={run.h} {run.sampler} lr={run.lr:.4g} "
+            f"cem={'Y' if run.use_cem else 'N'} seed={run.seed}"
+        )
+        try:
+            summary = execute_run(run)
+            n_done += 1
+            kl_str = (
+                f"{summary['final_kl']:.4f}"
+                if summary["final_kl"] is not None
+                else "N/A"
             )
-
-            if exc is not None:
-                n_fail += 1
-                print(f"  FAIL  {tag}")
-                print(f"         {type(exc).__name__}: {exc}")
-                _write_failure(log_path, run, exc)
-            else:
-                n_done += 1
-                kl_str = (
-                    f"{summary['final_kl']:.4f}"
-                    if summary["final_kl"] is not None
-                    else "N/A"
-                )
-                print(f"  DONE  {tag}")
-                print(
-                    f"         rel_err={summary['rel_error']:.4f}  "
-                    f"kl={kl_str}  "
-                    f"grad_norm={summary['grad_norm']:.4f}"
-                )
+            print(f"  DONE  {tag}")
+            print(
+                f"         rel_err={summary['rel_error']:.4f}  "
+                f"kl={kl_str}  "
+                f"grad_norm={summary['grad_norm']:.4f}"
+            )
+        except KeyboardInterrupt:
+            print("\n[interrupted]")
+            raise
+        except Exception as exc:
+            n_fail += 1
+            print(f"  FAIL  {tag}")
+            print(f"         {type(exc).__name__}: {exc}")
+            _write_failure(log_path, run, exc)
 
     print(f"\n[{datetime.now():%H:%M:%S}] Finished.")
     print(f"  Completed : {n_done}")

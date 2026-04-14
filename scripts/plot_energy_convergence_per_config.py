@@ -26,7 +26,32 @@ METHOD_COLORS = {
     "dimod/simulated_annealing":"#2ca02c",
     "dimod/zephyr":             "#d62728",
     "velox/velox":              "#9467bd",
+    "fpga/fpga":                "#17becf",
 }
+
+# Colour gradient for FPGA runs at different learning rates (coolwarm, blue→red)
+_FPGA_LR_COLORS = [
+    "#08519c",  # lr=1e-4
+    "#3182bd",  # lr=3e-4
+    "#17becf",  # lr=1e-3
+    "#e6550d",  # lr=3e-3
+    "#a50f15",  # lr=1e-2
+]
+
+
+def _method_color(method_name: str):
+    """Return a colour for a method name, with special handling for FPGA LR variants."""
+    if method_name in METHOD_COLORS:
+        return METHOD_COLORS[method_name]
+    if method_name.startswith("fpga/fpga lr="):
+        try:
+            lr = float(method_name.split("lr=")[1])
+            known = [1e-4, 3e-4, 1e-3, 3e-3, 1e-2]
+            if lr in known:
+                return _FPGA_LR_COLORS[known.index(lr)]
+        except ValueError:
+            pass
+    return None  # let matplotlib use its default colour cycle
 
 # Reference energies per spin for 2D TFIM (thermodynamic limit)
 # Source: Blöte & Deng (2002), Albuquerque et al. (2010)
@@ -38,10 +63,26 @@ EXACT_ENERGY_2D_PER_SPIN = {
 }
 
 
+EXACT_ENERGY_CACHE_FILE = ROOT / "scripts" / "exact_energy_cache.json"
+
+
+def _load_cache() -> dict:
+    if EXACT_ENERGY_CACHE_FILE.exists():
+        with open(EXACT_ENERGY_CACHE_FILE) as f:
+            return json.load(f)
+    return {}
+
+
+def _save_cache(cache: dict) -> None:
+    with open(EXACT_ENERGY_CACHE_FILE, "w") as f:
+        json.dump(cache, f, indent=2)
+
+
 def compute_exact_energy(model, N, h):
     """Return exact ground state energy per spin.
 
     For 1D: uses Bethe ansatz analytical solution (calls exact_diag_ising_analytical.py).
+      Results are cached in scripts/exact_energy_cache.json to avoid repeated subprocess calls.
     For 2D: uses literature reference values (thermodynamic limit).
     """
     if model == "2d":
@@ -50,7 +91,13 @@ def compute_exact_energy(model, N, h):
             return None
         return EXACT_ENERGY_2D_PER_SPIN[h]
 
-    # 1D: Bethe ansatz via analytical script
+    # 1D: check cache first
+    cache_key = f"1d_N{N}_h{h}"
+    cache = _load_cache()
+    if cache_key in cache:
+        return cache[cache_key]
+
+    # Not cached — run the Bethe ansatz script
     try:
         result = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "exact_diag_ising_analytical.py"), "-N", str(N), "-g", str(h)],
@@ -62,6 +109,8 @@ def compute_exact_energy(model, N, h):
             # Parse output: "Ground state energy (N=X, h=Y): Z"
             line = result.stdout.strip().split('\n')[-1]
             energy = float(line.split(": ")[-1])
+            cache[cache_key] = energy
+            _save_cache(cache)
             return energy
         else:
             print(f"Error computing exact energy: {result.stderr}")
@@ -74,8 +123,9 @@ def load_results(results_dir=RESULTS_DIR):
     """Load all result files organized by (model, N, h, RBM) and method.
 
     Filters:
-    - learning_rate == 0.1
+    - learning_rate == 0.1  (non-FPGA only; FPGA includes all LRs)
     - n_hidden == n_visible  (n_visible = N for 1d, N*N for 2d)
+    - cem == False
     """
     results = defaultdict(lambda: defaultdict(list))
 
@@ -97,14 +147,19 @@ def load_results(results_dir=RESULTS_DIR):
 
             n_visible = N if model == "1d" else N * N
 
-            if lr != 0.1:
+            is_fpga = sampler == "fpga"
+
+            if not is_fpga and lr != 0.1:
                 continue
             if n_hidden != n_visible:
                 continue
             if config.get("cem", False):
                 continue
 
-            method_name = f"{sampler}/{sampling_method}"
+            if is_fpga:
+                method_name = f"fpga/fpga lr={lr:.4g}"
+            else:
+                method_name = f"{sampler}/{sampling_method}"
             # Key includes model, N, h, and RBM type
             results[(model, N, h, rbm)][method_name].append({
                 "data": data,
@@ -127,7 +182,6 @@ def plot_convergence_to_exact(results):
     # Get unique (model, N, h, rbm) combinations
     combos = sorted(results.keys())
 
-    colors = METHOD_COLORS
     figs = []
 
     for model, N, h, rbm in combos:
@@ -166,7 +220,7 @@ def plot_convergence_to_exact(results):
                 mean_energy_per_spin = mean_energy / n_visible
                 delta = np.abs(mean_energy_per_spin - exact_E_per_spin)
 
-                color = colors.get(method_name, None)
+                color = _method_color(method_name)
                 
                 # Plot 1: Energy convergence
                 ax1.plot(iterations, mean_energy_per_spin, label=method_name, color=color,
@@ -221,7 +275,6 @@ def plot_rbm_comparison(results):
     for model, N, h, rbm in results.keys():
         nh_groups[(model, N, h)].append(rbm)
     
-    method_colors = METHOD_COLORS
     figs = []
 
     for (model, N, h), rbm_list in nh_groups.items():
@@ -267,7 +320,7 @@ def plot_rbm_comparison(results):
                     mean_energy_per_spin = mean_energy / n_visible
                     delta = np.abs(mean_energy_per_spin - exact_E_per_spin)
                     
-                    color = method_colors.get(method_name, None)
+                    color = _method_color(method_name)
                     
                     # Left: Energy
                     ax1.plot(iterations, mean_energy_per_spin, label=method_name,
@@ -313,8 +366,6 @@ def plot_summary_pages(results):
     each cell showing energy convergence and error side by side.
     Saved as plots/{model}/{rbm}/summary.png.
     """
-    colors = METHOD_COLORS
-
     # Group (N, h) combos by (model, rbm)
     model_rbm_groups = defaultdict(list)
     for model, N, h, rbm in sorted(results.keys()):
@@ -377,7 +428,7 @@ def plot_summary_pages(results):
                 mean_energy_per_spin = mean_energy / n_visible
                 delta = np.abs(mean_energy_per_spin - exact_E_per_spin)
 
-                color = colors.get(method_name, None)
+                color = _method_color(method_name)
                 ax1.plot(iterations, mean_energy_per_spin, label=method_name,
                          color=color, linewidth=1.5, alpha=0.8)
                 ax2.semilogy(iterations, delta, label=method_name,
@@ -427,8 +478,6 @@ def plot_beta_overview(results):
       - dashed reference line at β = 1
     Saved as plots/{model}/{rbm}/beta_overview.png.
     """
-    colors = METHOD_COLORS
-
     model_rbm_groups = defaultdict(list)
     for model, N, h, rbm in sorted(results.keys()):
         model_rbm_groups[(model, rbm)].append((N, h))
@@ -462,7 +511,7 @@ def plot_beta_overview(results):
 
             for method_name in sorted(methods_data.keys()):
                 runs = methods_data[method_name]
-                c = colors.get(method_name, None)
+                c = _method_color(method_name)
 
                 # ── beta_x mean trajectory ────────────────────────────────
                 bx_arrays = [

@@ -102,6 +102,7 @@ def save_results(args, history, ising, rbm=None):
 
     try:
         import torch as _torch
+
         _torch_cuda = _torch.cuda.is_available()
         _torch_device = _torch.cuda.get_device_name(0) if _torch_cuda else "cpu"
     except Exception:
@@ -110,6 +111,7 @@ def save_results(args, history, ising, rbm=None):
 
     try:
         import cupy as _cupy
+
         _cupy_available = True
         _cupy_device_name = _cupy.cuda.runtime.getDeviceProperties(
             _cupy.cuda.Device().id
@@ -284,4 +286,4 @@ def get_solver_name(architecture="pegasus"):
     if architecture == "pegasus":
         return "Advantage_system6.4"
     elif architecture == "zephyr":
-        return "Advantage2_system1.13"
+        return "Advantage2_system1"
