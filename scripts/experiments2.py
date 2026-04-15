@@ -53,7 +53,7 @@ FIXED = dict(
     rbm="zephyr",
     use_cem=False,
     visualize=False,
-    output_dir=str(_SRC / "results"),
+    output_dir=str(_SRC.parent / "results"),
     sigma=1.0,  # LSB noise precision σ⁻² (σ = 1/√(σ⁻²))
     lsb_steps=100,  # LSB integration steps M
     lsb_delta=1.0,  # LSB time step Δ

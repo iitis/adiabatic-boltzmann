@@ -8,4 +8,6 @@ netket
 dwave-system
 simulated-bifurcation
 cupy-cuda12x
+streamlit
+plotly
 

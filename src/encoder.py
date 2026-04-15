@@ -237,11 +237,13 @@ class Trainer:
 
         self.use_cem = config.get("use_cem", False)
         self.cem_interval = config.get("cem_interval", 1)
+        self.cem_ema_alpha = config.get("cem_ema_alpha", 0.3)
 
         if self.use_cem:
             print(
                 f"  [CEM] β scheduling ENABLED — estimating β_eff every "
                 f"{self.cem_interval} iteration(s) from joint LSB samples"
+                f", EMA α={self.cem_ema_alpha}"
             )
         else:
             print("  [CEM] β scheduling disabled — using heuristic beta_x adaptation")
@@ -394,6 +396,19 @@ class Trainer:
             ):
                 save_dwave_samples(V, self.args, iteration)
 
+            # ── 3b. CEM β estimate — must happen before weight update ──────
+            # estimate_beta_eff_cem uses self.rbm.W/b; calling it after
+            # set_weights() would fit β against new weights but old samples.
+            _cem_beta_raw = None
+            if (
+                self.use_cem
+                and not self._beta_fixed
+                and iteration % self.cem_interval == 0
+                and _H_raw is not None
+            ):
+                H_cem = np.asarray(_H_raw, dtype=np.float64)
+                _cem_beta_raw = estimate_beta_eff_cem(V, H_cem, self.rbm)
+
             # ── 4. Build SR system and solve with CG ──────────────────────
             # SRLinearSystem expects H = tanh(θ),  W layout (M, N)
             sr = SRLinearSystem(V, TanH, local_energies, self.regularization)
@@ -424,18 +439,15 @@ class Trainer:
 
             if self._beta_fixed:
                 pass  # metropolis/gibbs: beta_x is meaningless, keep at 1.0
-            elif (
-                self.use_cem
-                and iteration % self.cem_interval == 0
-                and _H_raw is not None
-            ):
-                H_cem = np.asarray(_H_raw, dtype=np.float64)
-                beta_eff = estimate_beta_eff_cem(V, H_cem, self.rbm)
-                self.beta_x = beta_eff
+            elif self.use_cem and _cem_beta_raw is not None:
+                self.beta_x = (
+                    (1.0 - self.cem_ema_alpha) * self.beta_x
+                    + self.cem_ema_alpha * _cem_beta_raw
+                )
                 beta_eff_this_iter = self.beta_x
                 print(
-                    f"  [CEM iter {iteration:3d}] β_eff = {beta_eff:.4f}"
-                    f" → beta_x = {self.beta_x:.4f}"
+                    f"  [CEM iter {iteration:3d}] β_eff = {_cem_beta_raw:.4f}"
+                    f" → beta_x = {self.beta_x:.4f} (EMA α={self.cem_ema_alpha})"
                 )
             elif not self.use_cem:
                 if prev_energy is not None and E_mean > prev_energy:
