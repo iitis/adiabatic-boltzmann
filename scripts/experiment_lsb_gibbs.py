@@ -50,7 +50,7 @@ FIXED = dict(
     lr=0.1,  # default lr for samplers that are NOT in _LR_SWEEP_SAMPLERS
     reg=1e-5,
     iterations=300,
-    rbm="zephyr",
+    rbm="full",
     use_cem=False,
     visualize=False,
     output_dir=str(_SRC / "results"),
@@ -92,7 +92,7 @@ class Run:
 def build_grid() -> list[Run]:
     grid = []
     sampler_keys = list(SAMPLERS.keys())
-    for size in [8, 16, 32]:
+    for size in [8, 12, 14]:
         for h in [0.5, 1.0, 2.0]:
             for sampler in sampler_keys:
                 for lr in LEARNING_RATES:
