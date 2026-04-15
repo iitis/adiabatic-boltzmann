@@ -50,7 +50,7 @@ FIXED = dict(
     lr=0.1,  # default lr for samplers that are NOT in _LR_SWEEP_SAMPLERS
     reg=1e-5,
     iterations=300,
-    rbm="full",
+    rbm="zephyr",
     use_cem=False,
     visualize=False,
     output_dir=str(_SRC / "results"),
@@ -60,16 +60,16 @@ FIXED = dict(
 )
 
 # Learning rates swept for LSB and Gibbs (log-spaced from 1e-4 to 1e-2)
-LEARNING_RATES = [1e-4, 3e-4, 1e-3, 3e-3, 1e-2]
-
+#LEARNING_RATES = [1e-4, 3e-4, 1e-3, 3e-3, 1e-2]
+LEARNING_RATES = [3e-4, 1e-2]
 # ---------------------------------------------------------------------------
 # Sampler registry
 # ---------------------------------------------------------------------------
 
 SAMPLERS = {
-    "metropolis": ("custom", "metropolis"),
-    "gibbs": ("custom", "gibbs"),
-    "lsb": ("custom", "lsb"),
+    #"metropolis": ("custom", "metropolis"),
+    #"gibbs": ("custom", "gibbs"),
+    "zephyr": ("dimod", "zephyr"),
 }
 # dd
 
@@ -92,11 +92,11 @@ class Run:
 def build_grid() -> list[Run]:
     grid = []
     sampler_keys = list(SAMPLERS.keys())
-    for size in [8, 12, 14]:
+    for size in [2048]:
         for h in [0.5, 1.0, 2.0]:
             for sampler in sampler_keys:
                 for lr in LEARNING_RATES:
-                    for use_cem in [False, True] if sampler == "lsb" else [False]:
+                    for use_cem in [False, True] if sampler == "lsb" or sampler == 'zephyr' else [False]:
                         grid.append(
                             Run(
                                 "1d",
@@ -110,7 +110,7 @@ def build_grid() -> list[Run]:
                         )
 
     # 2D geometry
-    for size in [4, 6, 8]:
+    for size in [16]:
         for h in [0.5, 1.0, 2.0]:
             for sampler in sampler_keys:
                 for lr in LEARNING_RATES:
