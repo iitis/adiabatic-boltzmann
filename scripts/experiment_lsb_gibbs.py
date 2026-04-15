@@ -50,7 +50,7 @@ FIXED = dict(
     lr=0.1,  # default lr for samplers that are NOT in _LR_SWEEP_SAMPLERS
     reg=1e-5,
     iterations=300,
-    rbm="zephyr",
+    rbm="full",
     use_cem=False,
     visualize=False,
     output_dir=str(_SRC / "results"),
@@ -67,9 +67,9 @@ LEARNING_RATES = [3e-4, 1e-2]
 # ---------------------------------------------------------------------------
 
 SAMPLERS = {
-    #"metropolis": ("custom", "metropolis"),
-    #"gibbs": ("custom", "gibbs"),
-    "zephyr": ("dimod", "zephyr"),
+    "metropolis": ("custom", "metropolis"),
+    "gibbs": ("custom", "gibbs"),
+    #"zephyr": ("dimod", "zephyr"),
 }
 # dd
 
@@ -92,7 +92,7 @@ class Run:
 def build_grid() -> list[Run]:
     grid = []
     sampler_keys = list(SAMPLERS.keys())
-    for size in [2048]:
+    for size in [64,128]:
         for h in [0.5, 1.0, 2.0]:
             for sampler in sampler_keys:
                 for lr in LEARNING_RATES:
@@ -110,7 +110,7 @@ def build_grid() -> list[Run]:
                         )
 
     # 2D geometry
-    for size in [16]:
+    for size in [6,8]:
         for h in [0.5, 1.0, 2.0]:
             for sampler in sampler_keys:
                 for lr in LEARNING_RATES:
