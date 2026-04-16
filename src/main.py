@@ -1,5 +1,7 @@
+import jax
+jax.config.update("jax_enable_x64", True)
+
 import argparse
-import numpy as np
 
 from helpers import save_results
 from model import FullyConnectedRBM, DWaveTopologyRBM
@@ -119,8 +121,8 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
-    # Set seed for reproducibility
-    np.random.seed(args.seed)
+    # PRNG key — single source of randomness for RBM init, sampler, and trainer
+    key = jax.random.PRNGKey(args.seed)
 
     print(f"Configuration:")
     print(f"  Model: {args.model} with h={args.h}")
@@ -131,6 +133,7 @@ def main():
     print(
         f"  CEM β scheduling: {'ON (interval=' + str(args.cem_interval) + ')' if args.cem else 'OFF'}"
     )
+    print(f"  JAX devices: {jax.devices()}")
 
     # 1. Instantiate Ising model
     if args.model == "1d":
@@ -150,10 +153,11 @@ def main():
 
     n_visible = args.size if args.model == "1d" else args.size**2
     args.n_hidden = n_hidden
+    key, rbm_key = jax.random.split(key)
     if args.rbm == "full":
-        rbm = FullyConnectedRBM(n_visible, n_hidden)
+        rbm = FullyConnectedRBM(n_visible, n_hidden, rbm_key)
     else:
-        rbm = DWaveTopologyRBM(n_visible, n_hidden, solver=args.rbm)
+        rbm = DWaveTopologyRBM(n_visible, n_hidden, rbm_key, solver=args.rbm)
 
     # 3. Instantiate sampler
     if args.sampler == "custom":
@@ -163,6 +167,8 @@ def main():
             if args.sampling_method == "gibbs"
             else 1,
         )
+        key, sampler_key = jax.random.split(key)
+        sampler._key = sampler_key
     elif args.sampler == "dimod":
         sampler = DimodSampler(method=args.sampling_method)
     elif args.sampler == "velox":
@@ -180,6 +186,7 @@ def main():
         "use_cem": args.cem,
         "cem_interval": args.cem_interval,
         "lsb_sigma": args.sigma,
+        "seed": args.seed,
     }
 
     # 5. Create trainer and run

@@ -3,6 +3,8 @@ import gzip
 import json
 from pathlib import Path
 import numpy as np
+import jax
+import jax.numpy as jnp
 import pickle
 
 
@@ -29,9 +31,9 @@ def save_rbm_checkpoint(rbm, args, iteration):
         "iteration": iteration,
         "config": vars(args),
         "rbm_state": {
-            "a": rbm.a.tolist(),
-            "b": rbm.b.tolist(),
-            "W": rbm.W.tolist(),
+            "a": np.array(rbm.a).tolist(),
+            "b": np.array(rbm.b).tolist(),
+            "W": np.array(rbm.W).tolist(),
             "n_visible": rbm.n_visible,
             "n_hidden": rbm.n_hidden,
         },
@@ -83,9 +85,9 @@ def restore_rbm_from_checkpoint(rbm, checkpoint_path):
     """
     rbm_state, config, iteration = load_rbm_checkpoint(checkpoint_path)
 
-    rbm.a = np.array(rbm_state["a"])
-    rbm.b = np.array(rbm_state["b"])
-    rbm.W = np.array(rbm_state["W"])
+    rbm.a = jnp.array(rbm_state["a"])
+    rbm.b = jnp.array(rbm_state["b"])
+    rbm.W = jnp.array(rbm_state["W"])
 
     print(f"Restored RBM from checkpoint: {checkpoint_path}")
     print(f"  Starting from iteration {iteration}")
@@ -100,25 +102,9 @@ def save_results(args, history, ising, rbm=None):
     )
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    try:
-        import torch as _torch
-
-        _torch_cuda = _torch.cuda.is_available()
-        _torch_device = _torch.cuda.get_device_name(0) if _torch_cuda else "cpu"
-    except Exception:
-        _torch_cuda = False
-        _torch_device = "cpu"
-
-    try:
-        import cupy as _cupy
-
-        _cupy_available = True
-        _cupy_device_name = _cupy.cuda.runtime.getDeviceProperties(
-            _cupy.cuda.Device().id
-        )["name"].decode("utf-8")
-    except Exception:
-        _cupy_available = False
-        _cupy_device_name = None
+    _jax_devices = jax.devices()
+    _jax_backend = _jax_devices[0].platform if _jax_devices else "cpu"
+    _jax_device_strs = [str(d) for d in _jax_devices]
 
     use_cem = getattr(args, "cem", False)
     results = {
@@ -132,11 +118,9 @@ def save_results(args, history, ising, rbm=None):
         "error": abs(history["energy"][-1] - ising.exact_ground_energy()),
         "sparsity": float(rbm.sparsity()) if rbm is not None else None,
         "sampling_time_s": float(sum(history.get("sampling_time_s", []))),
-        "cuda": {
-            "torch_cuda_available": _torch_cuda,
-            "torch_device": _torch_device,
-            "cupy_available": _cupy_available,
-            "cupy_device": _cupy_device_name,
+        "jax_devices": {
+            "backend": _jax_backend,
+            "devices": _jax_device_strs,
         },
         "final_ess": history["ess"][-1] if history.get("ess") else None,
         "mean_ess": float(np.mean(history["ess"])) if history.get("ess") else None,
