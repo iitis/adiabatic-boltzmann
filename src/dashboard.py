@@ -80,6 +80,22 @@ HISTORY_METRICS = [
 MAX_CURVES = 60  # max lines drawn in convergence tab before a warning
 
 
+def _filter_summary() -> str:
+    """Compact string of active filter selections for use in plot titles."""
+    parts = []
+    for ax in FILTER_AXES:
+        sel = st.session_state.get(f"f_{ax['col']}", [])
+        if sel:
+            parts.append(f"{ax['label']}: {', '.join(str(s) for s in sel)}")
+    return "  |  ".join(parts) if parts else ""
+
+
+def _titled(main: str) -> str:
+    """Return a Plotly title string: main title with active filters as subtitle."""
+    fs = _filter_summary()
+    return f"{main}<br><sup>{fs}</sup>" if fs else main
+
+
 # ── Data loading ───────────────────────────────────────────────────────────────
 
 
@@ -165,6 +181,12 @@ def load_all_runs(results_dir: Path) -> tuple[pd.DataFrame, dict]:
 
 def build_sidebar(df: pd.DataFrame) -> pd.DataFrame:
     st.sidebar.title("Filters")
+
+    if st.sidebar.button("Clear all filters"):
+        for ax in FILTER_AXES:
+            st.session_state[f"f_{ax['col']}"] = []
+        st.rerun()
+
     filtered = df.copy()
 
     for ax in FILTER_AXES:
@@ -341,7 +363,10 @@ def tab_curves(df: pd.DataFrame, histories: dict) -> None:
 
     if log_y:
         fig.update_yaxes(type="log")
-    fig.update_layout(hovermode="closest")
+    fig.update_layout(
+        hovermode="closest",
+        title=_titled(f"Convergence — {y_label}"),
+    )
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -393,7 +418,10 @@ def tab_compare(df: pd.DataFrame) -> None:
                 labels={group_col: group_label, "mean": f"Mean — {metric_label}"},
                 height=420,
             )
-        fig.update_layout(showlegend=False)
+        fig.update_layout(
+            showlegend=False,
+            title=_titled(f"{metric_label} by {group_label}"),
+        )
         st.plotly_chart(fig, use_container_width=True)
 
     # ── Scaling plot ───────────────────────────────────────────────────────────
@@ -421,6 +449,7 @@ def tab_compare(df: pd.DataFrame) -> None:
         hover_data={c: True for c in ["h", "learning_rate", "seed", "n_hidden"]
                     if c in scale_df.columns},
     )
+    fig2.update_layout(title=_titled("Energy error vs system size N"))
     st.plotly_chart(fig2, use_container_width=True)
 
 
@@ -494,6 +523,7 @@ def tab_correlation(df: pd.DataFrame) -> None:
         opacity=0.75,
     )
     fig.update_traces(marker=dict(size=7))
+    fig.update_layout(title=_titled(f"{y_label} vs {x_label}"))
     st.plotly_chart(fig, use_container_width=True)
 
     # Pearson r (log-space when log axes are on)
@@ -554,7 +584,10 @@ def tab_timing(df: pd.DataFrame, histories: dict) -> None:
                 labels={grp_col: grp_label, "mean": "Mean time / iter (s)"},
                 height=400,
             )
-        fig.update_layout(showlegend=False)
+        fig.update_layout(
+            showlegend=False,
+            title=_titled(f"Mean sampling time / iter by {grp_label}"),
+        )
         st.plotly_chart(fig, use_container_width=True)
 
     # ── Section 2: time over iterations ───────────────────────────────────────
@@ -614,7 +647,10 @@ def tab_timing(df: pd.DataFrame, histories: dict) -> None:
         fig2.update_traces(opacity=0.75, line=dict(width=1.5))
         if log_t:
             fig2.update_yaxes(type="log")
-        fig2.update_layout(hovermode="closest")
+        fig2.update_layout(
+            hovermode="closest",
+            title=_titled("Sampling time per iteration"),
+        )
         st.plotly_chart(fig2, use_container_width=True)
 
     # ── Section 3: cost–quality tradeoff ──────────────────────────────────────
@@ -648,6 +684,7 @@ def tab_timing(df: pd.DataFrame, histories: dict) -> None:
             opacity=0.75,
         )
         fig3.update_traces(marker=dict(size=7))
+        fig3.update_layout(title=_titled("Cost–quality tradeoff: sampling time vs energy error"))
         st.plotly_chart(fig3, use_container_width=True)
 
     # ── Section 4: time scaling with system size ───────────────────────────────
@@ -685,6 +722,7 @@ def tab_timing(df: pd.DataFrame, histories: dict) -> None:
             opacity=0.75,
         )
         fig4.update_traces(marker=dict(size=7))
+        fig4.update_layout(title=_titled("Sampling time scaling with system size"))
         st.plotly_chart(fig4, use_container_width=True)
 
 

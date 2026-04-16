@@ -1,4 +1,24 @@
+"""
+Samplers — JAX backend
+
+Key changes vs NumPy/CuPy/Numba version
+-----------------------------------------
+* CuPy and the _xp device-dispatch abstraction are removed.
+  JAX dispatches to GPU automatically via XLA — no code changes needed.
+* Numba @njit kernels (_mh_sweep_nb, _sa_sweep_nb) replaced by
+  jax.lax.scan-based kernels JIT-compiled once per unique (C, N, n_steps).
+* LSB migrated from PyTorch to JAX lax.scan.
+* All np.random calls replaced by jax.random with explicit PRNG keys.
+  ClassicalSampler maintains self._key as stateful key; call _next_key()
+  to get a fresh subkey and advance the state.
+* Gibbs persistent chain (self._gibbs_v) is now a JAX array.
+* In-place mutations like v[idx] = x become v = v.at[idx].set(x).
+* DimodSampler, VeloxSampler, FPGASampler are unchanged — they interface
+  with external hardware and return NumPy arrays.
+"""
+
 import fcntl
+import functools
 import json
 import math as _math
 import os
@@ -9,101 +29,161 @@ import time
 import uuid
 import sys as _sys
 import numpy as np
+import jax
+import jax.numpy as jnp
 from abc import ABC, abstractmethod
 from model import RBM
 import dimod
-import torch
-
-try:
-    import numba as nb
-
-    _HAS_NUMBA = True
-except ImportError:
-    _HAS_NUMBA = False
-
-try:
-    import cupy as cp
-
-    _xp = cp
-    _DEVICE = "gpu"
-except ImportError:
-    _xp = np
-    _DEVICE = "cpu"
-import neal
-from dwave.samplers import TabuSampler
-try:
-    from veloxq_sdk import VeloxQSolver, SBMSolver, SBMParameters
-    from veloxq_sdk.config import load_config, VeloxQAPIConfig
-except:
-    print("Velox could not be imported")
 from pathlib import Path
 from helpers import get_solver_name
 from scipy.optimize import minimize_scalar
 
 
-def _logcosh_xp(xp, x):
-    """Device-agnostic logcosh: works with numpy or cupy arrays."""
-    ax = xp.abs(x)
-    return ax + xp.log1p(xp.exp(-2.0 * ax))
+# ---------------------------------------------------------------------------
+# JIT-compiled sampling kernels (module-level — compiled once per process)
+# ---------------------------------------------------------------------------
 
 
-if _HAS_NUMBA:
+@functools.partial(jax.jit, static_argnums=(5, 6, 7))
+def _mh_sweep_jit(
+    v: jax.Array,
+    theta: jax.Array,
+    W: jax.Array,
+    a: jax.Array,
+    key: jax.Array,
+    C: int,
+    N: int,
+    total_steps: int,
+) -> tuple:
+    """
+    Batched Metropolis-Hastings: C independent chains for total_steps flips.
 
-    @nb.njit(cache=True)
-    def _mh_sweep_nb(v, theta, W, a, flip_indices, rand_u):
-        """Numba-compiled MH sweep. Mutates v and theta in-place. Returns n_accepted."""
-        n_accepted = 0
-        Nh = theta.shape[0]
-        for k in range(flip_indices.shape[0]):
-            i = flip_indices[k]
-            vi = v[i]
-            log_ratio = a[i] * vi
-            for j in range(Nh):
-                tf = theta[j] - 2.0 * vi * W[i, j]
-                t = theta[j]
-                atf = abs(tf)
-                at = abs(t)
-                log_ratio += 0.5 * (
-                    atf
-                    + _math.log1p(_math.exp(-2.0 * atf))
-                    - at
-                    - _math.log1p(_math.exp(-2.0 * at))
-                )
-            log_accept = 2.0 * log_ratio
-            if rand_u[k] < (1.0 if log_accept >= 0.0 else _math.exp(log_accept)):
-                v[i] = -vi
-                for j in range(Nh):
-                    theta[j] -= 2.0 * vi * W[i, j]
-                n_accepted += 1
-        return n_accepted
+    v     : (C, N)   spin configs ±1
+    theta : (C, Nh)  pre-activations b + v @ W
+    W     : (N, Nh)
+    a     : (N,)
+    key   : JAX PRNG key
 
-    @nb.njit(cache=True)
-    def _sa_sweep_nb(v, theta, W, a, flip_indices, rand_u, T):
-        """Numba-compiled SA sweep. Mutates v and theta in-place. Returns n_accepted."""
-        n_accepted = 0
-        Nh = theta.shape[0]
-        for k in range(flip_indices.shape[0]):
-            i = flip_indices[k]
-            vi = v[i]
-            log_ratio = a[i] * vi
-            for j in range(Nh):
-                tf = theta[j] - 2.0 * vi * W[i, j]
-                t = theta[j]
-                atf = abs(tf)
-                at = abs(t)
-                log_ratio += 0.5 * (
-                    atf
-                    + _math.log1p(_math.exp(-2.0 * atf))
-                    - at
-                    - _math.log1p(_math.exp(-2.0 * at))
-                )
-            log_accept = 2.0 * log_ratio / T
-            if rand_u[k] < (1.0 if log_accept >= 0.0 else _math.exp(log_accept)):
-                v[i] = -vi
-                for j in range(Nh):
-                    theta[j] -= 2.0 * vi * W[i, j]
-                n_accepted += 1
-        return n_accepted
+    One step = one random single-spin-flip proposal for every chain simultaneously.
+    All C chains are updated in a single XLA kernel via jax.lax.scan.
+    """
+    ci = jnp.arange(C)
+
+    def one_flip(carry, _):
+        v, theta, key = carry
+        key, k1, k2 = jax.random.split(key, 3)
+        flip_idx = jax.random.randint(k1, (C,), 0, N)   # (C,) — different site per chain
+        vi = v[ci, flip_idx]                              # (C,)
+        W_row = W[flip_idx]                               # (C, Nh)
+        theta_flip = theta - 2.0 * vi[:, None] * W_row   # (C, Nh)
+        lc_diff = 0.5 * jnp.sum(
+            jnp.logaddexp(theta_flip, -theta_flip)
+            - jnp.logaddexp(theta, -theta),
+            axis=1,
+        )  # (C,)
+        log_ratio = a[flip_idx] * vi + lc_diff            # (C,)
+        rand_u = jax.random.uniform(k2, (C,), dtype=jnp.float64)
+        accept = jnp.log(rand_u) < 2.0 * log_ratio       # (C,) bool
+        v = v.at[ci, flip_idx].set(jnp.where(accept, -vi, vi))
+        theta = jnp.where(accept[:, None], theta_flip, theta)
+        return (v, theta, key), None
+
+    (v, theta, _), _ = jax.lax.scan(one_flip, (v, theta, key), None, length=total_steps)
+    return v, theta
+
+
+@functools.partial(jax.jit, static_argnums=(5, 6, 7))
+def _sa_sweep_jit(
+    v: jax.Array,
+    theta: jax.Array,
+    W: jax.Array,
+    a: jax.Array,
+    key: jax.Array,
+    C: int,
+    N: int,
+    total_steps: int,
+    T_initial: float,
+    T_final: float,
+) -> tuple:
+    """
+    Batched Simulated Annealing: C chains cooled along a geometric schedule.
+
+    xs = jnp.arange(total_steps) carries the step index into each scan body
+    so the temperature can be computed without Python-level control flow.
+    """
+    ci = jnp.arange(C)
+    n_steps_f = jnp.float64(max(total_steps - 1, 1))
+
+    def one_flip(carry, step):
+        v, theta, key = carry
+        T = T_initial * (T_final / T_initial) ** (step.astype(jnp.float64) / n_steps_f)
+        key, k1, k2 = jax.random.split(key, 3)
+        flip_idx = jax.random.randint(k1, (C,), 0, N)
+        vi = v[ci, flip_idx]
+        W_row = W[flip_idx]
+        theta_flip = theta - 2.0 * vi[:, None] * W_row
+        lc_diff = 0.5 * jnp.sum(
+            jnp.logaddexp(theta_flip, -theta_flip)
+            - jnp.logaddexp(theta, -theta),
+            axis=1,
+        )
+        log_ratio = a[flip_idx] * vi + lc_diff
+        rand_u = jax.random.uniform(k2, (C,), dtype=jnp.float64)
+        accept = jnp.log(rand_u) < 2.0 * log_ratio / T
+        v = v.at[ci, flip_idx].set(jnp.where(accept, -vi, vi))
+        theta = jnp.where(accept[:, None], theta_flip, theta)
+        return (v, theta, key), None
+
+    steps = jnp.arange(total_steps)
+    (v, theta, _), _ = jax.lax.scan(one_flip, (v, theta, key), steps)
+    return v, theta
+
+
+@functools.partial(jax.jit, static_argnums=(5, 6, 7))
+def _lsb_jit(
+    key: jax.Array,
+    M: jax.Array,
+    f: jax.Array,
+    sigma: float,
+    delta: float,
+    n_samples: int,
+    steps: int,
+    N_total: int,
+) -> jax.Array:
+    """
+    Langevin Simulated Bifurcation (Kubo & Goto 2025, Sec. II B 1).
+
+    Symplectic Euler integration (lax.scan over `steps` iterations):
+        y[k+1] = y[k] + δ·(M·x[k] + f) + σ·ξ    ξ ~ N(0,1)
+        x[k+1] = x[k] + δ·y[k+1]
+        x      ← clip(x, −1, +1)
+
+    Init: x ~ U[−1,1],  y ~ N(0, σ²).
+    Discretise once at the end: s = sgn(x).
+    """
+    k1, k2, k3 = jax.random.split(key, 3)
+    x = jax.random.uniform(k1, (n_samples, N_total), dtype=jnp.float64) * 2.0 - 1.0
+    y = sigma * jax.random.normal(k2, (n_samples, N_total), dtype=jnp.float64)
+
+    def step_fn(carry, _):
+        x, y, key = carry
+        key, noise_key = jax.random.split(key)
+        force = x @ M.T + f
+        noise = sigma * jax.random.normal(noise_key, y.shape, dtype=jnp.float64)
+        y = y + delta * force + noise
+        x = x + delta * y
+        x = jnp.clip(x, -1.0, 1.0)
+        return (x, y, key), None
+
+    (x, _, _), _ = jax.lax.scan(step_fn, (x, y, k3), None, length=steps)
+    s = jnp.sign(x)
+    s = jnp.where(s == 0, 1.0, s)
+    return s
+
+
+# ---------------------------------------------------------------------------
+# Abstract sampler
+# ---------------------------------------------------------------------------
 
 
 class Sampler(ABC):
@@ -111,37 +191,31 @@ class Sampler(ABC):
 
     def rbm_to_ising(self, rbm, beta_x: float = 1.0):
         """
-        Convert RBM parameters to Ising model parameters (J, h).
-        Couplings are divided by beta_x so the sampler sees an effectively
-        softer landscape; at β_eff_hardware / beta_x = 1 the samples match |Ψ|².
-
-        Bottom-level check: prints beta_x whenever it changes by > 1 %,
-        confirming the CEM-estimated value propagated all the way here.
+        Convert RBM parameters to Ising (J, h) for external solvers.
+        rbm.W / .a / .b are JAX arrays; float() conversion is safe for scalars.
         """
         _last = getattr(self, "_last_beta_x_logged", None)
         if _last is None or abs(beta_x - _last) / max(abs(_last), 1e-9) > 0.01:
             print(f"  [rbm_to_ising] beta_x = {beta_x:.4f}")
             self._last_beta_x_logged = beta_x
 
-        Nv = rbm.n_visible
-        Nh = rbm.n_hidden
-
+        Nv, Nh = rbm.n_visible, rbm.n_hidden
         linear = {}
         quadratic = {}
 
-        # visible biases
+        # Use np.asarray once for whole-array access (avoids repeated scalar transfers)
+        a_np = np.asarray(rbm.a)
+        b_np = np.asarray(rbm.b)
+        W_np = np.asarray(rbm.W)
+
         for i in range(Nv):
-            linear[i] = -rbm.a[i] / beta_x
-
-        # hidden biases
+            linear[i] = -float(a_np[i]) / beta_x
         for j in range(Nh):
-            linear[Nv + j] = -rbm.b[j] / beta_x
-
-        # RBM couplings
+            linear[Nv + j] = -float(b_np[j]) / beta_x
         for i in range(Nv):
             for j in range(Nh):
-                if abs(rbm.W[i, j]) > 1e-6:
-                    quadratic[(i, Nv + j)] = -rbm.W[i, j] / beta_x
+                if abs(W_np[i, j]) > 1e-6:
+                    quadratic[(i, Nv + j)] = -float(W_np[i, j]) / beta_x
 
         return quadratic, linear
 
@@ -149,24 +223,18 @@ class Sampler(ABC):
     def sample(
         self, rbm, n_samples: int, config: dict = None, return_hidden: bool = False
     ):
-        """
-        Generate samples from the RBM distribution.
-
-        rbm: the RBM instance (has log_psi, psi_ratio methods)
-        n_samples: how many samples to draw
-        config: optional configuration dict
-        return_hidden: if True, return (v_samples, h_samples) tuple instead of v_samples only
-
-        Returns: (n_samples, n_visible) array, or tuple of
-                 ((n_samples, n_visible), (n_samples, n_hidden)) if return_hidden=True
-        """
         pass
+
+
+# ---------------------------------------------------------------------------
+# Classical (CPU/GPU) sampler
+# ---------------------------------------------------------------------------
 
 
 class ClassicalSampler(Sampler):
     """
-    Classical sampling: Metropolis-Hastings, Simulated Annealing, or
-    Simulated Bifurcation (via the `simulated-bifurcation` package).
+    Classical sampling via Metropolis-Hastings, Simulated Annealing,
+    Gibbs, or Langevin SB — all JAX-accelerated.
     """
 
     def __init__(
@@ -182,15 +250,6 @@ class ClassicalSampler(Sampler):
         gibbs_collapse_threshold: float = 0.2,
         gibbs_reinit_fraction: float = 0.5,
     ):
-        """
-        method:       'metropolis' | 'simulated_annealing' | 'sbm' | 'gibbs'
-        n_warmup:     equilibration sweeps (metropolis / SA / gibbs only)
-        n_sweeps:     sweeps between samples (metropolis / SA only);
-                      for gibbs this is the number of block sweeps per call (k)
-        sb_mode:      SBM algorithm variant — 'discrete' or 'ballistic'
-        sb_heated:    enable heated variant of SBM
-        sb_max_steps: max SBM iterations per agent
-        """
         self.method = method
         self.n_warmup = n_warmup
         self.n_sweeps = n_sweeps
@@ -202,11 +261,18 @@ class ClassicalSampler(Sampler):
         self.gibbs_collapse_threshold = gibbs_collapse_threshold
         self.gibbs_reinit_fraction = gibbs_reinit_fraction
 
-        # Persistent chain state for Gibbs sampler (initialised on first call)
-        self._gibbs_v = None  # (_xp array) (n_chains, n_visible)
-        # Last config passed to sample(); cached so estimate_beta_eff can reuse
-        # the same hyperparameters (sigma, steps, delta) with only beta_x=1.
+        self._gibbs_v = None          # persistent chain state (JAX array)
+        self._key = None              # JAX PRNG key — initialised lazily
         self._last_sample_config: dict = {}
+
+    def _next_key(self) -> jax.Array:
+        """Advance self._key and return a fresh subkey."""
+        if self._key is None:
+            # Lazy init: derive from numpy so the caller doesn't have to set it
+            seed = int(np.random.randint(0, 2**31))
+            self._key = jax.random.PRNGKey(seed)
+        self._key, subkey = jax.random.split(self._key)
+        return subkey
 
     def sample(
         self, rbm: RBM, n_samples: int, config: dict = None, return_hidden: bool = False
@@ -217,15 +283,11 @@ class ClassicalSampler(Sampler):
 
         if self.method == "lsb":
             v, h = self._lsb_sample(rbm, n_samples, config)
-            if return_hidden:
-                return v, h
-            return v
+            return (v, h) if return_hidden else v
 
         if self.method == "gibbs":
             v, h = self._gibbs_sample(rbm, n_samples, config)
-            if return_hidden:
-                return v, h
-            return v
+            return (v, h) if return_hidden else v
 
         if self.method == "metropolis":
             v = self._metropolis_hastings(rbm, n_samples, config)
@@ -238,490 +300,205 @@ class ClassicalSampler(Sampler):
             return v, self._sample_hidden(rbm, v)
         return v
 
-    def _lsb_sample(self, rbm: RBM, n_samples: int, config: dict):
-        # Langevin Simulated Bifurcation (Kubo & Goto 2025, Sec. II B 1).
-        # Symplectic Euler integration of:
-        #   y[k+1] = y[k] + Δ·(Σⱼ Jᵢⱼ xⱼ[k] + fᵢ) + σ·ξ   ξ ~ N(0,1)  (Eq. 6)
-        #   x[k+1] = x[k] + Δ·y[k+1]                                       (Eq. 7)
-        #   x      ← clip(x, −1, +1)                                        (Eq. 8)
-        # Init: x ~ U[−1,1],  y ~ N(0, σ²)
-        # Discretize only at the end: s = sgn(x)
+    # ── Langevin SB ──────────────────────────────────────────────────────
 
+    def _lsb_sample(self, rbm: RBM, n_samples: int, config: dict):
+        """
+        Langevin Simulated Bifurcation — pure JAX, GPU-accelerated via lax.scan.
+        """
         beta_x = config.get("beta_x", 1.0)
         steps = config.get("lsb_steps", 1000)
         delta = config.get("lsb_delta", 1.0)
-        # lsb_sigma is σ⁻² (precision, paper convention). Convert to σ = 1/√(σ⁻²).
         sigma_inv2 = config.get("lsb_sigma", 1.0)
-        sigma = 1.0 / np.sqrt(sigma_inv2)
+        sigma = float(1.0 / np.sqrt(sigma_inv2))
+
         Nv, Nh = rbm.n_visible, rbm.n_hidden
-        N = Nv + Nh
-        print(f"    beta x {beta_x}")
-        M = np.zeros((N, N))
-        if getattr(rbm, "V", None) is not None:
-            M[:Nv, :Nv] = rbm.V / beta_x
-        M[:Nv, Nv:] = rbm.W / beta_x
-        M[Nv:, :Nv] = rbm.W.T / beta_x
-        f = np.empty(N)
-        f[:Nv] = rbm.a / beta_x
-        f[Nv:] = rbm.b / beta_x
+        N_total = Nv + Nh
 
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        M_t = torch.tensor(M, dtype=torch.float32, device=device)
-        f_t = torch.tensor(f, dtype=torch.float32, device=device)
+        # Build interaction matrix (JAX)
+        M = jnp.zeros((N_total, N_total), dtype=jnp.float64)
+        M = M.at[:Nv, Nv:].set(rbm.W / beta_x)
+        M = M.at[Nv:, :Nv].set(rbm.W.T / beta_x)
+        f = jnp.concatenate([rbm.a / beta_x, rbm.b / beta_x])
 
-        # Init: x ~ U[−1,1],  y ~ N(0, σ²)
-        x = torch.rand(n_samples, N, device=device) * 2.0 - 1.0
-        y = sigma * torch.randn(n_samples, N, device=device)
+        key = self._next_key()
+        s = _lsb_jit(key, M, f, sigma, delta, n_samples, steps, N_total)
 
-        # Symplectic Euler + soft clip (Eqs. 6–8)
-        for _ in range(steps):
-            force = x @ M_t.T + f_t  # Σⱼ Jᵢⱼ xⱼ + fᵢ  (continuous x)
-            y = (
-                y + delta * force + sigma * torch.randn_like(y)
-            )  # additive Langevin noise
-            x = x + delta * y
-            x = torch.clamp(x, -1.0, 1.0)  # soft clip, not hard sign
-
-        # Discretize once at the end: s = sgn(x)
-        s_final = torch.sign(x)
-        s_final[s_final == 0] = 1.0
-        s = s_final.cpu().numpy()
-        v = s[:, :Nv]
-        h = s[:, Nv:]
+        s_np = np.asarray(s)
+        v = s_np[:, :Nv]
+        h = s_np[:, Nv:]
 
         unique = len(set(map(tuple, v.tolist())))
         print(
-            f"  [LSB] steps={steps} delta={delta} sigma={sigma:.4f} unique={unique}/{n_samples}"
+            f"  [LSB] steps={steps} delta={delta} sigma={sigma:.4f}"
+            f" unique={unique}/{n_samples}"
         )
         return v, h
 
+    # ── Gibbs ─────────────────────────────────────────────────────────────
+
     def _gibbs_sample(self, rbm: RBM, n_samples: int, config: dict):
         """
-        Persistent block Gibbs sampler (PCD-k) targeting |Ψ(v)|².
-
-        Samples the joint (v, h) distribution with ±1 spins:
-            p(v, h) ∝ exp(-a·v + b·h + v·W·h)
+        Persistent block Gibbs (PCD-k) targeting |Ψ(v)|².
 
         Block conditionals (all units independent within each block):
-            p(h_j = +1 | v) = σ( 2(b_j + W[:,j]·v) )
-            p(v_i = +1 | h) = σ( 2(W[i,:]·h  - a_i) )
-
-        Note: no beta_x scaling — Gibbs is exact at T=1 by construction.
-        GPU: if CuPy is available all arrays live on the GPU; otherwise
-        NumPy is used transparently (same code path via _xp).
+            p(h_j = +1 | v) = σ(2(b_j + W[:,j]·v))
+            p(v_i = +1 | h) = σ(2(W[i,:]·h − a_i))
         """
         n_sweeps = config.get("n_sweeps", self.n_sweeps)
         n_warmup = config.get("n_warmup", self.n_warmup)
-
         Nv, Nh = rbm.n_visible, rbm.n_hidden
-        W = _xp.asarray(rbm.W)
-        a = _xp.asarray(rbm.a)
-        b = _xp.asarray(rbm.b)
+        W, a, b = rbm.W, rbm.a, rbm.b  # JAX arrays
 
-        rng = np.random.default_rng()
+        def h_given_v(V, key):
+            prob = 1.0 / (1.0 + jnp.exp(-2.0 * (V @ W + b[None, :])))
+            u = jax.random.uniform(key, (V.shape[0], Nh), dtype=jnp.float64)
+            return jnp.where(u < prob, 1.0, -1.0)
 
-        def _h_given_v(V):
-            """Sample H ~ p(h|v).  V: (C, Nv) → H: (C, Nh)"""
-            prob = 1.0 / (1.0 + _xp.exp(-2.0 * (V @ W + b[None, :])))
-            u = _xp.asarray(rng.random((V.shape[0], Nh)))
-            return _xp.where(u < prob, 1.0, -1.0)
+        def v_given_h(H, key):
+            prob = 1.0 / (1.0 + jnp.exp(-2.0 * (H @ W.T - a[None, :])))
+            u = jax.random.uniform(key, (H.shape[0], Nv), dtype=jnp.float64)
+            return jnp.where(u < prob, 1.0, -1.0)
 
-        def _v_given_h(H):
-            """Sample V ~ p(v|h).  H: (C, Nh) → V: (C, Nv)"""
-            prob = 1.0 / (1.0 + _xp.exp(-2.0 * (H @ W.T - a[None, :])))
-            u = _xp.asarray(rng.random((H.shape[0], Nv)))
-            return _xp.where(u < prob, 1.0, -1.0)
+        def gibbs_sweep(V, key):
+            k1, k2 = jax.random.split(key)
+            return v_given_h(h_given_v(V, k1), k2)
 
-        def _init_chains(n: int):
-            """Random ±1 init, warmed up for n_warmup sweeps."""
-            V_ = _xp.asarray(rng.choice([-1.0, 1.0], size=(n, Nv)))
+        def init_chains(n, key):
+            k1, k2 = jax.random.split(key)
+            V_ = jax.random.choice(
+                k1, jnp.array([-1.0, 1.0]), shape=(n, Nv)
+            ).astype(jnp.float64)
             for _ in range(n_warmup):
-                V_ = _v_given_h(_h_given_v(V_))
+                k2, k = jax.random.split(k2)
+                V_ = gibbs_sweep(V_, k)
             return V_
 
         # Initialise or reinitialise persistent chains when shape changes
+        key = self._next_key()
         if self._gibbs_v is None or self._gibbs_v.shape != (n_samples, Nv):
-            self._gibbs_v = _init_chains(n_samples)
+            self._gibbs_v = init_chains(n_samples, key)
+            key = self._next_key()
 
         V = self._gibbs_v
-
-        # PCD-k: k block Gibbs sweeps from current chain state
         for _ in range(n_sweeps):
-            V = _v_given_h(_h_given_v(V))
+            key = self._next_key()
+            V = gibbs_sweep(V, key)
 
-        # Collapse detection: reinitialise stuck chains
-        v_np = _xp.asnumpy(V) if _xp is not np else np.asarray(V)
+        # Collapse detection
+        v_np = np.asarray(V)
         unique = len(set(map(tuple, v_np.tolist())))
         restarted = 0
         if unique < self.gibbs_collapse_threshold * n_samples:
             n_reinit = int(self.gibbs_reinit_fraction * n_samples)
-            idx = rng.choice(n_samples, n_reinit, replace=False)
-            V[idx] = _init_chains(n_reinit)
+            key = self._next_key()
+            k1, k2 = jax.random.split(key)
+            # Select which chains to reinitialise
+            idx = np.random.choice(n_samples, n_reinit, replace=False)
+            new_chains = init_chains(n_reinit, k2)
+            V = V.at[jnp.array(idx)].set(new_chains)
             restarted = n_reinit
-            v_np = _xp.asnumpy(V) if _xp is not np else np.asarray(V)
+            v_np = np.asarray(V)
             unique = len(set(map(tuple, v_np.tolist())))
 
         self._gibbs_v = V
 
-        # Sample H once from final V to return joint samples
-        H = _h_given_v(V)
-        h_np = _xp.asnumpy(H) if _xp is not np else np.asarray(H)
+        # Sample hidden once from final V
+        key = self._next_key()
+        H = h_given_v(V, key)
+        h_np = np.asarray(H)
 
         restart_str = f"  restarted={restarted}" if restarted else ""
-        print(
-            f"  [Gibbs] device={_DEVICE}  k={n_sweeps}  unique={unique}/{n_samples}{restart_str}"
-        )
+        print(f"  [Gibbs] k={n_sweeps}  unique={unique}/{n_samples}{restart_str}")
         return v_np, h_np
 
-    def _sample_hidden(self, rbm: RBM, v_samples: np.ndarray) -> np.ndarray:
+    def _sample_hidden(self, rbm: RBM, v_samples) -> np.ndarray:
         """Sample h ~ p(h|v) at β=1 for each visible sample."""
-        activation = rbm.b[None, :] + v_samples @ rbm.W  # (n_samples, n_hidden)
-        prob_plus = 1.0 / (1.0 + np.exp(-2.0 * activation))
-        rng = np.random.default_rng()
-        return np.where(rng.random(prob_plus.shape) < prob_plus, 1.0, -1.0)
+        V = jnp.asarray(v_samples, dtype=jnp.float64)
+        activation = rbm.b[None, :] + V @ rbm.W
+        prob_plus = 1.0 / (1.0 + jnp.exp(-2.0 * activation))
+        key = self._next_key()
+        u = jax.random.uniform(key, prob_plus.shape, dtype=jnp.float64)
+        return np.asarray(jnp.where(u < prob_plus, 1.0, -1.0))
+
+    # ── Metropolis-Hastings ───────────────────────────────────────────────
 
     def _metropolis_hastings(
         self, rbm: RBM, n_samples: int, config: dict
     ) -> np.ndarray:
         """
-        Metropolis-Hastings sampling targeting |Ψ(v)|².
+        Batched MH: n_samples independent chains run in parallel.
 
-        Proposal: flip a single random spin.
-        Acceptance: min(1, |Ψ(v')/Ψ(v)|²)
-
-        One sweep = n_visible attempted flips at randomly chosen sites.
-
-        Parameters from config:
-        - n_warmup: equilibration sweeps (overrides __init__ value)
-        - n_sweeps: sweeps between collected samples (overrides __init__ value)
+        Each chain runs n_warmup + n_sweeps sweeps.  A sweep = N single-spin-
+        flip proposals.  All C chains are updated simultaneously via lax.scan.
         """
-        if _DEVICE == "gpu":
-            return self._metropolis_hastings_batched(rbm, n_samples, config)
-
-        N = rbm.n_visible
-        n_warmup = config.get("n_warmup", self.n_warmup)
-        n_sweeps = config.get("n_sweeps", self.n_sweeps)
-        rng = np.random.default_rng()
-
-        v = rng.choice([-1.0, 1.0], size=N)
-        # Ensure C-contiguous float64 for Numba
-        W_cont = np.ascontiguousarray(rbm.W, dtype=np.float64)
-        a_cont = np.ascontiguousarray(rbm.a, dtype=np.float64)
-
-        n_accepted = 0
-        n_proposed = 0
-
-        def sweep(v, theta):
-            """One sweep with cached theta = b + W.T @ v, updated incrementally."""
-            nonlocal n_accepted, n_proposed
-            n_proposed += N
-            flip_indices = rng.integers(0, N, size=N).astype(np.int64)
-            rand_u = rng.random(N)
-            if _HAS_NUMBA:
-                n_accepted += _mh_sweep_nb(
-                    v, theta, W_cont, a_cont, flip_indices, rand_u
-                )
-            else:
-                for k in range(N):
-                    flip_idx = flip_indices[k]
-                    vi = v[flip_idx]
-                    theta_flip = theta - 2.0 * vi * rbm.W[flip_idx, :]
-                    log_ratio = rbm.a[flip_idx] * vi + 0.5 * np.sum(
-                        rbm.logcosh(theta_flip) - rbm.logcosh(theta)
-                    )
-                    if rand_u[k] < min(1.0, np.exp(2.0 * log_ratio)):
-                        v[flip_idx] *= -1
-                        theta[:] = theta_flip
-                        n_accepted += 1
-            return v, theta
-
-        # Warmup — equilibrate from random initial state
-        theta = np.ascontiguousarray(rbm.b + rbm.W.T @ v, dtype=np.float64)
-        v = v.astype(np.float64)
-        for _ in range(n_warmup):
-            v, theta = sweep(v, theta)
-
-        # Reset counters so acceptance rate reflects collection phase only
-        n_accepted = 0
-        n_proposed = 0
-
-        # Collect samples
-        samples = []
-        for _ in range(n_samples):
-            for _ in range(n_sweeps):
-                v, theta = sweep(v, theta)
-            samples.append(v.copy())
-
-        acceptance_rate = n_accepted / max(n_proposed, 1)
-        print(
-            f"  [MH]    acceptance={acceptance_rate:.3f}  "
-            f"unique={len(set(map(tuple, samples)))}/{n_samples}"
-        )
-
-        return np.array(samples)
-
-    def _metropolis_hastings_batched(
-        self, rbm: RBM, n_samples: int, config: dict
-    ) -> np.ndarray:
-        """
-        Batched Metropolis-Hastings: all n_samples chains run in parallel on the GPU.
-
-        Each chain is independent and starts from a random state, runs n_warmup sweeps
-        to equilibrate, then n_sweeps more sweeps before its final state is collected
-        as a sample.  One sweep = N single-spin-flip proposals per chain.
-
-        Parallelism: at each proposal step, all C chains propose a (possibly different)
-        spin flip simultaneously → (C, Nh) tensor operations, mapped to GPU cores.
-
-        Device: uses CuPy (_xp = cp) when available, NumPy otherwise — same code path.
-        """
-        xp = _xp
         N, Nh = rbm.n_visible, rbm.n_hidden
         C = n_samples
         n_warmup = config.get("n_warmup", self.n_warmup)
         n_sweeps = config.get("n_sweeps", self.n_sweeps)
 
-        W = xp.asarray(rbm.W, dtype=np.float64)  # (N, Nh)
-        a = xp.asarray(rbm.a, dtype=np.float64)  # (N,)
-        b = xp.asarray(rbm.b, dtype=np.float64)  # (Nh,)
+        W, a, b = rbm.W, rbm.a, rbm.b
 
-        # Initialise C independent chains with random ±1 spins
-        v = (xp.random.randint(0, 2, (C, N)) * 2 - 1).astype(np.float64)  # (C, N)
+        key = self._next_key()
+        k1, k2 = jax.random.split(key)
+        v = jax.random.choice(
+            k1, jnp.array([-1.0, 1.0]), shape=(C, N)
+        ).astype(jnp.float64)
         theta = b[None, :] + v @ W  # (C, Nh)
-        ci = xp.arange(C)
 
-        n_accepted_total = 0
-        n_proposed_total = 0
+        total_steps = N * (n_warmup + n_sweeps)
+        v, _ = _mh_sweep_jit(v, theta, W, a, k2, C, N, total_steps)
 
-        def sweep(v, theta):
-            nonlocal n_accepted_total, n_proposed_total
-            n_proposed_total += C * N
-            for _ in range(N):
-                # Draw one random flip site per chain
-                flip_idx = xp.random.randint(0, N, (C,))  # (C,)
-                vi = v[ci, flip_idx]  # (C,)
-                W_row = W[flip_idx]  # (C, Nh)
-
-                # Compute theta if this flip were accepted (O(C*Nh), fully vectorised)
-                theta_flip = theta - 2.0 * vi[:, None] * W_row  # (C, Nh)
-
-                # Log acceptance ratio: 2 * [ a_i * v_i + 0.5 * Σ_j Δlogcosh_j ]
-                lc_diff = 0.5 * xp.sum(
-                    _logcosh_xp(xp, theta_flip) - _logcosh_xp(xp, theta), axis=1
-                )  # (C,)
-                log_ratio = a[flip_idx] * vi + lc_diff  # (C,)
-
-                # Accept with probability min(1, exp(2*log_ratio))
-                accept = xp.log(xp.random.rand(C)) < 2.0 * log_ratio  # (C,) bool
-
-                # Update v and theta only for accepted chains
-                v[ci, flip_idx] = xp.where(accept, -vi, vi)
-                theta = xp.where(accept[:, None], theta_flip, theta)
-                n_accepted_total += int(xp.sum(accept))
-            return v, theta
-
-        for _ in range(n_warmup):
-            v, theta = sweep(v, theta)
-
-        # Reset acceptance counters — only measure collection phase
-        n_accepted_total = 0
-        n_proposed_total = 0
-
-        for _ in range(n_sweeps):
-            v, theta = sweep(v, theta)
-
-        acceptance_rate = n_accepted_total / max(n_proposed_total, 1)
-        # Transfer to CPU
-        v_np = xp.asnumpy(v) if xp is not np else np.asarray(v)
+        v_np = np.asarray(v)
         unique = len(set(map(tuple, v_np.tolist())))
-        print(
-            f"  [MH-batch] device={_DEVICE}  acceptance={acceptance_rate:.3f}  "
-            f"unique={unique}/{n_samples}"
-        )
+        print(f"  [MH]    unique={unique}/{n_samples}")
         return v_np
+
+    # ── Simulated Annealing ───────────────────────────────────────────────
 
     def _simulated_annealing(
         self, rbm: RBM, n_samples: int, config: dict
     ) -> np.ndarray:
         """
-        Simulated Annealing sampling targeting |Ψ(v)|².
-
-        Starts at high temperature (flat distribution, full exploration) and
-        cools geometrically. At each step accepts a spin flip with probability:
-
-            min(1, |Ψ(v')/Ψ(v)|^(2/T))
-
-        At T→∞ this accepts everything (random walk).
-        At T→0 this only accepts improvements (greedy).
-
-        Unlike the Metropolis sampler which targets the fixed distribution
-        |Ψ(v)|² at T=1, SA uses temperature to escape local modes early in
-        training when the RBM is poorly initialised, then sharpens toward
-        the true distribution as T→1 at the end of the schedule.
-
-        One sweep = n_visible attempted spin flips at randomly chosen sites.
-
-        Parameters from config (all optional):
-        - T_initial:  starting temperature  (default: 5.0)
-        - T_final:    ending temperature    (default: 1.0)
-                    set to 1.0 so the final samples are from |Ψ|² exactly
-        - n_warmup:   sweeps at T_initial before schedule starts (default: 50)
-        - n_sweeps:   sweeps between collected samples during cooling (default: 1)
+        Batched SA: n_samples chains cooled in parallel along a geometric schedule.
         """
-        if _DEVICE == "gpu":
-            return self._simulated_annealing_batched(rbm, n_samples, config)
-
-        N = rbm.n_visible
-        T_initial = config.get(
-            "T_initial", self.T_initial if hasattr(self, "T_initial") else 5.0
-        )
-        T_final = config.get(
-            "T_final", self.T_final if hasattr(self, "T_final") else 1.0
-        )
-        n_warmup = config.get("n_warmup", self.n_warmup)
-        n_sweeps = config.get("n_sweeps", self.n_sweeps)
-        rng = np.random.default_rng()
-
-        v = rng.choice([-1.0, 1.0], size=N)
-        # Ensure C-contiguous float64 for Numba
-        W_cont = np.ascontiguousarray(rbm.W, dtype=np.float64)
-        a_cont = np.ascontiguousarray(rbm.a, dtype=np.float64)
-
-        # Geometric cooling schedule: T(step) = T_initial * (T_final/T_initial)^(step/n_steps)
-        n_steps = n_samples * n_sweeps
-
-        def schedule(step: int) -> float:
-            if T_initial == T_final:
-                return T_final
-            return T_initial * (T_final / T_initial) ** (step / max(n_steps - 1, 1))
-
-        n_accepted = 0
-        n_proposed = 0
-
-        def sweep(v, theta, T):
-            """One sweep with cached theta = b + W.T @ v, updated incrementally."""
-            nonlocal n_accepted, n_proposed
-            n_proposed += N
-            flip_indices = rng.integers(0, N, size=N).astype(np.int64)
-            rand_u = rng.random(N)
-            if _HAS_NUMBA:
-                n_accepted += _sa_sweep_nb(
-                    v, theta, W_cont, a_cont, flip_indices, rand_u, T
-                )
-            else:
-                for k in range(N):
-                    flip_idx = flip_indices[k]
-                    vi = v[flip_idx]
-                    theta_flip = theta - 2.0 * vi * rbm.W[flip_idx, :]
-                    log_ratio = rbm.a[flip_idx] * vi + 0.5 * np.sum(
-                        rbm.logcosh(theta_flip) - rbm.logcosh(theta)
-                    )
-                    if rand_u[k] < min(1.0, np.exp(2.0 * log_ratio / T)):
-                        v[flip_idx] *= -1
-                        theta[:] = theta_flip
-                        n_accepted += 1
-            return v, theta
-
-        # Warmup at T_initial — equilibrate before cooling
-        theta = np.ascontiguousarray(rbm.b + rbm.W.T @ v, dtype=np.float64)
-        v = v.astype(np.float64)
-        for _ in range(n_warmup):
-            v, theta = sweep(v, theta, T_initial)
-
-        n_accepted = 0
-        n_proposed = 0
-
-        # Collect samples while cooling
-        samples = []
-        step = 0
-        for _ in range(n_samples):
-            for _ in range(n_sweeps):
-                T = schedule(step)
-                v, theta = sweep(v, theta, T)
-                step += 1
-            samples.append(v.copy())
-
-        acceptance_rate = n_accepted / max(n_proposed, 1)
-        T_now = schedule(step - 1)
-        print(
-            f"  [SA]    acceptance={acceptance_rate:.3f}  "
-            f"T: {T_initial:.2f}→{T_now:.2f}  "
-            f"unique={len(set(map(tuple, samples)))}/{n_samples}"
-        )
-
-        return np.array(samples)
-
-    def _simulated_annealing_batched(
-        self, rbm: RBM, n_samples: int, config: dict
-    ) -> np.ndarray:
-        """
-        Batched SA: C chains cooled in parallel on GPU (or CPU via NumPy).
-
-        All chains share the same geometric cooling schedule.  After n_warmup
-        sweeps at T_initial, the schedule runs for n_samples * n_sweeps sweeps
-        and the final state of each chain is returned as a sample.
-        """
-        xp = _xp
         N, Nh = rbm.n_visible, rbm.n_hidden
         C = n_samples
-        T_initial = config.get(
-            "T_initial", self.T_initial if hasattr(self, "T_initial") else 5.0
-        )
-        T_final = config.get(
-            "T_final", self.T_final if hasattr(self, "T_final") else 1.0
-        )
+        T_initial = config.get("T_initial", self.T_initial)
+        T_final = config.get("T_final", self.T_final)
         n_warmup = config.get("n_warmup", self.n_warmup)
         n_sweeps = config.get("n_sweeps", self.n_sweeps)
 
-        W = xp.asarray(rbm.W, dtype=np.float64)
-        a = xp.asarray(rbm.a, dtype=np.float64)
-        b = xp.asarray(rbm.b, dtype=np.float64)
+        W, a, b = rbm.W, rbm.a, rbm.b
 
-        v = (xp.random.randint(0, 2, (C, N)) * 2 - 1).astype(np.float64)
+        key = self._next_key()
+        k1, k2, k3 = jax.random.split(key, 3)
+
+        # Warmup at T_initial
+        v = jax.random.choice(
+            k1, jnp.array([-1.0, 1.0]), shape=(C, N)
+        ).astype(jnp.float64)
         theta = b[None, :] + v @ W
-        ci = xp.arange(C)
+        warmup_steps = N * n_warmup
+        v, theta = _sa_sweep_jit(
+            v, theta, W, a, k2, C, N, warmup_steps, T_initial, T_initial
+        )
 
-        n_total_steps = n_samples * n_sweeps
+        # Cooling sweep
+        cool_steps = N * n_sweeps
+        v, _ = _sa_sweep_jit(v, theta, W, a, k3, C, N, cool_steps, T_initial, T_final)
 
-        def schedule(step):
-            if T_initial == T_final:
-                return T_final
-            return T_initial * (T_final / T_initial) ** (
-                step / max(n_total_steps - 1, 1)
-            )
-
-        def sweep(v, theta, T):
-            for _ in range(N):
-                flip_idx = xp.random.randint(0, N, (C,))
-                vi = v[ci, flip_idx]
-                W_row = W[flip_idx]
-                theta_flip = theta - 2.0 * vi[:, None] * W_row
-                lc_diff = 0.5 * xp.sum(
-                    _logcosh_xp(xp, theta_flip) - _logcosh_xp(xp, theta), axis=1
-                )
-                log_ratio = a[flip_idx] * vi + lc_diff
-                accept = xp.log(xp.random.rand(C)) < 2.0 * log_ratio / T
-                v[ci, flip_idx] = xp.where(accept, -vi, vi)
-                theta = xp.where(accept[:, None], theta_flip, theta)
-            return v, theta
-
-        for _ in range(n_warmup):
-            v, theta = sweep(v, theta, T_initial)
-
-        step = 0
-        for _ in range(n_samples):
-            for _ in range(n_sweeps):
-                v, theta = sweep(v, theta, schedule(step))
-                step += 1
-
-        v_np = xp.asnumpy(v) if xp is not np else np.asarray(v)
+        v_np = np.asarray(v)
         unique = len(set(map(tuple, v_np.tolist())))
-        T_now = schedule(step - 1)
         print(
-            f"  [SA-batch] device={_DEVICE}  T: {T_initial:.2f}→{T_now:.2f}  "
-            f"unique={unique}/{n_samples}"
+            f"  [SA]    T: {T_initial:.2f}→{T_final:.2f}  unique={unique}/{n_samples}"
         )
         return v_np
+
+
+# ---------------------------------------------------------------------------
+# Velox sampler (unchanged — external hardware, NumPy I/O)
+# ---------------------------------------------------------------------------
 
 
 class VeloxSampler(Sampler):
@@ -732,8 +509,10 @@ class VeloxSampler(Sampler):
         sbm_dt: float = 1.0,
         sbm_discrete: bool = False,
     ):
-        self.method = method
+        from veloxq_sdk import VeloxQSolver, SBMSolver, SBMParameters
+        from veloxq_sdk.config import load_config, VeloxQAPIConfig
 
+        self.method = method
         load_config("velox_api_config.py")
         api_config = VeloxQAPIConfig.instance()
         with open("velox_token.txt", "r") as file:
@@ -747,6 +526,7 @@ class VeloxSampler(Sampler):
             )
             self.solver = SBMSolver(parameters=params)
         else:
+            from veloxq_sdk import VeloxQSolver
             self.solver = VeloxQSolver()
 
     def sample(
@@ -779,14 +559,14 @@ class VeloxSampler(Sampler):
         return v
 
 
+# ---------------------------------------------------------------------------
+# FPGA sampler (unchanged — subprocess + Julia bridge, NumPy I/O)
+# ---------------------------------------------------------------------------
+
+
 class FPGASampler(Sampler):
     """
     FPGA sampler wrapper that delegates sampling to the VeloxQFPGA Julia stack.
-
-    Uses a small Julia bridge script (scripts/fpga_sa_bridge.jl) to call FPGASA
-    and writes samples to a temporary text file which we parse back into numpy.
-
-    Default transport is JTAG (transport="jtag").
     """
 
     _ENV_MAP = {
@@ -822,8 +602,12 @@ class FPGASampler(Sampler):
 
         self.transport = transport
         self.julia_cmd = julia_cmd
-        self.project_path = Path(project_path).resolve() if project_path else default_project
-        self.script_path = Path(script_path).resolve() if script_path else default_script
+        self.project_path = (
+            Path(project_path).resolve() if project_path else default_project
+        )
+        self.script_path = (
+            Path(script_path).resolve() if script_path else default_script
+        )
         self.num_rep = int(num_rep)
         self.num_steps = int(num_steps)
         self.num_sweeps = int(num_sweeps)
@@ -837,8 +621,7 @@ class FPGASampler(Sampler):
 
         if not self.project_path.exists():
             raise FileNotFoundError(
-                f"VeloxQFPGA project not found at {self.project_path}. "
-                "Expected a sibling repo named 'veloxQFPGA'."
+                f"VeloxQFPGA project not found at {self.project_path}."
             )
         if not self.script_path.exists():
             raise FileNotFoundError(
@@ -846,20 +629,15 @@ class FPGASampler(Sampler):
             )
         self.last_sampling_time_s = None
 
-    def _write_ising_csv(
-        self, path: Path, linear: dict, quadratic: dict, n_vars: int
-    ) -> None:
-        # CSV_Format expects 1-indexed (i, j, v) rows. Diagonal entries encode biases.
+    def _write_ising_csv(self, path, linear, quadratic, n_vars):
         with path.open("w") as f:
             for i in range(n_vars):
-                # CSV_Format duplicates each row as (i,j) and (j,i); for i==j this
-                # doubles the bias, so write half to preserve the intended value.
                 val = float(linear.get(i, 0.0)) * 0.5
                 f.write(f"{i + 1},{i + 1},{val:.16g}\n")
             for (i, j), val in sorted(quadratic.items()):
                 f.write(f"{i + 1},{j + 1},{float(val):.16g}\n")
 
-    def _apply_env_overrides(self, env: dict, config: dict) -> None:
+    def _apply_env_overrides(self, env, config):
         for key, env_key in self._ENV_MAP.items():
             if key not in config:
                 continue
@@ -869,13 +647,11 @@ class FPGASampler(Sampler):
             else:
                 env[env_key] = str(val)
 
-    def _bool_from_env(self, env: dict, key: str) -> bool:
+    def _bool_from_env(self, env, key):
         val = env.get(key, "")
-        if not val:
-            return False
-        return str(val).strip().lower() in ("1", "true", "yes", "on")
+        return str(val).strip().lower() in ("1", "true", "yes", "on") if val else False
 
-    def _timeout_from_env(self, env: dict, key: str):
+    def _timeout_from_env(self, env, key):
         val = env.get(key, "")
         if not val:
             return None
@@ -884,17 +660,12 @@ class FPGASampler(Sampler):
         except ValueError:
             return None
 
-    def sample(
-        self, rbm, n_samples: int, config: dict = None, return_hidden: bool = False
-    ):
+    def sample(self, rbm, n_samples: int, config: dict = None, return_hidden: bool = False):
         if config is None:
             config = {}
-
         self.last_sampling_time_s = None
-
         beta_x = config.get("beta_x", 1.0)
         quadratic, linear = self.rbm_to_ising(rbm, beta_x)
-
         n_vars = rbm.n_visible + rbm.n_hidden
         model_path = self._tmp_root / f"ising_{uuid.uuid4().hex}.csv"
         out_path = self._tmp_root / f"states_{uuid.uuid4().hex}.txt"
@@ -915,24 +686,14 @@ class FPGASampler(Sampler):
         transport = str(config.get("fpga_transport", self.transport))
 
         cmd = [
-            self.julia_cmd,
-            f"--project={self.project_path}",
-            str(self.script_path),
-            str(model_path),
-            str(out_path),
-            str(num_rep),
-            str(num_steps),
-            str(num_sweeps),
-            str(start_temp),
-            str(stop_temp),
-            schedule_type,
-            transport,
-            str(meta_path),
+            self.julia_cmd, f"--project={self.project_path}", str(self.script_path),
+            str(model_path), str(out_path), str(num_rep), str(num_steps),
+            str(num_sweeps), str(start_temp), str(stop_temp),
+            schedule_type, transport, str(meta_path),
         ]
 
         env = os.environ.copy()
         self._apply_env_overrides(env, config)
-
         stream_output = bool(
             config.get("fpga_stream_output")
             if "fpga_stream_output" in config
@@ -962,12 +723,8 @@ class FPGASampler(Sampler):
                         pass
 
             proc = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1,
-                env=env,
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                text=True, bufsize=1, env=env,
             )
             t_out = threading.Thread(
                 target=_reader, args=(proc.stdout, _sys.stdout, stdout_lines)
@@ -979,7 +736,6 @@ class FPGASampler(Sampler):
             t_err.daemon = True
             t_out.start()
             t_err.start()
-
             try:
                 if timeout_s is None:
                     returncode = proc.wait()
@@ -997,7 +753,6 @@ class FPGASampler(Sampler):
             finally:
                 t_out.join(timeout=2)
                 t_err.join(timeout=2)
-
             if returncode != 0:
                 msg = f"FPGA sampler failed (exit {returncode})."
                 if stdout_lines:
@@ -1008,12 +763,8 @@ class FPGASampler(Sampler):
         else:
             try:
                 result = subprocess.run(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    env=env,
-                    timeout=timeout_s,
+                    cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    text=True, env=env, timeout=timeout_s,
                 )
             except subprocess.TimeoutExpired as e:
                 msg = f"FPGA sampler timed out after {timeout_s} seconds."
@@ -1033,7 +784,6 @@ class FPGASampler(Sampler):
         samples = np.loadtxt(out_path, dtype=np.int8)
         if samples.ndim == 1:
             samples = samples[None, :]
-
         if samples.shape[1] != n_vars:
             raise RuntimeError(
                 f"FPGA sampler returned {samples.shape[1]} vars, expected {n_vars}."
@@ -1052,24 +802,22 @@ class FPGASampler(Sampler):
                 self.last_sampling_time_s = None
 
         if not self.keep_files:
-            try:
-                model_path.unlink()
-            except FileNotFoundError:
-                pass
-            try:
-                out_path.unlink()
-            except FileNotFoundError:
-                pass
-            try:
-                meta_path.unlink()
-            except FileNotFoundError:
-                pass
+            for p in (model_path, out_path, meta_path):
+                try:
+                    p.unlink()
+                except FileNotFoundError:
+                    pass
 
         v = samples[:, : rbm.n_visible]
         if return_hidden:
             h_samples = samples[:, rbm.n_visible : rbm.n_visible + rbm.n_hidden]
             return v, h_samples
         return v
+
+
+# ---------------------------------------------------------------------------
+# Dimod sampler (unchanged — D-Wave QPU, NumPy I/O)
+# ---------------------------------------------------------------------------
 
 
 class DimodSampler(Sampler):
@@ -1079,20 +827,11 @@ class DimodSampler(Sampler):
         if not self.time_path.exists():
             with self.time_path.open("w") as f:
                 json.dump({"time_ms": 0}, f)
-
         self._embedding_cache: dict = {}
 
     def sample(
         self, rbm, n_samples: int, config: dict = {}, return_hidden: bool = False
     ):
-        """
-        Sample from the RBM distribution using a classical/quantum sampler from the dimod library.
-        Args:
-            - rbm (RBM): An RBM instance
-            - n_samples (int): Number of samples to draw
-            - config (dict): Optional configuration for the sampler
-            - return_hidden: if True, return (v_samples, h_samples) tuple
-        """
         beta_x = config.get("beta_x", 1.0)
         J, h = self.rbm_to_ising(rbm, beta_x)
         self.n_visible = rbm.n_visible
@@ -1103,20 +842,13 @@ class DimodSampler(Sampler):
             return self.simulated_annealing(bqm, n_samples, config, return_hidden)
         elif self.method == "tabu":
             return self.tabu_search(bqm, n_samples, config, return_hidden)
-        elif self.method == "pegasus" or self.method == "zephyr":
+        elif self.method in ("pegasus", "zephyr"):
             config["solver"] = get_solver_name(self.method)
-            return self.dwave(
-                bqm, n_samples, config, rbm=rbm, return_hidden=return_hidden
-            )
+            return self.dwave(bqm, n_samples, config, rbm=rbm, return_hidden=return_hidden)
         else:
             raise ValueError(f"Unknown method: {self.method}")
 
     def _log_access_time(self, access_time_us: float):
-        """Log the D-Wave access time to time.json.
-
-        Uses an exclusive flock for cross-process safety and an atomic
-        write (temp file → rename) to prevent partial/corrupt writes.
-        """
         with self.time_path.open("r+") as f:
             fcntl.flock(f, fcntl.LOCK_EX)
             try:
@@ -1129,54 +861,28 @@ class DimodSampler(Sampler):
             finally:
                 fcntl.flock(f, fcntl.LOCK_UN)
 
-    def simulated_annealing(
-        self, bqm, n_samples: int, config: dict = {}, return_hidden: bool = False
-    ):
-        """
-        Run simulated annealing using the neal library.
-
-        Args:
-            - bqm (dimod.BinaryQuadraticModel): The Ising model to sample from
-            - n_samples (int): Number of samples to draw
-            - config (dict): Optional configuration for the annealing schedule
-            - return_hidden: if True, return (v_samples, h_samples) tuple
-        """
+    def simulated_annealing(self, bqm, n_samples, config={}, return_hidden=False):
+        import neal
         sampler = neal.SimulatedAnnealingSampler()
         sampleset = sampler.sample(
             bqm,
             num_reads=n_samples,
-            beta_range=(0.01, 10.0),  # wider temperature range
-            num_sweeps=1000,  # more sweeps per read
+            beta_range=(0.01, 10.0),
+            num_sweeps=1000,
             beta_schedule_type="geometric",
         )
-        # Sort columns by variable index — sampleset.variables is not
-        # guaranteed to be ordered, so raw slicing [:, :n_visible] would
-        # silently mix visible and hidden units.
         sort_idx = np.argsort(list(sampleset.variables))
         samples = sampleset.record.sample[:, sort_idx]
-        unique_samples = len(set(map(tuple, samples)))
-        print(f"  unique samples: {unique_samples}/{len(samples)}")
+        print(f"  unique samples: {len(set(map(tuple, samples)))}/{len(samples)}")
         v = samples[:, : self.n_visible]
         if return_hidden:
             return v, samples[:, self.n_visible : self.n_visible + self.n_hidden]
         return v
 
-    def tabu_search(
-        self, bqm, n_samples: int, config: dict = {}, return_hidden: bool = False
-    ):
-        """
-        Run tabu search using the neal library.
-
-        Args:
-            - bqm (dimod.BinaryQuadraticModel): The Ising model to sample from
-            - n_samples (int): Number of samples to draw
-            - config (dict): Optional configuration for the tabu search
-            - return_hidden: if True, return (v_samples, h_samples) tuple
-        """
+    def tabu_search(self, bqm, n_samples, config={}, return_hidden=False):
+        from dwave.samplers import TabuSampler
         sampler = TabuSampler()
         sampleset = sampler.sample(bqm, num_reads=n_samples)
-
-        # Sort columns by variable index — same reason as in simulated_annealing.
         sort_idx = np.argsort(list(sampleset.variables))
         samples = sampleset.record.sample[:, sort_idx]
         v = samples[:, : self.n_visible]
@@ -1184,18 +890,9 @@ class DimodSampler(Sampler):
             return v, samples[:, self.n_visible : self.n_visible + self.n_hidden]
         return v
 
-    def dwave(
-        self,
-        bqm,
-        n_samples: int,
-        config: dict = {},
-        rbm=None,
-        return_hidden: bool = False,
-    ):
+    def dwave(self, bqm, n_samples, config={}, rbm=None, return_hidden=False):
         from dwave.system import (
-            DWaveSampler,
-            EmbeddingComposite,
-            FixedEmbeddingComposite,
+            DWaveSampler, EmbeddingComposite, FixedEmbeddingComposite,
         )
         from model import DWaveTopologyRBM
 
@@ -1205,34 +902,20 @@ class DimodSampler(Sampler):
         chain_strength = config.get("chain_strength", None)
         cache_key = (self.n_visible, solver_name)
 
-        # ── Build or retrieve cached composite ───────────────────────────────
         if cache_key not in self._embedding_cache:
             dwave_sampler = DWaveSampler(solver=solver_name)
-
             if rbm is not None and isinstance(rbm, DWaveTopologyRBM):
-                # Trivial identity embedding — no minorminer needed
-                assert rbm._qubit_mapping is not None, (
-                    "DWaveTopologyRBM must be built from a solver to use "
-                    "trivial embedding. rbm._qubit_mapping is None."
-                )
+                assert rbm._qubit_mapping is not None
                 identity_embedding = {
                     logical: [phys] for phys, logical in rbm._qubit_mapping.items()
                 }
                 composite = FixedEmbeddingComposite(dwave_sampler, identity_embedding)
-                print(
-                    f"  [embedding] Trivial identity embedding cached for {cache_key}."
-                )
-
+                print(f"  [embedding] Trivial identity embedding cached for {cache_key}.")
             else:
-                # Find embedding once with minorminer, then fix it
-                print(
-                    f"  [embedding] Running minorminer for {cache_key} — this may take a moment..."
-                )
+                print(f"  [embedding] Running minorminer for {cache_key}...")
                 import minorminer
-
                 embedding = minorminer.find_embedding(
-                    list(bqm.quadratic.keys()),
-                    dwave_sampler.edgelist,
+                    list(bqm.quadratic.keys()), dwave_sampler.edgelist,
                 )
                 if not embedding:
                     raise RuntimeError(
@@ -1241,35 +924,25 @@ class DimodSampler(Sampler):
                     )
                 composite = FixedEmbeddingComposite(dwave_sampler, embedding)
                 print(f"  [embedding] Embedding found and cached for {cache_key}.")
-
             self._embedding_cache[cache_key] = composite
-
         else:
             composite = self._embedding_cache[cache_key]
 
-        # ── Build sample kwargs ───────────────────────────────────────────────
         is_trivial = (
             rbm is not None
             and isinstance(rbm, DWaveTopologyRBM)
             and rbm._qubit_mapping is not None
         )
-
         sample_kwargs = dict(
-            num_reads=num_reads,
-            annealing_time=annealing_time,
-            answer_mode="raw",
-            auto_scale=True,
+            num_reads=num_reads, annealing_time=annealing_time,
+            answer_mode="raw", auto_scale=True,
         )
-
-        # chain_strength only applies when there are actual chains
         if not is_trivial and chain_strength is not None:
             sample_kwargs["chain_strength"] = chain_strength
 
-        # ── Sample with retries ───────────────────────────────────────────────
         MAX_DWAVE_RETRIES = 3
         success = False
         tries = 0
-
         while not success and tries < MAX_DWAVE_RETRIES:
             tries += 1
             try:
@@ -1278,11 +951,8 @@ class DimodSampler(Sampler):
                 self._log_access_time(access_time_us)
                 success = True
             except Exception as e:
-                print(
-                    f"  D-Wave sampling attempt {tries}/{MAX_DWAVE_RETRIES} failed: {e}"
-                )
+                print(f"  D-Wave sampling attempt {tries}/{MAX_DWAVE_RETRIES} failed: {e}")
                 if tries < MAX_DWAVE_RETRIES:
-                    # Invalidate cache — composite may have stale connections after failure
                     self._embedding_cache.pop(cache_key, None)
                     dwave_sampler = DWaveSampler(solver=solver_name)
                     composite = (
@@ -1293,7 +963,6 @@ class DimodSampler(Sampler):
                         if cache_key in self._embedding_cache
                         else composite
                     )
-                    # Rebuild from scratch on next cache miss
                     self._embedding_cache.pop(cache_key, None)
 
         if not success:

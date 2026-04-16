@@ -1,89 +1,190 @@
+"""
+Transverse Field Ising Model — JAX backend
+
+Local energy computation is JIT-compiled with jax.jit.
+The 3D broadcast (ns, N, M) that was too large for CPU cache is a natural fit
+for GPU: the entire tensor lives in VRAM and is processed as a single kernel.
+On CPU, XLA is still faster than the Numba approach because it can use
+BLAS-level vectorisation and avoids Python loop overhead entirely.
+"""
+
+import functools
 import numpy as np
+import jax
+import jax.numpy as jnp
 from abc import ABC, abstractmethod
+
+
+# ---------------------------------------------------------------------------
+# JIT-compiled energy kernels (module-level so they compile once per session)
+# ---------------------------------------------------------------------------
+
+
+@functools.partial(jax.jit, static_argnums=(4, 5))
+def _local_energy_1d_jit(
+    V: jax.Array,
+    W: jax.Array,
+    a: jax.Array,
+    b: jax.Array,
+    h: float,
+    N: int,
+) -> jax.Array:
+    """
+    1D local energy for all ns samples simultaneously.
+
+    V : (ns, N)   spin configs {-1, +1}
+    W : (N, M)    RBM weights
+    a : (N,)      visible biases
+    b : (M,)      hidden biases
+    h : float     transverse field strength
+    N : int       n_visible (static — shapes must be known at compile time)
+
+    Returns (ns,) local energies.
+
+    Off-diagonal sum
+    ----------------
+    log_ratio(s, i) = a[i]*V[s,i]
+                    + 0.5 * Σ_j [ logcosh(θ[s,j] - 2*V[s,i]*W[i,j])
+                                  - logcosh(θ[s,j]) ]
+
+    All N flips computed at once as a (ns, N, M) tensor — one XLA kernel.
+    """
+    theta = V @ W + b[None, :]                              # (ns, M)
+    blc = jnp.logaddexp(theta, -theta)                      # logcosh base  (ns, M)
+
+    # theta_flipped[s, i, j] = theta[s,j] - 2*V[s,i]*W[i,j]
+    theta_flipped = theta[:, None, :] - 2.0 * V[:, :, None] * W[None, :, :]  # (ns, N, M)
+
+    log_ratios = a[None, :] * V + 0.5 * jnp.sum(
+        jnp.logaddexp(theta_flipped, -theta_flipped) - blc[:, None, :], axis=2
+    )  # (ns, N)
+
+    E_off = -h * jnp.sum(jnp.exp(log_ratios), axis=1)      # (ns,)
+
+    right = (jnp.arange(N) + 1) % N
+    E_diag = -jnp.sum(V * V[:, right], axis=1)             # (ns,)
+
+    return E_diag + E_off
+
+
+@functools.partial(jax.jit, static_argnums=(4, 5, 6))
+def _local_energy_2d_jit(
+    V: jax.Array,
+    W: jax.Array,
+    a: jax.Array,
+    b: jax.Array,
+    h: float,
+    N: int,
+    L: int,
+) -> jax.Array:
+    """
+    2D local energy for all ns samples simultaneously.
+
+    V : (ns, N)   spin configs, N = L²
+    L : int       linear lattice dimension (static)
+    """
+    theta = V @ W + b[None, :]
+    blc = jnp.logaddexp(theta, -theta)
+    theta_flipped = theta[:, None, :] - 2.0 * V[:, :, None] * W[None, :, :]
+
+    log_ratios = a[None, :] * V + 0.5 * jnp.sum(
+        jnp.logaddexp(theta_flipped, -theta_flipped) - blc[:, None, :], axis=2
+    )
+    E_off = -h * jnp.sum(jnp.exp(log_ratios), axis=1)
+
+    # 2D diagonal bonds — vectorised neighbor index arrays
+    i_idx = jnp.arange(N)
+    cols = i_idx % L
+    rows = i_idx // L
+    right_idx = rows * L + (cols + 1) % L   # right neighbor (periodic within row)
+    down_idx = ((rows + 1) % L) * L + cols  # down neighbor  (periodic across rows)
+
+    E_diag = -jnp.sum(V * V[:, right_idx] + V * V[:, down_idx], axis=1)
+
+    return E_diag + E_off
+
+
+# ---------------------------------------------------------------------------
+# Abstract base
+# ---------------------------------------------------------------------------
 
 
 class IsingModel(ABC):
     """Abstract Ising model base class."""
 
     def __init__(self, size: int, h: float = 1.0):
-        """
-        size: number of spins
-        h: transverse field strength (or coupling strength)
-        """
         self.size = size
         self.h = h
 
     @abstractmethod
     def local_energy(self, v: np.ndarray, psi_ratio_fn) -> float:
-        """
-        Compute local energy E_loc(v) for configuration v.
-
-        Parameters:
-        - v: current spin configuration (±1 for each spin)
-        - psi_ratio_fn: function that computes Ψ(v_flip) / Ψ(v)
-                        Usage: ratio = psi_ratio_fn(v, flip_idx)
-
-        Returns: scalar local energy
-        """
+        """Scalar local energy for a single configuration (uses Python loop)."""
         pass
 
     @abstractmethod
-    def local_energy_batch(self, V: np.ndarray, rbm) -> np.ndarray:
+    def local_energy_batch(self, V, rbm) -> jax.Array:
         """
         Compute local energies for a batch of configurations.
 
-        V   : (n_samples, n_visible)  spin configurations in {-1, +1}
-        rbm : RBM instance (needs .a, .b, .W, .logcosh)
+        V   : (n_samples, n_visible) — NumPy or JAX array of ±1 spins
+        rbm : RBM instance  (.a, .b, .W are JAX arrays)
 
-        Returns: (n_samples,) array of local energies.
-
-        Vectorised over samples — avoids Python loop over configurations.
+        Returns (n_samples,) JAX array of local energies.
         """
         pass
 
     @abstractmethod
     def exact_ground_energy(self) -> float:
-        """
-        Return exact ground state energy (for validation).
-
-        This is a reference value that the RBM should approach.
-        """
         pass
 
     @abstractmethod
     def get_neighbors(self, idx: int) -> list[int]:
-        """Return indices of spins coupled to spin idx."""
         pass
 
 
+# ---------------------------------------------------------------------------
+# 1D chain
+# ---------------------------------------------------------------------------
+
+
 class TransverseFieldIsing1D(IsingModel):
-    """
-    1D transverse field Ising model with periodic boundary conditions.
-    """
+    """1D transverse field Ising model with periodic boundary conditions."""
 
     def local_energy(self, v: np.ndarray, psi_ratio_fn) -> float:
-        """
-        Parameters:
-        - v: current spin configuration (±1 for each spin)
-        - psi_ratio_fn: function that computes Ψ(v_flip) / Ψ(v)
-        """
-        # Diagonal part: Ising coupling between neighbors
         E_diag = (
             -sum(
-                [
-                    v[i] * v[i_n]
-                    for i in range(self.size)
-                    for i_n in self.get_neighbors(i)
-                ]
+                v[i] * v[i_n]
+                for i in range(self.size)
+                for i_n in self.get_neighbors(i)
             )
             / 2
         )
-
-        # Off-diagonal part: transverse field
-        E_off_diag = -self.h * sum([psi_ratio_fn(v, i) for i in range(self.size)])
+        E_off_diag = -self.h * sum(psi_ratio_fn(v, i) for i in range(self.size))
         return E_diag + E_off_diag
 
+    def local_energy_batch(self, V, rbm) -> jax.Array:
+        """
+        JIT-compiled batched local energy.
+
+        Dispatches to _local_energy_1d_jit which compiles to a single XLA
+        kernel — runs on GPU automatically when JAX is configured for CUDA.
+        """
+        V_jax = jnp.asarray(V, dtype=jnp.float64)
+        return _local_energy_1d_jit(V_jax, rbm.W, rbm.a, rbm.b, self.h, self.size)
+
+    def exact_ground_energy(self) -> float:
+        from scipy.integrate import quad
+
+        def integrand(k):
+            return np.sqrt((self.h - np.cos(k)) ** 2 + np.sin(k) ** 2)
+
+        result, _ = quad(integrand, 0, np.pi)
+        return -result / np.pi * self.size
+
     def exact_ground_energy_netket(self):
+        import netket as nk
+        from scipy.sparse.linalg import eigsh
+
         N = self.size
         hilbert = nk.hilbert.Spin(s=0.5, N=N)
         ha = nk.operator.LocalOperator(hilbert)
@@ -95,156 +196,50 @@ class TransverseFieldIsing1D(IsingModel):
             )
             ha += -self.h * nk.operator.spin.sigmax(hilbert, i)
         H_sparse = ha.to_sparse()
-        from scipy.sparse.linalg import eigsh
-
         vals, _ = eigsh(H_sparse, k=1, which="SA")
         return vals[0]
 
-    def local_energy_batch(self, V: np.ndarray, rbm) -> np.ndarray:
-        """
-        Batched local energy over all samples simultaneously.
-
-        Diagonal term:  E_diag(v) = -Σ_{bonds} v_i * v_j
-        Off-diagonal:   E_off(v)  = -h * Σ_i Ψ(v_flip_i)/Ψ(v)
-
-        The psi_ratio for flipping spin i across all samples is:
-
-            log_ratio_i(s) = a_i * V[s,i]
-                        + 0.5 * Σ_j [logcosh(θ'_ij) - logcosh(θ_ij)]
-
-        where θ'_ij = θ_ij - 2*V[s,i]*W[i,j]
-        """
-        ns, N = V.shape
-
-        # θ[s, j] = b_j + Σ_i W_ij * v_si  —  shape (ns, n_hidden)
-        theta = V @ rbm.W + rbm.b[None, :]  # (ns, n_hidden)
-        base = rbm.logcosh(theta)  # (ns, n_hidden)
-
-        # Off-diagonal: sum psi_ratio over all spin flips
-        transverse = np.zeros(ns, dtype=np.float64)
-        for i in range(N):
-            # θ after flipping spin i:  θ' = θ - 2*v_i * W[i, :]
-            # shape: (ns, n_hidden)
-            theta_flipped = theta - 2.0 * V[:, i : i + 1] * rbm.W[i, :]
-
-            log_ratio = rbm.a[i] * V[:, i] + 0.5 * np.sum(
-                rbm.logcosh(theta_flipped) - base, axis=1
-            )
-            transverse += np.exp(log_ratio)
-
-        E_off_diag = -self.h * transverse
-
-        # Diagonal: vectorised bond sum using precomputed edge arrays
-        # Build right-neighbour array once (periodic BC)
-        right = (np.arange(N) + 1) % N  # shape (N,)
-        E_diag = -np.sum(V * V[:, right], axis=1)  # (ns,)  one bond per site
-
-        return E_diag + E_off_diag
-
-    def exact_ground_energy(self) -> float:
-        """
-        TASK 2: Implement exact solution.
-        """
-
-        from scipy.integrate import quad
-        import numpy as np
-
-        def integrand(k):
-            return np.sqrt((self.h - np.cos(k)) ** 2 + np.sin(k) ** 2)
-
-        result, _ = quad(integrand, 0, np.pi)
-
-        return -result / np.pi * self.size
-
-    ###
-    def get_neighbors(self, idx: int):
-        """Return neighbor indices for spin idx (periodic BC)."""
+    def get_neighbors(self, idx: int) -> list[int]:
         left = (idx - 1) % self.size
         right = (idx + 1) % self.size
         return [left, right]
+
+
+# ---------------------------------------------------------------------------
+# 2D square lattice
+# ---------------------------------------------------------------------------
 
 
 class TransverseFieldIsing2D(IsingModel):
     """2D transverse field Ising model on square lattice with periodic BC."""
 
     def __init__(self, size: int, h: float = 1.0):
-        """
-        size: linear dimension L (total N = L² spins)
-        h: transverse field strength
-        """
+        """size: linear dimension L (total N = L² spins)."""
         super().__init__(size * size, h)
         self.linear_size = size
 
     def local_energy(self, v: np.ndarray, psi_ratio_fn) -> float:
-        """Compute local energy for a single 2D configuration (all N spins)."""
-        # Diagonal part: Ising coupling between neighbors (avoid double-counting)
         E_diag = 0.0
         for i in range(self.size):
-            # Only count right and down neighbors
             right = (i % self.linear_size + 1) % self.linear_size + (
                 i // self.linear_size
             ) * self.linear_size
             down = (i + self.linear_size) % self.size
             E_diag -= v[i] * v[right] + v[i] * v[down]
-
-        # Off-diagonal part: transverse field over all spins
-        E_off_diag = -self.h * sum([psi_ratio_fn(v, i) for i in range(self.size)])
+        E_off_diag = -self.h * sum(psi_ratio_fn(v, i) for i in range(self.size))
         return E_diag + E_off_diag
 
-    def local_energy_batch(self, V: np.ndarray, rbm) -> np.ndarray:
-        """
-        Batched local energy computation for 2D lattice (all N spins).
-
-        Diagonal term:  E_diag(v) = -Σ_{bonds} v_i * v_j (right & down, no double-count)
-        Off-diagonal:   E_off(v)  = -h * Σ_i Ψ(v_flip_i)/Ψ(v)
-
-        V: (n_samples, N) where N = L²
-        Returns: (n_samples,) local energies
-        """
-        ns, N = V.shape
-        L = self.linear_size
-
-        # θ[s, j] = b_j + Σ_i W_ij * v_si  —  shape (ns, n_hidden)
-        theta = V @ rbm.W + rbm.b[None, :]
-        base = rbm.logcosh(theta)  # (ns, n_hidden)
-
-        # Off-diagonal: sum psi_ratio over ALL spin flips (range 0 to N)
-        transverse = np.zeros(ns, dtype=np.float64)
-        for i in range(N):  # ALL N spins (not just L)
-            # θ after flipping spin i:  θ' = θ - 2*v_i * W[i, :]
-            theta_flipped = theta - 2.0 * V[:, i : i + 1] * rbm.W[i, :]
-
-            log_ratio = rbm.a[i] * V[:, i] + 0.5 * np.sum(
-                rbm.logcosh(theta_flipped) - base, axis=1
-            )
-            transverse += np.exp(log_ratio)
-
-        E_off_diag = -self.h * transverse
-
-        # Diagonal: 2D lattice bonds (right and down, avoid double-counting)
-        E_diag = np.zeros(ns, dtype=np.float64)
-        for i in range(N):  # ALL N spins
-            # Right neighbor (periodic within rows)
-            if (i + 1) % L != 0:
-                right = i + 1
-            else:
-                right = i + 1 - L
-
-            # Down neighbor (periodic across rows)
-            down = (i + L) % N
-
-            E_diag -= V[:, i] * V[:, right] + V[:, i] * V[:, down]
-
-        return E_diag + E_off_diag
+    def local_energy_batch(self, V, rbm) -> jax.Array:
+        """JIT-compiled batched 2D local energy."""
+        V_jax = jnp.asarray(V, dtype=jnp.float64)
+        return _local_energy_2d_jit(
+            V_jax, rbm.W, rbm.a, rbm.b, self.h, self.size, self.linear_size
+        )
 
     def exact_ground_energy(self) -> float:
         """
         Ground state energy for 2D TFIM.
-        Uses exact diagonalization for small systems (L ≤ 4).
-        For larger systems, uses reference values from literature.
-
-        Reference values (per spin) from: Blöte & Deng (2002), Albuquerque et al. (2010)
-        Note: finite-size corrections apply for finite systems.
+        Uses reference values from literature (thermodynamic limit).
         """
         L = self.linear_size
         N = self.size
@@ -252,12 +247,11 @@ class TransverseFieldIsing2D(IsingModel):
         if False and L <= 4:
             return self._exact_diag_2d()
 
-        # Reference energies per spin for 2D TFIM (thermodynamic limit)
         reference_energies_per_spin = {
             0.5: -2.0555,
             1.0: -2.1276,
             2.0: -2.4549,
-            3.044: -3.0440,  # critical point
+            3.044: -3.0440,
         }
 
         if self.h in reference_energies_per_spin:
@@ -270,15 +264,12 @@ class TransverseFieldIsing2D(IsingModel):
         )
 
     def _exact_diag_2d(self) -> float:
-        """Exact diagonalization for 2D TFIM (L ≤ 4, N ≤ 16)."""
         import netket as nk
         from scipy.sparse.linalg import eigsh
 
         N = self.size
         hilbert = nk.hilbert.Spin(s=0.5, N=N)
         ha = nk.operator.LocalOperator(hilbert, dtype=complex)
-
-        # Build Hamiltonian over ALL N spins
         for i in range(N):
             for j in self.get_neighbors(i):
                 if i < j:
@@ -288,20 +279,16 @@ class TransverseFieldIsing2D(IsingModel):
                         @ nk.operator.spin.sigmaz(hilbert, j)
                     )
             ha += -self.h * nk.operator.spin.sigmax(hilbert, i)
-
         vals, _ = eigsh(ha.to_sparse(), k=1, which="SA")
         return float(vals[0])
 
-    def get_neighbors(self, idx: int):
-        """Return 4 neighbor indices on 2D square lattice (periodic BC)."""
+    def get_neighbors(self, idx: int) -> list[int]:
         i = idx // self.linear_size
         j = idx % self.linear_size
-
         neighbors_2d = [
-            ((i - 1) % self.linear_size, j),  # up
-            ((i + 1) % self.linear_size, j),  # down
-            (i, (j - 1) % self.linear_size),  # left
-            (i, (j + 1) % self.linear_size),  # right
+            ((i - 1) % self.linear_size, j),
+            ((i + 1) % self.linear_size, j),
+            (i, (j - 1) % self.linear_size),
+            (i, (j + 1) % self.linear_size),
         ]
-
         return [i * self.linear_size + j for i, j in neighbors_2d]

@@ -1,9 +1,73 @@
+"""
+SR trainer — JAX backend
+
+Key changes vs the NumPy version
+---------------------------------
+* All array ops use jax.numpy (jnp); JAX dispatches to GPU automatically.
+* SRLinearSystem.matvec is wrapped in jax.jit so the XLA kernel is compiled
+  once per unique (N, M, ns) shape and reused for every CG iteration.
+* RBM parameters flow functionally: rbm.set_weights() returns a new RBMParams
+  and updates rbm.params; no mutation of individual arrays.
+* The CG outer loop stays as a Python for-loop — control flow is cheap and
+  keeping it out of jax.lax.while_loop avoids XLA recompilation on tolerance
+  changes.  Each matvec call runs fully on the accelerator.
+* scipy.optimize.minimize_scalar (CEM β-fit) runs on CPU scalars; the JAX
+  arrays passed through it are just read, not traced.
+"""
+
 import math
 import time
+import functools
 import numpy as np
+import jax
+import jax.numpy as jnp
 from helpers import save_rbm_checkpoint, save_dwave_samples
 from sampler import ClassicalSampler
 from scipy.optimize import minimize_scalar
+
+
+# ---------------------------------------------------------------------------
+# JIT-compiled SR matvec kernel
+# ---------------------------------------------------------------------------
+
+
+@functools.partial(jax.jit, static_argnums=(6, 7, 8))
+def _sr_matvec_jit(
+    V: jax.Array,
+    H: jax.Array,
+    mu_a: jax.Array,
+    mu_b: jax.Array,
+    mu_W: jax.Array,
+    diag_shift: float,
+    N: int,
+    M: int,
+    ns: int,
+    x: jax.Array,
+) -> jax.Array:
+    """
+    Compute  S·x  without forming the (n_params × n_params) S matrix.
+
+    S·x = (1/ns) Ō^T Ō x  +  diag_shift · x
+
+    N, M, ns are static (shapes, not values) so JAX compiles once per unique
+    problem size and reuses the kernel for every CG iteration and training step.
+    """
+    xa = x[:N]
+    xb = x[N : N + M]
+    xW = x[N + M :].reshape(M, N)
+
+    # Step 1+2: z_s = (O_s - ⟨O⟩)·x  for every sample s
+    z = -0.5 * (V @ xa)                                    # a-block
+    z = z + 0.5 * (H @ xb)                                 # b-block
+    z = z + 0.5 * jnp.einsum("sm,mn,sn->s", H, xW, V)     # W-block
+    z = z - (mu_a @ xa + mu_b @ xb + jnp.sum(mu_W * xW))  # centre
+
+    # Step 3: back-project
+    out_a = -0.5 * (z @ V) / ns + diag_shift * xa
+    out_b =  0.5 * (z @ H) / ns + diag_shift * xb
+    out_W = (0.5 * (H.T @ (z[:, None] * V)) / ns + diag_shift * xW)
+
+    return jnp.concatenate([out_a.ravel(), out_b.ravel(), out_W.ravel()])
 
 
 # ---------------------------------------------------------------------------
@@ -15,48 +79,46 @@ class SRLinearSystem:
     """
     Matrix-free representation of the SR system  S·x = F.
 
-    Avoids forming the (n_params × n_params) S matrix explicitly.
-    Memory cost: O(n_samples * (N + M))  instead of  O(n_params²).
-    Solve cost per CG iteration: O(n_samples * n_params)  instead of  O(n_params³).
+    Memory: O(n_samples * (N + M))  instead of O(n_params²).
+    Matvec: O(n_samples * n_params) per CG iteration  (JIT-compiled, runs on GPU).
 
-    Sign convention matches our RBM (Gardas ansatz):
+    Sign convention (Gardas ansatz):
         ∂log Ψ / ∂a_i  = -v_i / 2
         ∂log Ψ / ∂b_j  =  tanh(θ_j) / 2
         ∂log Ψ / ∂W_ij =  v_i · tanh(θ_j) / 2
-
-    Parameters
-    ----------
-    V          : (n_samples, n_visible)   spin configs {-1, +1}
-    H          : (n_samples, n_hidden)    tanh(θ) activations
-    E          : (n_samples,)             local energies
-    diag_shift : regularization added to diagonal of S
     """
 
-    def __init__(self, V: np.ndarray, H: np.ndarray, E: np.ndarray, diag_shift: float):
-        self.V = np.asarray(V, dtype=np.float64)
-        self.H = np.asarray(H, dtype=np.float64)
-        self.E = np.asarray(E, dtype=np.float64)
-        self.ns = self.V.shape[0]
-        self.N = self.V.shape[1]  # n_visible
-        self.M = self.H.shape[1]  # n_hidden
+    def __init__(
+        self,
+        V: jax.Array,
+        H: jax.Array,
+        E: jax.Array,
+        diag_shift: float,
+    ):
+        self.V = jnp.asarray(V, dtype=jnp.float64)
+        self.H = jnp.asarray(H, dtype=jnp.float64)
+        self.E = jnp.asarray(E, dtype=jnp.float64)
+        self.ns = int(self.V.shape[0])
+        self.N = int(self.V.shape[1])   # n_visible
+        self.M = int(self.H.shape[1])   # n_hidden
         self.diag_shift = float(diag_shift)
 
-        # Mean gradients  ⟨O_k⟩  — note sign on a block
-        self.mu_a = -0.5 * self.V.mean(axis=0)  # (N,)
-        self.mu_b = 0.5 * self.H.mean(axis=0)  # (M,)
-        self.mu_W = 0.5 * (self.H.T @ self.V) / self.ns  # (M, N)  W stored (M,N) here
+        # Mean gradients ⟨O_k⟩
+        self.mu_a = -0.5 * jnp.mean(self.V, axis=0)             # (N,)
+        self.mu_b =  0.5 * jnp.mean(self.H, axis=0)             # (M,)
+        self.mu_W =  0.5 * (self.H.T @ self.V) / self.ns        # (M, N)
 
-        # Force vector  F_k = ⟨O_k · E_loc⟩ − ⟨O_k⟩⟨E_loc⟩
-        centered_E = self.E - self.E.mean()
-        self.F_a = -0.5 * (centered_E @ self.V) / self.ns  # (N,)
-        self.F_b = 0.5 * (centered_E @ self.H) / self.ns  # (M,)
-        self.F_W = 0.5 * (self.H.T @ (centered_E[:, None] * self.V)) / self.ns  # (M, N)
+        # Force vector F_k = ⟨O_k · E_loc⟩ − ⟨O_k⟩⟨E_loc⟩
+        centered_E = self.E - jnp.mean(self.E)
+        self.F_a = -0.5 * (centered_E @ self.V) / self.ns       # (N,)
+        self.F_b =  0.5 * (centered_E @ self.H) / self.ns       # (M,)
+        self.F_W =  0.5 * (self.H.T @ (centered_E[:, None] * self.V)) / self.ns  # (M, N)
 
-    def pack(self, a: np.ndarray, b: np.ndarray, W: np.ndarray) -> np.ndarray:
+    def pack(self, a: jax.Array, b: jax.Array, W: jax.Array) -> jax.Array:
         """Flatten (a, b, W) → 1-D.  W expected shape (M, N) here."""
-        return np.concatenate([a.ravel(), b.ravel(), W.ravel()])
+        return jnp.concatenate([a.ravel(), b.ravel(), W.ravel()])
 
-    def unpack(self, x: np.ndarray):
+    def unpack(self, x: jax.Array):
         """Split 1-D vector → (a, b, W) where W has shape (M, N)."""
         a = x[: self.N]
         b = x[self.N : self.N + self.M]
@@ -64,40 +126,15 @@ class SRLinearSystem:
         return a, b, W
 
     @property
-    def force(self) -> np.ndarray:
+    def force(self) -> jax.Array:
         return self.pack(self.F_a, self.F_b, self.F_W)
 
-    def matvec(self, x: np.ndarray) -> np.ndarray:
-        """
-        Compute  S·x  without forming S.
-
-        S·x = (1/ns) Ō^T Ō x  +  diag_shift · x
-
-        Steps:
-          1. z_s = O_s · x  (inner product of sample-s gradient with x)
-          2. z_s -= ⟨O⟩ · x   (centre)
-          3. out = (1/ns) Ō^T z  +  diag_shift · x
-        """
-        xa, xb, xW = self.unpack(x)
-
-        # Step 1+2: z_s = (O_s - ⟨O⟩) · x  for each sample s
-        # a-block: O_a = -v/2
-        z = -0.5 * (self.V @ xa)
-        # b-block: O_b = h/2
-        z += 0.5 * (self.H @ xb)
-        # W-block: O_W[s] = outer(h_s, v_s)/2  with W in (M,N) layout
-        z += 0.5 * np.einsum("sm,mn,sn->s", self.H, xW, self.V)
-        # subtract mean component
-        z -= float(self.mu_a @ xa + self.mu_b @ xb + np.sum(self.mu_W * xW))
-
-        # Step 3: back-project
-        out_a = -0.5 * (z @ self.V) / self.ns + self.diag_shift * xa
-        out_b = 0.5 * (z @ self.H) / self.ns + self.diag_shift * xb
-        out_W = (
-            0.5 * (self.H.T @ (z[:, None] * self.V)) / self.ns + self.diag_shift * xW
+    def matvec(self, x: jax.Array) -> jax.Array:
+        """S·x  — dispatches to the JIT-compiled XLA kernel."""
+        return _sr_matvec_jit(
+            self.V, self.H, self.mu_a, self.mu_b, self.mu_W,
+            self.diag_shift, self.N, self.M, self.ns, x,
         )
-
-        return self.pack(out_a, out_b, out_W)
 
 
 # ---------------------------------------------------------------------------
@@ -107,18 +144,22 @@ class SRLinearSystem:
 
 def conjugate_gradient(
     matvec,
-    b: np.ndarray,
+    b: jax.Array,
     tol: float = 1e-8,
     maxiter: int = 200,
 ) -> tuple:
     """
     Solve  A·x = b  for symmetric positive-definite A, given only matvec.
 
+    The loop runs on the Python side; each matvec call executes on the
+    accelerator (the result is a JAX array kept on device until float()
+    pulls the scalar for the convergence check — a tiny ~8-byte transfer).
+
     Returns (x, info) where info = {'iterations': int, 'residual_norm': float}.
     """
-    x = np.zeros_like(b)
+    x = jnp.zeros_like(b)
     r = b - matvec(x)
-    p = r.copy()
+    p = r
     rs_old = float(r @ r)
     info = {"iterations": 0, "residual_norm": math.sqrt(rs_old)}
 
@@ -148,34 +189,20 @@ def conjugate_gradient(
 # ---------------------------------------------------------------------------
 
 
-KL_EXACT_MAX_N = 16  # enumerate all 2^N configs for exact KL when N ≤ this
+KL_EXACT_MAX_N = 16
 
 
-def estimate_beta_eff_cem(V: np.ndarray, H: np.ndarray, rbm) -> float:
+def estimate_beta_eff_cem(V: jax.Array, H: jax.Array, rbm) -> float:
     """
     CEM estimate of β_eff from joint LSB samples (V, H).
 
-    For each sample s and hidden unit j, the analytical conditional expectation is:
-        ⟨h_j⟩_{v_s, β} = tanh(β · (b_j + Σ_i v_{si} W_{ij}))
-
-    Find β_eff ∈ (0, 50] minimising the squared discrepancy against observed h_j:
-        F(β) = Σ_{s,j} (H_{sj} − tanh(β · Θ_{sj}))²
-    where Θ_{sj} = b_j + Σ_i v_{si} W_{ij}  (pre-activations of the hidden units).
-
-    Parameters
-    ----------
-    V   : (ns, n_visible)  visible spin configs from LSB
-    H   : (ns, n_hidden)   hidden spin configs from the same LSB batch
-    rbm : RBM with .W (n_visible, n_hidden) and .b (n_hidden,)
-
-    Returns
-    -------
-    β_eff : float
+    scipy.optimize.minimize_scalar calls F(beta) with Python floats.
+    The JAX computation inside F runs on device; float() pulls the scalar.
     """
-    Theta = V @ rbm.W + rbm.b[None, :]  # (ns, n_hidden)
+    Theta = V @ rbm.W + rbm.b[None, :]  # (ns, M)
 
     def F(beta):
-        return float(np.sum((H - np.tanh(beta * Theta)) ** 2))
+        return float(jnp.sum((H - jnp.tanh(beta * Theta)) ** 2))
 
     result = minimize_scalar(F, bounds=(0.01, 50.0), method="bounded")
     return float(result.x)
@@ -185,9 +212,9 @@ class Trainer:
     """
     Variational Monte Carlo trainer using Stochastic Reconfiguration.
 
-    The SR system S·x = F is solved matrix-free via conjugate gradient.
-    Local energies and gradients are computed in a single vectorised pass
-    — no Python loops over samples inside the training iteration.
+    SR system S·x = F solved matrix-free via conjugate gradient.
+    Local energies and gradients computed in a single vectorised JIT-compiled
+    pass — no Python loops over samples inside the training iteration.
     """
 
     def __init__(self, rbm, ising_model, sampler, config: dict = None, args=None):
@@ -197,19 +224,20 @@ class Trainer:
         learning_rate  : float  (default 0.1)
         n_iterations   : int    (default 50)
         n_samples      : int    (default 1000)
-        regularization : float  (default 1e-3)   diag_shift for SR
-        cg_tol         : float  (default 1e-8)   CG convergence tolerance
-        cg_maxiter     : int    (default 200)    CG iteration limit
-        beta_x_init    : float  (default 2.0)    initial sampler temperature scale
-        beta_adapt     : float  (default 0.05)   fractional beta_x adjustment
-        beta_min       : float  (default 0.05)   lower bound on beta_x
-        beta_max       : float  (default 20.0)   upper bound on beta_x
-        param_clip     : float  (default 3.0)    weight clipping bound (None = off)
+        regularization : float  (default 1e-3)
+        cg_tol         : float  (default 1e-8)
+        cg_maxiter     : int    (default 200)
+        beta_x_init    : float  (default 1.0)
+        beta_adapt     : float  (default 0.05)
+        beta_min       : float  (default 0.05)
+        beta_max       : float  (default 20.0)
+        param_clip     : float  (default 3.0)   None = off
+        seed           : int    (default 0)      PRNG seed for beta adaptation
         """
         self.rbm = rbm
         self.ising = ising_model
         self.sampler = sampler
-        self.args = args  # For checkpoint saving
+        self.args = args
         print(self.rbm)
         print(self.ising)
         print(self.args)
@@ -223,7 +251,6 @@ class Trainer:
         self.cg_tol = config.get("cg_tol", 1e-8)
         self.cg_maxiter = config.get("cg_maxiter", 200)
 
-        # For samplers that ignore beta_x (metropolis, gibbs) lock it to 1.0
         _method = (
             getattr(sampler, "method", "")
             if isinstance(sampler, ClassicalSampler)
@@ -253,10 +280,13 @@ class Trainer:
         self.conv_window = config.get("conv_window", 10)
         self.param_clip = config.get("param_clip", 3.0)
         self.save_checkpoints = config.get("save_checkpoints", False)
-        self.checkpoint_interval = config.get(
-            "checkpoint_interval", 10
-        )  # Save every N iterations
+        self.checkpoint_interval = config.get("checkpoint_interval", 10)
         print("Checkpoint interval:", self.checkpoint_interval)
+
+        # JAX PRNG key for beta-adaptation coin flip
+        _seed = config.get("seed", 0)
+        self._key = jax.random.PRNGKey(_seed)
+
         self.history = {
             "energy": [],
             "error": [],
@@ -266,59 +296,52 @@ class Trainer:
             "weight_norm": [],
             "s_condition_number": [],
             "beta_x": [],
-            "beta_eff_cem": [],  # β_eff estimated by CEM; None on iterations where CEM didn't run
+            "beta_eff_cem": [],
             "cg_iterations": [],
             "cg_residual": [],
             "sampling_time_s": [],
-            "ess": [],  # effective sample size, normalised to [0, 1]
-            "kl_exact": [],  # KL(q_empirical ‖ p_exact); None when N > KL_EXACT_MAX_N
-            "n_unique_ratio": [],  # unique configs / n_samples  [0, 1]
+            "ess": [],
+            "kl_exact": [],
+            "n_unique_ratio": [],
         }
 
-        # Pre-build exact enumeration for small N (cached across iterations)
-        self._kl_all_v = None  # (2^N, N) array of all configs
-        self._kl_config_idx = None  # tuple → index mapping
+        self._kl_all_v = None
+        self._kl_config_idx = None
 
     def _build_kl_cache(self):
         """Pre-compute all 2^N configs and index map for exact KL. Called once."""
         N = self.rbm.n_visible
         indices = np.arange(2**N, dtype=np.int32)
-        # Vectorised binary → ±1 spin: bit k → 1 if set, else -1
         all_v = ((indices[:, None] >> np.arange(N - 1, -1, -1)) & 1).astype(
             np.float64
         ) * 2 - 1
         config_idx = {tuple(row.astype(int).tolist()): i for i, row in enumerate(all_v)}
-        self._kl_all_v = all_v
+        self._kl_all_v = jnp.asarray(all_v)
         self._kl_config_idx = config_idx
 
-    def _compute_sample_metrics(self, V: np.ndarray, Theta: np.ndarray):
+    def _compute_sample_metrics(self, V: jax.Array, Theta: jax.Array):
         """
-        Compute ESS, unique-sample ratio, and (optionally) exact KL from a batch of samples.
+        Compute ESS, unique-sample ratio, and (optionally) exact KL.
 
         V     : (ns, N)  visible spin configs
-        Theta : (ns, M)  pre-activations b + W^T v, already computed in train()
+        Theta : (ns, M)  pre-activations b + V @ W
 
-        Returns (ess_norm, kl, n_unique_ratio) where
-          ess_norm      ∈ [0, 1] — ESS / n_samples
-          kl                     — KL(q_empirical ‖ p_exact) or None when N > KL_EXACT_MAX_N
-          n_unique_ratio ∈ [0, 1] — distinct configs / n_samples
+        Returns (ess_norm, kl, n_unique_ratio).
         """
         ns = V.shape[0]
 
-        # ── Unique samples ────────────────────────────────────────────────────
-        n_unique_ratio = float(len(np.unique(V, axis=0))) / ns
+        # Unique samples (needs a Python set, so we pull to CPU)
+        v_np = np.asarray(V)
+        n_unique_ratio = float(len(np.unique(v_np, axis=0))) / ns
 
-        # ── ESS ──────────────────────────────────────────────────────────────
-        # log |Ψ(v)|^2 = -a·v + Σ_j logcosh(θ_j)
-        # logcosh = logaddexp(x, -x) = log(e^x + e^{-x})
-        log_psi2 = -(V @ self.rbm.a) + np.sum(np.logaddexp(Theta, -Theta), axis=1)
-        # Subtract max for numerical stability before normalising
-        lw = log_psi2 - log_psi2.max()
-        w = np.exp(lw)
-        w /= w.sum()
-        ess_norm = float(1.0 / np.sum(w**2)) / ns  # normalised to [0, 1]
+        # ESS: log|Ψ|² = -a·v + Σ_j logcosh(θ_j)
+        log_psi2 = -(V @ self.rbm.a) + jnp.sum(jnp.logaddexp(Theta, -Theta), axis=1)
+        lw = log_psi2 - jnp.max(log_psi2)
+        w = jnp.exp(lw)
+        w = w / jnp.sum(w)
+        ess_norm = float(1.0 / jnp.sum(w**2)) / ns
 
-        # ── Exact KL ─────────────────────────────────────────────────────────
+        # Exact KL (only for small N)
         if self.rbm.n_visible > KL_EXACT_MAX_N:
             return ess_norm, None, n_unique_ratio
 
@@ -327,28 +350,31 @@ class Trainer:
 
         all_v = self._kl_all_v
         Theta_all = all_v @ self.rbm.W + self.rbm.b[None, :]
-        log_psi2_all = -(all_v @ self.rbm.a) + np.sum(
-            np.logaddexp(Theta_all, -Theta_all), axis=1
+        log_psi2_all = -(all_v @ self.rbm.a) + jnp.sum(
+            jnp.logaddexp(Theta_all, -Theta_all), axis=1
         )
-        lw_all = log_psi2_all - log_psi2_all.max()
-        p_true = np.exp(lw_all)
-        p_true /= p_true.sum()
+        lw_all = log_psi2_all - jnp.max(log_psi2_all)
+        p_true = jnp.exp(lw_all)
+        p_true = p_true / jnp.sum(p_true)
 
         counts = np.zeros(len(all_v))
-        for row in V.astype(int).tolist():
+        for row in v_np.astype(int).tolist():
             idx = self._kl_config_idx.get(tuple(row))
             if idx is not None:
                 counts[idx] += 1
         q_emp = counts / ns
 
         mask = q_emp > 0
-        kl = float(np.sum(q_emp[mask] * (np.log(q_emp[mask]) - np.log(p_true[mask]))))
+        p_true_np = np.asarray(p_true)
+        kl = float(
+            np.sum(q_emp[mask] * (np.log(q_emp[mask]) - np.log(p_true_np[mask])))
+        )
         return ess_norm, kl, n_unique_ratio
 
     def train(self) -> dict:
         prev_energy = None
-        rng = np.random.default_rng()
-        consecutive_converged = 0  # ← add this
+        consecutive_converged = 0
+
         for iteration in range(self.n_iterations):
             # ── 1. Sample ──────────────────────────────────────────────────
             _need_hidden = self.use_cem and not self._beta_fixed
@@ -362,43 +388,39 @@ class Trainer:
                 )
                 elapsed = time.perf_counter() - _t0
                 fpga_time = getattr(self.sampler, "last_sampling_time_s", None)
-                if fpga_time is None:
-                    sample_time_s = elapsed
-                else:
-                    sample_time_s = float(fpga_time)
+                sample_time_s = float(fpga_time) if fpga_time is not None else elapsed
                 self.history["sampling_time_s"].append(sample_time_s)
             except Exception as e:
                 print(f"  [Trainer] Sampling failed at iteration {iteration}: {e}")
                 print("  [Trainer] Aborting this experiment.")
                 raise
+
             if _need_hidden and isinstance(_result, tuple):
                 _V_raw, _H_raw = _result
             else:
                 _V_raw, _H_raw = _result, None
-            V = np.asarray(_V_raw, dtype=np.float64)  # (ns, N)
-            ns = V.shape[0]
 
-            # ── 2. Batch local energies ────────────────────────────────────
+            V = jnp.asarray(_V_raw, dtype=jnp.float64)   # (ns, N)
+            ns = int(V.shape[0])
+
+            # ── 2. Batch local energies (JIT-compiled, runs on GPU) ────────
             local_energies = self.ising.local_energy_batch(V, self.rbm)  # (ns,)
 
-            # ── 3. Batch gradients (no Python loop) ───────────────────────
-            # θ[s, j] = b_j + Σ_i W_ij v_si
+            # ── 3. Batch gradients ─────────────────────────────────────────
             Theta = V @ self.rbm.W + self.rbm.b[None, :]  # (ns, M)
-            TanH = np.tanh(Theta)  # (ns, M)
+            TanH = jnp.tanh(Theta)                         # (ns, M)
 
-            # ── Sample quality metrics (ESS + KL + unique) — reuse Theta ──
+            # ── Sample quality metrics ─────────────────────────────────────
             ess_norm, kl, n_unique_ratio = self._compute_sample_metrics(V, Theta)
 
-            # ── Save D-Wave samples to disk for post-hoc analysis ──────────
+            # ── D-Wave sample logging ──────────────────────────────────────
             if self.args and getattr(self.args, "sampling_method", "") in (
                 "pegasus",
                 "zephyr",
             ):
-                save_dwave_samples(V, self.args, iteration)
+                save_dwave_samples(np.asarray(V), self.args, iteration)
 
-            # ── 3b. CEM β estimate — must happen before weight update ──────
-            # estimate_beta_eff_cem uses self.rbm.W/b; calling it after
-            # set_weights() would fit β against new weights but old samples.
+            # ── 3b. CEM β estimate (before weight update) ─────────────────
             _cem_beta_raw = None
             if (
                 self.use_cem
@@ -406,11 +428,10 @@ class Trainer:
                 and iteration % self.cem_interval == 0
                 and _H_raw is not None
             ):
-                H_cem = np.asarray(_H_raw, dtype=np.float64)
+                H_cem = jnp.asarray(_H_raw, dtype=jnp.float64)
                 _cem_beta_raw = estimate_beta_eff_cem(V, H_cem, self.rbm)
 
             # ── 4. Build SR system and solve with CG ──────────────────────
-            # SRLinearSystem expects H = tanh(θ),  W layout (M, N)
             sr = SRLinearSystem(V, TanH, local_energies, self.regularization)
             x, cg_info = conjugate_gradient(
                 sr.matvec,
@@ -419,26 +440,24 @@ class Trainer:
                 maxiter=self.cg_maxiter,
             )
 
-            # ── 5. Unpack and apply update ─────────────────────────────────
+            # ── 5. Apply parameter update ──────────────────────────────────
             xa, xb, xW = sr.unpack(x)
             # xW is (M, N) — transpose to (N, M) to match rbm.W layout
-            # pack in same order as get_weights(): [a, b, W.flatten()]
             w = self.rbm.get_weights()
-            w_new = w - self.learning_rate * np.concatenate(
-                [xa.ravel(), xb.ravel(), xW.T.ravel()]
-            )
+            update = jnp.concatenate([xa.ravel(), xb.ravel(), xW.T.ravel()])
+            w_new = w - self.learning_rate * update
 
             if self.param_clip is not None:
-                w_new = np.clip(w_new, -self.param_clip, self.param_clip)
+                w_new = jnp.clip(w_new, -self.param_clip, self.param_clip)
 
             self.rbm.set_weights(w_new)
 
             # ── 6. Adapt beta_x ────────────────────────────────────────────
-            E_mean = float(np.mean(local_energies))
+            E_mean = float(jnp.mean(local_energies))
             beta_eff_this_iter = None
 
             if self._beta_fixed:
-                pass  # metropolis/gibbs: beta_x is meaningless, keep at 1.0
+                pass
             elif self.use_cem and _cem_beta_raw is not None:
                 self.beta_x = (
                     (1.0 - self.cem_ema_alpha) * self.beta_x
@@ -451,31 +470,27 @@ class Trainer:
                 )
             elif not self.use_cem:
                 if prev_energy is not None and E_mean > prev_energy:
-                    factor = (
-                        (1.0 + self.beta_adapt)
-                        if rng.random() < 0.5
-                        else (1.0 - self.beta_adapt)
-                    )
+                    self._key, subkey = jax.random.split(self._key)
+                    flip = bool(jax.random.bernoulli(subkey))
+                    factor = (1.0 + self.beta_adapt) if flip else (1.0 - self.beta_adapt)
                     self.beta_x = float(
-                        np.clip(self.beta_x * factor, self.beta_min, self.beta_max)
+                        jnp.clip(self.beta_x * factor, self.beta_min, self.beta_max)
                     )
 
             prev_energy = E_mean
 
             # ── 7. Metrics ─────────────────────────────────────────────────
-            E_std = float(np.std(local_energies))
+            E_std = float(jnp.std(local_energies))
             E_error = E_std / math.sqrt(ns)
-            E_var = float(np.var(local_energies))
+            E_var = float(jnp.var(local_energies))
 
             self.history["energy"].append(E_mean)
             self.history["error"].append(E_std)
             self.history["energy_error"].append(E_error)
             self.history["learning_rate"].append(self.learning_rate)
-            self.history["grad_norm"].append(float(np.linalg.norm(x)))
-            self.history["weight_norm"].append(float(np.linalg.norm(w_new)))
-            self.history["s_condition_number"].append(
-                float(cg_info["residual_norm"])
-            )  # CG residual proxy
+            self.history["grad_norm"].append(float(jnp.linalg.norm(x)))
+            self.history["weight_norm"].append(float(jnp.linalg.norm(w_new)))
+            self.history["s_condition_number"].append(float(cg_info["residual_norm"]))
             self.history["beta_x"].append(self.beta_x)
             self.history["beta_eff_cem"].append(beta_eff_this_iter)
             self.history["cg_iterations"].append(int(cg_info["iterations"]))
@@ -493,10 +508,10 @@ class Trainer:
                     f"CG {cg_info['iterations']}it "
                     f"res={cg_info['residual_norm']:.2e}  "
                     f"{time_label}={sample_time_s:.3f}s  "
-                    f"‖x‖={np.linalg.norm(x):.4f}"
+                    f"‖x‖={float(jnp.linalg.norm(x)):.4f}"
                 )
 
-            # ── 8. Save checkpoint ────────────────────────────────────────
+            # ── 8. Save checkpoint ─────────────────────────────────────────
             if (
                 self.save_checkpoints
                 and self.args
@@ -505,12 +520,12 @@ class Trainer:
                 checkpoint_path = save_rbm_checkpoint(self.rbm, self.args, iteration)
                 print(f"  → Checkpoint saved: {checkpoint_path.name}")
 
-            # ── 9. Convergence check ──────────────────────────────────────
+            # ── 9. Convergence check ───────────────────────────────────────
             if self.stop_at_convergence:
                 if E_var < self.conv_var_threshold:
                     consecutive_converged += 1
                 else:
-                    consecutive_converged = 0  # reset on any bad iteration
+                    consecutive_converged = 0
 
                 if consecutive_converged >= self.conv_window:
                     print(
@@ -520,4 +535,5 @@ class Trainer:
                         f"Final E = {E_mean:.6f}"
                     )
                     break
+
         return self.history
