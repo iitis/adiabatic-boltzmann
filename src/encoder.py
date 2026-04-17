@@ -57,15 +57,15 @@ def _sr_matvec_jit(
     xW = x[N + M :].reshape(M, N)
 
     # Step 1+2: z_s = (O_s - ⟨O⟩)·x  for every sample s
-    z = -0.5 * (V @ xa)                                    # a-block
-    z = z + 0.5 * (H @ xb)                                 # b-block
-    z = z + 0.5 * jnp.einsum("sm,mn,sn->s", H, xW, V)     # W-block
+    z = -0.5 * (V @ xa)  # a-block
+    z = z + 0.5 * (H @ xb)  # b-block
+    z = z + 0.5 * jnp.einsum("sm,mn,sn->s", H, xW, V)  # W-block
     z = z - (mu_a @ xa + mu_b @ xb + jnp.sum(mu_W * xW))  # centre
 
     # Step 3: back-project
     out_a = -0.5 * (z @ V) / ns + diag_shift * xa
-    out_b =  0.5 * (z @ H) / ns + diag_shift * xb
-    out_W = (0.5 * (H.T @ (z[:, None] * V)) / ns + diag_shift * xW)
+    out_b = 0.5 * (z @ H) / ns + diag_shift * xb
+    out_W = 0.5 * (H.T @ (z[:, None] * V)) / ns + diag_shift * xW
 
     return jnp.concatenate([out_a.ravel(), out_b.ravel(), out_W.ravel()])
 
@@ -99,20 +99,20 @@ class SRLinearSystem:
         self.H = jnp.asarray(H, dtype=jnp.float64)
         self.E = jnp.asarray(E, dtype=jnp.float64)
         self.ns = int(self.V.shape[0])
-        self.N = int(self.V.shape[1])   # n_visible
-        self.M = int(self.H.shape[1])   # n_hidden
+        self.N = int(self.V.shape[1])  # n_visible
+        self.M = int(self.H.shape[1])  # n_hidden
         self.diag_shift = float(diag_shift)
 
         # Mean gradients ⟨O_k⟩
-        self.mu_a = -0.5 * jnp.mean(self.V, axis=0)             # (N,)
-        self.mu_b =  0.5 * jnp.mean(self.H, axis=0)             # (M,)
-        self.mu_W =  0.5 * (self.H.T @ self.V) / self.ns        # (M, N)
+        self.mu_a = -0.5 * jnp.mean(self.V, axis=0)  # (N,)
+        self.mu_b = 0.5 * jnp.mean(self.H, axis=0)  # (M,)
+        self.mu_W = 0.5 * (self.H.T @ self.V) / self.ns  # (M, N)
 
         # Force vector F_k = ⟨O_k · E_loc⟩ − ⟨O_k⟩⟨E_loc⟩
         centered_E = self.E - jnp.mean(self.E)
-        self.F_a = -0.5 * (centered_E @ self.V) / self.ns       # (N,)
-        self.F_b =  0.5 * (centered_E @ self.H) / self.ns       # (M,)
-        self.F_W =  0.5 * (self.H.T @ (centered_E[:, None] * self.V)) / self.ns  # (M, N)
+        self.F_a = -0.5 * (centered_E @ self.V) / self.ns  # (N,)
+        self.F_b = 0.5 * (centered_E @ self.H) / self.ns  # (M,)
+        self.F_W = 0.5 * (self.H.T @ (centered_E[:, None] * self.V)) / self.ns  # (M, N)
 
     def pack(self, a: jax.Array, b: jax.Array, W: jax.Array) -> jax.Array:
         """Flatten (a, b, W) → 1-D.  W expected shape (M, N) here."""
@@ -132,8 +132,16 @@ class SRLinearSystem:
     def matvec(self, x: jax.Array) -> jax.Array:
         """S·x  — dispatches to the JIT-compiled XLA kernel."""
         return _sr_matvec_jit(
-            self.V, self.H, self.mu_a, self.mu_b, self.mu_W,
-            self.diag_shift, self.N, self.M, self.ns, x,
+            self.V,
+            self.H,
+            self.mu_a,
+            self.mu_b,
+            self.mu_W,
+            self.diag_shift,
+            self.N,
+            self.M,
+            self.ns,
+            x,
         )
 
 
@@ -282,7 +290,7 @@ class Trainer:
         self.save_checkpoints = config.get("save_checkpoints", False)
         self.checkpoint_interval = config.get("checkpoint_interval", 10)
         print("Checkpoint interval:", self.checkpoint_interval)
-
+        self.param_clip = None
         # JAX PRNG key for beta-adaptation coin flip
         _seed = config.get("seed", 0)
         self._key = jax.random.PRNGKey(_seed)
@@ -400,7 +408,7 @@ class Trainer:
             else:
                 _V_raw, _H_raw = _result, None
 
-            V = jnp.asarray(_V_raw, dtype=jnp.float64)   # (ns, N)
+            V = jnp.asarray(_V_raw, dtype=jnp.float64)  # (ns, N)
             ns = int(V.shape[0])
 
             # ── 2. Batch local energies (JIT-compiled, runs on GPU) ────────
@@ -408,7 +416,7 @@ class Trainer:
 
             # ── 3. Batch gradients ─────────────────────────────────────────
             Theta = V @ self.rbm.W + self.rbm.b[None, :]  # (ns, M)
-            TanH = jnp.tanh(Theta)                         # (ns, M)
+            TanH = jnp.tanh(Theta)  # (ns, M)
 
             # ── Sample quality metrics ─────────────────────────────────────
             ess_norm, kl, n_unique_ratio = self._compute_sample_metrics(V, Theta)
@@ -460,9 +468,8 @@ class Trainer:
                 pass
             elif self.use_cem and _cem_beta_raw is not None:
                 self.beta_x = (
-                    (1.0 - self.cem_ema_alpha) * self.beta_x
-                    + self.cem_ema_alpha * _cem_beta_raw
-                )
+                    1.0 - self.cem_ema_alpha
+                ) * self.beta_x + self.cem_ema_alpha * _cem_beta_raw
                 beta_eff_this_iter = self.beta_x
                 print(
                     f"  [CEM iter {iteration:3d}] β_eff = {_cem_beta_raw:.4f}"
@@ -472,7 +479,9 @@ class Trainer:
                 if prev_energy is not None and E_mean > prev_energy:
                     self._key, subkey = jax.random.split(self._key)
                     flip = bool(jax.random.bernoulli(subkey))
-                    factor = (1.0 + self.beta_adapt) if flip else (1.0 - self.beta_adapt)
+                    factor = (
+                        (1.0 + self.beta_adapt) if flip else (1.0 - self.beta_adapt)
+                    )
                     self.beta_x = float(
                         jnp.clip(self.beta_x * factor, self.beta_min, self.beta_max)
                     )
