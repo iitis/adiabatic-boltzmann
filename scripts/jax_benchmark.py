@@ -94,8 +94,8 @@ def build_grid() -> list[Run]:
     grid: list[Run] = []
 
     # 1D
-    for size in [12, 16, 24, 32, 48, 64]:
-        for h in [0.5, 1.0, 2.0]:
+    for size in []: # [12, 16, 24, 32, 48, 64]:
+        for h in [2.0]:
             for lr in LEARNING_RATES:
                 for seed in [1, 2]:
                     grid.append(Run("1d", size, h, "gibbs", lr, seed, use_cem=False))
@@ -104,7 +104,7 @@ def build_grid() -> list[Run]:
 
     # 2D  (h values must be in TransverseFieldIsing2D.reference_energies_per_spin)
     for size in [6, 8, 12]:
-        for h in [0.5, 1.0, 2.0]:
+        for h in [2.0]:
             for lr in LEARNING_RATES:
                 for seed in [1, 2]:
                     grid.append(Run("2d", size, h, "gibbs", lr, seed, use_cem=False))
