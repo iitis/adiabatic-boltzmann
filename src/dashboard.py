@@ -25,56 +25,56 @@ import streamlit as st
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
-RESULTS_DIR = Path(__file__).parent.parent / "results"
+RESULTS_DIR = Path(__file__).parent.parent / "jax_results"
 
 # ── Extension points ───────────────────────────────────────────────────────────
 # Add one dict  → new sidebar filter appears automatically
 # col must match a key in the flat DataFrame built by load_all_runs()
 FILTER_AXES = [
-    {"col": "device",          "label": "Device (GPU/CPU)"},
-    {"col": "model",           "label": "Model"},
-    {"col": "size",            "label": "System size N"},
-    {"col": "h",               "label": "Field h"},
-    {"col": "sampler",         "label": "Sampler backend"},
+    {"col": "device", "label": "Device (GPU/CPU)"},
+    {"col": "model", "label": "Model"},
+    {"col": "size", "label": "System size N"},
+    {"col": "h", "label": "Field h"},
+    {"col": "sampler", "label": "Sampler backend"},
     {"col": "sampling_method", "label": "Sampling method"},
-    {"col": "rbm",             "label": "RBM type"},
-    {"col": "n_hidden",        "label": "Hidden units"},
-    {"col": "learning_rate",   "label": "Learning rate"},
-    {"col": "regularization",  "label": "Regularization"},
-    {"col": "n_samples",       "label": "Samples / iter"},
-    {"col": "iterations",      "label": "Iterations"},
-    {"col": "cem",             "label": "CEM"},
-    {"col": "seed",            "label": "Seed"},
+    {"col": "rbm", "label": "RBM type"},
+    {"col": "n_hidden", "label": "Hidden units"},
+    {"col": "learning_rate", "label": "Learning rate"},
+    {"col": "regularization", "label": "Regularization"},
+    {"col": "n_samples", "label": "Samples / iter"},
+    {"col": "iterations", "label": "Iterations"},
+    {"col": "cem", "label": "CEM"},
+    {"col": "seed", "label": "Seed"},
 ]
 
 # Add one tuple → metric appears in table and aggregation plots
 SCALAR_METRICS = [
-    ("error",           "Energy error |E_rbm − E_exact|"),
-    ("error_per_spin",  "Energy error per spin"),
-    ("relative_error",  "Relative error (%)"),
-    ("final_kl_exact",  "Final KL divergence"),
-    ("final_ess",       "Final ESS"),
-    ("mean_ess",        "Mean ESS"),
-    ("sampling_time_s",     "Total sampling time (s)"),
-    ("mean_time_per_iter",  "Mean sampling time / iter (s)"),
-    ("final_energy",    "Final energy"),
-    ("exact_energy",    "Exact energy"),
-    ("sparsity",        "RBM sparsity"),
+    ("error", "Energy error |E_rbm − E_exact|"),
+    ("error_per_spin", "Energy error per spin"),
+    ("relative_error", "Relative error (%)"),
+    ("final_kl_exact", "Final KL divergence"),
+    ("final_ess", "Final ESS"),
+    ("mean_ess", "Mean ESS"),
+    ("sampling_time_s", "Total sampling time (s)"),
+    ("mean_time_per_iter", "Mean sampling time / iter (s)"),
+    ("final_energy", "Final energy"),
+    ("exact_energy", "Exact energy"),
+    ("sparsity", "RBM sparsity"),
 ]
 
 # Add one tuple → series appears in convergence curves
 HISTORY_METRICS = [
-    ("energy",             "Energy"),
-    ("kl_exact",           "KL divergence (exact)"),
-    ("ess",                "ESS"),
-    ("grad_norm",          "Gradient norm"),
-    ("weight_norm",        "Weight norm"),
-    ("n_unique_ratio",     "Unique sample ratio"),
-    ("cg_iterations",      "CG iterations"),
-    ("cg_residual",        "CG residual"),
+    ("energy", "Energy"),
+    ("kl_exact", "KL divergence (exact)"),
+    ("ess", "ESS"),
+    ("grad_norm", "Gradient norm"),
+    ("weight_norm", "Weight norm"),
+    ("n_unique_ratio", "Unique sample ratio"),
+    ("cg_iterations", "CG iterations"),
+    ("cg_residual", "CG residual"),
     ("s_condition_number", "SR condition number"),
-    ("sampling_time_s",    "Sampling time / iter (s)"),
-    ("beta_x",             "Beta x"),
+    ("sampling_time_s", "Sampling time / iter (s)"),
+    ("beta_x", "Beta x"),
 ]
 
 MAX_CURVES = 60  # max lines drawn in convergence tab before a warning
@@ -136,9 +136,14 @@ def load_all_runs(results_dir: Path) -> tuple[pd.DataFrame, dict]:
 
         # Scalar outputs
         for key in (
-            "final_energy", "exact_energy", "error",
-            "final_ess", "mean_ess", "final_kl_exact",
-            "sampling_time_s", "sparsity",
+            "final_energy",
+            "exact_energy",
+            "error",
+            "final_ess",
+            "mean_ess",
+            "final_kl_exact",
+            "sampling_time_s",
+            "sparsity",
         ):
             row[key] = d.get(key)
 
@@ -153,9 +158,7 @@ def load_all_runs(results_dir: Path) -> tuple[pd.DataFrame, dict]:
 
         # Derived scalars
         e, ref = row.get("error"), row.get("exact_energy")
-        row["relative_error"] = (
-            abs(e / ref) * 100 if (e is not None and ref) else None
-        )
+        row["relative_error"] = abs(e / ref) * 100 if (e is not None and ref) else None
         n_sp = _n_spins(row.get("model"), row.get("size"))
         row["n_spins"] = n_sp
         row["error_per_spin"] = (e / n_sp) if e is not None else None
@@ -168,8 +171,16 @@ def load_all_runs(results_dir: Path) -> tuple[pd.DataFrame, dict]:
     df = pd.DataFrame(records)
 
     # Numeric coercion so filter options sort correctly
-    for col in ("size", "h", "n_hidden", "learning_rate", "regularization",
-                "n_samples", "iterations", "seed"):
+    for col in (
+        "size",
+        "h",
+        "n_hidden",
+        "learning_rate",
+        "regularization",
+        "n_samples",
+        "iterations",
+        "seed",
+    ):
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
@@ -220,17 +231,22 @@ def _axis_label(col: str) -> str:
     return next((ax["label"] for ax in FILTER_AXES if ax["col"] == col), col)
 
 
-def _group_selectbox(df: pd.DataFrame, key: str, label: str,
-                     prefer: str = "sampling_method") -> tuple[str, str]:
+def _group_selectbox(
+    df: pd.DataFrame, key: str, label: str, prefer: str = "sampling_method"
+) -> tuple[str, str]:
     """Return (col, label) for a group-by selectbox."""
-    opts = [ax for ax in FILTER_AXES
-            if ax["col"] in df.columns and df[ax["col"]].nunique() > 1]
-    default = next(
-        (i for i, ax in enumerate(opts) if ax["col"] == prefer), 0
-    )
+    opts = [
+        ax
+        for ax in FILTER_AXES
+        if ax["col"] in df.columns and df[ax["col"]].nunique() > 1
+    ]
+    default = next((i for i, ax in enumerate(opts) if ax["col"] == prefer), 0)
     chosen = st.selectbox(
-        label, opts, format_func=lambda ax: ax["label"],
-        index=default, key=key,
+        label,
+        opts,
+        format_func=lambda ax: ax["label"],
+        index=default,
+        key=key,
     )
     return chosen["col"], chosen["label"]
 
@@ -240,26 +256,38 @@ def _group_selectbox(df: pd.DataFrame, key: str, label: str,
 
 def tab_table(df: pd.DataFrame) -> None:
     preferred = [
-        "model", "size", "h", "sampler", "sampling_method", "rbm",
-        "n_hidden", "learning_rate", "regularization", "iterations", "seed",
-        "error", "relative_error", "final_kl_exact",
-        "final_ess", "mean_ess", "sampling_time_s",
+        "model",
+        "size",
+        "h",
+        "sampler",
+        "sampling_method",
+        "rbm",
+        "n_hidden",
+        "learning_rate",
+        "regularization",
+        "iterations",
+        "seed",
+        "error",
+        "relative_error",
+        "final_kl_exact",
+        "final_ess",
+        "mean_ess",
+        "sampling_time_s",
     ]
     cols = [c for c in preferred if c in df.columns and df[c].notna().any()]
 
     col_cfg = {
-        "error":           st.column_config.NumberColumn("Error",        format="%.3e"),
-        "relative_error":  st.column_config.NumberColumn("Rel. err (%)", format="%.2f"),
-        "final_kl_exact":  st.column_config.NumberColumn("KL div",       format="%.4f"),
-        "final_ess":       st.column_config.NumberColumn("ESS",          format="%.3f"),
-        "mean_ess":        st.column_config.NumberColumn("Mean ESS",     format="%.3f"),
-        "sampling_time_s": st.column_config.NumberColumn("Time (s)",     format="%.2f"),
-        "learning_rate":   st.column_config.NumberColumn("LR",           format="%.0e"),
-        "regularization":  st.column_config.NumberColumn("Reg",          format="%.0e"),
+        "error": st.column_config.NumberColumn("Error", format="%.3e"),
+        "relative_error": st.column_config.NumberColumn("Rel. err (%)", format="%.2f"),
+        "final_kl_exact": st.column_config.NumberColumn("KL div", format="%.4f"),
+        "final_ess": st.column_config.NumberColumn("ESS", format="%.3f"),
+        "mean_ess": st.column_config.NumberColumn("Mean ESS", format="%.3f"),
+        "sampling_time_s": st.column_config.NumberColumn("Time (s)", format="%.2f"),
+        "learning_rate": st.column_config.NumberColumn("LR", format="%.0e"),
+        "regularization": st.column_config.NumberColumn("Reg", format="%.0e"),
     }
 
-    st.dataframe(df[cols], column_config=col_cfg,
-                 use_container_width=True, height=520)
+    st.dataframe(df[cols], column_config=col_cfg, use_container_width=True, height=520)
 
 
 # ── Tab 2: Convergence curves ──────────────────────────────────────────────────
@@ -309,39 +337,52 @@ def tab_curves(df: pd.DataFrame, histories: dict) -> None:
             val = float(v)
             if per_spin and metric_key == "energy":
                 val = val / n_spins
-            rows.append({
-                "iteration":   i,
-                "value":       val,
-                "run_id":      r["run_id"],
-                "color_group": str(r.get(color_col, "?")),
-                "sampler":     f"{r.get('sampler', '')}/{r.get('sampling_method', '')}",
-                "N":           r.get("size"),
-                "h":           r.get("h"),
-                "lr":          r.get("learning_rate"),
-                "seed":        r.get("seed"),
-                "error":       f"{r['error']:.3e}" if pd.notna(r.get("error")) else "N/A",
-            })
+            rows.append(
+                {
+                    "iteration": i,
+                    "value": val,
+                    "run_id": r["run_id"],
+                    "color_group": str(r.get(color_col, "?")),
+                    "sampler": f"{r.get('sampler', '')}/{r.get('sampling_method', '')}",
+                    "N": r.get("size"),
+                    "h": r.get("h"),
+                    "lr": r.get("learning_rate"),
+                    "seed": r.get("seed"),
+                    "error": f"{r['error']:.3e}" if pd.notna(r.get("error")) else "N/A",
+                }
+            )
 
     if not rows:
         st.info(f"No history data for '{metric_label}' in the selected runs.")
         return
 
-    y_label = (f"{metric_label} per spin" if per_spin and metric_key == "energy"
-               else metric_label)
+    y_label = (
+        f"{metric_label} per spin"
+        if per_spin and metric_key == "energy"
+        else metric_label
+    )
 
     pf = pd.DataFrame(rows)
     fig = px.line(
-        pf, x="iteration", y="value",
-        color="color_group", line_group="run_id",
+        pf,
+        x="iteration",
+        y="value",
+        color="color_group",
+        line_group="run_id",
         labels={
-            "iteration":   "Iteration",
-            "value":       y_label,
+            "iteration": "Iteration",
+            "value": y_label,
             "color_group": color_label,
         },
         hover_data={
-            "sampler": True, "N": True, "h": True,
-            "lr": True, "seed": True, "error": True,
-            "run_id": False, "color_group": False,
+            "sampler": True,
+            "N": True,
+            "h": True,
+            "lr": True,
+            "seed": True,
+            "error": True,
+            "run_id": False,
+            "color_group": False,
         },
         height=520,
     )
@@ -355,9 +396,12 @@ def tab_curves(df: pd.DataFrame, histories: dict) -> None:
                 y_ref = y_ref / _n_spins(rv["model"], rv["size"])
             fig.add_hline(
                 y=y_ref,
-                line_dash="dot", line_color="black", opacity=0.45,
-                annotation_text=f"Exact energy/spin  h={rv['h']}" if per_spin
-                                else f"Exact energy  h={rv['h']}",
+                line_dash="dot",
+                line_color="black",
+                opacity=0.45,
+                annotation_text=f"Exact energy/spin  h={rv['h']}"
+                if per_spin
+                else f"Exact energy  h={rv['h']}",
                 annotation_position="bottom right",
             )
 
@@ -377,15 +421,18 @@ def tab_compare(df: pd.DataFrame) -> None:
     # ── Group comparison ───────────────────────────────────────────────────────
     c1, c2, c3 = st.columns(3)
 
-    avail = [(k, l) for k, l in SCALAR_METRICS
-             if k in df.columns and df[k].notna().any()]
+    avail = [
+        (k, l) for k, l in SCALAR_METRICS if k in df.columns and df[k].notna().any()
+    ]
     if not avail:
         st.info("No scalar metrics available for the current selection.")
         return
 
     m_idx = c1.selectbox(
-        "Metric", range(len(avail)),
-        format_func=lambda i: avail[i][1], key="cmp_metric",
+        "Metric",
+        range(len(avail)),
+        format_func=lambda i: avail[i][1],
+        key="cmp_metric",
     )
     metric_key, metric_label = avail[m_idx]
 
@@ -403,7 +450,9 @@ def tab_compare(df: pd.DataFrame) -> None:
         st.info("No data for this metric / grouping.")
     else:
         kw = dict(
-            x=group_col, y=metric_key, color=group_col,
+            x=group_col,
+            y=metric_key,
+            color=group_col,
             labels={group_col: group_label, metric_key: metric_label},
             height=420,
         )
@@ -414,7 +463,11 @@ def tab_compare(df: pd.DataFrame) -> None:
         else:
             agg = sub.groupby(group_col)[metric_key].agg(["mean", "std"]).reset_index()
             fig = px.bar(
-                agg, x=group_col, y="mean", error_y="std", color=group_col,
+                agg,
+                x=group_col,
+                y="mean",
+                error_y="std",
+                color=group_col,
                 labels={group_col: group_label, "mean": f"Mean — {metric_label}"},
                 height=420,
             )
@@ -435,19 +488,34 @@ def tab_compare(df: pd.DataFrame) -> None:
         )
     log_axes = sc2.checkbox("Log–log axes", value=True, key="scale_log")
 
-    _scale_cols = list(dict.fromkeys(["size", "error", scale_col, "h", "learning_rate", "seed", "n_hidden"]))
+    _scale_cols = list(
+        dict.fromkeys(
+            ["size", "error", scale_col, "h", "learning_rate", "seed", "n_hidden"]
+        )
+    )
     scale_df = df[_scale_cols].dropna(subset=["size", "error", scale_col])
     if scale_df.empty:
         st.info("No size/error data for the current selection.")
         return
 
     fig2 = px.scatter(
-        scale_df, x="size", y="error", color=scale_col,
-        labels={"size": "System size N", "error": "Energy error",
-                scale_col: scale_label},
-        log_x=log_axes, log_y=log_axes, height=440,
-        hover_data={c: True for c in ["h", "learning_rate", "seed", "n_hidden"]
-                    if c in scale_df.columns},
+        scale_df,
+        x="size",
+        y="error",
+        color=scale_col,
+        labels={
+            "size": "System size N",
+            "error": "Energy error",
+            scale_col: scale_label,
+        },
+        log_x=log_axes,
+        log_y=log_axes,
+        height=440,
+        hover_data={
+            c: True
+            for c in ["h", "learning_rate", "seed", "n_hidden"]
+            if c in scale_df.columns
+        },
     )
     fig2.update_layout(title=_titled("Energy error vs system size N"))
     st.plotly_chart(fig2, use_container_width=True)
@@ -464,12 +532,14 @@ def tab_correlation(df: pd.DataFrame) -> None:
 
     # Determine which predictor metrics are available
     predictor_opts = [
-        (k, l) for k, l in SCALAR_METRICS
-        if k in df.columns and df[k].notna().any() and k not in ("error", "final_energy", "exact_energy")
+        (k, l)
+        for k, l in SCALAR_METRICS
+        if k in df.columns
+        and df[k].notna().any()
+        and k not in ("error", "final_energy", "exact_energy")
     ]
     target_opts = [
-        (k, l) for k, l in SCALAR_METRICS
-        if k in df.columns and df[k].notna().any()
+        (k, l) for k, l in SCALAR_METRICS if k in df.columns and df[k].notna().any()
     ]
 
     if not predictor_opts or not target_opts:
@@ -482,8 +552,9 @@ def tab_correlation(df: pd.DataFrame) -> None:
         "X axis (predictor)",
         range(len(predictor_opts)),
         format_func=lambda i: predictor_opts[i][1],
-        index=next((i for i, (k, _) in enumerate(predictor_opts)
-                    if k == "final_kl_exact"), 0),
+        index=next(
+            (i for i, (k, _) in enumerate(predictor_opts) if k == "final_kl_exact"), 0
+        ),
         key="corr_x",
     )
     x_key, x_label = predictor_opts[x_idx]
@@ -492,8 +563,7 @@ def tab_correlation(df: pd.DataFrame) -> None:
         "Y axis (target)",
         range(len(target_opts)),
         format_func=lambda i: target_opts[i][1],
-        index=next((i for i, (k, _) in enumerate(target_opts)
-                    if k == "error"), 0),
+        index=next((i for i, (k, _) in enumerate(target_opts) if k == "error"), 0),
         key="corr_y",
     )
     y_key, y_label = target_opts[y_idx]
@@ -506,7 +576,9 @@ def tab_correlation(df: pd.DataFrame) -> None:
     log_x = c4.checkbox("Log X", value=(x_key == "final_kl_exact"), key="corr_logx")
     log_y = c4.checkbox("Log Y", value=True, key="corr_logy")
 
-    _plot_cols = list(dict.fromkeys([x_key, y_key, color_col, "size", "h", "learning_rate", "seed"]))
+    _plot_cols = list(
+        dict.fromkeys([x_key, y_key, color_col, "size", "h", "learning_rate", "seed"])
+    )
     plot_df = df[_plot_cols].dropna(subset=[x_key, y_key, color_col])
 
     if plot_df.empty:
@@ -514,11 +586,18 @@ def tab_correlation(df: pd.DataFrame) -> None:
         return
 
     fig = px.scatter(
-        plot_df, x=x_key, y=y_key, color=color_col,
+        plot_df,
+        x=x_key,
+        y=y_key,
+        color=color_col,
         labels={x_key: x_label, y_key: y_label, color_col: color_label},
-        log_x=log_x, log_y=log_y,
-        hover_data={c: True for c in ["size", "h", "learning_rate", "seed"]
-                    if c in plot_df.columns},
+        log_x=log_x,
+        log_y=log_y,
+        hover_data={
+            c: True
+            for c in ["size", "h", "learning_rate", "seed"]
+            if c in plot_df.columns
+        },
         height=520,
         opacity=0.75,
     )
@@ -528,6 +607,7 @@ def tab_correlation(df: pd.DataFrame) -> None:
 
     # Pearson r (log-space when log axes are on)
     import numpy as np
+
     sub = plot_df[[x_key, y_key]].dropna()
     if len(sub) >= 3:
         xv = np.log(sub[x_key].clip(lower=1e-12)) if log_x else sub[x_key]
@@ -558,17 +638,19 @@ def tab_timing(df: pd.DataFrame, histories: dict) -> None:
         grp_col, grp_label = _group_selectbox(
             df, "time_grp", "Group by", prefer="sampling_method"
         )
-    plot_type = c2.selectbox("Plot type", ["Box", "Violin", "Bar (mean ± std)"],
-                             key="time_plot_type")
+    plot_type = c2.selectbox(
+        "Plot type", ["Box", "Violin", "Bar (mean ± std)"], key="time_plot_type"
+    )
 
     sub = df[["mean_time_per_iter", grp_col]].dropna()
     if sub.empty:
         st.info("No timing data for the current selection.")
     else:
         kw = dict(
-            x=grp_col, y="mean_time_per_iter", color=grp_col,
-            labels={grp_col: grp_label,
-                    "mean_time_per_iter": "Mean time / iter (s)"},
+            x=grp_col,
+            y="mean_time_per_iter",
+            color=grp_col,
+            labels={grp_col: grp_label, "mean_time_per_iter": "Mean time / iter (s)"},
             height=400,
         )
         if plot_type == "Box":
@@ -576,11 +658,17 @@ def tab_timing(df: pd.DataFrame, histories: dict) -> None:
         elif plot_type == "Violin":
             fig = px.violin(sub, box=True, **kw)
         else:
-            agg = sub.groupby(grp_col)["mean_time_per_iter"].agg(
-                ["mean", "std"]
-            ).reset_index()
+            agg = (
+                sub.groupby(grp_col)["mean_time_per_iter"]
+                .agg(["mean", "std"])
+                .reset_index()
+            )
             fig = px.bar(
-                agg, x=grp_col, y="mean", error_y="std", color=grp_col,
+                agg,
+                x=grp_col,
+                y="mean",
+                error_y="std",
+                color=grp_col,
                 labels={grp_col: grp_label, "mean": "Mean time / iter (s)"},
                 height=400,
             )
@@ -615,33 +703,47 @@ def tab_timing(df: pd.DataFrame, histories: dict) -> None:
         vals = [float(v) for v in series if v is not None]
         if smooth and len(vals) >= 10:
             import pandas as _pd
+
             vals = list(_pd.Series(vals).rolling(10, min_periods=1).mean())
         for i, v in enumerate(vals):
-            rows.append({
-                "iteration":   i,
-                "value":       v,
-                "run_id":      r["run_id"],
-                "color_group": str(r.get(color_col, "?")),
-                "sampler":     f"{r.get('sampler', '')}/{r.get('sampling_method', '')}",
-                "N":           r.get("size"),
-                "h":           r.get("h"),
-                "lr":          r.get("learning_rate"),
-                "seed":        r.get("seed"),
-            })
+            rows.append(
+                {
+                    "iteration": i,
+                    "value": v,
+                    "run_id": r["run_id"],
+                    "color_group": str(r.get(color_col, "?")),
+                    "sampler": f"{r.get('sampler', '')}/{r.get('sampling_method', '')}",
+                    "N": r.get("size"),
+                    "h": r.get("h"),
+                    "lr": r.get("learning_rate"),
+                    "seed": r.get("seed"),
+                }
+            )
 
     if not rows:
         st.info("No per-iteration sampling time data for the selected runs.")
     else:
         pf = pd.DataFrame(rows)
         fig2 = px.line(
-            pf, x="iteration", y="value",
-            color="color_group", line_group="run_id",
-            labels={"iteration": "Iteration",
-                    "value": "Sampling time / iter (s)" + (" [smoothed]" if smooth else ""),
-                    "color_group": color_label},
-            hover_data={"sampler": True, "N": True, "h": True,
-                        "lr": True, "seed": True,
-                        "run_id": False, "color_group": False},
+            pf,
+            x="iteration",
+            y="value",
+            color="color_group",
+            line_group="run_id",
+            labels={
+                "iteration": "Iteration",
+                "value": "Sampling time / iter (s)" + (" [smoothed]" if smooth else ""),
+                "color_group": color_label,
+            },
+            hover_data={
+                "sampler": True,
+                "N": True,
+                "h": True,
+                "lr": True,
+                "seed": True,
+                "run_id": False,
+                "color_group": False,
+            },
             height=480,
         )
         fig2.update_traces(opacity=0.75, line=dict(width=1.5))
@@ -665,26 +767,50 @@ def tab_timing(df: pd.DataFrame, histories: dict) -> None:
     log_x_qa = qa2.checkbox("Log X (time)", value=True, key="time_qa_logx")
     log_y_qa = qa3.checkbox("Log Y (error)", value=True, key="time_qa_logy")
 
-    _qa_cols = list(dict.fromkeys(["mean_time_per_iter", "error_per_spin", qa_color_col, "size", "h", "learning_rate", "seed"]))
-    qa_df = df[_qa_cols].dropna(subset=["mean_time_per_iter", "error_per_spin", qa_color_col])
+    _qa_cols = list(
+        dict.fromkeys(
+            [
+                "mean_time_per_iter",
+                "error_per_spin",
+                qa_color_col,
+                "size",
+                "h",
+                "learning_rate",
+                "seed",
+            ]
+        )
+    )
+    qa_df = df[_qa_cols].dropna(
+        subset=["mean_time_per_iter", "error_per_spin", qa_color_col]
+    )
 
     if qa_df.empty:
         st.info("No data with both timing and error available.")
     else:
         fig3 = px.scatter(
-            qa_df, x="mean_time_per_iter", y="error_per_spin",
+            qa_df,
+            x="mean_time_per_iter",
+            y="error_per_spin",
             color=qa_color_col,
-            labels={"mean_time_per_iter": "Mean sampling time / iter (s)",
-                    "error_per_spin":     "Energy error per spin",
-                    qa_color_col:         qa_color_label},
-            log_x=log_x_qa, log_y=log_y_qa,
-            hover_data={c: True for c in ["size", "h", "learning_rate", "seed"]
-                        if c in qa_df.columns},
+            labels={
+                "mean_time_per_iter": "Mean sampling time / iter (s)",
+                "error_per_spin": "Energy error per spin",
+                qa_color_col: qa_color_label,
+            },
+            log_x=log_x_qa,
+            log_y=log_y_qa,
+            hover_data={
+                c: True
+                for c in ["size", "h", "learning_rate", "seed"]
+                if c in qa_df.columns
+            },
             height=460,
             opacity=0.75,
         )
         fig3.update_traces(marker=dict(size=7))
-        fig3.update_layout(title=_titled("Cost–quality tradeoff: sampling time vs energy error"))
+        fig3.update_layout(
+            title=_titled("Cost–quality tradeoff: sampling time vs energy error")
+        )
         st.plotly_chart(fig3, use_container_width=True)
 
     # ── Section 4: time scaling with system size ───────────────────────────────
@@ -701,23 +827,43 @@ def tab_timing(df: pd.DataFrame, histories: dict) -> None:
             df, "time_sc_color", "Color by", prefer="sampling_method"
         )
     log_x_sc = sc2.checkbox("Log X (spins)", value=True, key="time_sc_logx")
-    log_y_sc = sc3.checkbox("Log Y (time)",  value=True, key="time_sc_logy")
+    log_y_sc = sc3.checkbox("Log Y (time)", value=True, key="time_sc_logy")
 
-    _sc_cols = list(dict.fromkeys(["n_spins", "mean_time_per_iter", sc_color_col, "model", "h", "learning_rate", "seed"]))
+    _sc_cols = list(
+        dict.fromkeys(
+            [
+                "n_spins",
+                "mean_time_per_iter",
+                sc_color_col,
+                "model",
+                "h",
+                "learning_rate",
+                "seed",
+            ]
+        )
+    )
     sc_df = df[_sc_cols].dropna(subset=["n_spins", "mean_time_per_iter", sc_color_col])
 
     if sc_df.empty:
         st.info("No data for this selection.")
     else:
         fig4 = px.scatter(
-            sc_df, x="n_spins", y="mean_time_per_iter",
+            sc_df,
+            x="n_spins",
+            y="mean_time_per_iter",
             color=sc_color_col,
-            labels={"n_spins":            "Number of spins (N or N²)",
-                    "mean_time_per_iter": "Mean sampling time / iter (s)",
-                    sc_color_col:         sc_color_label},
-            log_x=log_x_sc, log_y=log_y_sc,
-            hover_data={c: True for c in ["model", "h", "learning_rate", "seed"]
-                        if c in sc_df.columns},
+            labels={
+                "n_spins": "Number of spins (N or N²)",
+                "mean_time_per_iter": "Mean sampling time / iter (s)",
+                sc_color_col: sc_color_label,
+            },
+            log_x=log_x_sc,
+            log_y=log_y_sc,
+            hover_data={
+                c: True
+                for c in ["model", "h", "learning_rate", "seed"]
+                if c in sc_df.columns
+            },
             height=460,
             opacity=0.75,
         )
@@ -730,9 +876,7 @@ def tab_timing(df: pd.DataFrame, histories: dict) -> None:
 
 
 def main() -> None:
-    st.set_page_config(
-        page_title="VMC Results", layout="wide", page_icon="⚛"
-    )
+    st.set_page_config(page_title="VMC Results", layout="wide", page_icon="⚛")
     st.title("VMC / RBM Experiment Results")
 
     with st.spinner("Loading results..."):
@@ -748,13 +892,15 @@ def main() -> None:
         st.warning("No runs match the current filters.")
         st.stop()
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "Run table",
-        "Convergence curves",
-        "Comparison",
-        "Correlation",
-        "Timing",
-    ])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(
+        [
+            "Run table",
+            "Convergence curves",
+            "Comparison",
+            "Correlation",
+            "Timing",
+        ]
+    )
 
     with tab1:
         tab_table(df)
