@@ -81,6 +81,8 @@ N_SAMPLES = 1000
 REG = 1e-5
 N_ITERATIONS = 300
 OUTPUT_DIR = "dwave_results"
+USE_CEM = True
+CEM_INTERVAL = 5
 
 # ---------------------------------------------------------------------------
 # QPU budget
@@ -174,7 +176,7 @@ def result_path(run: Run) -> Path:
         f"_ns{N_SAMPLES}"
         f"_seed{run.seed}"
         f"_iter{N_ITERATIONS}"
-        f"_cem0"
+        f"_cem{int(USE_CEM)}"
         f"_sigma1.0"
         f".json"
     )
@@ -200,8 +202,8 @@ def build_args(run: Run) -> SimpleNamespace:
         iterations=N_ITERATIONS,
         learning_rate=run.lr,
         regularization=REG,
-        cem=False,
-        cem_interval=5,
+        cem=USE_CEM,
+        cem_interval=CEM_INTERVAL,
         seed=run.seed,
         visualize=False,
         output_dir=OUTPUT_DIR,
@@ -237,8 +239,8 @@ def execute_run(run: Run) -> dict:
         regularization=REG,
         save_checkpoints=True,
         checkpoint_interval=10,
-        use_cem=False,
-        cem_interval=5,
+        use_cem=USE_CEM,
+        cem_interval=CEM_INTERVAL,
         lsb_sigma=1.0,
         seed=run.seed,
     )
