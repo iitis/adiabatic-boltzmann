@@ -65,13 +65,13 @@ SIZES_1D = [8, 12, 16]  # 1D chain lengths
 SIZES_2D: list = []  # 2D lattice linear dims (L × L)
 H_VALUES = [0.5, 1.0, 2.0]
 LEARNING_RATES = [0.1, 0.01]
-SEEDS = [1, 42]
+SEEDS = [42]
 
 # D-Wave sampling methods to include: "pegasus", "zephyr", or both
 SAMPLING_METHODS = ["pegasus", "zephyr"]
 
 # RBM architectures to include: "full", "pegasus", "zephyr", or any subset
-RBM_TYPES = ["full", "pegasus", "zephyr"]
+RBM_TYPES = ["pegasus", "zephyr"]
 
 # ---------------------------------------------------------------------------
 # Fixed hyperparameters
@@ -145,6 +145,8 @@ def build_grid() -> list[Run]:
         for h in H_VALUES:
             for method in SAMPLING_METHODS:
                 for rbm in RBM_TYPES:
+                    if rbm != "full" and rbm != method:
+                        continue  # topology mismatch: DWaveTopologyRBM must match its sampler
                     for lr in LEARNING_RATES:
                         for seed in SEEDS:
                             grid.append(Run(model, size, h, method, rbm, lr, seed))
@@ -258,10 +260,11 @@ def execute_run(run: Run) -> dict:
     kl = history.get("kl_exact", [None])[-1]
     gn = history.get("grad_norm", [None])[-1]
 
-    if run.rbm != "full":
-        sparsity = rbm.connectivity_summary()["sparsity"]
-    else:
-        sparsity = None
+    sparsity = (
+        rbm.connectivity_summary()["sparsity"]
+        if isinstance(rbm, DWaveTopologyRBM)
+        else None
+    )
 
     return dict(
         elapsed_s=elapsed,

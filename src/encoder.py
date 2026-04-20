@@ -470,6 +470,9 @@ class Trainer:
                 self.beta_x = (
                     1.0 - self.cem_ema_alpha
                 ) * self.beta_x + self.cem_ema_alpha * _cem_beta_raw
+                self.beta_x = float(
+                    jnp.clip(self.beta_x, self.beta_min, self.beta_max)
+                )
                 beta_eff_this_iter = self.beta_x
                 print(
                     f"  [CEM iter {iteration:3d}] β_eff = {_cem_beta_raw:.4f}"
