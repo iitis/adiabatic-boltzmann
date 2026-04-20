@@ -75637,4 +75637,503 @@ Iter 280: E = -306.445949 ± 0.094404  β_x = 2.275  CG 200it res=1.17e-02  samp
     beta x 2.2866938189938057
   [LSB] steps=100 delta=1.0 sigma=1.0000 unique=319/1000
   [CEM iter 290] β_eff = 2.2684 → beta_x = 2.2812 (EMA α=0.3)
-Iter 290: E = -306.604614 ± 0.104236  β_x = 2.281  CG 200it res=4.82e-03  sample_time=0.064s  ‖x‖=8.1888
+Iter 290: E = -306.604614 ± 0.104236  β_x = 2.281  CG 200it res=4.82e-03  sample_time=0.064s  ‖x‖=8.1888usage: dwave_benchmark.py [-h] [--dry-run] [--method {pegasus,zephyr}]
+dwave_benchmark.py: error: unrecognized arguments: --zephyr
+JAX devices : [CudaDevice(id=0)]
+JAX version : 0.9.2
+Output dir  : dwave_results/
+QPU budget  : 60 min total  |  used: 57.78 min  |  remaining: 2.22 min
+
+[14:27:51]  18 total runs  (18 pending, 0 already done)
+  Fixed: reg=1e-05  ns=1000  iter=300
+
+[1/18] 1D N= 64 h=0.5  zephyr  rbm=zephyr  lr=0.1  seed=42  QPU used=57.78min
+[DWaveTopologyRBM] Loading cached embedding from /home/phanussek/adiabatic-boltzmann/embeddings/Advantage2_system1_128_seed42.json
+DWaveTopologyRBM(n_visible=64, n_hidden=64, connections=785/4096, sparsity=80.83%)
+<ising.TransverseFieldIsing1D object at 0x7f4818150050>
+namespace(model='1d', size=64, h=0.5, rbm='zephyr', n_hidden=64, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.1, regularization=1e-05, cem=True, cem_interval=5, seed=42, visualize=False, output_dir='dwave_results', sigma=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Trivial identity embedding cached for (64, 'Advantage2_system1').
+  [CEM iter   0] β_eff = 50.0000 → beta_x = 15.7000 (EMA α=0.3)
+Iter   0: E = -23.333788 ± 0.176392  β_x = 15.700  CG 200it res=8.28e-03  sample_time=2.929s  ‖x‖=92.2712
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0000.pkl
+  [rbm_to_ising] beta_x = 15.7000
+  [CEM iter   5] β_eff = 5.5869 → beta_x = 12.6661 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 12.6661
+  [CEM iter  10] β_eff = 6.0010 → beta_x = 10.6666 (EMA α=0.3)
+Iter  10: E = -39.988486 ± 0.167657  β_x = 10.667  CG 200it res=5.95e-03  sample_time=1.311s  ‖x‖=19.4756
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0010.pkl
+  [rbm_to_ising] beta_x = 10.6666
+  [CEM iter  15] β_eff = 5.4526 → beta_x = 9.1024 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 9.1024
+  [CEM iter  20] β_eff = 5.8065 → beta_x = 8.1136 (EMA α=0.3)
+Iter  20: E = -52.613779 ± 0.117457  β_x = 8.114  CG 200it res=3.18e-03  sample_time=1.307s  ‖x‖=12.6347
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0020.pkl
+  [rbm_to_ising] beta_x = 8.1136
+  [CEM iter  25] β_eff = 5.7195 → beta_x = 7.3954 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 7.3954
+  [CEM iter  30] β_eff = 5.9294 → beta_x = 6.9556 (EMA α=0.3)
+Iter  30: E = -55.464595 ± 0.049149  β_x = 6.956  CG 200it res=1.06e-03  sample_time=1.221s  ‖x‖=7.1899
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0030.pkl
+  [rbm_to_ising] beta_x = 6.9556
+  [CEM iter  35] β_eff = 5.7138 → beta_x = 6.5831 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 6.5831
+  [CEM iter  40] β_eff = 5.6358 → beta_x = 6.2989 (EMA α=0.3)
+Iter  40: E = -57.497867 ± 0.096103  β_x = 6.299  CG 200it res=1.63e-03  sample_time=1.264s  ‖x‖=6.9020
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0040.pkl
+  [rbm_to_ising] beta_x = 6.2989
+  [CEM iter  45] β_eff = 5.6525 → beta_x = 6.1049 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 6.1049
+  [CEM iter  50] β_eff = 5.8118 → beta_x = 6.0170 (EMA α=0.3)
+Iter  50: E = -60.522897 ± 0.076932  β_x = 6.017  CG 200it res=2.25e-04  sample_time=1.279s  ‖x‖=3.1660
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0050.pkl
+  [rbm_to_ising] beta_x = 6.0170
+  [CEM iter  55] β_eff = 6.0724 → beta_x = 6.0336 (EMA α=0.3)
+  [CEM iter  60] β_eff = 6.2952 → beta_x = 6.1121 (EMA α=0.3)
+Iter  60: E = -61.069021 ± 0.048921  β_x = 6.112  CG 200it res=6.75e-04  sample_time=1.251s  ‖x‖=4.1049
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0060.pkl
+  [rbm_to_ising] beta_x = 6.1121
+  [CEM iter  65] β_eff = 6.4981 → beta_x = 6.2279 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 6.2279
+  [CEM iter  70] β_eff = 6.0669 → beta_x = 6.1796 (EMA α=0.3)
+Iter  70: E = -61.340932 ± 0.035479  β_x = 6.180  CG 200it res=3.56e-05  sample_time=1.269s  ‖x‖=0.7677
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0070.pkl
+  [CEM iter  75] β_eff = 6.4432 → beta_x = 6.2587 (EMA α=0.3)
+  [CEM iter  80] β_eff = 6.4085 → beta_x = 6.3036 (EMA α=0.3)
+Iter  80: E = -60.992094 ± 0.023531  β_x = 6.304  CG 200it res=2.82e-05  sample_time=1.407s  ‖x‖=1.6925
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0080.pkl
+  [rbm_to_ising] beta_x = 6.3036
+  [CEM iter  85] β_eff = 6.7328 → beta_x = 6.4324 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 6.4324
+  [CEM iter  90] β_eff = 6.4837 → beta_x = 6.4478 (EMA α=0.3)
+Iter  90: E = -60.953345 ± 0.024222  β_x = 6.448  CG 200it res=6.00e-07  sample_time=1.325s  ‖x‖=0.4645
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0090.pkl
+  [CEM iter  95] β_eff = 6.5949 → beta_x = 6.4919 (EMA α=0.3)
+  [CEM iter 100] β_eff = 7.4265 → beta_x = 6.7723 (EMA α=0.3)
+Iter 100: E = -60.842991 ± 0.019656  β_x = 6.772  CG 200it res=6.55e-08  sample_time=1.309s  ‖x‖=0.8925
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0100.pkl
+  [rbm_to_ising] beta_x = 6.7723
+  [CEM iter 105] β_eff = 6.7031 → beta_x = 6.7515 (EMA α=0.3)
+  [CEM iter 110] β_eff = 6.3744 → beta_x = 6.6384 (EMA α=0.3)
+Iter 110: E = -60.793362 ± 0.020847  β_x = 6.638  CG 161it res=9.34e-09  sample_time=1.254s  ‖x‖=0.2300
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0110.pkl
+  [rbm_to_ising] beta_x = 6.6384
+  [CEM iter 115] β_eff = 6.3345 → beta_x = 6.5472 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 6.5472
+  [CEM iter 120] β_eff = 6.4335 → beta_x = 6.5131 (EMA α=0.3)
+Iter 120: E = -60.836871 ± 0.023541  β_x = 6.513  CG 200it res=1.67e-07  sample_time=1.252s  ‖x‖=1.0346
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0120.pkl
+  [CEM iter 125] β_eff = 6.1646 → beta_x = 6.4086 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 6.4086
+  [CEM iter 130] β_eff = 6.4826 → beta_x = 6.4308 (EMA α=0.3)
+Iter 130: E = -60.759156 ± 0.020828  β_x = 6.431  CG 172it res=8.96e-09  sample_time=1.204s  ‖x‖=0.5024
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0130.pkl
+  [CEM iter 135] β_eff = 6.1496 → beta_x = 6.3464 (EMA α=0.3)
+  [CEM iter 140] β_eff = 6.2659 → beta_x = 6.3223 (EMA α=0.3)
+Iter 140: E = -60.724160 ± 0.018023  β_x = 6.322  CG 200it res=6.65e-08  sample_time=1.229s  ‖x‖=0.8265
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0140.pkl
+  [rbm_to_ising] beta_x = 6.3223
+  [CEM iter 145] β_eff = 6.3330 → beta_x = 6.3255 (EMA α=0.3)
+  [CEM iter 150] β_eff = 6.1145 → beta_x = 6.2622 (EMA α=0.3)
+Iter 150: E = -60.615672 ± 0.015858  β_x = 6.262  CG 200it res=8.59e-07  sample_time=1.163s  ‖x‖=0.6513
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0150.pkl
+  [CEM iter 155] β_eff = 5.8210 → beta_x = 6.1298 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 6.1298
+  [CEM iter 160] β_eff = 6.2875 → beta_x = 6.1771 (EMA α=0.3)
+Iter 160: E = -60.468882 ± 0.009966  β_x = 6.177  CG 200it res=2.39e-06  sample_time=1.221s  ‖x‖=0.6841
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0160.pkl
+  [CEM iter 165] β_eff = 6.4518 → beta_x = 6.2595 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 6.2595
+  [CEM iter 170] β_eff = 5.9397 → beta_x = 6.1636 (EMA α=0.3)
+Iter 170: E = -60.493336 ± 0.014355  β_x = 6.164  CG 200it res=4.96e-06  sample_time=1.329s  ‖x‖=0.1470
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0170.pkl
+  [rbm_to_ising] beta_x = 6.1636
+  [CEM iter 175] β_eff = 5.8161 → beta_x = 6.0593 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 6.0593
+  [CEM iter 180] β_eff = 5.7122 → beta_x = 5.9552 (EMA α=0.3)
+Iter 180: E = -60.579016 ± 0.015536  β_x = 5.955  CG 200it res=6.72e-06  sample_time=1.262s  ‖x‖=0.2094
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0180.pkl
+  [rbm_to_ising] beta_x = 5.9552
+  [CEM iter 185] β_eff = 5.4831 → beta_x = 5.8136 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.8136
+  [CEM iter 190] β_eff = 5.7784 → beta_x = 5.8030 (EMA α=0.3)
+Iter 190: E = -60.553693 ± 0.012247  β_x = 5.803  CG 200it res=6.73e-06  sample_time=1.287s  ‖x‖=1.1701
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0190.pkl
+  [CEM iter 195] β_eff = 5.4267 → beta_x = 5.6901 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.6901
+  [CEM iter 200] β_eff = 5.3935 → beta_x = 5.6011 (EMA α=0.3)
+Iter 200: E = -60.568688 ± 0.010903  β_x = 5.601  CG 200it res=5.38e-07  sample_time=1.246s  ‖x‖=0.4403
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0200.pkl
+  [rbm_to_ising] beta_x = 5.6011
+  [CEM iter 205] β_eff = 5.3455 → beta_x = 5.5244 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.5244
+  [CEM iter 210] β_eff = 5.9980 → beta_x = 5.6665 (EMA α=0.3)
+Iter 210: E = -60.759546 ± 0.014321  β_x = 5.667  CG 200it res=2.27e-06  sample_time=1.254s  ‖x‖=0.3488
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0210.pkl
+  [rbm_to_ising] beta_x = 5.6665
+  [CEM iter 215] β_eff = 5.8242 → beta_x = 5.7138 (EMA α=0.3)
+  [CEM iter 220] β_eff = 5.7310 → beta_x = 5.7190 (EMA α=0.3)
+Iter 220: E = -60.681734 ± 0.017299  β_x = 5.719  CG 200it res=3.77e-07  sample_time=1.222s  ‖x‖=0.2594
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0220.pkl
+  [CEM iter 225] β_eff = 5.8658 → beta_x = 5.7630 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.7630
+  [CEM iter 230] β_eff = 5.9892 → beta_x = 5.8309 (EMA α=0.3)
+Iter 230: E = -60.844281 ± 0.017769  β_x = 5.831  CG 200it res=1.57e-06  sample_time=1.216s  ‖x‖=0.4395
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0230.pkl
+  [rbm_to_ising] beta_x = 5.8309
+  [CEM iter 235] β_eff = 5.9698 → beta_x = 5.8726 (EMA α=0.3)
+  [CEM iter 240] β_eff = 6.0462 → beta_x = 5.9246 (EMA α=0.3)
+Iter 240: E = -61.004282 ± 0.020153  β_x = 5.925  CG 200it res=9.00e-06  sample_time=1.305s  ‖x‖=2.1845
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0240.pkl
+  [rbm_to_ising] beta_x = 5.9246
+  [CEM iter 245] β_eff = 6.2120 → beta_x = 6.0109 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 6.0109
+  [CEM iter 250] β_eff = 5.6174 → beta_x = 5.8928 (EMA α=0.3)
+Iter 250: E = -60.927390 ± 0.016986  β_x = 5.893  CG 200it res=3.01e-06  sample_time=1.340s  ‖x‖=0.2853
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0250.pkl
+  [rbm_to_ising] beta_x = 5.8928
+  [CEM iter 255] β_eff = 5.8632 → beta_x = 5.8839 (EMA α=0.3)
+  [CEM iter 260] β_eff = 5.7991 → beta_x = 5.8585 (EMA α=0.3)
+Iter 260: E = -60.954032 ± 0.015079  β_x = 5.858  CG 200it res=1.64e-05  sample_time=1.317s  ‖x‖=0.2388
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0260.pkl
+  [CEM iter 265] β_eff = 5.9622 → beta_x = 5.8896 (EMA α=0.3)
+  [CEM iter 270] β_eff = 6.2809 → beta_x = 6.0070 (EMA α=0.3)
+Iter 270: E = -60.991896 ± 0.015740  β_x = 6.007  CG 200it res=2.58e-06  sample_time=1.284s  ‖x‖=0.2271
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0270.pkl
+  [rbm_to_ising] beta_x = 6.0070
+  [CEM iter 275] β_eff = 5.9665 → beta_x = 5.9948 (EMA α=0.3)
+  [CEM iter 280] β_eff = 6.1240 → beta_x = 6.0336 (EMA α=0.3)
+Iter 280: E = -61.082606 ± 0.014893  β_x = 6.034  CG 200it res=1.78e-06  sample_time=1.239s  ‖x‖=0.0959
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0280.pkl
+  [CEM iter 285] β_eff = 6.1369 → beta_x = 6.0646 (EMA α=0.3)
+  [CEM iter 290] β_eff = 6.0930 → beta_x = 6.0731 (EMA α=0.3)
+Iter 290: E = -60.971421 ± 0.012140  β_x = 6.073  CG 200it res=1.26e-05  sample_time=1.126s  ‖x‖=0.7169
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.1_iter0290.pkl
+  [rbm_to_ising] beta_x = 6.0731
+  [CEM iter 295] β_eff = 5.7724 → beta_x = 5.9829 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.9829
+Saved  → dwave_results/64/dimod/zephyr/result_1d_h0.5_rbmzephyr_nh64_lr0.1_reg1e-05_ns1000_seed42_iter300_cem1_sigma1.0.json
+  Final energy : -61.045333
+  Exact energy : -68.066842
+  Error        : 7.021510
+   472.2s  rel_err=0.1032  kl=N/A  grad_norm=0.4768  sparsity=0.808
+[2/18] 1D N= 64 h=0.5  zephyr  rbm=zephyr  lr=0.01  seed=42  QPU used=58.62min  ETA ~2.2h
+[DWaveTopologyRBM] Loading cached embedding from /home/phanussek/adiabatic-boltzmann/embeddings/Advantage2_system1_128_seed42.json
+DWaveTopologyRBM(n_visible=64, n_hidden=64, connections=785/4096, sparsity=80.83%)
+<ising.TransverseFieldIsing1D object at 0x7f46a01e8690>
+namespace(model='1d', size=64, h=0.5, rbm='zephyr', n_hidden=64, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=42, visualize=False, output_dir='dwave_results', sigma=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Trivial identity embedding cached for (64, 'Advantage2_system1').
+  [CEM iter   0] β_eff = 50.0000 → beta_x = 15.7000 (EMA α=0.3)
+Iter   0: E = -22.457505 ± 0.166296  β_x = 15.700  CG 200it res=4.62e-04  sample_time=2.473s  ‖x‖=90.6063
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0000.pkl
+  [rbm_to_ising] beta_x = 15.7000
+  [CEM iter   5] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 20.0000
+  [CEM iter  10] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  10: E = -42.068558 ± 0.239691  β_x = 20.000  CG 100it res=5.29e-09  sample_time=1.277s  ‖x‖=10.5213
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0010.pkl
+  [CEM iter  15] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  20] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  20: E = -55.482990 ± 0.000701  β_x = 20.000  CG 2it res=1.16e-13  sample_time=1.282s  ‖x‖=0.0288
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0020.pkl
+  [CEM iter  25] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  30] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  30: E = -55.425437 ± 0.003727  β_x = 20.000  CG 3it res=1.95e-10  sample_time=1.287s  ‖x‖=1.8656
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0030.pkl
+  [CEM iter  35] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  40] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  40: E = -55.482052 ± 0.015469  β_x = 20.000  CG 6it res=1.23e-13  sample_time=1.307s  ‖x‖=2.0936
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0040.pkl
+  [CEM iter  45] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  50] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  50: E = -55.487706 ± 0.000000  β_x = 20.000  CG 0it res=1.07e-13  sample_time=1.251s  ‖x‖=0.0000
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0050.pkl
+  [CEM iter  55] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  60] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  60: E = -55.505203 ± 0.003663  β_x = 20.000  CG 3it res=4.62e-14  sample_time=1.207s  ‖x‖=0.4121
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0060.pkl
+  [CEM iter  65] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  70] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  70: E = -55.538197 ± 0.000000  β_x = 20.000  CG 0it res=5.37e-14  sample_time=1.373s  ‖x‖=0.0000
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0070.pkl
+  [CEM iter  75] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  80] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  80: E = -55.557252 ± 0.000048  β_x = 20.000  CG 1it res=4.39e-14  sample_time=1.326s  ‖x‖=0.0252
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0080.pkl
+  [CEM iter  85] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  90] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  90: E = -55.569140 ± 0.000047  β_x = 20.000  CG 1it res=1.14e-13  sample_time=1.275s  ‖x‖=0.0248
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0090.pkl
+  [CEM iter  95] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 100] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 100: E = -55.589315 ± 0.000065  β_x = 20.000  CG 2it res=1.19e-13  sample_time=1.279s  ‖x‖=0.0342
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0100.pkl
+  [CEM iter 105] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 110] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 110: E = -55.589813 ± 0.000000  β_x = 20.000  CG 0it res=5.37e-14  sample_time=1.303s  ‖x‖=0.0000
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0110.pkl
+  [CEM iter 115] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 120] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 120: E = -55.608969 ± 0.000065  β_x = 20.000  CG 1it res=5.91e-14  sample_time=1.284s  ‖x‖=0.0242
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0120.pkl
+  [CEM iter 125] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 130] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 130: E = -55.608993 ± 0.000045  β_x = 20.000  CG 1it res=1.37e-13  sample_time=1.247s  ‖x‖=0.0238
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0130.pkl
+  [CEM iter 135] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 140] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 140: E = -55.594355 ± 0.000000  β_x = 20.000  CG 0it res=1.08e-13  sample_time=1.152s  ‖x‖=0.0000
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0140.pkl
+  [CEM iter 145] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 150] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 150: E = -55.594314 ± 0.000043  β_x = 20.000  CG 1it res=5.15e-14  sample_time=1.260s  ‖x‖=0.0226
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0150.pkl
+  [CEM iter 155] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 160] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 160: E = -55.601167 ± 0.003861  β_x = 20.000  CG 2it res=7.91e-14  sample_time=1.289s  ‖x‖=2.0192
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0160.pkl
+  [CEM iter 165] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 170] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 170: E = -55.609553 ± 0.000000  β_x = 20.000  CG 0it res=1.08e-13  sample_time=1.245s  ‖x‖=0.0000
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0170.pkl
+  [CEM iter 175] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 180] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 180: E = -55.621906 ± 0.000041  β_x = 20.000  CG 1it res=1.99e-13  sample_time=1.211s  ‖x‖=0.0212
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0180.pkl
+  [CEM iter 185] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 190] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 190: E = -55.621850 ± 0.000000  β_x = 20.000  CG 0it res=0.00e+00  sample_time=1.288s  ‖x‖=0.0000
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0190.pkl
+  [CEM iter 195] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 200] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 200: E = -55.630346 ± 0.005159  β_x = 20.000  CG 2it res=6.21e-14  sample_time=1.213s  ‖x‖=1.9917
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0200.pkl
+  [CEM iter 205] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 210] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 210: E = -55.642043 ± 0.003458  β_x = 20.000  CG 2it res=7.48e-14  sample_time=1.217s  ‖x‖=0.3944
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0210.pkl
+  [CEM iter 215] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 220] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 220: E = -55.651654 ± 0.000000  β_x = 20.000  CG 0it res=5.44e-14  sample_time=1.244s  ‖x‖=0.0000
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0220.pkl
+  [CEM iter 225] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 230] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 230: E = -55.651919 ± 0.000000  β_x = 20.000  CG 0it res=5.44e-14  sample_time=1.351s  ‖x‖=0.0000
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0230.pkl
+  [CEM iter 235] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 240] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 240: E = -55.652138 ± 0.000000  β_x = 20.000  CG 0it res=1.09e-13  sample_time=1.301s  ‖x‖=0.0000
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0240.pkl
+  [CEM iter 245] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 250] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 250: E = -55.642854 ± 0.000000  β_x = 20.000  CG 0it res=1.09e-13  sample_time=1.302s  ‖x‖=0.0000
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0250.pkl
+  [CEM iter 255] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 260] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 260: E = -55.655209 ± 0.000054  β_x = 20.000  CG 1it res=1.36e-13  sample_time=1.175s  ‖x‖=0.0200
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0260.pkl
+  [CEM iter 265] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 270] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 270: E = -55.639745 ± 0.000037  β_x = 20.000  CG 1it res=1.55e-13  sample_time=1.249s  ‖x‖=0.0193
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0270.pkl
+  [CEM iter 275] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 280] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 280: E = -55.622991 ± 0.000036  β_x = 20.000  CG 1it res=2.23e-13  sample_time=1.240s  ‖x‖=0.0184
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0280.pkl
+  [CEM iter 285] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 290] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 290: E = -55.629116 ± 0.000000  β_x = 20.000  CG 0it res=0.00e+00  sample_time=1.187s  ‖x‖=0.0000
+  → Checkpoint saved: checkpoint_1d_h0.5_rbmzephyr_nh64_lr0.01_iter0290.pkl
+  [CEM iter 295] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Saved  → dwave_results/64/dimod/zephyr/result_1d_h0.5_rbmzephyr_nh64_lr0.01_reg1e-05_ns1000_seed42_iter300_cem1_sigma1.0.json
+  Final energy : -55.641525
+  Exact energy : -68.066842
+  Error        : 12.425317
+   394.1s  rel_err=0.1825  kl=N/A  grad_norm=0.0000  sparsity=0.808
+[3/18] 1D N= 64 h=1.0  zephyr  rbm=zephyr  lr=0.1  seed=42  QPU used=59.45min  ETA ~1.9h
+[DWaveTopologyRBM] Loading cached embedding from /home/phanussek/adiabatic-boltzmann/embeddings/Advantage2_system1_128_seed42.json
+DWaveTopologyRBM(n_visible=64, n_hidden=64, connections=785/4096, sparsity=80.83%)
+<ising.TransverseFieldIsing1D object at 0x7f46a01e8690>
+namespace(model='1d', size=64, h=1.0, rbm='zephyr', n_hidden=64, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.1, regularization=1e-05, cem=True, cem_interval=5, seed=42, visualize=False, output_dir='dwave_results', sigma=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Trivial identity embedding cached for (64, 'Advantage2_system1').
+  [CEM iter   0] β_eff = 50.0000 → beta_x = 15.7000 (EMA α=0.3)
+Iter   0: E = -55.083531 ± 0.176698  β_x = 15.700  CG 200it res=9.78e-04  sample_time=2.495s  ‖x‖=99.6009
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0000.pkl
+  [rbm_to_ising] beta_x = 15.7000
+  [CEM iter   5] β_eff = 14.3327 → beta_x = 15.2898 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 15.2898
+  [CEM iter  10] β_eff = 15.9062 → beta_x = 15.4747 (EMA α=0.3)
+Iter  10: E = -75.741482 ± 0.084333  β_x = 15.475  CG 200it res=1.10e-03  sample_time=1.170s  ‖x‖=5.9722
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0010.pkl
+  [rbm_to_ising] beta_x = 15.4747
+  [CEM iter  15] β_eff = 16.1544 → beta_x = 15.6786 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 15.6786
+  [CEM iter  20] β_eff = 13.4572 → beta_x = 15.0122 (EMA α=0.3)
+Iter  20: E = -78.024129 ± 0.035422  β_x = 15.012  CG 167it res=6.82e-09  sample_time=1.242s  ‖x‖=1.9961
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0020.pkl
+  [rbm_to_ising] beta_x = 15.0122
+  [CEM iter  25] β_eff = 14.6602 → beta_x = 14.9066 (EMA α=0.3)
+  [CEM iter  30] β_eff = 14.3694 → beta_x = 14.7454 (EMA α=0.3)
+Iter  30: E = -77.998540 ± 0.015542  β_x = 14.745  CG 125it res=5.29e-09  sample_time=1.224s  ‖x‖=1.8187
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0030.pkl
+  [rbm_to_ising] beta_x = 14.7454
+  [CEM iter  35] β_eff = 12.8057 → beta_x = 14.1635 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 14.1635
+  [CEM iter  40] β_eff = 13.7129 → beta_x = 14.0283 (EMA α=0.3)
+Iter  40: E = -78.405372 ± 0.019976  β_x = 14.028  CG 84it res=8.27e-09  sample_time=1.524s  ‖x‖=1.1370
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0040.pkl
+  [CEM iter  45] β_eff = 13.0275 → beta_x = 13.7281 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 13.7281
+  [CEM iter  50] β_eff = 12.2707 → beta_x = 13.2908 (EMA α=0.3)
+Iter  50: E = -78.301790 ± 0.028555  β_x = 13.291  CG 40it res=7.06e-11  sample_time=1.235s  ‖x‖=0.6982
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0050.pkl
+  [rbm_to_ising] beta_x = 13.2908
+  [CEM iter  55] β_eff = 13.3264 → beta_x = 13.3015 (EMA α=0.3)
+  [CEM iter  60] β_eff = 13.0453 → beta_x = 13.2247 (EMA α=0.3)
+Iter  60: E = -79.015402 ± 0.041306  β_x = 13.225  CG 41it res=6.69e-09  sample_time=1.255s  ‖x‖=0.4763
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0060.pkl
+  [CEM iter  65] β_eff = 13.9119 → beta_x = 13.4308 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 13.4308
+  [CEM iter  70] β_eff = 13.3379 → beta_x = 13.4029 (EMA α=0.3)
+Iter  70: E = -78.701481 ± 0.034125  β_x = 13.403  CG 33it res=2.10e-10  sample_time=1.268s  ‖x‖=0.4135
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0070.pkl
+  [CEM iter  75] β_eff = 13.3008 → beta_x = 13.3723 (EMA α=0.3)
+  [CEM iter  80] β_eff = 13.1660 → beta_x = 13.3104 (EMA α=0.3)
+Iter  80: E = -78.556786 ± 0.024454  β_x = 13.310  CG 23it res=8.92e-09  sample_time=1.260s  ‖x‖=0.5600
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0080.pkl
+  [CEM iter  85] β_eff = 12.3129 → beta_x = 13.0111 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 13.0111
+  [CEM iter  90] β_eff = 13.3259 → beta_x = 13.1056 (EMA α=0.3)
+Iter  90: E = -78.620896 ± 0.016408  β_x = 13.106  CG 23it res=1.74e-12  sample_time=1.231s  ‖x‖=0.2980
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0090.pkl
+  [CEM iter  95] β_eff = 12.5384 → beta_x = 12.9354 (EMA α=0.3)
+  [CEM iter 100] β_eff = 12.3426 → beta_x = 12.7576 (EMA α=0.3)
+Iter 100: E = -78.362135 ± 0.012380  β_x = 12.758  CG 14it res=5.14e-12  sample_time=1.203s  ‖x‖=0.5591
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0100.pkl
+  [rbm_to_ising] beta_x = 12.7576
+  [CEM iter 105] β_eff = 12.6180 → beta_x = 12.7157 (EMA α=0.3)
+  [CEM iter 110] β_eff = 13.8041 → beta_x = 13.0422 (EMA α=0.3)
+Iter 110: E = -78.258700 ± 0.012962  β_x = 13.042  CG 40it res=4.25e-10  sample_time=1.244s  ‖x‖=0.5793
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0110.pkl
+  [rbm_to_ising] beta_x = 13.0422
+  [CEM iter 115] β_eff = 13.2995 → beta_x = 13.1194 (EMA α=0.3)
+  [CEM iter 120] β_eff = 13.9074 → beta_x = 13.3558 (EMA α=0.3)
+Iter 120: E = -78.016292 ± 0.009568  β_x = 13.356  CG 26it res=8.64e-09  sample_time=1.244s  ‖x‖=7.8430
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0120.pkl
+  [rbm_to_ising] beta_x = 13.3558
+  [CEM iter 125] β_eff = 14.4884 → beta_x = 13.6956 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 13.6956
+  [CEM iter 130] β_eff = 13.5685 → beta_x = 13.6575 (EMA α=0.3)
+Iter 130: E = -78.433472 ± 0.008587  β_x = 13.657  CG 24it res=5.67e-09  sample_time=1.290s  ‖x‖=7.8276
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0130.pkl
+  [CEM iter 135] β_eff = 14.6166 → beta_x = 13.9452 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 13.9452
+  [CEM iter 140] β_eff = 13.4938 → beta_x = 13.8098 (EMA α=0.3)
+Iter 140: E = -78.088918 ± 0.008878  β_x = 13.810  CG 31it res=4.15e-09  sample_time=1.260s  ‖x‖=7.9041
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0140.pkl
+  [CEM iter 145] β_eff = 14.3240 → beta_x = 13.9641 (EMA α=0.3)
+  [CEM iter 150] β_eff = 13.7277 → beta_x = 13.8932 (EMA α=0.3)
+Iter 150: E = -78.205773 ± 0.008342  β_x = 13.893  CG 35it res=6.34e-09  sample_time=1.234s  ‖x‖=0.3398
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0150.pkl
+  [CEM iter 155] β_eff = 12.7251 → beta_x = 13.5428 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 13.5428
+  [CEM iter 160] β_eff = 12.3508 → beta_x = 13.1852 (EMA α=0.3)
+Iter 160: E = -78.502350 ± 0.024674  β_x = 13.185  CG 85it res=3.67e-09  sample_time=1.187s  ‖x‖=9.4336
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0160.pkl
+  [rbm_to_ising] beta_x = 13.1852
+  [CEM iter 165] β_eff = 12.0439 → beta_x = 12.8428 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 12.8428
+  [CEM iter 170] β_eff = 13.4357 → beta_x = 13.0206 (EMA α=0.3)
+Iter 170: E = -78.067096 ± 0.035371  β_x = 13.021  CG 88it res=3.83e-09  sample_time=1.299s  ‖x‖=8.2773
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0170.pkl
+  [rbm_to_ising] beta_x = 13.0206
+  [CEM iter 175] β_eff = 12.0180 → beta_x = 12.7198 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 12.7198
+  [CEM iter 180] β_eff = 12.7377 → beta_x = 12.7252 (EMA α=0.3)
+Iter 180: E = -78.049041 ± 0.038935  β_x = 12.725  CG 88it res=3.69e-09  sample_time=1.159s  ‖x‖=7.2274
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0180.pkl
+  [CEM iter 185] β_eff = 13.7127 → beta_x = 13.0214 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 13.0214
+  [CEM iter 190] β_eff = 13.0677 → beta_x = 13.0353 (EMA α=0.3)
+Iter 190: E = -78.293814 ± 0.038028  β_x = 13.035  CG 75it res=8.93e-09  sample_time=1.275s  ‖x‖=0.6439
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0190.pkl
+  [CEM iter 195] β_eff = 13.5442 → beta_x = 13.1880 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 13.1880
+  [CEM iter 200] β_eff = 12.2199 → beta_x = 12.8976 (EMA α=0.3)
+Iter 200: E = -78.835003 ± 0.022213  β_x = 12.898  CG 75it res=9.10e-09  sample_time=1.288s  ‖x‖=10.6422
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0200.pkl
+  [rbm_to_ising] beta_x = 12.8976
+  [CEM iter 205] β_eff = 12.8851 → beta_x = 12.8938 (EMA α=0.3)
+  [CEM iter 210] β_eff = 12.5122 → beta_x = 12.7793 (EMA α=0.3)
+Iter 210: E = -79.093567 ± 0.018845  β_x = 12.779  CG 116it res=8.50e-09  sample_time=1.226s  ‖x‖=2.0933
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0210.pkl
+  [CEM iter 215] β_eff = 13.0206 → beta_x = 12.8517 (EMA α=0.3)
+  [CEM iter 220] β_eff = 13.5494 → beta_x = 13.0610 (EMA α=0.3)
+Iter 220: E = -79.491926 ± 0.015028  β_x = 13.061  CG 119it res=2.85e-09  sample_time=1.360s  ‖x‖=9.1992
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0220.pkl
+  [rbm_to_ising] beta_x = 13.0610
+  [CEM iter 225] β_eff = 13.5289 → beta_x = 13.2014 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 13.2014
+  [CEM iter 230] β_eff = 13.6183 → beta_x = 13.3265 (EMA α=0.3)
+Iter 230: E = -76.714727 ± 0.013260  β_x = 13.326  CG 71it res=5.28e-09  sample_time=1.267s  ‖x‖=0.6471
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0230.pkl
+  [CEM iter 235] β_eff = 14.2740 → beta_x = 13.6107 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 13.6107
+  [CEM iter 240] β_eff = 12.9825 → beta_x = 13.4223 (EMA α=0.3)
+Iter 240: E = -76.511101 ± 0.011849  β_x = 13.422  CG 43it res=2.96e-09  sample_time=1.310s  ‖x‖=0.7619
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0240.pkl
+  [rbm_to_ising] beta_x = 13.4223
+  [CEM iter 245] β_eff = 12.8929 → beta_x = 13.2635 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 13.2635
+  [CEM iter 250] β_eff = 14.8274 → beta_x = 13.7327 (EMA α=0.3)
+Iter 250: E = -77.524611 ± 0.054986  β_x = 13.733  CG 106it res=4.73e-09  sample_time=1.213s  ‖x‖=10.2457
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0250.pkl
+  [rbm_to_ising] beta_x = 13.7327
+  [CEM iter 255] β_eff = 12.9582 → beta_x = 13.5003 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 13.5003
+  [CEM iter 260] β_eff = 11.9805 → beta_x = 13.0444 (EMA α=0.3)
+Iter 260: E = -76.586834 ± 0.017160  β_x = 13.044  CG 80it res=3.16e-09  sample_time=1.258s  ‖x‖=0.9058
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0260.pkl
+  [rbm_to_ising] beta_x = 13.0444
+  [CEM iter 265] β_eff = 12.9678 → beta_x = 13.0214 (EMA α=0.3)
+  [CEM iter 270] β_eff = 12.7119 → beta_x = 12.9285 (EMA α=0.3)
+Iter 270: E = -77.174451 ± 0.020517  β_x = 12.929  CG 141it res=2.83e-09  sample_time=1.321s  ‖x‖=8.4383
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0270.pkl
+  [CEM iter 275] β_eff = 12.2026 → beta_x = 12.7108 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 12.7108
+  [CEM iter 280] β_eff = 12.9235 → beta_x = 12.7746 (EMA α=0.3)
+Iter 280: E = -79.466040 ± 0.034928  β_x = 12.775  CG 156it res=8.35e-09  sample_time=1.260s  ‖x‖=11.7105
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0280.pkl
+  [CEM iter 285] β_eff = 13.1008 → beta_x = 12.8725 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 12.8725
+  [CEM iter 290] β_eff = 13.0110 → beta_x = 12.9140 (EMA α=0.3)
+Iter 290: E = -76.907343 ± 0.012636  β_x = 12.914  CG 99it res=7.13e-09  sample_time=1.249s  ‖x‖=1.3949
+  → Checkpoint saved: checkpoint_1d_h1.0_rbmzephyr_nh64_lr0.1_iter0290.pkl
+  [CEM iter 295] β_eff = 13.4943 → beta_x = 13.0881 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 13.0881
+Saved  → dwave_results/64/dimod/zephyr/result_1d_h1.0_rbmzephyr_nh64_lr0.1_reg1e-05_ns1000_seed42_iter300_cem1_sigma1.0.json
+  Final energy : -77.336362
+  Exact energy : -81.487331
+  Error        : 4.150969
+   422.7s  rel_err=0.0509  kl=N/A  grad_norm=1.3173  sparsity=0.808
+
+[QPU BUDGET] Accumulated QPU time 60.29 min >= limit 60 min. Aborting remaining D-Wave experiments.
+  Aborting 15 remaining experiments.
+
+[14:49:21]  Finished in 0.36h
+  Completed : 3
+  Skipped   : 0  (already existed)
+  Failed    : 0
+  Total QPU : 60.29 min used
+Traceback (most recent call last):
+  File "/home/phanussek/adiabatic-boltzmann/scripts/dwave_benchmark.py", line 38, in <module>
+    import jax
+ModuleNotFoundError: No module named 'jax'

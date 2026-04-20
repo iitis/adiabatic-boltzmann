@@ -1,0 +1,4 @@
+{"timestamp": "2026-04-20T11:15:44.814376", "model": "1d", "size": 8, "h": 0.5, "sampling_method": "pegasus", "rbm": "full", "lr": 0.1, "seed": 1, "error": "RuntimeError", "message": "D-Wave sampling failed after 3 attempts."}
+{"timestamp": "2026-04-20T11:17:38.294632", "model": "1d", "size": 8, "h": 0.5, "sampling_method": "pegasus", "rbm": "full", "lr": 0.1, "seed": 1, "error": "RuntimeError", "message": "D-Wave sampling failed after 3 attempts."}
+{"timestamp": "2026-04-20T11:17:56.174879", "model": "1d", "size": 8, "h": 0.5, "sampling_method": "pegasus", "rbm": "full", "lr": 0.1, "seed": 42, "error": "RuntimeError", "message": "D-Wave sampling failed after 3 attempts."}
+{"timestamp": "2026-04-20T12:22:21.426417", "model": "1d", "size": 8, "h": 2.0, "sampling_method": "pegasus", "rbm": "pegasus", "lr": 0.1, "seed": 42, "error": "RuntimeError", "message": "D-Wave sampling failed after 3 attempts."}

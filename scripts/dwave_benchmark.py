@@ -61,8 +61,8 @@ from sampler import DimodSampler
 # Sweep parameters — edit these to change what gets run
 # ---------------------------------------------------------------------------
 
-SIZES_1D = [8, 12, 16]  # 1D chain lengths
-SIZES_2D: list = []  # 2D lattice linear dims (L × L)
+SIZES_1D = [64]  # 1D chain lengths
+SIZES_2D: list = [8,10]  # 2D lattice linear dims (L × L)
 H_VALUES = [0.5, 1.0, 2.0]
 LEARNING_RATES = [0.1, 0.01]
 SEEDS = [42]
@@ -88,7 +88,7 @@ CEM_INTERVAL = 5
 # QPU budget
 # ---------------------------------------------------------------------------
 
-DWAVE_BUDGET_MS = 60 * 60 * 1000  # 20 minutes in milliseconds
+DWAVE_BUDGET_MS = 75 * 60 * 1000  # 20 minutes in milliseconds
 DWAVE_TIME_FILE = Path("time.json")  # written by DimodSampler (path relative to cwd)
 
 
