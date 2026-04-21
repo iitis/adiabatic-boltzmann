@@ -247,9 +247,12 @@ def execute_run(run: Run) -> dict:
     history = trainer.train()
     save_results(args, history, ising, rbm)
 
-    exact = ising.exact_ground_energy()
-    final = history["energy"][-1]
-    rel_err = abs(final - exact) / abs(exact)
+    try:
+        exact = ising.exact_ground_energy()
+        final = history["energy"][-1]
+        rel_err = abs(final - exact) / abs(exact)
+    except NotImplementedError:
+        rel_err = float("nan")
     kl = history["kl_exact"][-1]
     gn = history["grad_norm"][-1]
 
