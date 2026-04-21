@@ -67,8 +67,8 @@ LEARNING_RATES = [3e-4, 1e-2]
 # ---------------------------------------------------------------------------
 
 SAMPLERS = {
-    "lsb": ("custom", "lsb"),
-    #"gibbs": ("custom", "gibbs"),
+    #"lsb": ("custom", "lsb"),
+    "gibbs": ("custom", "gibbs"),
     #"zephyr": ("dimod", "zephyr"),
 }
 # dd
@@ -92,7 +92,7 @@ class Run:
 def build_grid() -> list[Run]:
     grid = []
     sampler_keys = list(SAMPLERS.keys())
-    for size in [12,14,28,32,64]:
+    for size in [64]:
         for h in [0.5, 1.0, 2.0]:
             for sampler in sampler_keys:
                 for lr in LEARNING_RATES:
@@ -110,7 +110,7 @@ def build_grid() -> list[Run]:
                         )
 
     # 2D geometry
-    for size in [6,8,12]:
+    for size in [8,10]:
         for h in [0.5, 1.0, 2.0]:
             for sampler in sampler_keys:
                 for lr in LEARNING_RATES:
