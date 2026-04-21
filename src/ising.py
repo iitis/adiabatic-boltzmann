@@ -173,13 +173,19 @@ class TransverseFieldIsing1D(IsingModel):
         return _local_energy_1d_jit(V_jax, rbm.W, rbm.a, rbm.b, self.h, self.size)
 
     def exact_ground_energy(self) -> float:
-        from scipy.integrate import quad
+        from reference_energies import get_or_compute
+        return get_or_compute("1d", self.size, self.h, self._compute_exact_ground_energy)
 
-        def integrand(k):
-            return np.sqrt((self.h - np.cos(k)) ** 2 + np.sin(k) ** 2)
-
-        result, _ = quad(integrand, 0, np.pi)
-        return -result / np.pi * self.size
+    def _compute_exact_ground_energy(self) -> float:
+        N, h = self.size, self.h
+        m = np.arange(N)
+        # Ramond sector: anti-periodic fermion BC (even-parity sector)
+        k_R = np.pi * (2 * m + 1) / N
+        E_R = -float(np.sum(np.sqrt(1.0 + h**2 - 2.0 * h * np.cos(k_R))))
+        # Neveu-Schwarz sector: periodic fermion BC (odd-parity sector)
+        k_NS = 2.0 * np.pi * m / N
+        E_NS = -float(np.sum(np.sqrt(1.0 + h**2 - 2.0 * h * np.cos(k_NS))))
+        return min(E_R, E_NS)
 
     def exact_ground_energy_netket(self):
         import netket as nk
@@ -237,31 +243,18 @@ class TransverseFieldIsing2D(IsingModel):
         )
 
     def exact_ground_energy(self) -> float:
-        """
-        Ground state energy for 2D TFIM.
-        Uses reference values from literature (thermodynamic limit).
-        """
+        from reference_energies import get_or_compute
+        return get_or_compute("2d", self.linear_size, self.h, self._compute_exact_ground_energy)
+
+    def _compute_exact_ground_energy(self) -> float:
         L = self.linear_size
-        N = self.size
-
-        if False and L <= 4:
-            return self._exact_diag_2d()
-
-        reference_energies_per_spin = {
-            0.5: -2.0555,
-            1.0: -2.1276,
-            2.0: -2.4549,
-            3.044: -3.0440,
-        }
-
-        if self.h in reference_energies_per_spin:
-            return reference_energies_per_spin[self.h] * N
-
-        raise NotImplementedError(
-            f"No reference energy available for 2D TFIM with h={self.h} and L={L}. "
-            f"Known h values: {list(reference_energies_per_spin.keys())}. "
-            "Use L ≤ 4 for exact diagonalization or add the reference value from literature."
-        )
+        if L > 4:
+            raise NotImplementedError(
+                f"No exact reference energy available for 2D TFIM with L={L}. "
+                "Exact diagonalization is only feasible for L ≤ 4 (2^16 states). "
+                "No method in this codebase meets the 0.001 accuracy requirement for L > 4."
+            )
+        return self._exact_diag_2d()
 
     def _exact_diag_2d(self) -> float:
         import netket as nk

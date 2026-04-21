@@ -18,6 +18,8 @@ HOW TO EXTEND
 import json
 from pathlib import Path
 
+import reference_energies
+
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -134,11 +136,10 @@ def load_all_runs(results_dir: Path) -> tuple[pd.DataFrame, dict]:
         for ax in FILTER_AXES:
             row[ax["col"]] = cfg.get(ax["col"])
 
-        # Scalar outputs
+        # Scalar outputs — exact_energy and error come from the master cache,
+        # not from the JSON file (those values may be stale or inaccurate).
         for key in (
             "final_energy",
-            "exact_energy",
-            "error",
             "final_ess",
             "mean_ess",
             "final_kl_exact",
@@ -146,6 +147,26 @@ def load_all_runs(results_dir: Path) -> tuple[pd.DataFrame, dict]:
             "sparsity",
         ):
             row[key] = d.get(key)
+
+        # Reference energy: master cache only; None if not yet computed.
+        model_str = cfg.get("model")
+        size_val = cfg.get("size")
+        h_val = cfg.get("h")
+        exact_energy = None
+        if model_str and size_val is not None and h_val is not None:
+            exact_energy = reference_energies.lookup(
+                str(model_str), int(size_val), float(h_val)
+            )
+        row["exact_energy"] = exact_energy
+
+        # Recompute error from the authoritative reference.
+        final_energy = row.get("final_energy")
+        error = (
+            abs(final_energy - exact_energy)
+            if (final_energy is not None and exact_energy is not None)
+            else None
+        )
+        row["error"] = error
 
         # Device: derive a clean label from the top-level "cuda" dict
         cuda = d.get("cuda")
@@ -157,11 +178,14 @@ def load_all_runs(results_dir: Path) -> tuple[pd.DataFrame, dict]:
             row["device"] = cuda.get("torch_device", "gpu")
 
         # Derived scalars
-        e, ref = row.get("error"), row.get("exact_energy")
-        row["relative_error"] = abs(e / ref) * 100 if (e is not None and ref) else None
         n_sp = _n_spins(row.get("model"), row.get("size"))
         row["n_spins"] = n_sp
-        row["error_per_spin"] = (e / n_sp) if e is not None else None
+        row["relative_error"] = (
+            abs(error / exact_energy) * 100
+            if (error is not None and exact_energy)
+            else None
+        )
+        row["error_per_spin"] = (error / n_sp) if error is not None else None
         ts, iters = row.get("sampling_time_s"), row.get("iterations")
         row["mean_time_per_iter"] = (ts / iters) if (ts is not None and iters) else None
 

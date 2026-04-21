@@ -80,7 +80,7 @@ RBM_TYPES = ["pegasus", "zephyr"]
 N_SAMPLES = 1000
 REG = 1e-5
 N_ITERATIONS = 300
-OUTPUT_DIR = "dwave_results"
+OUTPUT_DIR = "jax_results"
 USE_CEM = True
 CEM_INTERVAL = 5
 
