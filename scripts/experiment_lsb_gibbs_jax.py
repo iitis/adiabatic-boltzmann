@@ -2,11 +2,12 @@
 JAX version of experiment_lsb_gibbs — Gibbs sampler only, full RBM.
 
 Grid:
-  1D  size 64             h = [0.5, 1.0, 2.0]
-  2D  sizes 8, 10  (N=L²) h = [0.5, 1.0, 2.0]
+  1D  sizes 16..200 spins           h = [0.5, 1.0, 2.0, 3.044]
+  2D  L=4..14  (N=L²=16..196 spins) h = [0.5, 1.0, 2.0, 3.044]
   LR  [3e-4, 1e-2]
   seed 1
   CEM  off (Gibbs never uses CEM)
+  Runs sorted by n_visible ascending (small sizes first).
 
 Fixed:
   rbm        FullyConnectedRBM, n_hidden = n_visible
@@ -85,15 +86,22 @@ class Run:
 def build_grid() -> list[Run]:
     grid: list[Run] = []
 
-    for size in [64]:
-        for h in [0.5, 1.0, 2.0]:
+    # 1D: n_visible = size (16..200 spins)
+    sizes_1d = [16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 200]
+    for size in sizes_1d:
+        for h in [0.5, 1.0, 2.0, 3.044]:
             for lr in LEARNING_RATES:
                 grid.append(Run("1d", size, h, lr, seed=1))
 
-    for size in [8, 10]:
-        for h in [0.5, 1.0, 2.0]:
+    # 2D: n_visible = size² (L=4..14 → 16..196 spins)
+    sizes_2d = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    for size in sizes_2d:
+        for h in [0.5, 1.0, 2.0, 3.044]:
             for lr in LEARNING_RATES:
                 grid.append(Run("2d", size, h, lr, seed=1))
+
+    # small systems first
+    grid.sort(key=lambda r: r.size if r.model == "1d" else r.size ** 2)
 
     return grid
 
