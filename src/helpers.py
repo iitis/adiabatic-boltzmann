@@ -95,6 +95,21 @@ def restore_rbm_from_checkpoint(rbm, checkpoint_path):
     return iteration
 
 
+def _safe_exact_energy(ising):
+    try:
+        return ising.exact_ground_energy()
+    except NotImplementedError:
+        return None
+
+
+def _safe_rel_error(final_energy, ising):
+    try:
+        exact = ising.exact_ground_energy()
+        return abs(final_energy - exact)
+    except NotImplementedError:
+        return None
+
+
 def save_results(args, history, ising, rbm=None):
     # Directory structure: results/size/sampler/sampling_method/
     output_dir = Path(
@@ -114,8 +129,8 @@ def save_results(args, history, ising, rbm=None):
             for k, vals in history.items()
         },
         "final_energy": history["energy"][-1],
-        "exact_energy": ising.exact_ground_energy(),
-        "error": abs(history["energy"][-1] - ising.exact_ground_energy()),
+        "exact_energy": _safe_exact_energy(ising),
+        "error": _safe_rel_error(history["energy"][-1], ising),
         "sparsity": float(rbm.sparsity()) if rbm is not None else None,
         "sampling_time_s": float(sum(history.get("sampling_time_s", []))),
         "jax_devices": {
