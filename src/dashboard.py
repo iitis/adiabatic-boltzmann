@@ -168,14 +168,18 @@ def load_all_runs(results_dir: Path) -> tuple[pd.DataFrame, dict]:
         )
         row["error"] = error
 
-        # Device: derive a clean label from the top-level "cuda" dict
-        cuda = d.get("cuda")
-        if cuda is None:
-            row["device"] = "unknown"
-        elif not cuda.get("torch_cuda_available", False):
-            row["device"] = "cpu"
+        # Device: read from jax_devices (JAX backend) or fall back to cuda dict
+        jax_devices = d.get("jax_devices")
+        if jax_devices is not None:
+            row["device"] = jax_devices.get("backend", "unknown")
         else:
-            row["device"] = cuda.get("torch_device", "gpu")
+            cuda = d.get("cuda")
+            if cuda is None:
+                row["device"] = "unknown"
+            elif not cuda.get("torch_cuda_available", False):
+                row["device"] = "cpu"
+            else:
+                row["device"] = cuda.get("torch_device", "gpu")
 
         # Derived scalars
         n_sp = _n_spins(row.get("model"), row.get("size"))

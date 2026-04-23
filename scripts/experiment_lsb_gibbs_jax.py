@@ -21,8 +21,13 @@ Results written to jax_results/ (skips runs that already exist).
 Usage
 -----
     cd <repo-root>
-    python scripts/experiment_lsb_gibbs_jax.py           # run everything
-    python scripts/experiment_lsb_gibbs_jax.py --dry-run  # print grid, no execution
+    python scripts/experiment_lsb_gibbs_jax.py                   # run everything
+    python scripts/experiment_lsb_gibbs_jax.py --dry-run          # print grid, no execution
+    python scripts/experiment_lsb_gibbs_jax.py --rerun-collapsed  # redo runs whose saved
+                                                                   # history shows collapse-
+                                                                   # reinit bias (sampling
+                                                                   # time > 0.1 s after
+                                                                   # iter 0)
 """
 
 import jax
@@ -243,12 +248,30 @@ def _write_failure(log_path: Path, run: Run, exc: Exception):
 # Main driver
 # ---------------------------------------------------------------------------
 
+def _is_collapsed(path: Path) -> bool:
+    """
+    Return True if the saved result shows Gibbs collapse-reinit bias.
+
+    A run is considered affected if any sampling_time_s value after iteration 0
+    exceeds 0.1 s — the signature of the reinit warmup loop firing.
+    """
+    try:
+        with open(path) as f:
+            d = json.load(f)
+        times = d.get("history", {}).get("sampling_time_s", [])
+        return any(t > 0.1 for t in times[1:])
+    except Exception:
+        return False
+
+
 def main():
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--dry-run", action="store_true",
                         help="Print the run grid without executing")
+    parser.add_argument("--rerun-collapsed", action="store_true",
+                        help="Re-run existing results that show Gibbs collapse-reinit bias")
     cli = parser.parse_args()
 
     print(f"JAX devices : {jax.devices()}")
@@ -271,6 +294,16 @@ def main():
             )
         print(f"\nTotal: {len(grid)}  pending: {pending}  done: {len(grid)-pending}")
         return
+
+    if cli.rerun_collapsed:
+        collapsed = [r for r in grid if _is_collapsed(result_path(r))]
+        if collapsed:
+            print(f"Deleting {len(collapsed)} result(s) with collapse-reinit bias...")
+            for r in collapsed:
+                result_path(r).unlink()
+                print(f"  deleted {result_path(r).name}")
+        else:
+            print("No collapsed results found.")
 
     pending = [r for r in grid if not result_path(r).exists()]
     n_skip  = len(grid) - len(pending)

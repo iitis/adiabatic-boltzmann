@@ -247,8 +247,6 @@ class ClassicalSampler(Sampler):
         sb_mode: str = "discrete",
         sb_heated: bool = False,
         sb_max_steps: int = 10000,
-        gibbs_collapse_threshold: float = 0.2,
-        gibbs_reinit_fraction: float = 0.5,
     ):
         self.method = method
         self.n_warmup = n_warmup
@@ -258,8 +256,6 @@ class ClassicalSampler(Sampler):
         self.sb_mode = sb_mode
         self.sb_heated = sb_heated
         self.sb_max_steps = sb_max_steps
-        self.gibbs_collapse_threshold = gibbs_collapse_threshold
-        self.gibbs_reinit_fraction = gibbs_reinit_fraction
 
         self._gibbs_v = None          # persistent chain state (JAX array)
         self._key = None              # JAX PRNG key — initialised lazily
@@ -385,22 +381,6 @@ class ClassicalSampler(Sampler):
             key = self._next_key()
             V = gibbs_sweep(V, key)
 
-        # Collapse detection
-        v_np = np.asarray(V)
-        unique = len(set(map(tuple, v_np.tolist())))
-        restarted = 0
-        if unique < self.gibbs_collapse_threshold * n_samples:
-            n_reinit = int(self.gibbs_reinit_fraction * n_samples)
-            key = self._next_key()
-            k1, k2 = jax.random.split(key)
-            # Select which chains to reinitialise
-            idx = np.random.choice(n_samples, n_reinit, replace=False)
-            new_chains = init_chains(n_reinit, k2)
-            V = V.at[jnp.array(idx)].set(new_chains)
-            restarted = n_reinit
-            v_np = np.asarray(V)
-            unique = len(set(map(tuple, v_np.tolist())))
-
         self._gibbs_v = V
 
         # Sample hidden once from final V
@@ -408,8 +388,9 @@ class ClassicalSampler(Sampler):
         H = h_given_v(V, key)
         h_np = np.asarray(H)
 
-        restart_str = f"  restarted={restarted}" if restarted else ""
-        print(f"  [Gibbs] k={n_sweeps}  unique={unique}/{n_samples}{restart_str}")
+        v_np = np.asarray(V)
+        unique = len(set(map(tuple, v_np.tolist())))
+        print(f"  [Gibbs] k={n_sweeps}  unique={unique}/{n_samples}")
         return v_np, h_np
 
     def _sample_hidden(self, rbm: RBM, v_samples) -> np.ndarray:
