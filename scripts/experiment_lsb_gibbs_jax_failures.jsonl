@@ -114,3 +114,12 @@
 {"timestamp": "2026-04-22T19:46:51.037158", "model": "2d", "size": 14, "h": 2.0, "lr": 0.01, "seed": 1, "error": "TypeError", "message": "unsupported format string passed to NoneType.__format__"}
 {"timestamp": "2026-04-22T19:47:52.788635", "model": "2d", "size": 14, "h": 3.044, "lr": 0.0003, "seed": 1, "error": "TypeError", "message": "unsupported format string passed to NoneType.__format__"}
 {"timestamp": "2026-04-22T19:49:36.716712", "model": "2d", "size": 14, "h": 3.044, "lr": 0.01, "seed": 1, "error": "TypeError", "message": "unsupported format string passed to NoneType.__format__"}
+{"timestamp": "2026-04-23T14:05:56.317838", "model": "2d", "size": 4, "h": 3.044, "lr": 0.01, "seed": 1, "error": "TypeError", "message": "'__inverse_cache' is a field but has no type annotation"}
+{"timestamp": "2026-04-23T14:08:08.029190", "model": "2d", "size": 5, "h": 0.5, "lr": 0.01, "seed": 1, "error": "TypeError", "message": "unsupported format string passed to NoneType.__format__"}
+{"timestamp": "2026-04-23T14:09:29.922006", "model": "2d", "size": 5, "h": 1.0, "lr": 0.01, "seed": 1, "error": "TypeError", "message": "unsupported format string passed to NoneType.__format__"}
+{"timestamp": "2026-04-23T14:12:47.968107", "model": "2d", "size": 6, "h": 0.5, "lr": 0.01, "seed": 1, "error": "TypeError", "message": "unsupported format string passed to NoneType.__format__"}
+{"timestamp": "2026-04-23T14:14:41.291514", "model": "2d", "size": 6, "h": 1.0, "lr": 0.01, "seed": 1, "error": "TypeError", "message": "unsupported format string passed to NoneType.__format__"}
+{"timestamp": "2026-04-23T14:16:49.059981", "model": "2d", "size": 7, "h": 0.5, "lr": 0.01, "seed": 1, "error": "TypeError", "message": "unsupported format string passed to NoneType.__format__"}
+{"timestamp": "2026-04-23T14:18:18.731013", "model": "2d", "size": 8, "h": 0.5, "lr": 0.01, "seed": 1, "error": "TypeError", "message": "unsupported format string passed to NoneType.__format__"}
+{"timestamp": "2026-04-23T14:20:37.404554", "model": "2d", "size": 9, "h": 0.5, "lr": 0.01, "seed": 1, "error": "TypeError", "message": "unsupported format string passed to NoneType.__format__"}
+{"timestamp": "2026-04-23T14:22:57.747247", "model": "2d", "size": 10, "h": 0.5, "lr": 0.01, "seed": 1, "error": "TypeError", "message": "unsupported format string passed to NoneType.__format__"}

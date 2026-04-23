@@ -69,7 +69,7 @@ FIXED = dict(
     n_sweeps=10,
 )
 
-LEARNING_RATES = [3e-4, 1e-2]
+LEARNING_RATES = [1e-2]
 
 SAMPLER_BACKEND  = "custom"
 SAMPLING_METHOD  = "gibbs"
