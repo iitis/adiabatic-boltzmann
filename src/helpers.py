@@ -133,6 +133,8 @@ def save_results(args, history, ising, rbm=None):
         "error": _safe_rel_error(history["energy"][-1], ising),
         "sparsity": float(rbm.sparsity()) if rbm is not None else None,
         "sampling_time_s": float(sum(history.get("sampling_time_s", []))),
+        "cem_time_s": float(sum(history.get("cem_time_s", []))),
+        "total_sampling_time_s": float(sum(history.get("total_sampling_time_s", []))),
         "jax_devices": {
             "backend": _jax_backend,
             "devices": _jax_device_strs,

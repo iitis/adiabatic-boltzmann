@@ -1,33 +1,38 @@
 """
-JAX version of experiment_lsb_gibbs — Gibbs sampler only, full RBM.
+JAX experiment runner — Gibbs and/or LSB sampler, full RBM.
 
 Grid:
   1D  sizes 16..200 spins           h = [0.5, 1.0, 2.0, 3.044]
   2D  L=4..14  (N=L²=16..196 spins) h = [0.5, 1.0, 2.0, 3.044]
   LR  [3e-4, 1e-2]
   seed 1
-  CEM  off (Gibbs never uses CEM)
-  Runs sorted by n_visible ascending (small sizes first).
+  Runs sorted by n_visible ascending (small systems first).
 
-Fixed:
+Sampler behaviour:
+  gibbs  — CEM off, n_sweeps=10
+  lsb    — CEM on,  cem_interval=5
+
+Fixed (both methods):
   rbm        FullyConnectedRBM, n_hidden = n_visible
   n_samples  1000
   reg        1e-5
   iterations 300
-  n_sweeps   10  (Gibbs sweeps per sample)
+  sigma      1.0   (LSB / beta-x scaling)
+  lsb_steps  100
+  lsb_delta  1.0
 
 Results written to jax_results/ (skips runs that already exist).
 
 Usage
 -----
     cd <repo-root>
-    python scripts/experiment_lsb_gibbs_jax.py                   # run everything
-    python scripts/experiment_lsb_gibbs_jax.py --dry-run          # print grid, no execution
-    python scripts/experiment_lsb_gibbs_jax.py --rerun-collapsed  # redo runs whose saved
-                                                                   # history shows collapse-
-                                                                   # reinit bias (sampling
-                                                                   # time > 0.1 s after
-                                                                   # iter 0)
+    python scripts/experiment_lsb_gibbs_jax.py                    # gibbs + lsb
+    python scripts/experiment_lsb_gibbs_jax.py --sampler gibbs    # gibbs only
+    python scripts/experiment_lsb_gibbs_jax.py --sampler lsb      # lsb only
+    python scripts/experiment_lsb_gibbs_jax.py --dry-run          # preview grid
+    python scripts/experiment_lsb_gibbs_jax.py --rerun-collapsed  # redo Gibbs runs
+                                                                   # with collapse-
+                                                                   # reinit bias
 """
 
 import jax
@@ -66,13 +71,18 @@ FIXED = dict(
     sigma=1.0,
     lsb_steps=100,
     lsb_delta=1.0,
-    n_sweeps=10,
+    n_sweeps=10,       # Gibbs only
+    cem_interval=5,    # LSB only
 )
 
-LEARNING_RATES = [1e-2]
+LEARNING_RATES  = [3e-4, 1e-2]
+SAMPLER_BACKEND = "custom"
 
-SAMPLER_BACKEND  = "custom"
-SAMPLING_METHOD  = "gibbs"
+# Per-method settings — CEM is only ever enabled for LSB
+METHOD_CONFIG = {
+    "gibbs": dict(use_cem=False),
+    "lsb":   dict(use_cem=True),
+}
 
 
 # ---------------------------------------------------------------------------
@@ -81,32 +91,32 @@ SAMPLING_METHOD  = "gibbs"
 
 @dataclass
 class Run:
-    model: str   # "1d" | "2d"
-    size:  int   # chain length or lattice linear dim L
-    h:     float
-    lr:    float
-    seed:  int
+    model:  str    # "1d" | "2d"
+    size:   int    # chain length or lattice linear dim L
+    h:      float
+    lr:     float
+    seed:   int
+    method: str    # "gibbs" | "lsb"
 
 
-def build_grid() -> list[Run]:
+def build_grid(methods: list[str]) -> list[Run]:
     grid: list[Run] = []
 
-    # 1D: n_visible = size (16..200 spins)
     sizes_1d = [16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 200]
-    for size in sizes_1d:
-        for h in [0.5, 1.0, 2.0, 3.044]:
-            for lr in LEARNING_RATES:
-                grid.append(Run("1d", size, h, lr, seed=1))
-
-    # 2D: n_visible = size² (L=4..14 → 16..196 spins)
     sizes_2d = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-    for size in sizes_2d:
-        for h in [0.5, 1.0, 2.0, 3.044]:
-            for lr in LEARNING_RATES:
-                grid.append(Run("2d", size, h, lr, seed=1))
 
-    # small systems first
-    grid.sort(key=lambda r: r.size if r.model == "1d" else r.size ** 2)
+    for method in methods:
+        for size in sizes_1d:
+            for h in [0.5, 1.0, 2.0, 3.044]:
+                for lr in LEARNING_RATES:
+                    grid.append(Run("1d", size, h, lr, seed=1, method=method))
+        for size in sizes_2d:
+            for h in [0.5, 1.0, 2.0, 3.044]:
+                for lr in LEARNING_RATES:
+                    grid.append(Run("2d", size, h, lr, seed=1, method=method))
+
+    # small systems first, then by method so same-size runs are adjacent
+    grid.sort(key=lambda r: (r.size if r.model == "1d" else r.size ** 2, r.method))
 
     return grid
 
@@ -117,21 +127,21 @@ def build_grid() -> list[Run]:
 
 def result_path(run: Run) -> Path:
     n_visible = run.size if run.model == "1d" else run.size ** 2
-    n_hidden  = n_visible
+    use_cem   = METHOD_CONFIG[run.method]["use_cem"]
     output_dir = (
-        Path(str(FIXED["output_dir"])) / str(run.size) / SAMPLER_BACKEND / SAMPLING_METHOD
+        Path(str(FIXED["output_dir"])) / str(run.size) / SAMPLER_BACKEND / run.method
     )
     fname = (
         f"result_{run.model}"
         f"_h{run.h}"
         f"_rbm{FIXED['rbm']}"
-        f"_nh{n_hidden}"
+        f"_nh{n_visible}"
         f"_lr{run.lr}"
         f"_reg{FIXED['reg']}"
         f"_ns{FIXED['n_samples']}"
         f"_seed{run.seed}"
         f"_iter{FIXED['iterations']}"
-        f"_cem0"
+        f"_cem{int(use_cem)}"
         f"_sigma{float(FIXED['sigma'])}"
         f".json"
     )
@@ -144,6 +154,7 @@ def result_path(run: Run) -> Path:
 
 def build_args(run: Run) -> SimpleNamespace:
     n_visible = run.size if run.model == "1d" else run.size ** 2
+    use_cem   = METHOD_CONFIG[run.method]["use_cem"]
     return SimpleNamespace(
         model=run.model,
         size=run.size,
@@ -151,13 +162,13 @@ def build_args(run: Run) -> SimpleNamespace:
         rbm=FIXED["rbm"],
         n_hidden=n_visible,
         sampler=SAMPLER_BACKEND,
-        sampling_method=SAMPLING_METHOD,
+        sampling_method=run.method,
         n_samples=FIXED["n_samples"],
         iterations=FIXED["iterations"],
         learning_rate=run.lr,
         regularization=FIXED["reg"],
-        cem=False,
-        cem_interval=5,
+        cem=use_cem,
+        cem_interval=FIXED["cem_interval"],
         seed=run.seed,
         visualize=FIXED["visualize"],
         output_dir=FIXED["output_dir"],
@@ -173,16 +184,20 @@ def execute_run(run: Run) -> dict:
 
     args      = build_args(run)
     n_visible = run.size if run.model == "1d" else run.size ** 2
-    n_hidden  = n_visible
+    use_cem   = METHOD_CONFIG[run.method]["use_cem"]
 
     if run.model == "1d":
         ising = TransverseFieldIsing1D(run.size, run.h)
     else:
         ising = TransverseFieldIsing2D(run.size, run.h)
 
-    rbm = FullyConnectedRBM(n_visible, n_hidden, rbm_key)
+    rbm = FullyConnectedRBM(n_visible, n_visible, rbm_key)
 
-    sampler = ClassicalSampler(method=SAMPLING_METHOD, n_sweeps=int(FIXED["n_sweeps"]))
+    if run.method == "gibbs":
+        sampler = ClassicalSampler(method="gibbs", n_sweeps=int(FIXED["n_sweeps"]))
+    else:
+        sampler = ClassicalSampler(method="lsb")
+
     key, sampler_key = jax.random.split(key)
     sampler._key = sampler_key
 
@@ -193,18 +208,18 @@ def execute_run(run: Run) -> dict:
         regularization=FIXED["reg"],
         save_checkpoints=False,
         checkpoint_interval=10,
-        use_cem=False,
-        cem_interval=5,
+        use_cem=use_cem,
+        cem_interval=FIXED["cem_interval"],
         lsb_sigma=FIXED["sigma"],
         lsb_steps=FIXED["lsb_steps"],
         lsb_delta=FIXED["lsb_delta"],
         seed=run.seed,
     )
 
-    t0 = time.perf_counter()
+    t0      = time.perf_counter()
     trainer = Trainer(rbm, ising, sampler, trainer_config, args=args)
-    history  = trainer.train()
-    elapsed  = time.perf_counter() - t0
+    history = trainer.train()
+    elapsed = time.perf_counter() - t0
 
     save_results(args, history, ising, rbm)
 
@@ -214,15 +229,10 @@ def execute_run(run: Run) -> dict:
         rel_err = abs(final - exact) / abs(exact)
     except NotImplementedError:
         rel_err = float("nan")
-    kl      = history.get("kl_exact", [None])[-1]
-    gn      = history.get("grad_norm", [None])[-1]
+    kl = history.get("kl_exact", [None])[-1]
+    gn = history.get("grad_norm", [None])[-1]
 
-    return dict(
-        elapsed_s=elapsed,
-        rel_error=rel_err,
-        final_kl=kl,
-        grad_norm=gn,
-    )
+    return dict(elapsed_s=elapsed, rel_error=rel_err, final_kl=kl, grad_norm=gn)
 
 
 # ---------------------------------------------------------------------------
@@ -237,6 +247,7 @@ def _write_failure(log_path: Path, run: Run, exc: Exception):
         h=run.h,
         lr=run.lr,
         seed=run.seed,
+        method=run.method,
         error=type(exc).__name__,
         message=str(exc),
     )
@@ -245,15 +256,13 @@ def _write_failure(log_path: Path, run: Run, exc: Exception):
 
 
 # ---------------------------------------------------------------------------
-# Main driver
+# Collapse detection (Gibbs only)
 # ---------------------------------------------------------------------------
 
 def _is_collapsed(path: Path) -> bool:
     """
-    Return True if the saved result shows Gibbs collapse-reinit bias.
-
-    A run is considered affected if any sampling_time_s value after iteration 0
-    exceeds 0.1 s — the signature of the reinit warmup loop firing.
+    True if the saved Gibbs result shows collapse-reinit bias:
+    any sampling_time_s after iter 0 exceeds 0.1 s.
     """
     try:
         with open(path) as f:
@@ -264,46 +273,58 @@ def _is_collapsed(path: Path) -> bool:
         return False
 
 
+# ---------------------------------------------------------------------------
+# Main driver
+# ---------------------------------------------------------------------------
+
 def main():
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
+    parser.add_argument(
+        "--sampler", choices=["gibbs", "lsb", "both"], default="both",
+        help="Which sampler(s) to run (default: both)",
+    )
     parser.add_argument("--dry-run", action="store_true",
                         help="Print the run grid without executing")
     parser.add_argument("--rerun-collapsed", action="store_true",
-                        help="Re-run existing results that show Gibbs collapse-reinit bias")
+                        help="Delete and re-run Gibbs results with collapse-reinit bias")
     cli = parser.parse_args()
+
+    methods = ["gibbs", "lsb"] if cli.sampler == "both" else [cli.sampler]
 
     print(f"JAX devices : {jax.devices()}")
     print(f"JAX version : {jax.__version__}")
+    print(f"Samplers    : {', '.join(methods)}")
     print(f"Output dir  : {FIXED['output_dir']}/")
 
-    grid = build_grid()
+    grid = build_grid(methods)
 
     if cli.dry_run:
         pending = sum(1 for r in grid if not result_path(r).exists())
         print(
-            f"\n{'Model':>4}  {'N':>4}  {'h':>4}  {'LR':>8}  {'Seed':>4}  {'Done':>4}"
+            f"\n{'Method':>5}  {'Model':>4}  {'N':>4}  {'h':>6}  {'LR':>8}  {'Done':>4}"
         )
-        print("-" * 46)
+        print("-" * 52)
         for r in grid:
             done = "yes" if result_path(r).exists() else "no"
             print(
-                f"{r.model:>4}  {r.size:>4}  {r.h:>4}  "
-                f"{r.lr:>8.4g}  {r.seed:>4}  {done:>4}"
+                f"{r.method:>5}  {r.model:>4}  {r.size:>4}  {r.h:>6}  "
+                f"{r.lr:>8.4g}  {done:>4}"
             )
         print(f"\nTotal: {len(grid)}  pending: {pending}  done: {len(grid)-pending}")
         return
 
     if cli.rerun_collapsed:
-        collapsed = [r for r in grid if _is_collapsed(result_path(r))]
+        gibbs_runs = [r for r in grid if r.method == "gibbs"]
+        collapsed  = [r for r in gibbs_runs if _is_collapsed(result_path(r))]
         if collapsed:
-            print(f"Deleting {len(collapsed)} result(s) with collapse-reinit bias...")
+            print(f"Deleting {len(collapsed)} Gibbs result(s) with collapse-reinit bias...")
             for r in collapsed:
                 result_path(r).unlink()
                 print(f"  deleted {result_path(r).name}")
         else:
-            print("No collapsed results found.")
+            print("No collapsed Gibbs results found.")
 
     pending = [r for r in grid if not result_path(r).exists()]
     n_skip  = len(grid) - len(pending)
@@ -312,7 +333,10 @@ def main():
         f"\n[{datetime.now():%H:%M:%S}]  {len(grid)} total runs  "
         f"({len(pending)} pending, {n_skip} already done)\n"
         f"  Fixed: reg={FIXED['reg']}  ns={FIXED['n_samples']}  "
-        f"iter={FIXED['iterations']}  n_sweeps={FIXED['n_sweeps']}\n"
+        f"iter={FIXED['iterations']}\n"
+        f"  gibbs: n_sweeps={FIXED['n_sweeps']}  cem=off\n"
+        f"  lsb:   lsb_steps={FIXED['lsb_steps']}  cem=on  "
+        f"cem_interval={FIXED['cem_interval']}\n"
     )
 
     log_path = Path(__file__).resolve().parent / "experiment_lsb_gibbs_jax_failures.jsonl"
@@ -323,7 +347,7 @@ def main():
         tag = (
             f"[{i}/{len(pending)}] "
             f"{run.model.upper()} N={run.size:>3} "
-            f"h={run.h}  gibbs  "
+            f"h={run.h}  {run.method}  "
             f"lr={run.lr:.4g}  seed={run.seed}"
         )
 

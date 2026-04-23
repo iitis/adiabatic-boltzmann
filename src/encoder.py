@@ -308,6 +308,8 @@ class Trainer:
             "cg_iterations": [],
             "cg_residual": [],
             "sampling_time_s": [],
+            "cem_time_s": [],
+            "total_sampling_time_s": [],
             "ess": [],
             "kl_exact": [],
             "n_unique_ratio": [],
@@ -430,6 +432,7 @@ class Trainer:
 
             # ── 3b. CEM β estimate (before weight update) ─────────────────
             _cem_beta_raw = None
+            cem_time = 0.0
             if (
                 self.use_cem
                 and not self._beta_fixed
@@ -437,7 +440,12 @@ class Trainer:
                 and _H_raw is not None
             ):
                 H_cem = jnp.asarray(_H_raw, dtype=jnp.float64)
+                _cem_t0 = time.perf_counter()
                 _cem_beta_raw = estimate_beta_eff_cem(V, H_cem, self.rbm)
+                cem_time = time.perf_counter() - _cem_t0
+
+            self.history["cem_time_s"].append(cem_time)
+            self.history["total_sampling_time_s"].append(sample_time_s + cem_time)
 
             # ── 4. Build SR system and solve with CG ──────────────────────
             sr = SRLinearSystem(V, TanH, local_energies, self.regularization)
