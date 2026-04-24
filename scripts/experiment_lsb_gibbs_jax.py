@@ -289,6 +289,18 @@ def main():
                         help="Print the run grid without executing")
     parser.add_argument("--rerun-collapsed", action="store_true",
                         help="Delete and re-run Gibbs results with collapse-reinit bias")
+    parser.add_argument("--size", type=int, default=None,
+                        help="Filter to this size only (1D chain length or 2D linear dim)")
+    parser.add_argument("--h", type=float, default=None,
+                        help="Filter to this transverse field value only")
+    parser.add_argument("--lr", type=float, default=None,
+                        help="Filter to this learning rate only")
+    parser.add_argument("--model", choices=["1d", "2d"], default=None,
+                        help="Filter to this model only")
+    parser.add_argument("--iterations", type=int, default=None,
+                        help="Override number of training iterations for this run")
+    parser.add_argument("--force", action="store_true",
+                        help="Re-run even if result file already exists")
     cli = parser.parse_args()
 
     methods = ["gibbs", "lsb"] if cli.sampler == "both" else [cli.sampler]
@@ -300,17 +312,29 @@ def main():
 
     grid = build_grid(methods)
 
+    if cli.size is not None:
+        grid = [r for r in grid if r.size == cli.size]
+    if cli.h is not None:
+        grid = [r for r in grid if r.h == cli.h]
+    if cli.lr is not None:
+        grid = [r for r in grid if r.lr == cli.lr]
+    if cli.model is not None:
+        grid = [r for r in grid if r.model == cli.model]
+    if cli.iterations is not None:
+        FIXED["iterations"] = cli.iterations
+
     if cli.dry_run:
-        pending = sum(1 for r in grid if not result_path(r).exists())
+        pending = sum(1 for r in grid if cli.force or not result_path(r).exists())
         print(
             f"\n{'Method':>5}  {'Model':>4}  {'N':>4}  {'h':>6}  {'LR':>8}  {'Done':>4}"
         )
         print("-" * 52)
         for r in grid:
-            done = "yes" if result_path(r).exists() else "no"
+            exists = result_path(r).exists()
+            done = ("yes" if exists else "no") + (" (force)" if exists and cli.force else "")
             print(
                 f"{r.method:>5}  {r.model:>4}  {r.size:>4}  {r.h:>6}  "
-                f"{r.lr:>8.4g}  {done:>4}"
+                f"{r.lr:>8.4g}  {done}"
             )
         print(f"\nTotal: {len(grid)}  pending: {pending}  done: {len(grid)-pending}")
         return
@@ -326,7 +350,7 @@ def main():
         else:
             print("No collapsed Gibbs results found.")
 
-    pending = [r for r in grid if not result_path(r).exists()]
+    pending = [r for r in grid if cli.force or not result_path(r).exists()]
     n_skip  = len(grid) - len(pending)
 
     print(
