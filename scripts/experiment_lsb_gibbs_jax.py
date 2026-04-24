@@ -99,7 +99,7 @@ class Run:
     method: str    # "gibbs" | "lsb"
 
 
-def build_grid(methods: list[str]) -> list[Run]:
+def build_grid(methods: list[str], learning_rates: list[float] = LEARNING_RATES) -> list[Run]:
     grid: list[Run] = []
 
     sizes_1d = [16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 200]
@@ -108,11 +108,11 @@ def build_grid(methods: list[str]) -> list[Run]:
     for method in methods:
         for size in sizes_1d:
             for h in [0.5, 1.0, 2.0, 3.044]:
-                for lr in LEARNING_RATES:
+                for lr in learning_rates:
                     grid.append(Run("1d", size, h, lr, seed=1, method=method))
         for size in sizes_2d:
             for h in [0.5, 1.0, 2.0, 3.044]:
-                for lr in LEARNING_RATES:
+                for lr in learning_rates:
                     grid.append(Run("2d", size, h, lr, seed=1, method=method))
 
     # small systems first, then by method so same-size runs are adjacent
@@ -312,14 +312,13 @@ def main():
     print(f"Samplers    : {', '.join(methods)}")
     print(f"Output dir  : {FIXED['output_dir']}/")
 
-    grid = build_grid(methods)
+    lr_list = [cli.lr] if cli.lr is not None else LEARNING_RATES
+    grid = build_grid(methods, lr_list)
 
     if cli.size is not None:
         grid = [r for r in grid if r.size == cli.size]
     if cli.h is not None:
         grid = [r for r in grid if r.h == cli.h]
-    if cli.lr is not None:
-        grid = [r for r in grid if r.lr == cli.lr]
     if cli.model is not None:
         grid = [r for r in grid if r.model == cli.model]
     if cli.iterations is not None:
