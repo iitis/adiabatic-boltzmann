@@ -5,7 +5,7 @@ Grid:
   1D  sizes 16..200 spins           h = [0.5, 1.0, 2.0, 3.044]
   2D  L=4..14  (N=L²=16..196 spins) h = [0.5, 1.0, 2.0, 3.044]
   LR  [3e-4, 1e-2]
-  seed 1
+  seeds [1, 2, 3, 4, 5]  (override with --seeds)
   Runs sorted by n_visible ascending (small systems first).
 
 Sampler behaviour:
@@ -76,6 +76,7 @@ FIXED = dict(
 )
 
 LEARNING_RATES  = [3e-4, 1e-2]
+SEEDS           = [1, 2, 3, 4, 5]
 SAMPLER_BACKEND = "custom"
 
 # Per-method settings — CEM is only ever enabled for LSB
@@ -99,7 +100,11 @@ class Run:
     method: str    # "gibbs" | "lsb"
 
 
-def build_grid(methods: list[str], learning_rates: list[float] = LEARNING_RATES) -> list[Run]:
+def build_grid(
+    methods: list[str],
+    learning_rates: list[float] = LEARNING_RATES,
+    seeds: list[int] = SEEDS,
+) -> list[Run]:
     grid: list[Run] = []
 
     sizes_1d = [16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 200]
@@ -109,14 +114,16 @@ def build_grid(methods: list[str], learning_rates: list[float] = LEARNING_RATES)
         for size in sizes_1d:
             for h in [0.5, 1.0, 2.0, 3.044]:
                 for lr in learning_rates:
-                    grid.append(Run("1d", size, h, lr, seed=1, method=method))
+                    for seed in seeds:
+                        grid.append(Run("1d", size, h, lr, seed=seed, method=method))
         for size in sizes_2d:
             for h in [0.5, 1.0, 2.0, 3.044]:
                 for lr in learning_rates:
-                    grid.append(Run("2d", size, h, lr, seed=1, method=method))
+                    for seed in seeds:
+                        grid.append(Run("2d", size, h, lr, seed=seed, method=method))
 
     # small systems first, then by method so same-size runs are adjacent
-    grid.sort(key=lambda r: (r.size if r.model == "1d" else r.size ** 2, r.method))
+    grid.sort(key=lambda r: (r.size if r.model == "1d" else r.size ** 2, r.method, r.seed))
 
     return grid
 
@@ -301,19 +308,23 @@ def main():
                         help="Override number of training iterations for this run")
     parser.add_argument("--reg", type=float, default=None,
                         help="Override SR regularization (diag shift); use 0 to deactivate")
+    parser.add_argument("--seeds", type=int, nargs="+", default=None,
+                        help="Seeds to run (default: 1 2 3 4 5)")
     parser.add_argument("--force", action="store_true",
                         help="Re-run even if result file already exists")
     cli = parser.parse_args()
 
-    methods = ["gibbs", "lsb"] if cli.sampler == "both" else [cli.sampler]
+    methods   = ["gibbs", "lsb"] if cli.sampler == "both" else [cli.sampler]
+    lr_list   = [cli.lr]   if cli.lr    is not None else LEARNING_RATES
+    seed_list = cli.seeds  if cli.seeds is not None else SEEDS
 
     print(f"JAX devices : {jax.devices()}")
     print(f"JAX version : {jax.__version__}")
     print(f"Samplers    : {', '.join(methods)}")
+    print(f"Seeds       : {seed_list}")
     print(f"Output dir  : {FIXED['output_dir']}/")
 
-    lr_list = [cli.lr] if cli.lr is not None else LEARNING_RATES
-    grid = build_grid(methods, lr_list)
+    grid = build_grid(methods, lr_list, seed_list)
 
     if cli.size is not None:
         grid = [r for r in grid if r.size == cli.size]

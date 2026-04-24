@@ -899,6 +899,193 @@ def tab_timing(df: pd.DataFrame, histories: dict) -> None:
         fig4.update_layout(title=_titled("Sampling time scaling with system size"))
         st.plotly_chart(fig4, use_container_width=True)
 
+    # ── Section 5: Time to Epsilon (TTE) ──────────────────────────────────────
+    st.markdown("---")
+    st.subheader("Time to Epsilon (TTE)")
+    st.caption(
+        "Estimated wall-clock time to find a solution within **ε** of the exact "
+        "ground state energy with 99% probability. "
+        "Each group's success rate p(ε) is the fraction of runs with error ≤ ε. "
+        "**TTE = t_f × ⌈log(0.01) / log(1 − p(ε))⌉**, "
+        "where t_f is the mean total sampling time per run."
+    )
+
+    import math as _math
+
+    tte_valid = df[["error_per_spin", "sampling_time_s"]].dropna()
+
+    if tte_valid.empty:
+        st.info("No runs with both error and timing data available.")
+        return
+
+    err_max = float(tte_valid["error_per_spin"].max())
+    if err_max == 0.0:
+        st.info("All selected runs have zero error — TTE equals t_f for every group.")
+        return
+
+    epsilon = st.slider(
+        "ε — energy error per spin threshold",
+        min_value=0.0,
+        max_value=float(round(err_max * 1.1, 5)),
+        value=float(round(err_max * 0.5, 5)),
+        step=float(max(round(err_max / 200, 6), 1e-6)),
+        format="%.5f",
+        key="tte_epsilon",
+        help=(
+            "A run 'succeeds' if |E_RBM − E_exact| / N_spins ≤ ε. "
+            "Slide right to accept solutions further from the exact ground state."
+        ),
+    )
+
+    tte_c1, tte_c2 = st.columns(2)
+    with tte_c1:
+        tte_grp_col, tte_grp_label = _group_selectbox(
+            df, "tte_grp", "Group by", prefer="sampling_method"
+        )
+    log_tte = tte_c2.checkbox("Log Y", value=False, key="tte_logy")
+
+    p_star = 0.99
+    tte_rows: list[dict] = []
+    skipped: list[str] = []
+
+    for grp_val, grp_df in df.groupby(tte_grp_col):
+        valid = grp_df[["error_per_spin", "sampling_time_s"]].dropna()
+        if valid.empty:
+            continue
+        p_eps = float((valid["error_per_spin"] <= epsilon).mean())
+        t_f = float(valid["sampling_time_s"].mean())
+        if p_eps == 0.0:
+            skipped.append(str(grp_val))
+            continue
+        n_runs = (
+            1
+            if p_eps >= 1.0
+            else _math.ceil(_math.log(1 - p_star) / _math.log(1 - p_eps))
+        )
+        tte_rows.append(
+            {
+                tte_grp_col: str(grp_val),
+                "TTE (s)": float(t_f * n_runs),
+                "p(ε)": p_eps,
+                "Runs needed": n_runs,
+                "Mean t_f (s)": t_f,
+                "n (runs)": len(valid),
+            }
+        )
+
+    if skipped:
+        st.caption(
+            f"Groups with p(ε) = 0 at ε = {epsilon:.5f} (excluded): "
+            + ", ".join(skipped)
+        )
+
+    if not tte_rows:
+        st.info(f"No group achieved error ≤ {epsilon:.5f}. Increase ε to see TTE values.")
+    else:
+        tte_df = pd.DataFrame(tte_rows)
+
+        fig5 = px.bar(
+            tte_df,
+            x=tte_grp_col,
+            y="TTE (s)",
+            color=tte_grp_col,
+            text=tte_df["p(ε)"].map(lambda x: f"p={x:.2f}"),
+            labels={tte_grp_col: tte_grp_label, "TTE (s)": "TTE (s)"},
+            hover_data={
+                "p(ε)": True,
+                "Runs needed": True,
+                "Mean t_f (s)": True,
+                "n (runs)": True,
+            },
+            height=420,
+        )
+        fig5.update_traces(textposition="outside")
+        if log_tte:
+            fig5.update_yaxes(type="log")
+        fig5.update_layout(
+            showlegend=False,
+            title=_titled(f"Time to Epsilon  (ε = {epsilon:.5f},  p* = 99%)"),
+        )
+        st.plotly_chart(fig5, use_container_width=True)
+
+        st.dataframe(
+            tte_df.rename(columns={tte_grp_col: tte_grp_label}),
+            column_config={
+                "TTE (s)": st.column_config.NumberColumn("TTE (s)", format="%.2f"),
+                "p(ε)": st.column_config.NumberColumn("p(ε)", format="%.3f"),
+                "Mean t_f (s)": st.column_config.NumberColumn("Mean t_f (s)", format="%.2f"),
+            },
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    # ── TTE scaling with system size ──────────────────────────────────────────
+    st.markdown("---")
+    st.subheader("TTE scaling with system size")
+    st.caption(
+        "X axis: number of spins — N for 1D models, N² for 2D models. "
+        "Each point is a (group, size) pair; TTE is computed from all runs at that size. "
+        "A power-law relationship appears as a straight line on log–log axes."
+    )
+
+    tte_sc_c1, tte_sc_c2, tte_sc_c3 = st.columns(3)
+    with tte_sc_c1:
+        tte_sc_color_col, tte_sc_color_label = _group_selectbox(
+            df, "tte_sc_color", "Color by", prefer="sampling_method"
+        )
+    log_x_tte_sc = tte_sc_c2.checkbox("Log X (spins)", value=True, key="tte_sc_logx")
+    log_y_tte_sc = tte_sc_c3.checkbox("Log Y (TTE)", value=False, key="tte_sc_logy")
+
+    tte_sc_rows: list[dict] = []
+    for (grp_val, n_sp), sub_df in df.groupby([tte_sc_color_col, "n_spins"]):
+        valid = sub_df[["error_per_spin", "sampling_time_s"]].dropna()
+        if valid.empty:
+            continue
+        p_eps = float((valid["error_per_spin"] <= epsilon).mean())
+        t_f = float(valid["sampling_time_s"].mean())
+        if p_eps == 0.0:
+            continue
+        n_runs = (
+            1
+            if p_eps >= 1.0
+            else _math.ceil(_math.log(1 - p_star) / _math.log(1 - p_eps))
+        )
+        tte_sc_rows.append(
+            {
+                tte_sc_color_col: str(grp_val),
+                "n_spins": int(n_sp),
+                "TTE (s)": float(t_f * n_runs),
+                "p(ε)": p_eps,
+                "n (runs)": len(valid),
+            }
+        )
+
+    if not tte_sc_rows:
+        st.info(f"No group/size combination achieved error ≤ {epsilon:.5f}.")
+    else:
+        tte_sc_df = pd.DataFrame(tte_sc_rows)
+        fig6 = px.scatter(
+            tte_sc_df,
+            x="n_spins",
+            y="TTE (s)",
+            color=tte_sc_color_col,
+            labels={
+                "n_spins": "Number of spins (N or N²)",
+                "TTE (s)": "TTE (s)",
+                tte_sc_color_col: tte_sc_color_label,
+            },
+            log_x=log_x_tte_sc,
+            log_y=log_y_tte_sc,
+            hover_data={"p(ε)": True, "n (runs)": True},
+            height=460,
+            opacity=0.8,
+        )
+        fig6.update_traces(marker=dict(size=9))
+        fig6.update_layout(
+            title=_titled(f"TTE scaling with system size  (ε = {epsilon:.5f})")
+        )
+        st.plotly_chart(fig6, use_container_width=True)
+
 
 # ── Main ───────────────────────────────────────────────────────────────────────
 
