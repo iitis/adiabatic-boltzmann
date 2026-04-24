@@ -299,6 +299,8 @@ def main():
                         help="Filter to this model only")
     parser.add_argument("--iterations", type=int, default=None,
                         help="Override number of training iterations for this run")
+    parser.add_argument("--reg", type=float, default=None,
+                        help="Override SR regularization (diag shift); use 0 to deactivate")
     parser.add_argument("--force", action="store_true",
                         help="Re-run even if result file already exists")
     cli = parser.parse_args()
@@ -322,6 +324,8 @@ def main():
         grid = [r for r in grid if r.model == cli.model]
     if cli.iterations is not None:
         FIXED["iterations"] = cli.iterations
+    if cli.reg is not None:
+        FIXED["reg"] = cli.reg
 
     if cli.dry_run:
         pending = sum(1 for r in grid if cli.force or not result_path(r).exists())
