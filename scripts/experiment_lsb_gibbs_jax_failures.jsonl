@@ -205,3 +205,7 @@
 {"timestamp": "2026-04-23T19:19:52.302806", "model": "2d", "size": 14, "h": 2.0, "lr": 0.01, "seed": 1, "method": "lsb", "error": "TypeError", "message": "unsupported format string passed to NoneType.__format__"}
 {"timestamp": "2026-04-23T19:21:13.134485", "model": "2d", "size": 14, "h": 3.044, "lr": 0.0003, "seed": 1, "method": "lsb", "error": "TypeError", "message": "unsupported format string passed to NoneType.__format__"}
 {"timestamp": "2026-04-23T19:25:13.576027", "model": "2d", "size": 14, "h": 3.044, "lr": 0.01, "seed": 1, "method": "lsb", "error": "TypeError", "message": "unsupported format string passed to NoneType.__format__"}
+{"timestamp": "2026-04-24T14:02:03.632734", "model": "2d", "size": 4, "h": 3.044, "lr": 0.0003, "seed": 1, "method": "gibbs", "error": "TypeError", "message": "'__inverse_cache' is a field but has no type annotation"}
+{"timestamp": "2026-04-24T14:03:23.476123", "model": "2d", "size": 4, "h": 3.044, "lr": 0.01, "seed": 1, "method": "gibbs", "error": "TypeError", "message": "'__inverse_cache' is a field but has no type annotation"}
+{"timestamp": "2026-04-24T14:20:58.201861", "model": "2d", "size": 4, "h": 3.044, "lr": 0.0003, "seed": 2, "method": "gibbs", "error": "TypeError", "message": "'__inverse_cache' is a field but has no type annotation"}
+{"timestamp": "2026-04-24T14:22:12.975110", "model": "2d", "size": 4, "h": 3.044, "lr": 0.01, "seed": 2, "method": "gibbs", "error": "TypeError", "message": "'__inverse_cache' is a field but has no type annotation"}
