@@ -1,18 +1,19 @@
 """
-JAX experiment runner — Gibbs and/or LSB sampler, full RBM.
+JAX experiment runner — Gibbs, LSB, and Metropolis-Hastings samplers, full RBM.
 
 Grid:
   1D  sizes 16..200 spins           h = [0.5, 1.0, 2.0, 3.044]
   2D  L=4..14  (N=L²=16..196 spins) h = [0.5, 1.0, 2.0, 3.044]
-  LR  [3e-4, 1e-2]
+  LR  [1e-2]
   seeds [1, 2, 3, 4, 5]  (override with --seeds)
   Runs sorted by n_visible ascending (small systems first).
 
 Sampler behaviour:
-  gibbs  — CEM off, n_sweeps=10
-  lsb    — CEM on,  cem_interval=5
+  gibbs      — CEM off, n_sweeps=10
+  lsb        — CEM on,  cem_interval=5
+  metropolis — CEM off, n_warmup=200, n_sweeps=1
 
-Fixed (both methods):
+Fixed (all methods):
   rbm        FullyConnectedRBM, n_hidden = n_visible
   n_samples  1000
   reg        1e-5
@@ -26,13 +27,14 @@ Results written to jax_results/ (skips runs that already exist).
 Usage
 -----
     cd <repo-root>
-    python scripts/experiment_lsb_gibbs_jax.py                    # gibbs + lsb
-    python scripts/experiment_lsb_gibbs_jax.py --sampler gibbs    # gibbs only
-    python scripts/experiment_lsb_gibbs_jax.py --sampler lsb      # lsb only
-    python scripts/experiment_lsb_gibbs_jax.py --dry-run          # preview grid
-    python scripts/experiment_lsb_gibbs_jax.py --rerun-collapsed  # redo Gibbs runs
-                                                                   # with collapse-
-                                                                   # reinit bias
+    python scripts/experiment_samplers_jax.py                         # all samplers
+    python scripts/experiment_samplers_jax.py --sampler gibbs         # gibbs only
+    python scripts/experiment_samplers_jax.py --sampler lsb           # lsb only
+    python scripts/experiment_samplers_jax.py --sampler metropolis    # metropolis only
+    python scripts/experiment_samplers_jax.py --dry-run               # preview grid
+    python scripts/experiment_samplers_jax.py --rerun-collapsed       # redo Gibbs runs
+                                                                      # with collapse-
+                                                                      # reinit bias
 """
 
 import jax
@@ -72,17 +74,19 @@ FIXED = dict(
     lsb_steps=100,
     lsb_delta=1.0,
     n_sweeps=10,       # Gibbs only
+    n_warmup=200,      # Metropolis only
     cem_interval=5,    # LSB only
 )
 
-LEARNING_RATES  = [3e-4, 1e-2]
+LEARNING_RATES  = [1e-2]
 SEEDS           = [1, 2, 3, 4, 5]
 SAMPLER_BACKEND = "custom"
 
 # Per-method settings — CEM is only ever enabled for LSB
 METHOD_CONFIG = {
-    "gibbs": dict(use_cem=False),
-    "lsb":   dict(use_cem=True),
+    "gibbs":      dict(use_cem=False),
+    "lsb":        dict(use_cem=True),
+    "metropolis": dict(use_cem=False),
 }
 
 
@@ -97,7 +101,7 @@ class Run:
     h:      float
     lr:     float
     seed:   int
-    method: str    # "gibbs" | "lsb"
+    method: str    # "gibbs" | "lsb" | "metropolis"
 
 
 def build_grid(
@@ -202,6 +206,8 @@ def execute_run(run: Run) -> dict:
 
     if run.method == "gibbs":
         sampler = ClassicalSampler(method="gibbs", n_sweeps=int(FIXED["n_sweeps"]))
+    elif run.method == "metropolis":
+        sampler = ClassicalSampler(method="metropolis", n_warmup=int(FIXED["n_warmup"]))
     else:
         sampler = ClassicalSampler(method="lsb")
 
@@ -289,8 +295,10 @@ def main():
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument(
-        "--sampler", choices=["gibbs", "lsb", "both"], default="both",
-        help="Which sampler(s) to run (default: both)",
+        "--sampler",
+        choices=["gibbs", "lsb", "metropolis", "all"],
+        default="all",
+        help="Which sampler(s) to run (default: all)",
     )
     parser.add_argument("--dry-run", action="store_true",
                         help="Print the run grid without executing")
@@ -314,7 +322,11 @@ def main():
                         help="Re-run even if result file already exists")
     cli = parser.parse_args()
 
-    methods   = ["gibbs", "lsb"] if cli.sampler == "both" else [cli.sampler]
+    if cli.sampler == "all":
+        methods = ["gibbs", "lsb", "metropolis"]
+    else:
+        methods = [cli.sampler]
+
     lr_list   = [cli.lr]   if cli.lr    is not None else LEARNING_RATES
     seed_list = cli.seeds  if cli.seeds is not None else SEEDS
 
@@ -340,15 +352,15 @@ def main():
     if cli.dry_run:
         pending = sum(1 for r in grid if cli.force or not result_path(r).exists())
         print(
-            f"\n{'Method':>5}  {'Model':>4}  {'N':>4}  {'h':>6}  {'LR':>8}  {'Done':>4}"
+            f"\n{'Method':>10}  {'Model':>4}  {'N':>4}  {'h':>6}  {'LR':>8}  {'Seed':>4}  {'Done':>4}"
         )
-        print("-" * 52)
+        print("-" * 65)
         for r in grid:
             exists = result_path(r).exists()
             done = ("yes" if exists else "no") + (" (force)" if exists and cli.force else "")
             print(
-                f"{r.method:>5}  {r.model:>4}  {r.size:>4}  {r.h:>6}  "
-                f"{r.lr:>8.4g}  {done}"
+                f"{r.method:>10}  {r.model:>4}  {r.size:>4}  {r.h:>6}  "
+                f"{r.lr:>8.4g}  {r.seed:>4}  {done}"
             )
         print(f"\nTotal: {len(grid)}  pending: {pending}  done: {len(grid)-pending}")
         return
@@ -372,12 +384,13 @@ def main():
         f"({len(pending)} pending, {n_skip} already done)\n"
         f"  Fixed: reg={FIXED['reg']}  ns={FIXED['n_samples']}  "
         f"iter={FIXED['iterations']}\n"
-        f"  gibbs: n_sweeps={FIXED['n_sweeps']}  cem=off\n"
-        f"  lsb:   lsb_steps={FIXED['lsb_steps']}  cem=on  "
+        f"  gibbs:      n_sweeps={FIXED['n_sweeps']}  cem=off\n"
+        f"  lsb:        lsb_steps={FIXED['lsb_steps']}  cem=on  "
         f"cem_interval={FIXED['cem_interval']}\n"
+        f"  metropolis: n_warmup={FIXED['n_warmup']}  cem=off\n"
     )
 
-    log_path = Path(__file__).resolve().parent / "experiment_lsb_gibbs_jax_failures.jsonl"
+    log_path = Path(__file__).resolve().parent / "experiment_samplers_jax_failures.jsonl"
     n_done = n_fail = 0
     t_wall = time.perf_counter()
 
