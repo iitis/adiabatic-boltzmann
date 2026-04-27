@@ -209,3 +209,6 @@
 {"timestamp": "2026-04-24T14:03:23.476123", "model": "2d", "size": 4, "h": 3.044, "lr": 0.01, "seed": 1, "method": "gibbs", "error": "TypeError", "message": "'__inverse_cache' is a field but has no type annotation"}
 {"timestamp": "2026-04-24T14:20:58.201861", "model": "2d", "size": 4, "h": 3.044, "lr": 0.0003, "seed": 2, "method": "gibbs", "error": "TypeError", "message": "'__inverse_cache' is a field but has no type annotation"}
 {"timestamp": "2026-04-24T14:22:12.975110", "model": "2d", "size": 4, "h": 3.044, "lr": 0.01, "seed": 2, "method": "gibbs", "error": "TypeError", "message": "'__inverse_cache' is a field but has no type annotation"}
+{"timestamp": "2026-04-24T14:39:50.228577", "model": "2d", "size": 4, "h": 3.044, "lr": 0.0003, "seed": 3, "method": "gibbs", "error": "TypeError", "message": "'__inverse_cache' is a field but has no type annotation"}
+{"timestamp": "2026-04-24T14:41:05.062744", "model": "2d", "size": 4, "h": 3.044, "lr": 0.01, "seed": 3, "method": "gibbs", "error": "TypeError", "message": "'__inverse_cache' is a field but has no type annotation"}
+{"timestamp": "2026-04-24T14:58:48.264795", "model": "2d", "size": 4, "h": 3.044, "lr": 0.0003, "seed": 4, "method": "gibbs", "error": "TypeError", "message": "'__inverse_cache' is a field but has no type annotation"}
