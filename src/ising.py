@@ -160,8 +160,9 @@ def _local_energy_xxz_1d_jit(
         )
     )                                             # (ns, N)
 
-    antiparallel = (1.0 - V * V[:, right]) / 2.0             # (ns, N)  1 iff vᵢ ≠ v_{right}
-    E_off = J * jnp.sum(antiparallel * jnp.exp(log_ratios), axis=1)   # (ns,)
+    # (1 - vᵢ·v_right) = 2 for antiparallel, 0 for parallel — already encodes the 2J factor
+    exchange = 1.0 - V * V[:, right]                                   # (ns, N)
+    E_off = J * jnp.sum(exchange * jnp.exp(log_ratios), axis=1)        # (ns,)
     E_diag = J * delta * jnp.sum(V * V[:, right], axis=1)             # (ns,)
 
     return E_diag + E_off
@@ -320,23 +321,46 @@ class TransverseFieldIsing2D(IsingModel):
         return self._exact_diag_2d()
 
     def _exact_diag_2d(self) -> float:
-        import netket as nk
+        """
+        Build the 2D TFIM Hamiltonian as a scipy sparse matrix.
+        No netket dependency — works on Python 3.13+.
+
+        Bonds counted via right + down neighbors (each bond appears once).
+        Encoding: bit (N-1-i) of integer s represents spin at site i.
+        """
+        import scipy.sparse as sp
         from scipy.sparse.linalg import eigsh
 
-        N = self.size
-        hilbert = nk.hilbert.Spin(s=0.5, N=N)
-        ha = nk.operator.LocalOperator(hilbert, dtype=complex)
-        for i in range(N):
-            for j in self.get_neighbors(i):
-                if i < j:
-                    ha += (
-                        -1.0
-                        * nk.operator.spin.sigmaz(hilbert, i)
-                        @ nk.operator.spin.sigmaz(hilbert, j)
-                    )
-            ha += -self.h * nk.operator.spin.sigmax(hilbert, i)
-        vals, _ = eigsh(ha.to_sparse(), k=1, which="SA")
-        return float(vals[0])
+        L = self.linear_size
+        N = self.size  # L²
+        h = self.h
+        dim = 2 ** N
+
+        def spin(s: int, i: int) -> int:
+            return 1 - 2 * ((s >> (N - 1 - i)) & 1)
+
+        rows: list[int] = []
+        cols: list[int] = []
+        vals: list[float] = []
+
+        for s in range(dim):
+            diag = 0.0
+            for i in range(N):
+                col_i = i % L
+                row_i = i // L
+                right = row_i * L + (col_i + 1) % L
+                down  = ((row_i + 1) % L) * L + col_i
+                diag -= spin(s, i) * spin(s, right) + spin(s, i) * spin(s, down)
+            rows.append(s); cols.append(s); vals.append(diag)
+
+            # Off-diagonal: -h σˣᵢ flips spin i, matrix element = -h
+            for i in range(N):
+                s_flip = s ^ (1 << (N - 1 - i))
+                rows.append(s_flip); cols.append(s); vals.append(-h)
+
+        H = sp.csr_matrix((vals, (rows, cols)), shape=(dim, dim), dtype=float)
+        eigenvalues, _ = eigsh(H, k=1, which="SA")
+        return float(eigenvalues[0])
 
     def get_neighbors(self, idx: int) -> list[int]:
         i = idx // self.linear_size
@@ -397,8 +421,8 @@ class HeisenbergXXZ1D(IsingModel):
         E_off = 0.0
         for i in range(self.size):
             j = (i + 1) % self.size
-            if v[i] != v[j]:  # only antiparallel bonds contribute
-                E_off += self.J * float(rbm.psi_ratio_pair(v_jax, i, j))
+            if v[i] != v[j]:  # only antiparallel bonds contribute; matrix element = 2J
+                E_off += 2 * self.J * float(rbm.psi_ratio_pair(v_jax, i, j))
         return E_diag + E_off
 
     def local_energy_batch(self, V, rbm) -> jax.Array:
@@ -421,32 +445,43 @@ class HeisenbergXXZ1D(IsingModel):
         return get_or_compute(model_key, self.size, self.J, self._compute_exact_ground_energy)
 
     def _compute_exact_ground_energy(self) -> float:
-        import netket as nk
+        """
+        Build the XXZ Hamiltonian as a scipy sparse matrix and find its ground
+        state via Lanczos.  No netket dependency — works on Python 3.13+.
+
+        Encoding: bit i of integer s = 0 → spin +1, bit i = 1 → spin -1.
+        Bit ordering: bit (N-1-i) represents site i (MSB = site 0).
+        """
+        import scipy.sparse as sp
         from scipy.sparse.linalg import eigsh
 
         N = self.size
-        hilbert = nk.hilbert.Spin(s=0.5, N=N)
-        ha = nk.operator.LocalOperator(hilbert, dtype=complex)
-        for i in range(N):
-            j = (i + 1) % N
-            ha += (
-                self.J
-                * self.delta
-                * nk.operator.spin.sigmaz(hilbert, i)
-                @ nk.operator.spin.sigmaz(hilbert, j)
+        dim = 2 ** N
+
+        def spin(s: int, i: int) -> int:
+            return 1 - 2 * ((s >> (N - 1 - i)) & 1)
+
+        rows: list[int] = []
+        cols: list[int] = []
+        vals: list[float] = []
+
+        for s in range(dim):
+            diag = self.J * self.delta * sum(
+                spin(s, i) * spin(s, (i + 1) % N) for i in range(N)
             )
-            ha += (
-                self.J
-                * nk.operator.spin.sigmax(hilbert, i)
-                @ nk.operator.spin.sigmax(hilbert, j)
-            )
-            ha += (
-                self.J
-                * nk.operator.spin.sigmay(hilbert, i)
-                @ nk.operator.spin.sigmay(hilbert, j)
-            )
-        vals, _ = eigsh(ha.to_sparse(), k=1, which="SA")
-        return float(vals[0])
+            rows.append(s); cols.append(s); vals.append(diag)
+
+            # Off-diagonal exchange: matrix element = 2J for antiparallel bonds
+            # (σˣᵢσˣⱼ + σʸᵢσʸⱼ = 2(σ⁺ᵢσ⁻ⱼ + σ⁻ᵢσ⁺ⱼ), non-zero only when vᵢ ≠ vⱼ)
+            for i in range(N):
+                j = (i + 1) % N
+                if spin(s, i) != spin(s, j):
+                    s_flip = s ^ (1 << (N - 1 - i)) ^ (1 << (N - 1 - j))
+                    rows.append(s_flip); cols.append(s); vals.append(2 * self.J)
+
+        H = sp.csr_matrix((vals, (rows, cols)), shape=(dim, dim), dtype=float)
+        eigenvalues, _ = eigsh(H, k=1, which="SA")
+        return float(eigenvalues[0])
 
     def get_neighbors(self, idx: int) -> list[int]:
         left = (idx - 1) % self.size

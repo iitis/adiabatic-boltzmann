@@ -165,7 +165,7 @@ def test_e_loc_sum_equals_hamiltonian_row(rbm, ising_xxx):
         for i in range(size):
             j = (i + 1) % size
             H[row_idx, row_idx] += J * delta * v[i] * v[j]
-        # Off-diagonal exchange
+        # Off-diagonal exchange: element = 2J (σˣσˣ + σʸσʸ = 2(σ⁺σ⁻ + σ⁻σ⁺))
         for i in range(size):
             j = (i + 1) % size
             if v[i] != v[j]:
@@ -174,7 +174,7 @@ def test_e_loc_sum_equals_hamiltonian_row(rbm, ising_xxx):
                 v_flip[j] = -v_flip[j]
                 for col_idx, v2 in enumerate(configs):
                     if np.allclose(v2, v_flip):
-                        H[row_idx, col_idx] += J
+                        H[row_idx, col_idx] += 2 * J
                         break
 
     E_matrix = float(psi_vals @ H @ psi_vals) / float(psi_vals @ psi_vals)
