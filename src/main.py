@@ -76,6 +76,7 @@ def parse_arguments():
             "tabu",
             "gibbs",
             "lsb",
+            "exchange",
         ],
         default="simulated_annealing",
         help="Classical sampling algorithm",

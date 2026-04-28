@@ -10,7 +10,8 @@ Grid:
   Runs sorted by n_visible ascending (small systems first), then by model.
 
 Sampler behaviour:
-  gibbs      — CEM off, n_sweeps=10
+  gibbs      — CEM off, n_sweeps=10  (TFIM 1D/2D only; auto-promoted to exchange for XXZ)
+  exchange   — CEM off, n_warmup=200, n_sweeps=10  (spin-exchange MH, S_z-conserving, XXZ only)
   lsb        — CEM on,  cem_interval=5
   metropolis — CEM off, n_warmup=200, n_sweeps=1
 
@@ -91,6 +92,7 @@ METHOD_CONFIG = {
     "gibbs":      dict(use_cem=False),
     "lsb":        dict(use_cem=True),
     "metropolis": dict(use_cem=False),
+    "exchange":   dict(use_cem=False),  # spin-exchange MH for Heisenberg
 }
 
 
@@ -134,12 +136,15 @@ def build_grid(
                         grid.append(Run("2d", size, h, lr, seed=seed, method=method))
         for size in sizes_xxz:
             # delta=[0.0, 0.5, 1.0, 2.0] spans XY → isotropic Heisenberg → gapped AFM
+            # Gibbs collapses for Heisenberg (Néel configs are Hamming-distance N/2 apart);
+            # automatically promote it to spin-exchange MH which conserves S_z.
+            xxz_method = "exchange" if method == "gibbs" else method
             for delta in [0.0, 0.5, 1.0, 2.0]:
                 for lr in learning_rates:
                     for seed in seeds:
                         grid.append(Run(
                             "heisenberg_xxz_1d", size, h=0.0, lr=lr,
-                            seed=seed, method=method, J=1.0, delta=delta,
+                            seed=seed, method=xxz_method, J=1.0, delta=delta,
                         ))
 
     # sort by n_visible ascending, then model, then method, then seed
@@ -249,6 +254,12 @@ def execute_run(run: Run) -> dict:
         sampler = ClassicalSampler(method="gibbs", n_sweeps=int(FIXED["n_sweeps"]))
     elif run.method == "metropolis":
         sampler = ClassicalSampler(method="metropolis", n_warmup=int(FIXED["n_warmup"]))
+    elif run.method == "exchange":
+        sampler = ClassicalSampler(
+            method="exchange",
+            n_warmup=int(FIXED["n_warmup"]),
+            n_sweeps=int(FIXED["n_sweeps"]),
+        )
     else:
         sampler = ClassicalSampler(method="lsb")
 
@@ -339,9 +350,9 @@ def main():
     )
     parser.add_argument(
         "--sampler",
-        choices=["gibbs", "lsb", "metropolis", "all"],
+        choices=["gibbs", "lsb", "metropolis", "exchange", "all"],
         default="all",
-        help="Which sampler(s) to run (default: all)",
+        help="Which sampler(s) to run (default: all; gibbs auto-promotes to exchange for XXZ)",
     )
     parser.add_argument("--dry-run", action="store_true",
                         help="Print the run grid without executing")
@@ -371,7 +382,7 @@ def main():
     cli = parser.parse_args()
 
     if cli.sampler == "all":
-        methods = ["gibbs", "lsb", "metropolis"]
+        methods = ["gibbs", "lsb", "metropolis"]  # gibbs auto-converts to exchange for XXZ
     else:
         methods = [cli.sampler]
 
@@ -437,7 +448,8 @@ def main():
         f"({len(pending)} pending, {n_skip} already done)\n"
         f"  Fixed: reg={FIXED['reg']}  ns={FIXED['n_samples']}  "
         f"iter={FIXED['iterations']}\n"
-        f"  gibbs:      n_sweeps={FIXED['n_sweeps']}  cem=off\n"
+        f"  gibbs:      n_sweeps={FIXED['n_sweeps']}  cem=off  (TFIM only; XXZ uses exchange)\n"
+        f"  exchange:   n_warmup={FIXED['n_warmup']}  n_sweeps={FIXED['n_sweeps']}  cem=off  (XXZ)\n"
         f"  lsb:        lsb_steps={FIXED['lsb_steps']}  cem=on  "
         f"cem_interval={FIXED['cem_interval']}\n"
         f"  metropolis: n_warmup={FIXED['n_warmup']}  cem=off\n"

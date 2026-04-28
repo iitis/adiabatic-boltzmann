@@ -140,6 +140,74 @@ def _sa_sweep_jit(
 
 
 @functools.partial(jax.jit, static_argnums=(5, 6, 7))
+def _exchange_mh_sweep_jit(
+    v: jax.Array,
+    theta: jax.Array,
+    W: jax.Array,
+    a: jax.Array,
+    key: jax.Array,
+    C: int,
+    N: int,
+    total_steps: int,
+) -> tuple:
+    """
+    Batched spin-exchange MH: C independent chains for total_steps proposals.
+
+    Each proposal: pick two random sites i, j.  If spins are antiparallel
+    (vᵢ ≠ vⱼ), attempt a simultaneous flip of both — this conserves total S_z.
+    If spins are parallel, the proposal is skipped (no move).
+
+    The log-ratio for simultaneously flipping sites i and j is:
+        log Ψ'/Ψ = aᵢvᵢ + aⱼvⱼ + ½Σₖ[logcosh(θₖ−2vᵢWᵢₖ−2vⱼWⱼₖ) − logcosh(θₖ)]
+
+    Picking random non-adjacent pairs (not just nearest-neighbour) is essential
+    for Heisenberg antiferromagnets: it lets the chain hop between degenerate
+    Néel configurations that are far apart in Hamming distance.
+    """
+    ci = jnp.arange(C)
+
+    def one_step(carry, _):
+        v, theta, key = carry
+        key, k1, k2, k3 = jax.random.split(key, 4)
+
+        i_idx = jax.random.randint(k1, (C,), 0, N)
+        j_raw = jax.random.randint(k2, (C,), 0, N)
+        # Guarantee i ≠ j by shifting j when they coincide
+        j_idx = jnp.where(j_raw == i_idx, (i_idx + 1) % N, j_raw)
+
+        vi = v[ci, i_idx]   # (C,)
+        vj = v[ci, j_idx]   # (C,)
+
+        Wi_row = W[i_idx]   # (C, Nh) — gathered rows
+        Wj_row = W[j_idx]   # (C, Nh)
+
+        # Hidden activations after simultaneously flipping i and j
+        theta_flip = theta - 2.0 * vi[:, None] * Wi_row - 2.0 * vj[:, None] * Wj_row
+
+        lc_diff = 0.5 * jnp.sum(
+            jnp.logaddexp(theta_flip, -theta_flip)
+            - jnp.logaddexp(theta, -theta),
+            axis=1,
+        )  # (C,)
+        log_ratio = a[i_idx] * vi + a[j_idx] * vj + lc_diff  # (C,)
+
+        rand_u = jax.random.uniform(k3, (C,), dtype=jnp.float64)
+        accept_mh = jnp.log(rand_u) < 2.0 * log_ratio  # (C,)
+
+        # Only exchange antiparallel pairs — parallel pairs skip (preserves S_z)
+        antiparallel = vi != vj                          # (C,)
+        accept = accept_mh & antiparallel
+
+        v = v.at[ci, i_idx].set(jnp.where(accept, -vi, vi))
+        v = v.at[ci, j_idx].set(jnp.where(accept, -vj, vj))
+        theta = jnp.where(accept[:, None], theta_flip, theta)
+        return (v, theta, key), None
+
+    (v, theta, _), _ = jax.lax.scan(one_step, (v, theta, key), None, length=total_steps)
+    return v, theta
+
+
+@functools.partial(jax.jit, static_argnums=(5, 6, 7))
 def _lsb_jit(
     key: jax.Array,
     M: jax.Array,
@@ -289,6 +357,8 @@ class ClassicalSampler(Sampler):
             v = self._metropolis_hastings(rbm, n_samples, config)
         elif self.method == "simulated_annealing":
             v = self._simulated_annealing(rbm, n_samples, config)
+        elif self.method == "exchange":
+            v = self._exchange_metropolis(rbm, n_samples, config)
         else:
             raise ValueError(f"Unknown method: {self.method}")
 
@@ -474,6 +544,51 @@ class ClassicalSampler(Sampler):
         print(
             f"  [SA]    T: {T_initial:.2f}→{T_final:.2f}  unique={unique}/{n_samples}"
         )
+        return v_np
+
+    # ── Spin-exchange Metropolis ──────────────────────────────────────────
+
+    def _exchange_metropolis(
+        self, rbm: RBM, n_samples: int, config: dict
+    ) -> np.ndarray:
+        """
+        Batched spin-exchange MH: n_samples chains run in parallel.
+
+        Chains are initialised in the S_z ≈ 0 sector (N//2 up-spins, rest
+        down) and proposals are always antiparallel-pair swaps, so total S_z
+        is conserved throughout.  This is the right sampler for Heisenberg
+        antiferromagnets whose ground state lives in S_z=0 and whose Néel
+        configurations are Hamming-distance ≈ N/2 apart — unreachable by
+        standard single-spin MH.
+        """
+        N, Nh = rbm.n_visible, rbm.n_hidden
+        C = n_samples
+        n_warmup = config.get("n_warmup", self.n_warmup)
+        n_sweeps = config.get("n_sweeps", self.n_sweeps)
+
+        W, a, b = rbm.W, rbm.a, rbm.b
+
+        key = self._next_key()
+        k1, k2 = jax.random.split(key)
+
+        # Initialise each chain as a random shuffle of N//2 up-spins, rest down.
+        n_up = N // 2
+        base = jnp.concatenate(
+            [jnp.ones(n_up, dtype=jnp.float64),
+             -jnp.ones(N - n_up, dtype=jnp.float64)]
+        )
+        perms = jax.vmap(lambda k: jax.random.permutation(k, N))(
+            jax.random.split(k1, C)
+        )
+        v = base[perms]                     # (C, N)
+        theta = b[None, :] + v @ W          # (C, Nh)
+
+        total_steps = N * (n_warmup + n_sweeps)
+        v, _ = _exchange_mh_sweep_jit(v, theta, W, a, k2, C, N, total_steps)
+
+        v_np = np.asarray(v)
+        unique = len(set(map(tuple, v_np.tolist())))
+        print(f"  [Exchange MH] unique={unique}/{n_samples}")
         return v_np
 
 
