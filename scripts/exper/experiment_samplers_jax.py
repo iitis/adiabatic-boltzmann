@@ -2,11 +2,12 @@
 JAX experiment runner — Gibbs, LSB, and Metropolis-Hastings samplers, full RBM.
 
 Grid:
-  1D  sizes 16..200 spins           h = [0.5, 1.0, 2.0, 3.044]
-  2D  L=4..14  (N=L²=16..196 spins) h = [0.5, 1.0, 2.0, 3.044]
+  1D TFIM  sizes 16..200 spins             h = [0.5, 1.0, 2.0, 3.044]
+  2D TFIM  L=4..14  (N=L²=16..196 spins)  h = [0.5, 1.0, 2.0, 3.044]
+  XXZ 1D   sizes 16..100 spins             J=1.0, delta = [0.0, 0.5, 1.0, 2.0]
   LR  [1e-2]
   seeds [1, 2, 3, 4, 5]  (override with --seeds)
-  Runs sorted by n_visible ascending (small systems first).
+  Runs sorted by n_visible ascending (small systems first), then by model.
 
 Sampler behaviour:
   gibbs      — CEM off, n_sweeps=10
@@ -22,19 +23,22 @@ Fixed (all methods):
   lsb_steps  100
   lsb_delta  1.0
 
-Results written to jax_results/ (skips runs that already exist).
+Results written to:
+  jax_results/tfim_1d/{size}/{sampler}/{method}/
+  jax_results/tfim_2d/{size}/{sampler}/{method}/
+  jax_results/heisenberg_xxz_1d/{size}/{sampler}/{method}/
+Skips runs whose result file already exists.
 
 Usage
 -----
     cd <repo-root>
-    python scripts/experiment_samplers_jax.py                         # all samplers
-    python scripts/experiment_samplers_jax.py --sampler gibbs         # gibbs only
-    python scripts/experiment_samplers_jax.py --sampler lsb           # lsb only
-    python scripts/experiment_samplers_jax.py --sampler metropolis    # metropolis only
-    python scripts/experiment_samplers_jax.py --dry-run               # preview grid
-    python scripts/experiment_samplers_jax.py --rerun-collapsed       # redo Gibbs runs
-                                                                      # with collapse-
-                                                                      # reinit bias
+    python scripts/exper/experiment_samplers_jax.py                              # all models + samplers
+    python scripts/exper/experiment_samplers_jax.py --sampler metropolis         # one sampler
+    python scripts/exper/experiment_samplers_jax.py --model heisenberg_xxz_1d   # one model
+    python scripts/exper/experiment_samplers_jax.py --delta 1.0                 # one delta (XXZ)
+    python scripts/exper/experiment_samplers_jax.py --dry-run                   # preview grid
+    python scripts/exper/experiment_samplers_jax.py --rerun-collapsed            # redo Gibbs
+                                                                                 # collapse runs
 """
 
 import jax
@@ -49,12 +53,12 @@ from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
-_SRC = Path(__file__).resolve().parent.parent / "src"
+_SRC = Path(__file__).resolve().parent.parent.parent / "src"
 sys.path.insert(0, str(_SRC))
 
 from encoder import Trainer
 from helpers import save_results
-from ising import TransverseFieldIsing1D, TransverseFieldIsing2D
+from ising import TransverseFieldIsing1D, TransverseFieldIsing2D, HeisenbergXXZ1D
 from model import FullyConnectedRBM
 from sampler import ClassicalSampler
 
@@ -96,12 +100,14 @@ METHOD_CONFIG = {
 
 @dataclass
 class Run:
-    model:  str    # "1d" | "2d"
+    model:  str    # "1d" | "2d" | "heisenberg_xxz_1d"
     size:   int    # chain length or lattice linear dim L
-    h:      float
+    h:      float  # transverse field (TFIM); unused for Heisenberg
     lr:     float
     seed:   int
     method: str    # "gibbs" | "lsb" | "metropolis"
+    J:      float = 1.0   # Heisenberg coupling; unused for TFIM
+    delta:  float = 1.0   # XXZ anisotropy;      unused for TFIM
 
 
 def build_grid(
@@ -111,8 +117,9 @@ def build_grid(
 ) -> list[Run]:
     grid: list[Run] = []
 
-    sizes_1d = [16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 200]
-    sizes_2d = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    sizes_1d  = [16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 200]
+    sizes_2d  = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    sizes_xxz = [16, 25, 36, 49, 64, 81, 100]
 
     for method in methods:
         for size in sizes_1d:
@@ -125,26 +132,56 @@ def build_grid(
                 for lr in learning_rates:
                     for seed in seeds:
                         grid.append(Run("2d", size, h, lr, seed=seed, method=method))
+        for size in sizes_xxz:
+            # delta=[0.0, 0.5, 1.0, 2.0] spans XY → isotropic Heisenberg → gapped AFM
+            for delta in [0.0, 0.5, 1.0, 2.0]:
+                for lr in learning_rates:
+                    for seed in seeds:
+                        grid.append(Run(
+                            "heisenberg_xxz_1d", size, h=0.0, lr=lr,
+                            seed=seed, method=method, J=1.0, delta=delta,
+                        ))
 
-    # small systems first, then by method so same-size runs are adjacent
-    grid.sort(key=lambda r: (r.size if r.model == "1d" else r.size ** 2, r.method, r.seed))
+    # sort by n_visible ascending, then model, then method, then seed
+    def _sort_key(r: Run):
+        n_vis = r.size if r.model != "2d" else r.size ** 2
+        return (n_vis, r.model, r.method, r.seed)
 
+    grid.sort(key=_sort_key)
     return grid
 
 
 # ---------------------------------------------------------------------------
-# Result path — mirrors helpers.save_results naming exactly
+# Result path — must mirror helpers.save_results / helpers._model_subdir /
+# helpers._model_params_str naming exactly so skip-detection works correctly.
 # ---------------------------------------------------------------------------
 
+_MODEL_SUBDIR = {"1d": "tfim_1d", "2d": "tfim_2d"}
+
+
+def _model_subdir(model: str) -> str:
+    return _MODEL_SUBDIR.get(model, model)
+
+
+def _model_params_str(run: Run) -> str:
+    if run.model == "heisenberg_xxz_1d":
+        return f"_J{run.J}_delta{run.delta}"
+    return f"_h{run.h}"
+
+
 def result_path(run: Run) -> Path:
-    n_visible = run.size if run.model == "1d" else run.size ** 2
+    n_visible = run.size if run.model != "2d" else run.size ** 2
     use_cem   = METHOD_CONFIG[run.method]["use_cem"]
     output_dir = (
-        Path(str(FIXED["output_dir"])) / str(run.size) / SAMPLER_BACKEND / run.method
+        Path(str(FIXED["output_dir"]))
+        / _model_subdir(run.model)
+        / str(run.size)
+        / SAMPLER_BACKEND
+        / run.method
     )
     fname = (
         f"result_{run.model}"
-        f"_h{run.h}"
+        f"{_model_params_str(run)}"
         f"_rbm{FIXED['rbm']}"
         f"_nh{n_visible}"
         f"_lr{run.lr}"
@@ -164,12 +201,14 @@ def result_path(run: Run) -> Path:
 # ---------------------------------------------------------------------------
 
 def build_args(run: Run) -> SimpleNamespace:
-    n_visible = run.size if run.model == "1d" else run.size ** 2
+    n_visible = run.size if run.model != "2d" else run.size ** 2
     use_cem   = METHOD_CONFIG[run.method]["use_cem"]
     return SimpleNamespace(
         model=run.model,
         size=run.size,
         h=run.h,
+        J=run.J,
+        delta=run.delta,
         rbm=FIXED["rbm"],
         n_hidden=n_visible,
         sampler=SAMPLER_BACKEND,
@@ -194,13 +233,15 @@ def execute_run(run: Run) -> dict:
     key, rbm_key = jax.random.split(key)
 
     args      = build_args(run)
-    n_visible = run.size if run.model == "1d" else run.size ** 2
+    n_visible = run.size if run.model != "2d" else run.size ** 2
     use_cem   = METHOD_CONFIG[run.method]["use_cem"]
 
     if run.model == "1d":
         ising = TransverseFieldIsing1D(run.size, run.h)
-    else:
+    elif run.model == "2d":
         ising = TransverseFieldIsing2D(run.size, run.h)
+    elif run.model == "heisenberg_xxz_1d":
+        ising = HeisenbergXXZ1D(run.size, J=run.J, delta=run.delta)
 
     rbm = FullyConnectedRBM(n_visible, n_visible, rbm_key)
 
@@ -258,6 +299,8 @@ def _write_failure(log_path: Path, run: Run, exc: Exception):
         model=run.model,
         size=run.size,
         h=run.h,
+        J=run.J,
+        delta=run.delta,
         lr=run.lr,
         seed=run.seed,
         method=run.method,
@@ -310,8 +353,13 @@ def main():
                         help="Filter to this transverse field value only")
     parser.add_argument("--lr", type=float, default=None,
                         help="Filter to this learning rate only")
-    parser.add_argument("--model", choices=["1d", "2d"], default=None,
+    parser.add_argument("--model",
+                        choices=["1d", "2d", "heisenberg_xxz_1d"], default=None,
                         help="Filter to this model only")
+    parser.add_argument("--J", type=float, default=None,
+                        help="Filter to this J value (Heisenberg only)")
+    parser.add_argument("--delta", type=float, default=None,
+                        help="Filter to this delta value (Heisenberg only)")
     parser.add_argument("--iterations", type=int, default=None,
                         help="Override number of training iterations for this run")
     parser.add_argument("--reg", type=float, default=None,
@@ -341,7 +389,11 @@ def main():
     if cli.size is not None:
         grid = [r for r in grid if r.size == cli.size]
     if cli.h is not None:
-        grid = [r for r in grid if r.h == cli.h]
+        grid = [r for r in grid if r.model in ("1d", "2d") and r.h == cli.h]
+    if cli.J is not None:
+        grid = [r for r in grid if r.model == "heisenberg_xxz_1d" and r.J == cli.J]
+    if cli.delta is not None:
+        grid = [r for r in grid if r.model == "heisenberg_xxz_1d" and r.delta == cli.delta]
     if cli.model is not None:
         grid = [r for r in grid if r.model == cli.model]
     if cli.iterations is not None:
@@ -352,14 +404,15 @@ def main():
     if cli.dry_run:
         pending = sum(1 for r in grid if cli.force or not result_path(r).exists())
         print(
-            f"\n{'Method':>10}  {'Model':>4}  {'N':>4}  {'h':>6}  {'LR':>8}  {'Seed':>4}  {'Done':>4}"
+            f"\n{'Method':>10}  {'Model':>20}  {'N':>4}  {'Params':>18}  {'LR':>8}  {'Seed':>4}  {'Done':>4}"
         )
-        print("-" * 65)
+        print("-" * 85)
         for r in grid:
             exists = result_path(r).exists()
             done = ("yes" if exists else "no") + (" (force)" if exists and cli.force else "")
+            params = f"J={r.J} Δ={r.delta}" if r.model == "heisenberg_xxz_1d" else f"h={r.h}"
             print(
-                f"{r.method:>10}  {r.model:>4}  {r.size:>4}  {r.h:>6}  "
+                f"{r.method:>10}  {r.model:>20}  {r.size:>4}  {params:>18}  "
                 f"{r.lr:>8.4g}  {r.seed:>4}  {done}"
             )
         print(f"\nTotal: {len(grid)}  pending: {pending}  done: {len(grid)-pending}")
@@ -395,10 +448,14 @@ def main():
     t_wall = time.perf_counter()
 
     for i, run in enumerate(pending, 1):
+        params = (
+            f"J={run.J} Δ={run.delta}" if run.model == "heisenberg_xxz_1d"
+            else f"h={run.h}"
+        )
         tag = (
             f"[{i}/{len(pending)}] "
-            f"{run.model.upper()} N={run.size:>3} "
-            f"h={run.h}  {run.method}  "
+            f"{run.model} N={run.size:>3} "
+            f"{params}  {run.method}  "
             f"lr={run.lr:.4g}  seed={run.seed}"
         )
 

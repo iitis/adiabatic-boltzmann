@@ -16,11 +16,11 @@ Includes extensive LR sweep for LSB and Gibbs samplers.
 Usage
 -----
     cd <repo-root>
-    python scripts/experiment_lsb_gibbs.py                  # run everything
-    python scripts/experiment_lsb_gibbs.py --dry-run        # print grid, no execution
-    python scripts/experiment_lsb_gibbs.py --part 1         # run only Part 1
-    python scripts/experiment_lsb_gibbs.py --sampler lsb    # only LSB runs
-    python scripts/experiment_lsb_gibbs.py --sampler gibbs  # only Gibbs runs
+    python scripts/exper/experiment_lsb_gibbs.py                  # run everything
+    python scripts/exper/experiment_lsb_gibbs.py --dry-run        # print grid, no execution
+    python scripts/exper/experiment_lsb_gibbs.py --part 1         # run only Part 1
+    python scripts/exper/experiment_lsb_gibbs.py --sampler lsb    # only LSB runs
+    python scripts/exper/experiment_lsb_gibbs.py --sampler gibbs  # only Gibbs runs
 """
 
 import argparse

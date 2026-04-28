@@ -7,7 +7,7 @@ from helpers import save_results
 from model import FullyConnectedRBM, DWaveTopologyRBM
 from sampler import ClassicalSampler, DimodSampler, VeloxSampler
 from encoder import Trainer
-from ising import TransverseFieldIsing1D, TransverseFieldIsing2D
+from ising import TransverseFieldIsing1D, TransverseFieldIsing2D, HeisenbergXXZ1D
 
 
 def parse_arguments():
@@ -23,7 +23,10 @@ def parse_arguments():
 
     # Model parameters
     parser.add_argument(
-        "--model", choices=["1d", "2d"], default="1d", help="Ising model type"
+        "--model",
+        choices=["1d", "2d", "heisenberg_xxz_1d"],
+        default="1d",
+        help="Physical model",
     )
     parser.add_argument(
         "--size",
@@ -32,7 +35,13 @@ def parse_arguments():
         help="System size (chain length or square lattice dimension)",
     )
     parser.add_argument(
-        "--h", type=float, default=0.5, help="Transverse field strength"
+        "--h", type=float, default=0.5, help="Transverse field strength (TFIM only)"
+    )
+    parser.add_argument(
+        "--J", type=float, default=1.0, help="Coupling strength (Heisenberg)"
+    )
+    parser.add_argument(
+        "--delta", type=float, default=1.0, help="XXZ anisotropy Δ (Heisenberg)"
     )
 
     # RBM architecture
@@ -124,8 +133,12 @@ def main():
     # PRNG key — single source of randomness for RBM init, sampler, and trainer
     key = jax.random.PRNGKey(args.seed)
 
+    if args.model == "heisenberg_xxz_1d":
+        _model_desc = f"{args.model} with J={args.J}, Δ={args.delta}"
+    else:
+        _model_desc = f"{args.model} with h={args.h}"
     print(f"Configuration:")
-    print(f"  Model: {args.model} with h={args.h}")
+    print(f"  Model: {_model_desc}")
     print(f"  System size: {args.size}")
     print(f"  RBM: {args.rbm}")
     print(f"  Sampler: {args.sampler} ({args.sampling_method})")
@@ -135,23 +148,25 @@ def main():
     )
     print(f"  JAX devices: {jax.devices()}")
 
-    # 1. Instantiate Ising model
+    # 1. Instantiate model
     if args.model == "1d":
         ising = TransverseFieldIsing1D(args.size, args.h)
     elif args.model == "2d":
         ising = TransverseFieldIsing2D(args.size, args.h)
+    elif args.model == "heisenberg_xxz_1d":
+        ising = HeisenbergXXZ1D(args.size, J=args.J, delta=args.delta)
 
     # 2. Instantiate RBM
     if args.n_hidden is not None:
         n_hidden = args.n_hidden
-    elif args.model == "1d":
+    elif args.model in ("1d", "heisenberg_xxz_1d"):
         n_hidden = args.size
     elif args.model == "2d":
         n_hidden = args.size**2
     else:
         raise ValueError(f"Unsupported model type: {args.model}")
 
-    n_visible = args.size if args.model == "1d" else args.size**2
+    n_visible = args.size if args.model in ("1d", "heisenberg_xxz_1d") else args.size**2
     args.n_hidden = n_hidden
     key, rbm_key = jax.random.split(key)
     if args.rbm == "full":

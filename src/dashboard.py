@@ -27,7 +27,7 @@ import streamlit as st
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
-RESULTS_DIR = Path(__file__).parent.parent / "jax_results"
+RESULTS_DIR = Path(__file__).parent.parent / "results"
 
 # ── Extension points ───────────────────────────────────────────────────────────
 # Add one dict  → new sidebar filter appears automatically
@@ -232,13 +232,21 @@ def build_sidebar(df: pd.DataFrame) -> pd.DataFrame:
         col, label = ax["col"], ax["label"]
         if col not in df.columns:
             continue
+        # Use the progressively-narrowed df so options reflect prior selections
         vals = sorted(
-            df[col].dropna().unique(),
+            filtered[col].dropna().unique(),
             key=lambda x: (str(type(x).__name__), str(x)),
         )
         if len(vals) <= 1:
             continue
-        sel = st.sidebar.multiselect(label, vals, default=[], key=f"f_{col}")
+        # Drop stale selections that no longer exist in the available options
+        key = f"f_{col}"
+        valid_vals = set(vals)
+        current = st.session_state.get(key, [])
+        cleaned = [v for v in current if v in valid_vals]
+        if cleaned != current:
+            st.session_state[key] = cleaned
+        sel = st.sidebar.multiselect(label, vals, default=[], key=key)
         if sel:
             filtered = filtered[filtered[col].isin(sel)]
 
@@ -980,7 +988,9 @@ def tab_timing(df: pd.DataFrame, histories: dict) -> None:
         )
 
     if not tte_rows:
-        st.info(f"No group achieved error ≤ {epsilon:.5f}. Increase ε to see TTE values.")
+        st.info(
+            f"No group achieved error ≤ {epsilon:.5f}. Increase ε to see TTE values."
+        )
     else:
         tte_df = pd.DataFrame(tte_rows)
 
@@ -1013,7 +1023,9 @@ def tab_timing(df: pd.DataFrame, histories: dict) -> None:
             column_config={
                 "TTE (s)": st.column_config.NumberColumn("TTE (s)", format="%.2f"),
                 "p(ε)": st.column_config.NumberColumn("p(ε)", format="%.3f"),
-                "Mean t_f (s)": st.column_config.NumberColumn("Mean t_f (s)", format="%.2f"),
+                "Mean t_f (s)": st.column_config.NumberColumn(
+                    "Mean t_f (s)", format="%.2f"
+                ),
             },
             use_container_width=True,
             hide_index=True,

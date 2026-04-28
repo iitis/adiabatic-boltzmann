@@ -7,6 +7,26 @@ import jax
 import jax.numpy as jnp
 import pickle
 
+# Maps CLI --model value to its results subdirectory.
+# New models should be added here; unknown names pass through unchanged.
+_MODEL_SUBDIR: dict[str, str] = {
+    "1d": "tfim_1d",
+    "2d": "tfim_2d",
+}
+
+
+def _model_subdir(model: str) -> str:
+    return _MODEL_SUBDIR.get(model, model)
+
+
+def _model_params_str(args) -> str:
+    """Return the model-parameter component for result filenames."""
+    if args.model == "heisenberg_xxz_1d":
+        J = getattr(args, "J", 1.0)
+        delta = getattr(args, "delta", 1.0)
+        return f"_J{J}_delta{delta}"
+    return f"_h{args.h}"
+
 
 def save_rbm_checkpoint(rbm, args, iteration):
     """
@@ -20,9 +40,10 @@ def save_rbm_checkpoint(rbm, args, iteration):
     Returns:
         Path to saved checkpoint
     """
-    # Directory structure: checkpoints/size/sampler/sampling_method/rbm/
+    # Directory structure: checkpoints/{model}/{size}/{sampler}/{method}/{rbm}/
     checkpoint_dir = Path(
-        f"{args.output_dir.replace('results', 'checkpoints')}/{args.size}/{args.sampler}/{args.sampling_method}/{args.rbm}"
+        f"{args.output_dir.replace('results', 'checkpoints')}"
+        f"/{_model_subdir(args.model)}/{args.size}/{args.sampler}/{args.sampling_method}/{args.rbm}"
     )
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
@@ -42,7 +63,7 @@ def save_rbm_checkpoint(rbm, args, iteration):
     checkpoint_file = checkpoint_dir / (
         f"checkpoint"
         f"_{args.model}"
-        f"_h{args.h}"
+        f"{_model_params_str(args)}"
         f"_rbm{args.rbm}"
         f"_nh{args.n_hidden}"
         f"_lr{args.learning_rate}"
@@ -111,9 +132,9 @@ def _safe_rel_error(final_energy, ising):
 
 
 def save_results(args, history, ising, rbm=None):
-    # Directory structure: results/size/sampler/sampling_method/
+    # Directory structure: results/{model}/{size}/{sampler}/{method}/
     output_dir = Path(
-        f"{args.output_dir}/{args.size}/{args.sampler}/{args.sampling_method}"
+        f"{args.output_dir}/{_model_subdir(args.model)}/{args.size}/{args.sampler}/{args.sampling_method}"
     )
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -156,7 +177,7 @@ def save_results(args, history, ising, rbm=None):
     output_file = output_dir / (
         f"result"
         f"_{args.model}"
-        f"_h{args.h}"
+        f"{_model_params_str(args)}"
         f"_rbm{args.rbm}"
         f"_nh{args.n_hidden}"
         f"_lr{args.learning_rate}"
@@ -172,10 +193,13 @@ def save_results(args, history, ising, rbm=None):
     with open(output_file, "w") as f:
         json.dump(results, f, indent=2)
 
+    def _fmt(v):
+        return f"{v:.6f}" if v is not None else "N/A"
+
     print(f"Saved  → {output_file}")
-    print(f"  Final energy : {results['final_energy']:.6f}")
-    print(f"  Exact energy : {results['exact_energy']:.6f}")
-    print(f"  Error        : {results['error']:.6f}")
+    print(f"  Final energy : {_fmt(results['final_energy'])}")
+    print(f"  Exact energy : {_fmt(results['exact_energy'])}")
+    print(f"  Error        : {_fmt(results['error'])}")
     # For plots
     plot_dir = output_dir / "plots"
     plot_dir.mkdir(parents=True, exist_ok=True)
@@ -204,7 +228,7 @@ def save_results(args, history, ising, rbm=None):
             plt.title("Energy Variance")
 
             plt.tight_layout()
-            plot_file = plot_dir / f"plot_{args.model}_h{args.h}_rbm{args.rbm}.png"
+            plot_file = plot_dir / f"plot_{args.model}{_model_params_str(args)}_rbm{args.rbm}.png"
             plt.savefig(plot_file, dpi=150)
             plt.show()
             print(f"Plot saved to {plot_file}")

@@ -140,6 +140,19 @@ class RBM(ABC):
         )
         return jnp.exp(log_ratio)
 
+    def psi_ratio_pair(self, v: jax.Array, flip_i: int, flip_j: int) -> jax.Array:
+        """Ψ(v with spins i and j simultaneously flipped) / Ψ(v), in log space."""
+        p = self.params
+        vi, vj = v[flip_i], v[flip_j]
+        theta = p.b + p.W.T @ v
+        theta_flipped = theta - 2 * vi * p.W[flip_i, :] - 2 * vj * p.W[flip_j, :]
+        log_ratio = (
+            p.a[flip_i] * vi
+            + p.a[flip_j] * vj
+            + 0.5 * jnp.sum(self.logcosh(theta_flipped) - self.logcosh(theta))
+        )
+        return jnp.exp(log_ratio)
+
     def gradient_log_psi(self, v: jax.Array) -> dict:
         """
         ∂log Ψ/∂p for all parameters.
