@@ -104,6 +104,55 @@ def _local_energy_2d_jit(
     return E_diag + E_off
 
 
+@functools.partial(jax.jit, static_argnums=(5, 6, 7, 8))
+def _local_energy_lr1d_jit(
+    V: jax.Array,
+    W: jax.Array,
+    a: jax.Array,
+    b: jax.Array,
+    J_coupling: float,
+    h: float,
+    alpha: float,
+    N: int,
+) -> jax.Array:
+    """
+    Long-range 1D TFIM local energy for all ns samples simultaneously.
+
+    V         : (ns, N)   spin configs {-1, +1}
+    J_coupling: float     overall coupling scale
+    h         : float     transverse field strength
+    alpha     : float     power-law exponent
+    N         : int       n_visible (static)
+
+    Hamiltonian:
+        H = -J Σᵢ<ⱼ σᶻᵢσᶻⱼ / d(i,j)^α  −  h Σᵢ σˣᵢ
+    where d(i,j) = min(|i−j|, N−|i−j|)  (periodic chord distance).
+
+    Off-diagonal term is identical to nearest-neighbor TFIM: single-spin flips.
+    Diagonal term is O(N²) — all pairs weighted by 1/d^α.
+    """
+    # --- Coupling matrix (constant-folded into the kernel since alpha, N static) ---
+    idx = jnp.arange(N)
+    raw_dist = jnp.abs(idx[:, None] - idx[None, :])
+    dist = jnp.minimum(raw_dist, N - raw_dist).astype(jnp.float64)   # (N, N) periodic
+    safe_dist = jnp.where(dist > 0.0, dist, 1.0)
+    J_mat = jnp.where(dist > 0.0, J_coupling / safe_dist ** alpha, 0.0)  # (N, N)
+
+    # --- Off-diagonal (single-spin flips, same as 1D TFIM kernel) ---
+    theta = V @ W + b[None, :]                                         # (ns, M)
+    blc = jnp.logaddexp(theta, -theta)
+    theta_flipped = theta[:, None, :] - 2.0 * V[:, :, None] * W[None, :, :]  # (ns, N, M)
+    log_ratios = a[None, :] * V + 0.5 * jnp.sum(
+        jnp.logaddexp(theta_flipped, -theta_flipped) - blc[:, None, :], axis=2
+    )
+    E_off = -h * jnp.sum(jnp.exp(log_ratios), axis=1)                 # (ns,)
+
+    # --- Diagonal: -0.5 * Σᵢ Σⱼ J_mat[i,j] vᵢvⱼ  (factor 0.5 because J_mat symmetric) ---
+    E_diag = -0.5 * jnp.einsum("si,ij,sj->s", V, J_mat, V)            # (ns,)
+
+    return E_diag + E_off
+
+
 @functools.partial(jax.jit, static_argnums=(4, 5, 6))
 def _local_energy_xxz_1d_jit(
     V: jax.Array,
@@ -487,3 +536,98 @@ class HeisenbergXXZ1D(IsingModel):
         left = (idx - 1) % self.size
         right = (idx + 1) % self.size
         return [left, right]
+
+
+# ---------------------------------------------------------------------------
+# Long-range 1D TFIM
+# ---------------------------------------------------------------------------
+
+
+class LongRangeTFIM1D(IsingModel):
+    """
+    1D Transverse Field Ising Model with power-law interactions.
+
+        H = −J Σᵢ<ⱼ σᶻᵢσᶻⱼ / d(i,j)^α  −  h Σᵢ σˣᵢ
+
+    where d(i,j) = min(|i−j|, N−|i−j|)  (chord distance on a ring).
+
+    Special cases:
+        α → ∞  : nearest-neighbor TFIM
+        α = 2  : dipolar-like
+        α = 1  : Coulomb-like
+        α = 0  : all-to-all (mean-field Ising)
+
+    J > 0 : ferromagnetic.  Off-diagonal term is identical to the
+    nearest-neighbor TFIM (single-spin flips); only E_diag becomes O(N²).
+    """
+
+    def __init__(self, size: int, h: float = 0.5, alpha: float = 2.0, J: float = 1.0):
+        super().__init__(size, h)
+        self.alpha = alpha
+        self.J = J
+
+    def local_energy(self, v: np.ndarray, psi_ratio_fn) -> float:
+        N = self.size
+        E_diag = 0.0
+        for i in range(N):
+            for j in range(i + 1, N):
+                d = min(j - i, N - (j - i))
+                E_diag -= self.J * v[i] * v[j] / d ** self.alpha
+        E_off = -self.h * sum(psi_ratio_fn(v, i) for i in range(N))
+        return E_diag + E_off
+
+    def local_energy_batch(self, V, rbm) -> jax.Array:
+        V_jax = jnp.asarray(V, dtype=jnp.float64)
+        return _local_energy_lr1d_jit(
+            V_jax, rbm.W, rbm.a, rbm.b, self.J, self.h, self.alpha, self.size
+        )
+
+    def exact_ground_energy(self) -> float:
+        from reference_energies import get_or_compute
+
+        if self.size > 16:
+            raise NotImplementedError(
+                f"Exact diagonalization not feasible for LR-TFIM N={self.size}. "
+                "Only N ≤ 16 is supported (2^16 = 65 536 states)."
+            )
+        model_key = f"lr_tfim_1d_alpha{self.alpha:.10g}_J{self.J:.10g}"
+        return get_or_compute(model_key, self.size, self.h, self._compute_exact_ground_energy)
+
+    def _compute_exact_ground_energy(self) -> float:
+        """
+        Build the LR-TFIM Hamiltonian as a scipy sparse matrix.
+        No netket dependency — works on Python 3.13+.
+
+        Encoding: bit (N-1-i) of integer s represents site i.
+        """
+        import scipy.sparse as sp
+        from scipy.sparse.linalg import eigsh
+
+        N, h, alpha, J = self.size, self.h, self.alpha, self.J
+        dim = 2 ** N
+
+        def spin(s: int, i: int) -> int:
+            return 1 - 2 * ((s >> (N - 1 - i)) & 1)
+
+        rows: list[int] = []
+        cols: list[int] = []
+        vals: list[float] = []
+
+        for s in range(dim):
+            diag = 0.0
+            for i in range(N):
+                for j in range(i + 1, N):
+                    d = min(j - i, N - (j - i))
+                    diag -= J * spin(s, i) * spin(s, j) / d ** alpha
+            rows.append(s); cols.append(s); vals.append(diag)
+
+            for i in range(N):
+                s_flip = s ^ (1 << (N - 1 - i))
+                rows.append(s_flip); cols.append(s); vals.append(-h)
+
+        H = sp.csr_matrix((vals, (rows, cols)), shape=(dim, dim), dtype=float)
+        eigenvalues, _ = eigsh(H, k=1, which="SA")
+        return float(eigenvalues[0])
+
+    def get_neighbors(self, idx: int) -> list[int]:
+        return [j for j in range(self.size) if j != idx]

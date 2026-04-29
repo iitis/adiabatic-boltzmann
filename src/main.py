@@ -7,7 +7,7 @@ from helpers import save_results
 from model import FullyConnectedRBM, DWaveTopologyRBM
 from sampler import ClassicalSampler, DimodSampler, VeloxSampler
 from encoder import Trainer
-from ising import TransverseFieldIsing1D, TransverseFieldIsing2D, HeisenbergXXZ1D
+from ising import TransverseFieldIsing1D, TransverseFieldIsing2D, HeisenbergXXZ1D, LongRangeTFIM1D
 
 
 def parse_arguments():
@@ -24,7 +24,7 @@ def parse_arguments():
     # Model parameters
     parser.add_argument(
         "--model",
-        choices=["1d", "2d", "heisenberg_xxz_1d"],
+        choices=["1d", "2d", "heisenberg_xxz_1d", "lr1d"],
         default="1d",
         help="Physical model",
     )
@@ -42,6 +42,9 @@ def parse_arguments():
     )
     parser.add_argument(
         "--delta", type=float, default=1.0, help="XXZ anisotropy Δ (Heisenberg)"
+    )
+    parser.add_argument(
+        "--alpha", type=float, default=2.0, help="Power-law exponent α (LR-TFIM)"
     )
 
     # RBM architecture
@@ -136,6 +139,8 @@ def main():
 
     if args.model == "heisenberg_xxz_1d":
         _model_desc = f"{args.model} with J={args.J}, Δ={args.delta}"
+    elif args.model == "lr1d":
+        _model_desc = f"{args.model} with h={args.h}, α={args.alpha}"
     else:
         _model_desc = f"{args.model} with h={args.h}"
     print(f"Configuration:")

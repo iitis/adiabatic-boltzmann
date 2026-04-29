@@ -21,6 +21,7 @@ from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
+import jax
 import numpy as np
 
 _SRC = Path(__file__).resolve().parent.parent / "src"
@@ -84,7 +85,7 @@ def build_grid() -> list[Run]:
 
 def result_path(run: Run) -> Path:
     n_hidden = run.size
-    output_dir = Path(f"{FIXED['output_dir']}/{run.size}/fpga/fpga")
+    output_dir = Path(f"{FIXED['output_dir']}/tfim_1d/{run.size}/fpga/fpga")
     fname = (
         f"result_1d"
         f"_h{run.h}"
@@ -134,11 +135,12 @@ def make_sampler(run: Run):
 
 
 def execute_run(run: Run) -> dict:
-    np.random.seed(run.seed)
+    key = jax.random.PRNGKey(run.seed)
+    key, rbm_key = jax.random.split(key)
 
     args = build_args(run)
     ising = TransverseFieldIsing1D(run.size, run.h)
-    rbm = FullyConnectedRBM(run.size, run.size)
+    rbm = FullyConnectedRBM(run.size, run.size, rbm_key)
     sampler = make_sampler(run)
 
     trainer_config = dict(
@@ -150,6 +152,7 @@ def execute_run(run: Run) -> dict:
         checkpoint_interval=10,
         use_cem=True,
         cem_interval=5,
+        seed=run.seed,
     )
 
     trainer = Trainer(rbm, ising, sampler, trainer_config, args=args)
