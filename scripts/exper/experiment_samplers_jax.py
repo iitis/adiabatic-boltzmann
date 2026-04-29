@@ -2,9 +2,10 @@
 JAX experiment runner — Gibbs, LSB, and Metropolis-Hastings samplers, full RBM.
 
 Grid:
-  1D TFIM  sizes 16..200 spins             h = [0.5, 1.0, 2.0, 3.044]
-  2D TFIM  L=4..14  (N=L²=16..196 spins)  h = [0.5, 1.0, 2.0, 3.044]
-  XXZ 1D   sizes 16..100 spins             J=1.0, delta = [0.0, 0.5, 1.0, 2.0]
+  1D TFIM    sizes 16..200 spins             h = [0.5, 1.0, 2.0, 3.044]
+  2D TFIM    L=4..14  (N=L²=16..196 spins)  h = [0.5, 1.0, 2.0, 3.044]
+  XXZ 1D     sizes 16..100 spins             J=1.0, delta = [0.0, 0.5, 1.0, 2.0]
+  LR-TFIM 1D sizes 16..100 spins             h = [0.5, 1.0, 2.0, 3.044], alpha = [0.5, 1.0, 2.0, 3.0]
   LR  [1e-2]
   seeds [1, 2, 3, 4, 5]  (override with --seeds)
   Runs sorted by n_visible ascending (small systems first), then by model.
@@ -59,7 +60,7 @@ sys.path.insert(0, str(_SRC))
 
 from encoder import Trainer
 from helpers import save_results
-from ising import TransverseFieldIsing1D, TransverseFieldIsing2D, HeisenbergXXZ1D
+from ising import TransverseFieldIsing1D, TransverseFieldIsing2D, HeisenbergXXZ1D, LongRangeTFIM1D
 from model import FullyConnectedRBM
 from sampler import ClassicalSampler
 
@@ -102,14 +103,15 @@ METHOD_CONFIG = {
 
 @dataclass
 class Run:
-    model:  str    # "1d" | "2d" | "heisenberg_xxz_1d"
+    model:  str    # "1d" | "2d" | "heisenberg_xxz_1d" | "lr1d"
     size:   int    # chain length or lattice linear dim L
-    h:      float  # transverse field (TFIM); unused for Heisenberg
+    h:      float  # transverse field (TFIM / LR-TFIM); unused for Heisenberg
     lr:     float
     seed:   int
-    method: str    # "gibbs" | "lsb" | "metropolis"
+    method: str    # "gibbs" | "lsb" | "metropolis" | "exchange"
     J:      float = 1.0   # Heisenberg coupling; unused for TFIM
-    delta:  float = 1.0   # XXZ anisotropy;      unused for TFIM
+    delta:  float = 1.0   # XXZ anisotropy;      unused for TFIM / LR-TFIM
+    alpha:  float = 2.0   # LR-TFIM power-law exponent; unused for other models
 
 
 def build_grid(
@@ -122,6 +124,7 @@ def build_grid(
     sizes_1d  = [16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 200]
     sizes_2d  = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     sizes_xxz = [16, 25, 36, 49, 64, 81, 100]
+    sizes_lr1d = [16, 25, 36, 49, 64, 81, 100]
 
     for method in methods:
         for size in sizes_1d:
@@ -146,6 +149,16 @@ def build_grid(
                             "heisenberg_xxz_1d", size, h=0.0, lr=lr,
                             seed=seed, method=xxz_method, J=1.0, delta=delta,
                         ))
+        for size in sizes_lr1d:
+            # alpha=[0.5, 1.0, 2.0, 3.0] spans very-long-range → dipolar → near-neighbor
+            for alpha in [0.5, 1.0, 2.0, 3.0]:
+                for h in [0.5, 1.0, 2.0, 3.044]:
+                    for lr in learning_rates:
+                        for seed in seeds:
+                            grid.append(Run(
+                                "lr1d", size, h=h, lr=lr,
+                                seed=seed, method=method, alpha=alpha,
+                            ))
 
     # sort by n_visible ascending, then model, then method, then seed
     def _sort_key(r: Run):
@@ -171,6 +184,8 @@ def _model_subdir(model: str) -> str:
 def _model_params_str(run: Run) -> str:
     if run.model == "heisenberg_xxz_1d":
         return f"_J{run.J}_delta{run.delta}"
+    if run.model == "lr1d":
+        return f"_h{run.h}_alpha{run.alpha}"
     return f"_h{run.h}"
 
 
@@ -214,6 +229,7 @@ def build_args(run: Run) -> SimpleNamespace:
         h=run.h,
         J=run.J,
         delta=run.delta,
+        alpha=run.alpha,
         rbm=FIXED["rbm"],
         n_hidden=n_visible,
         sampler=SAMPLER_BACKEND,
@@ -247,6 +263,8 @@ def execute_run(run: Run) -> dict:
         ising = TransverseFieldIsing2D(run.size, run.h)
     elif run.model == "heisenberg_xxz_1d":
         ising = HeisenbergXXZ1D(run.size, J=run.J, delta=run.delta)
+    elif run.model == "lr1d":
+        ising = LongRangeTFIM1D(run.size, run.h, alpha=run.alpha)
 
     rbm = FullyConnectedRBM(n_visible, n_visible, rbm_key)
 
@@ -312,6 +330,7 @@ def _write_failure(log_path: Path, run: Run, exc: Exception):
         h=run.h,
         J=run.J,
         delta=run.delta,
+        alpha=run.alpha,
         lr=run.lr,
         seed=run.seed,
         method=run.method,
@@ -365,12 +384,14 @@ def main():
     parser.add_argument("--lr", type=float, default=None,
                         help="Filter to this learning rate only")
     parser.add_argument("--model",
-                        choices=["1d", "2d", "heisenberg_xxz_1d"], default=None,
+                        choices=["1d", "2d", "heisenberg_xxz_1d", "lr1d"], default=None,
                         help="Filter to this model only")
     parser.add_argument("--J", type=float, default=None,
                         help="Filter to this J value (Heisenberg only)")
     parser.add_argument("--delta", type=float, default=None,
                         help="Filter to this delta value (Heisenberg only)")
+    parser.add_argument("--alpha", type=float, default=None,
+                        help="Filter to this alpha value (LR-TFIM only)")
     parser.add_argument("--iterations", type=int, default=None,
                         help="Override number of training iterations for this run")
     parser.add_argument("--reg", type=float, default=None,
@@ -405,6 +426,8 @@ def main():
         grid = [r for r in grid if r.model == "heisenberg_xxz_1d" and r.J == cli.J]
     if cli.delta is not None:
         grid = [r for r in grid if r.model == "heisenberg_xxz_1d" and r.delta == cli.delta]
+    if cli.alpha is not None:
+        grid = [r for r in grid if r.model == "lr1d" and r.alpha == cli.alpha]
     if cli.model is not None:
         grid = [r for r in grid if r.model == cli.model]
     if cli.iterations is not None:
@@ -421,7 +444,12 @@ def main():
         for r in grid:
             exists = result_path(r).exists()
             done = ("yes" if exists else "no") + (" (force)" if exists and cli.force else "")
-            params = f"J={r.J} Δ={r.delta}" if r.model == "heisenberg_xxz_1d" else f"h={r.h}"
+            if r.model == "heisenberg_xxz_1d":
+                params = f"J={r.J} Δ={r.delta}"
+            elif r.model == "lr1d":
+                params = f"h={r.h} α={r.alpha}"
+            else:
+                params = f"h={r.h}"
             print(
                 f"{r.method:>10}  {r.model:>20}  {r.size:>4}  {params:>18}  "
                 f"{r.lr:>8.4g}  {r.seed:>4}  {done}"
@@ -460,10 +488,12 @@ def main():
     t_wall = time.perf_counter()
 
     for i, run in enumerate(pending, 1):
-        params = (
-            f"J={run.J} Δ={run.delta}" if run.model == "heisenberg_xxz_1d"
-            else f"h={run.h}"
-        )
+        if run.model == "heisenberg_xxz_1d":
+            params = f"J={run.J} Δ={run.delta}"
+        elif run.model == "lr1d":
+            params = f"h={run.h} α={run.alpha}"
+        else:
+            params = f"h={run.h}"
         tag = (
             f"[{i}/{len(pending)}] "
             f"{run.model} N={run.size:>3} "

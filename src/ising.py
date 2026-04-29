@@ -104,7 +104,7 @@ def _local_energy_2d_jit(
     return E_diag + E_off
 
 
-@functools.partial(jax.jit, static_argnums=(5, 6, 7, 8))
+@functools.partial(jax.jit, static_argnums=(4, 5, 6, 7))
 def _local_energy_lr1d_jit(
     V: jax.Array,
     W: jax.Array,

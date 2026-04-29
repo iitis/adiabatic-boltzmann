@@ -12,6 +12,7 @@ import pickle
 _MODEL_SUBDIR: dict[str, str] = {
     "1d": "tfim_1d",
     "2d": "tfim_2d",
+    "lr1d": "lr_tfim_1d",
 }
 
 
@@ -25,6 +26,9 @@ def _model_params_str(args) -> str:
         J = getattr(args, "J", 1.0)
         delta = getattr(args, "delta", 1.0)
         return f"_J{J}_delta{delta}"
+    if args.model == "lr1d":
+        alpha = getattr(args, "alpha", 2.0)
+        return f"_h{args.h}_alpha{alpha}"
     return f"_h{args.h}"
 
 

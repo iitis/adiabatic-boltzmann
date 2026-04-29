@@ -22,9 +22,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import jax
-import numpy as np
 
-_SRC = Path(__file__).resolve().parent.parent / "src"
+_SRC = Path(__file__).resolve().parent.parent.parent / "src"
 sys.path.insert(0, str(_SRC))
 from encoder import Trainer
 from helpers import save_results
@@ -130,7 +129,7 @@ def build_args(run: Run) -> SimpleNamespace:
     )
 
 
-def make_sampler(run: Run):
+def make_sampler() -> FPGASampler:
     return FPGASampler(transport="jtag")
 
 
@@ -141,14 +140,14 @@ def execute_run(run: Run) -> dict:
     args = build_args(run)
     ising = TransverseFieldIsing1D(run.size, run.h)
     rbm = FullyConnectedRBM(run.size, run.size, rbm_key)
-    sampler = make_sampler(run)
+    sampler = make_sampler()
 
     trainer_config = dict(
         learning_rate=run.lr,
         n_iterations=FIXED["iterations"],
         n_samples=FIXED["n_samples"],
         regularization=FIXED["reg"],
-        save_checkpoints=False,
+        save_checkpoints=True,
         checkpoint_interval=10,
         use_cem=True,
         cem_interval=5,

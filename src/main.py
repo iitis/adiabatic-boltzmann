@@ -161,18 +161,20 @@ def main():
         ising = TransverseFieldIsing2D(args.size, args.h)
     elif args.model == "heisenberg_xxz_1d":
         ising = HeisenbergXXZ1D(args.size, J=args.J, delta=args.delta)
+    elif args.model == "lr1d":
+        ising = LongRangeTFIM1D(args.size, args.h, alpha=args.alpha)
 
     # 2. Instantiate RBM
     if args.n_hidden is not None:
         n_hidden = args.n_hidden
-    elif args.model in ("1d", "heisenberg_xxz_1d"):
+    elif args.model in ("1d", "heisenberg_xxz_1d", "lr1d"):
         n_hidden = args.size
     elif args.model == "2d":
         n_hidden = args.size**2
     else:
         raise ValueError(f"Unsupported model type: {args.model}")
 
-    n_visible = args.size if args.model in ("1d", "heisenberg_xxz_1d") else args.size**2
+    n_visible = args.size if args.model in ("1d", "heisenberg_xxz_1d", "lr1d") else args.size**2
     args.n_hidden = n_hidden
     key, rbm_key = jax.random.split(key)
     if args.rbm == "full":
