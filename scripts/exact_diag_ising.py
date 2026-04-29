@@ -37,7 +37,7 @@ def main():
 
     energy = netket_ground_energy(args.N, args.g)
     print(f"Ground state energy (N={args.N}, h={args.g}): {energy}")
-
+    print(f"Per spin {energy/args.N}")
 
 if __name__ == "__main__":
     main()

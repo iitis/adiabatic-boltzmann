@@ -39,21 +39,15 @@ RBM_MARKERS = {
     "zephyr":  "^",
 }
 
-# Reference energies per spin for 2D TFIM (thermodynamic limit)
-EXACT_ENERGY_2D_PER_SPIN = {
-    0.5: -2.0555,
-    1.0: -2.1276,
-    2.0: -2.4549,
-    3.044: -3.0440,
-}
+from reference_energies import get_2d_per_spin
 
 
 def compute_exact_energy(model, N, h):
     if model == "2d":
-        if h not in EXACT_ENERGY_2D_PER_SPIN:
+        val = get_2d_per_spin(h)
+        if val is None:
             print(f"No 2D reference energy for h={h}.")
-            return None
-        return EXACT_ENERGY_2D_PER_SPIN[h]
+        return val
 
     try:
         result = subprocess.run(

@@ -33,13 +33,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 RESULTS_DIR = ROOT / "results"
 FIGURES_DIR = ROOT / "figures" / "fig_cem"
 
-# 2D reference energies per spin (thermodynamic limit)
-EXACT_ENERGY_2D_PER_SPIN = {
-    0.5: -2.0555,
-    1.0: -2.1276,
-    2.0: -2.4549,
-    3.044: -3.0440,
-}
+from reference_energies import get_2d_per_spin
 
 
 # ── Exact energy ─────────────────────────────────────────────────────────────
@@ -48,10 +42,10 @@ EXACT_ENERGY_2D_PER_SPIN = {
 def compute_exact_energy(model, N, h):
     """Return exact ground-state energy per spin."""
     if model == "2d":
-        if h not in EXACT_ENERGY_2D_PER_SPIN:
+        val = get_2d_per_spin(h)
+        if val is None:
             print(f"  [warn] No 2D reference energy for h={h}")
-            return None
-        return EXACT_ENERGY_2D_PER_SPIN[h]
+        return val
 
     try:
         result = subprocess.run(

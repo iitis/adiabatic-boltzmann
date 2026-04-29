@@ -381,11 +381,18 @@ class Trainer:
         )
         return ess_norm, kl, n_unique_ratio
 
-    def train(self) -> dict:
+    def train(self, start_iteration: int = 0) -> dict:
+        if start_iteration >= self.n_iterations:
+            raise RuntimeError(
+                f"start_iteration={start_iteration} >= n_iterations={self.n_iterations}. "
+                "The checkpoint covers all iterations; delete the result file and checkpoints "
+                "to force a clean rerun."
+            )
+
         prev_energy = None
         consecutive_converged = 0
 
-        for iteration in range(self.n_iterations):
+        for iteration in range(start_iteration, self.n_iterations):
             # ── 1. Sample ──────────────────────────────────────────────────
             _need_hidden = self.use_cem and not self._beta_fixed
             try:

@@ -26,7 +26,7 @@ import jax
 _SRC = Path(__file__).resolve().parent.parent.parent / "src"
 sys.path.insert(0, str(_SRC))
 from encoder import Trainer
-from helpers import save_results
+from helpers import find_latest_checkpoint, restore_rbm_from_checkpoint, save_results
 from ising import TransverseFieldIsing1D
 from model import FullyConnectedRBM
 from sampler import FPGASampler
@@ -142,6 +142,13 @@ def execute_run(run: Run) -> dict:
     rbm = FullyConnectedRBM(run.size, run.size, rbm_key)
     sampler = make_sampler()
 
+    start_iteration = 0
+    latest_ckpt = find_latest_checkpoint(args)
+    if latest_ckpt is not None:
+        ckpt_iter = restore_rbm_from_checkpoint(rbm, latest_ckpt)
+        start_iteration = ckpt_iter + 1
+        print(f"  [Resume] checkpoint at iter {ckpt_iter} → resuming from iter {start_iteration}")
+
     trainer_config = dict(
         learning_rate=run.lr,
         n_iterations=FIXED["iterations"],
@@ -155,7 +162,7 @@ def execute_run(run: Run) -> dict:
     )
 
     trainer = Trainer(rbm, ising, sampler, trainer_config, args=args)
-    history = trainer.train()
+    history = trainer.train(start_iteration=start_iteration)
     save_results(args, history, ising, rbm)
 
     exact = ising.exact_ground_energy()

@@ -123,5 +123,9 @@
   "2d_N4_h2": -40.190194437670534,
   "heisenberg_xxz_1d_delta1_N16_h1": -28.56918544246712,
   "heisenberg_xxz_1d_delta1_N4_h1": -8.0,
-  "lr_tfim_1d_alpha2_J1_N4_h1": -5.554884023871066
+  "lr_tfim_1d_alpha0.5_J1_N4_h0.5": -5.606536024668681,
+  "lr_tfim_1d_alpha1_J1_N4_h0.5": -5.209821924771454,
+  "lr_tfim_1d_alpha2_J1_N4_h0.5": -4.736245866524771,
+  "lr_tfim_1d_alpha2_J1_N4_h1": -5.554884023871066,
+  "lr_tfim_1d_alpha5_J1_N4_h0.5": -4.3289829367512365
 }
