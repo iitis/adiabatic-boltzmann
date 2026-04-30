@@ -27,7 +27,8 @@ import streamlit as st
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
-RESULTS_DIR = Path(__file__).parent.parent / "results"
+_ROOT = Path(__file__).parent.parent
+RESULTS_DIRS = [d for d in (_ROOT / "results", _ROOT / "jax_results") if d.exists()]
 
 # ── Extension points ───────────────────────────────────────────────────────────
 # Add one dict  → new sidebar filter appears automatically
@@ -37,6 +38,8 @@ FILTER_AXES = [
     {"col": "model", "label": "Model"},
     {"col": "size", "label": "System size N"},
     {"col": "h", "label": "Field h"},
+    {"col": "alpha", "label": "LR exponent α"},
+    {"col": "J", "label": "Coupling J"},
     {"col": "sampler", "label": "Sampler backend"},
     {"col": "sampling_method", "label": "Sampling method"},
     {"col": "rbm", "label": "RBM type"},
@@ -108,9 +111,9 @@ def _n_spins(model, size) -> int:
 
 
 @st.cache_data
-def load_all_runs(results_dir: Path) -> tuple[pd.DataFrame, dict]:
+def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
     """
-    Scan all JSON files under results_dir.
+    Scan all JSON files under every directory in results_dirs.
 
     Returns
     -------
@@ -120,14 +123,16 @@ def load_all_runs(results_dir: Path) -> tuple[pd.DataFrame, dict]:
     records: list[dict] = []
     histories: dict[str, dict] = {}
 
-    for path in sorted(results_dir.rglob("*.json")):
+    paths = sorted(p for d in results_dirs for p in d.rglob("*.json"))
+    for path in paths:
         try:
             with open(path) as f:
                 d = json.load(f)
         except Exception:
             continue
 
-        run_id = str(path.relative_to(results_dir))
+        base = next((d for d in results_dirs if path.is_relative_to(d)), path.parent)
+        run_id = str(path.relative_to(base))
         cfg = d.get("config", {})
 
         row: dict = {"run_id": run_id}
@@ -152,11 +157,21 @@ def load_all_runs(results_dir: Path) -> tuple[pd.DataFrame, dict]:
         model_str = cfg.get("model")
         size_val = cfg.get("size")
         h_val = cfg.get("h")
+        alpha_val = cfg.get("alpha")
+        J_val = cfg.get("J")
+        row["alpha"] = alpha_val
+        row["J"] = J_val
         exact_energy = None
         if model_str and size_val is not None and h_val is not None:
-            exact_energy = reference_energies.lookup(
-                str(model_str), int(size_val), float(h_val)
-            )
+            if model_str == "lr1d" and alpha_val is not None and J_val is not None:
+                lr_model_key = f"lr_tfim_1d_alpha{float(alpha_val):.10g}_J{float(J_val):.10g}"
+                exact_energy = reference_energies.lookup(
+                    lr_model_key, int(size_val), float(h_val)
+                )
+            else:
+                exact_energy = reference_energies.lookup(
+                    str(model_str), int(size_val), float(h_val)
+                )
         row["exact_energy"] = exact_energy
 
         # Recompute error from the authoritative reference.
@@ -202,6 +217,8 @@ def load_all_runs(results_dir: Path) -> tuple[pd.DataFrame, dict]:
     for col in (
         "size",
         "h",
+        "alpha",
+        "J",
         "n_hidden",
         "learning_rate",
         "regularization",
@@ -213,6 +230,59 @@ def load_all_runs(results_dir: Path) -> tuple[pd.DataFrame, dict]:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
     return df, histories
+
+
+# ── LR-TFIM reference panel ────────────────────────────────────────────────────
+
+
+def _lr_tfim_reference_panel(df: pd.DataFrame) -> None:
+    """Show exact reference energies per spin for visible LR-TFIM configurations.
+
+    Only rendered when the filtered dataframe contains lr1d runs.
+    Reference energies come from the master cache — no computation is triggered here.
+    """
+    lr_df = df[df["model"] == "lr1d"].copy() if "model" in df.columns else pd.DataFrame()
+    if lr_df.empty:
+        return
+
+    st.markdown("### LR-TFIM Reference Energies (exact diagonalization, N ≤ 16)")
+
+    key_cols = [c for c in ("alpha", "J", "h", "size") if c in lr_df.columns]
+    ref_rows = (
+        lr_df[key_cols + ["exact_energy", "n_spins"]]
+        .dropna(subset=["exact_energy"])
+        .drop_duplicates(subset=key_cols)
+        .sort_values(key_cols)
+    )
+
+    if ref_rows.empty:
+        st.info(
+            "No reference energies cached for the selected LR-TFIM configurations. "
+            "Run with N ≤ 16 to compute them via exact diagonalization."
+        )
+        return
+
+    cols = st.columns(min(len(ref_rows), 4))
+    for i, (_, rv) in enumerate(ref_rows.iterrows()):
+        n_sp = int(rv["n_spins"]) if pd.notna(rv.get("n_spins")) else int(rv["size"])
+        e_per_spin = rv["exact_energy"] / n_sp
+        label_parts = []
+        if pd.notna(rv.get("alpha")):
+            label_parts.append(f"α={rv['alpha']:g}")
+        if pd.notna(rv.get("J")):
+            label_parts.append(f"J={rv['J']:g}")
+        if pd.notna(rv.get("h")):
+            label_parts.append(f"h={rv['h']:g}")
+        if pd.notna(rv.get("size")):
+            label_parts.append(f"N={int(rv['size'])}")
+        with cols[i % len(cols)]:
+            st.metric(
+                label=",  ".join(label_parts),
+                value=f"{e_per_spin:.6f}",
+                help=f"Exact ground state energy per spin  (E_exact = {rv['exact_energy']:.6f})",
+            )
+
+    st.markdown("---")
 
 
 # ── Sidebar ────────────────────────────────────────────────────────────────────
@@ -1107,10 +1177,10 @@ def main() -> None:
     st.title("VMC / RBM Experiment Results")
 
     with st.spinner("Loading results..."):
-        df_all, histories = load_all_runs(RESULTS_DIR)
+        df_all, histories = load_all_runs(tuple(RESULTS_DIRS))
 
     if df_all.empty:
-        st.error(f"No JSON result files found under {RESULTS_DIR}")
+        st.error(f"No JSON result files found under {RESULTS_DIRS}")
         st.stop()
 
     df = build_sidebar(df_all)
@@ -1118,6 +1188,8 @@ def main() -> None:
     if df.empty:
         st.warning("No runs match the current filters.")
         st.stop()
+
+    _lr_tfim_reference_panel(df)
 
     tab1, tab2, tab3, tab4, tab5 = st.tabs(
         [

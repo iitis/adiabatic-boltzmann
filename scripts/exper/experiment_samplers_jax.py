@@ -174,7 +174,7 @@ def build_grid(
 # helpers._model_params_str naming exactly so skip-detection works correctly.
 # ---------------------------------------------------------------------------
 
-_MODEL_SUBDIR = {"1d": "tfim_1d", "2d": "tfim_2d"}
+_MODEL_SUBDIR = {"1d": "tfim_1d", "2d": "tfim_2d", "lr1d": "lr_tfim_1d"}
 
 
 def _model_subdir(model: str) -> str:
@@ -421,7 +421,7 @@ def main():
     if cli.size is not None:
         grid = [r for r in grid if r.size == cli.size]
     if cli.h is not None:
-        grid = [r for r in grid if r.model in ("1d", "2d") and r.h == cli.h]
+        grid = [r for r in grid if r.model in ("1d", "2d", "lr1d") and r.h == cli.h]
     if cli.J is not None:
         grid = [r for r in grid if r.model == "heisenberg_xxz_1d" and r.J == cli.J]
     if cli.delta is not None:
