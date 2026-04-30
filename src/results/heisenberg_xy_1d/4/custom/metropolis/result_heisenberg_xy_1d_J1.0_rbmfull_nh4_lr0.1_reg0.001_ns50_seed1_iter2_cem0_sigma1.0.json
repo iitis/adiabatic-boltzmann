@@ -1,0 +1,114 @@
+{
+  "config": {
+    "model": "heisenberg_xy_1d",
+    "size": 4,
+    "n_hidden": 4,
+    "rbm": "full",
+    "sampler": "custom",
+    "sampling_method": "metropolis",
+    "iterations": 2,
+    "learning_rate": 0.1,
+    "regularization": 0.001,
+    "n_samples": 50,
+    "output_dir": "results/",
+    "seed": 1,
+    "visualize": false,
+    "sigma": 1.0,
+    "cem": false,
+    "cem_interval": 5,
+    "h": 0.5,
+    "J": 1.0,
+    "J1": 1.0,
+    "J2": 0.5,
+    "delta": 1.0,
+    "alpha": 2.0
+  },
+  "history": {
+    "energy": [
+      4.319997262039492,
+      2.5857169790516816
+    ],
+    "error": [
+      1.9329052158166578,
+      2.278349397988336
+    ],
+    "energy_error": [
+      0.27335407709896115,
+      0.3222072618459681
+    ],
+    "learning_rate": [
+      0.1,
+      0.1
+    ],
+    "grad_norm": [
+      21.60879272139052,
+      8.199802163232995
+    ],
+    "weight_norm": [
+      2.1666579392464222,
+      2.755743193285073
+    ],
+    "s_condition_number": [
+      3.940626444229525e-09,
+      6.868771328728619e-09
+    ],
+    "beta_x": [
+      1.0,
+      1.0
+    ],
+    "beta_eff_cem": [
+      null,
+      null
+    ],
+    "cg_iterations": [
+      11.0,
+      43.0
+    ],
+    "cg_residual": [
+      3.940626444229525e-09,
+      6.868771328728619e-09
+    ],
+    "sampling_time_s": [
+      0.010100744999363087,
+      0.010635682000611268
+    ],
+    "cem_time_s": [
+      0.0,
+      0.0
+    ],
+    "total_sampling_time_s": [
+      0.010100744999363087,
+      0.010635682000611268
+    ],
+    "ess": [
+      0.9999998921309238,
+      0.8530710900461993
+    ],
+    "kl_exact": [
+      0.17404685126726333,
+      0.16091154949558886
+    ],
+    "n_unique_ratio": [
+      0.3,
+      0.24
+    ]
+  },
+  "final_energy": 2.5857169790516816,
+  "exact_energy": -5.656854249492382,
+  "error": 8.242571228544064,
+  "sparsity": 0.0,
+  "sampling_time_s": 0.020736426999974356,
+  "cem_time_s": 0.0,
+  "total_sampling_time_s": 0.020736426999974356,
+  "jax_devices": {
+    "backend": "cpu",
+    "devices": [
+      "cpu:0"
+    ]
+  },
+  "final_ess": 0.8530710900461993,
+  "mean_ess": 0.9265354910885615,
+  "final_kl_exact": 0.16091154949558886,
+  "final_n_unique_ratio": 0.24,
+  "mean_n_unique_ratio": 0.27
+}

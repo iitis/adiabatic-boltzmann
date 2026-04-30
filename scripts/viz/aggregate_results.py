@@ -75,14 +75,6 @@ def parse_file(path: Path) -> dict:
     if model == "lr1d" and alpha is not None:
         lr_key = f"lr_tfim_1d_alpha{float(alpha):.10g}_J{float(J):.10g}"
         exact_energy_total = reference_energies.lookup(lr_key, int(size), float(cfg["h"]))
-        if exact_energy_total is None:
-            # Fall back to the largest cached system — use its per-spin energy as
-            # an approximation of the thermodynamic-limit value.
-            for ref_n in [16, 12, 8, 4]:
-                ref_total = reference_energies.lookup(lr_key, ref_n, float(cfg["h"]))
-                if ref_total is not None:
-                    exact_energy_total = ref_total / ref_n * N
-                    break
     else:
         raw = data.get("exact_energy")
         exact_energy_total = float(raw) if raw is not None else None
@@ -182,7 +174,7 @@ def plot_metric(
 
 def plot_lr_tfim(df_lr: pd.DataFrame, out_path: Path) -> None:
     """2×4 grid: rows = (error, time), cols = α values, x-axis = h, lines = solver."""
-    base = filter_df(df_lr[df_lr["distance_at_conv"].notna()])
+    base = filter_df(df_lr[df_lr["distance_final"].notna()])
     alpha_values = sorted(base["alpha"].dropna().unique())
     if not alpha_values:
         print("No LR-TFIM data with exact reference energies — skipping lr_tfim plot.")
@@ -199,34 +191,30 @@ def plot_lr_tfim(df_lr: pd.DataFrame, out_path: Path) -> None:
     for col, alpha in enumerate(alpha_values):
         sub = base[base["alpha"] == alpha].copy()
 
-        grouped_err = sub.groupby(["solver", "h"])["distance_at_conv"].mean().reset_index()
+        grouped_err = sub.groupby(["solver", "h"])["distance_final"].mean().reset_index()
         for solver, grp in grouped_err.groupby("solver"):
             grp = grp.sort_values("h")
-            axes[0, col].plot(grp["h"], grp["distance_at_conv"], marker="o", label=solver)
+            axes[0, col].plot(grp["h"], grp["distance_final"], marker="o", label=solver)
         axes[0, col].set_title(f"α = {alpha:g}")
         axes[0, col].set_yscale("log")
         axes[0, col].grid(True, which="both", alpha=0.3)
 
-        sub_t = sub[sub["conv_iter"] > 0]
-        grouped_t = sub_t.groupby(["solver", "h"])["time_to_conv_s"].mean().reset_index()
+        grouped_t = sub.groupby(["solver", "h"])["time_total_s"].mean().reset_index()
         for solver, grp in grouped_t.groupby("solver"):
             grp = grp.sort_values("h")
-            axes[1, col].plot(grp["h"], grp["time_to_conv_s"], marker="s", linestyle="--", label=solver)
+            axes[1, col].plot(grp["h"], grp["time_total_s"], marker="s", linestyle="--", label=solver)
         axes[1, col].set_yscale("log")
         axes[1, col].grid(True, which="both", alpha=0.3)
         axes[1, col].set_xlabel("Transverse field h")
 
-    axes[0, 0].set_ylabel(r"Mean $|e_\mathrm{VMC} - e_\mathrm{exact}|$ at convergence")
-    axes[1, 0].set_ylabel("Mean time to convergence (s)")
-    # one shared legend from the last column
+    axes[0, 0].set_ylabel(r"Mean $|e_\mathrm{VMC} - e_\mathrm{exact}|$ at 300 iters")
+    axes[1, 0].set_ylabel("Total sampling time (s)")
     handles, labels = axes[0, -1].get_legend_handles_labels()
     if handles:
         fig.legend(handles, labels, loc="upper right", title="Solver", framealpha=0.9)
 
     fig.suptitle(
-        f"LR-TFIM (N=16) — convergence quality and cost by α\n"
-        f"(conv: CV < {CONV_THRESHOLD * 100:.1f}% over {CONV_WINDOW} iters, "
-        f"mean over seeds)"
+        f"LR-TFIM (N=16) — quality and cost by α  (last {CONV_WINDOW}-iter window, 300 iters)"
     )
     fig.tight_layout()
     fig.savefig(out_path, dpi=150)
@@ -238,11 +226,11 @@ def plot_lr_vs_tfim(df_lr: pd.DataFrame, df_1d: pd.DataFrame, out_path: Path) ->
     solver = "metropolis"
 
     lr_base = filter_df(
-        df_lr[(df_lr["distance_at_conv"].notna()) & (df_lr["solver"] == solver)]
+        df_lr[(df_lr["distance_final"].notna()) & (df_lr["solver"] == solver)]
     )
     tfim_base = filter_df(
         df_1d[
-            (df_1d["distance_at_conv"].notna())
+            (df_1d["distance_final"].notna())
             & (df_1d["solver"] == solver)
             & (df_1d["N"] == 16)
             & (df_1d["lr"] == 0.01)
@@ -256,12 +244,12 @@ def plot_lr_vs_tfim(df_lr: pd.DataFrame, df_1d: pd.DataFrame, out_path: Path) ->
     fig, (ax_err, ax_t) = plt.subplots(1, 2, figsize=(11, 4.5))
 
     # 1D TFIM reference — bold black line
-    tfim_grp = tfim_base.groupby("h")["distance_at_conv"].mean().reset_index().sort_values("h")
-    ax_err.plot(tfim_grp["h"], tfim_grp["distance_at_conv"],
+    tfim_grp = tfim_base.groupby("h")["distance_final"].mean().reset_index().sort_values("h")
+    ax_err.plot(tfim_grp["h"], tfim_grp["distance_final"],
                 color="black", linewidth=2.5, marker="o", label="TFIM  (α → ∞)", zorder=5)
 
-    tfim_t = tfim_base[tfim_base["conv_iter"] > 0].groupby("h")["time_to_conv_s"].mean().reset_index().sort_values("h")
-    ax_t.plot(tfim_t["h"], tfim_t["time_to_conv_s"],
+    tfim_t = tfim_base.groupby("h")["time_total_s"].mean().reset_index().sort_values("h")
+    ax_t.plot(tfim_t["h"], tfim_t["time_total_s"],
               color="black", linewidth=2.5, marker="o", linestyle="--", label="TFIM  (α → ∞)", zorder=5)
 
     # LR-TFIM — one coloured line per α, thinner
@@ -271,32 +259,31 @@ def plot_lr_vs_tfim(df_lr: pd.DataFrame, df_1d: pd.DataFrame, out_path: Path) ->
 
     for alpha, color in zip(alpha_values, colors):
         sub = lr_base[lr_base["alpha"] == alpha]
-        err_grp = sub.groupby("h")["distance_at_conv"].mean().reset_index().sort_values("h")
-        ax_err.plot(err_grp["h"], err_grp["distance_at_conv"],
+        err_grp = sub.groupby("h")["distance_final"].mean().reset_index().sort_values("h")
+        ax_err.plot(err_grp["h"], err_grp["distance_final"],
                     color=color, marker="^", linewidth=1.5, label=f"LR-TFIM  α={alpha:g}")
 
-        t_grp = sub[sub["conv_iter"] > 0].groupby("h")["time_to_conv_s"].mean().reset_index().sort_values("h")
-        ax_t.plot(t_grp["h"], t_grp["time_to_conv_s"],
+        t_grp = sub.groupby("h")["time_total_s"].mean().reset_index().sort_values("h")
+        ax_t.plot(t_grp["h"], t_grp["time_total_s"],
                   color=color, marker="^", linewidth=1.5, linestyle="--", label=f"LR-TFIM  α={alpha:g}")
 
     for ax, ylabel in [
-        (ax_err, r"Mean $|e_\mathrm{VMC} - e_\mathrm{exact}|$ at convergence"),
-        (ax_t,   "Mean time to convergence (s)"),
+        (ax_err, r"Mean $|e_\mathrm{VMC} - e_\mathrm{exact}|$ at 300 iters"),
+        (ax_t,   "Total sampling time (s)"),
     ]:
         ax.set_yscale("log")
         ax.set_xlabel("Transverse field h")
         ax.set_ylabel(ylabel)
         ax.grid(True, which="both", alpha=0.3)
 
-    ax_err.set_title("Energy error at convergence")
-    ax_t.set_title("Sampling cost to convergence")
+    ax_err.set_title("Energy error at 300 iters")
+    ax_t.set_title("Total sampling cost (300 iters)")
 
     handles, labels = ax_err.get_legend_handles_labels()
     fig.legend(handles, labels, loc="upper right", title="Model", framealpha=0.9,
                bbox_to_anchor=(1.0, 1.0))
     fig.suptitle(
-        f"LR-TFIM vs 1D TFIM — N=16, {solver}\n"
-        f"(conv: CV < {CONV_THRESHOLD * 100:.1f}% over {CONV_WINDOW} iters, mean over seeds)"
+        f"LR-TFIM vs 1D TFIM — N=16, {solver}  (last {CONV_WINDOW}-iter window, 300 iters)"
     )
     fig.tight_layout()
     fig.savefig(out_path, dpi=150, bbox_inches="tight")
@@ -305,7 +292,7 @@ def plot_lr_vs_tfim(df_lr: pd.DataFrame, df_1d: pd.DataFrame, out_path: Path) ->
 
 def plot_lr_tfim_vs_size(df_lr: pd.DataFrame, out_path: Path) -> None:
     """2×4 grid: rows = (error, time), cols = α values, x-axis = N, averaged over h."""
-    base = filter_df(df_lr[df_lr["distance_at_conv"].notna()])
+    base = filter_df(df_lr[df_lr["distance_final"].notna()])
     alpha_values = sorted(base["alpha"].dropna().unique())
     if not alpha_values:
         print("No LR-TFIM distance data — skipping lr_tfim_vs_size plot.")
@@ -322,35 +309,34 @@ def plot_lr_tfim_vs_size(df_lr: pd.DataFrame, out_path: Path) -> None:
     for col, alpha in enumerate(alpha_values):
         sub = base[base["alpha"] == alpha]
 
-        grouped_err = sub.groupby(["solver", "N"])["distance_at_conv"].mean().reset_index()
+        grouped_err = sub.groupby(["solver", "N"])["distance_final"].mean().reset_index()
         for solver, grp in grouped_err.groupby("solver"):
             grp = grp.sort_values("N")
-            axes[0, col].plot(grp["N"], grp["distance_at_conv"], marker="o", label=solver)
+            axes[0, col].plot(grp["N"], grp["distance_final"], marker="o", label=solver)
         axes[0, col].set_title(f"α = {alpha:g}")
         axes[0, col].set_yscale("log")
         axes[0, col].set_xscale("log")
         axes[0, col].grid(True, which="both", alpha=0.3)
 
-        sub_t = sub[sub["conv_iter"] > 0]
-        grouped_t = sub_t.groupby(["solver", "N"])["time_to_conv_s"].mean().reset_index()
+        grouped_t = sub.groupby(["solver", "N"])["time_total_s"].mean().reset_index()
         for solver, grp in grouped_t.groupby("solver"):
             grp = grp.sort_values("N")
-            axes[1, col].plot(grp["N"], grp["time_to_conv_s"], marker="s", linestyle="--", label=solver)
+            axes[1, col].plot(grp["N"], grp["time_total_s"], marker="s", linestyle="--", label=solver)
         axes[1, col].set_yscale("log")
         axes[1, col].set_xscale("log")
         axes[1, col].grid(True, which="both", alpha=0.3)
         axes[1, col].set_xlabel("System size N (spins)")
 
-    axes[0, 0].set_ylabel(r"Mean $|e_\mathrm{VMC} - e_\mathrm{exact}|$ at convergence")
-    axes[1, 0].set_ylabel("Mean time to convergence (s)")
+    axes[0, 0].set_ylabel(r"Mean $|e_\mathrm{VMC} - e_\mathrm{exact}|$ at 300 iters")
+    axes[1, 0].set_ylabel("Total sampling time (s)")
     handles, labels = axes[0, -1].get_legend_handles_labels()
     if handles:
         fig.legend(handles, labels, loc="upper right", title="Solver", framealpha=0.9)
 
     fig.suptitle(
-        f"LR-TFIM — convergence quality and cost vs system size\n"
-        f"(averaged over h;  ref = N=16 per-spin energy for N > 16;\n"
-        f"conv: CV < {CONV_THRESHOLD * 100:.1f}% over {CONV_WINDOW} iters)"
+        f"LR-TFIM — quality and cost vs system size\n"
+        f"(averaged over h;  only sizes with exact ED reference shown;\n"
+        f"last {CONV_WINDOW}-iter window, 300 iters)"
     )
     fig.tight_layout()
     fig.savefig(out_path, dpi=150)
@@ -391,10 +377,10 @@ def main():
     if not df_lr.empty:
         plot_lr_tfim(df_lr, out_plot.parent / "lr_tfim_distance_vs_h.png")
         plot_lr_tfim_vs_size(df_lr, out_plot.parent / "lr_tfim_distance_vs_size.png")
-        base_1d_all = df[(df["model"] == "1d") & df["distance_at_conv"].notna()]
+        base_1d_all = df[(df["model"] == "1d") & df["distance_final"].notna()]
         plot_lr_vs_tfim(df_lr, base_1d_all, out_plot.parent / "lr_vs_tfim_comparison.png")
 
-    base = df[(df["model"] == "1d") & df["distance_at_conv"].notna()]
+    base = df[(df["model"] == "1d") & df["distance_final"].notna()]
     dimod_mask = base["solver"].isin(["pegasus", "zephyr"])
     df1d = filter_df(pd.concat([
         base[~dimod_mask & (base["lr"] == 0.01)],
@@ -412,7 +398,7 @@ def main():
         ax_top = axes[0, col]
         plot_metric(
             sub,
-            "distance_at_conv",
+            "distance_final",
             r"$|e_\mathrm{VMC} - e_\mathrm{exact}|$",
             ax_top,
             log=True,
@@ -423,9 +409,9 @@ def main():
 
         ax_bot = axes[1, col]
         plot_metric(
-            sub[sub["conv_iter"] > 0],
-            "time_to_conv_s",
-            "Time to convergence (s)",
+            sub,
+            "time_total_s",
+            "Total sampling time (s)",
             ax_bot,
             log=True,
             linestyle="--",
@@ -435,15 +421,14 @@ def main():
 
     for col in range(len(h_values)):
         axes[0, col].set_ylabel(
-            r"Mean $|e_\mathrm{VMC} - e_\mathrm{exact}|$ at convergence"
+            r"Mean $|e_\mathrm{VMC} - e_\mathrm{exact}|$ at 300 iters"
         )
-        axes[1, col].set_ylabel("Mean time to convergence (s)")
+        axes[1, col].set_ylabel("Total sampling time (s)")
         for row in range(2):
             axes[row, col].tick_params(labelleft=True)
 
     fig.suptitle(
-        f"1D TFIM — convergence quality and cost\n"
-        f"(conv: CV < {CONV_THRESHOLD * 100:.1f}% over {CONV_WINDOW} iters, "
+        f"1D TFIM — quality and cost  (last {CONV_WINDOW}-iter window, 300 iters,\n"
         f"mean over all runs per solver×N)"
     )
     fig.tight_layout()

@@ -7,7 +7,15 @@ from helpers import save_results
 from model import FullyConnectedRBM, DWaveTopologyRBM
 from sampler import ClassicalSampler, DimodSampler, VeloxSampler
 from encoder import Trainer
-from ising import TransverseFieldIsing1D, TransverseFieldIsing2D, HeisenbergXXZ1D, LongRangeTFIM1D
+from ising import (
+    TransverseFieldIsing1D,
+    TransverseFieldIsing2D,
+    HeisenbergXXZ1D,
+    LongRangeTFIM1D,
+    J1J2Ising1D,
+    HeisenbergXY1D,
+    HeisenbergXXZ2D,
+)
 
 
 def parse_arguments():
@@ -24,7 +32,7 @@ def parse_arguments():
     # Model parameters
     parser.add_argument(
         "--model",
-        choices=["1d", "2d", "heisenberg_xxz_1d", "lr1d"],
+        choices=["1d", "2d", "heisenberg_xxz_1d", "lr1d", "j1j2_1d", "heisenberg_xy_1d", "heisenberg_xxz_2d"],
         default="1d",
         help="Physical model",
     )
@@ -38,7 +46,13 @@ def parse_arguments():
         "--h", type=float, default=0.5, help="Transverse field strength (TFIM only)"
     )
     parser.add_argument(
-        "--J", type=float, default=1.0, help="Coupling strength (Heisenberg)"
+        "--J", type=float, default=1.0, help="Coupling strength (Heisenberg/XY)"
+    )
+    parser.add_argument(
+        "--J1", type=float, default=1.0, help="NN coupling J₁ (J1J2 model)"
+    )
+    parser.add_argument(
+        "--J2", type=float, default=0.5, help="NNN coupling J₂ (J1J2 model)"
     )
     parser.add_argument(
         "--delta", type=float, default=1.0, help="XXZ anisotropy Δ (Heisenberg)"
@@ -141,6 +155,12 @@ def main():
         _model_desc = f"{args.model} with J={args.J}, Δ={args.delta}"
     elif args.model == "lr1d":
         _model_desc = f"{args.model} with h={args.h}, α={args.alpha}"
+    elif args.model == "j1j2_1d":
+        _model_desc = f"{args.model} with J1={args.J1}, J2={args.J2}, h={args.h}"
+    elif args.model == "heisenberg_xy_1d":
+        _model_desc = f"{args.model} with J={args.J}"
+    elif args.model == "heisenberg_xxz_2d":
+        _model_desc = f"{args.model} with J={args.J}, Δ={args.delta}"
     else:
         _model_desc = f"{args.model} with h={args.h}"
     print(f"Configuration:")
@@ -154,6 +174,9 @@ def main():
     )
     print(f"  JAX devices: {jax.devices()}")
 
+    _1d_models = ("1d", "heisenberg_xxz_1d", "lr1d", "j1j2_1d", "heisenberg_xy_1d")
+    _2d_models = ("2d", "heisenberg_xxz_2d")
+
     # 1. Instantiate model
     if args.model == "1d":
         ising = TransverseFieldIsing1D(args.size, args.h)
@@ -163,18 +186,24 @@ def main():
         ising = HeisenbergXXZ1D(args.size, J=args.J, delta=args.delta)
     elif args.model == "lr1d":
         ising = LongRangeTFIM1D(args.size, args.h, alpha=args.alpha)
+    elif args.model == "j1j2_1d":
+        ising = J1J2Ising1D(args.size, J1=args.J1, J2=args.J2, h=args.h)
+    elif args.model == "heisenberg_xy_1d":
+        ising = HeisenbergXY1D(args.size, J=args.J)
+    elif args.model == "heisenberg_xxz_2d":
+        ising = HeisenbergXXZ2D(args.size, J=args.J, delta=args.delta)
 
     # 2. Instantiate RBM
     if args.n_hidden is not None:
         n_hidden = args.n_hidden
-    elif args.model in ("1d", "heisenberg_xxz_1d", "lr1d"):
+    elif args.model in _1d_models:
         n_hidden = args.size
-    elif args.model == "2d":
+    elif args.model in _2d_models:
         n_hidden = args.size**2
     else:
         raise ValueError(f"Unsupported model type: {args.model}")
 
-    n_visible = args.size if args.model in ("1d", "heisenberg_xxz_1d", "lr1d") else args.size**2
+    n_visible = args.size if args.model in _1d_models else args.size**2
     args.n_hidden = n_hidden
     key, rbm_key = jax.random.split(key)
     if args.rbm == "full":

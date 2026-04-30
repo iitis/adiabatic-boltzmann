@@ -42,9 +42,9 @@
   \centering
   \includegraphics[width=0.96\linewidth]{../distance_vs_size.png}
   \vspace{-0.4em}\\
-  \small\textit{Mean energy error per spin at convergence (top) and time to convergence
-  (bottom) vs.\ $N$, for $h\in\{0.5,1.0,2.0\}$.
-  Convergence: CV\,$<$\,0.1\% over 20 iterations.}
+  \small\textit{Mean energy error per spin (top) and total sampling time (bottom)
+  vs.\ $N$, for $h\in\{0.5,1.0,2.0\}$. Error measured in the last 20-iteration
+  window of 300 iterations.}
 \end{figure}
 
 \newpage
@@ -63,7 +63,9 @@ $N\in\{16,25,36\}$; reference energy per spin from $N=16$ ED for $N>16$.
   \includegraphics[width=0.96\linewidth]{../lr_tfim_distance_vs_size.png}
   \vspace{-0.4em}\\
   \small\textit{Same metrics as above, averaged over $h\in\{0.5,1.0,2.0,3.044\}$,
-  one column per $\alpha$.}
+  one column per $\alpha$. Only $N=16$ shown: exact ED reference only available there;
+  larger $N$ omitted because the per-spin ground state energy shifts with $N$
+  (finite-size effect), making the N=16 reference an invalid baseline.}
 \end{figure}
 
 \vspace{-0.8em}
@@ -77,8 +79,8 @@ $N\in\{16,25,36\}$; reference energy per spin from $N=16$ ED for $N>16$.
   \centering
   \includegraphics[width=0.92\linewidth]{../lr_vs_tfim_comparison.png}
   \vspace{-0.4em}\\
-  \small\textit{Energy error (left) and time to convergence (right) vs.\ $h$,
-  Metropolis sampler.
+  \small\textit{Energy error (left) and total sampling time (right) vs.\ $h$,
+  Metropolis sampler, last 20-iter window of 300 iterations.
   Black: nearest-neighbour TFIM ($\alpha\to\infty$).
   Coloured lines: LR-TFIM for $\alpha\in\{0.5,1,2,3\}$.}
 \end{figure}

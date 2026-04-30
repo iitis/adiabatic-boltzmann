@@ -1,0 +1,114 @@
+{
+  "config": {
+    "model": "j1j2_1d",
+    "size": 4,
+    "n_hidden": 4,
+    "rbm": "full",
+    "sampler": "custom",
+    "sampling_method": "metropolis",
+    "iterations": 2,
+    "learning_rate": 0.1,
+    "regularization": 0.001,
+    "n_samples": 50,
+    "output_dir": "results/",
+    "seed": 1,
+    "visualize": false,
+    "sigma": 1.0,
+    "cem": false,
+    "cem_interval": 5,
+    "h": 0.5,
+    "J": 1.0,
+    "J1": 1.0,
+    "J2": 0.5,
+    "delta": 1.0,
+    "alpha": 2.0
+  },
+  "history": {
+    "energy": [
+      -1.6000355904586334,
+      -4.927281586337881
+    ],
+    "error": [
+      2.116393429739383,
+      2.2409890902715555
+    ],
+    "energy_error": [
+      0.2993032291654746,
+      0.3169237164592178
+    ],
+    "learning_rate": [
+      0.1,
+      0.1
+    ],
+    "grad_norm": [
+      21.845622781621874,
+      70.24840604057655
+    ],
+    "weight_norm": [
+      2.1983475748740453,
+      7.456323366031796
+    ],
+    "s_condition_number": [
+      4.0449597844088056e-09,
+      0.00011141606455416943
+    ],
+    "beta_x": [
+      1.0,
+      1.0
+    ],
+    "beta_eff_cem": [
+      null,
+      null
+    ],
+    "cg_iterations": [
+      11.0,
+      200.0
+    ],
+    "cg_residual": [
+      4.0449597844088056e-09,
+      0.00011141606455416943
+    ],
+    "sampling_time_s": [
+      0.5891318189997037,
+      0.010423378000268713
+    ],
+    "cem_time_s": [
+      0.0,
+      0.0
+    ],
+    "total_sampling_time_s": [
+      0.5891318189997037,
+      0.010423378000268713
+    ],
+    "ess": [
+      0.9999998921309238,
+      0.7116862130052374
+    ],
+    "kl_exact": [
+      0.17404685126726333,
+      0.1937255595958239
+    ],
+    "n_unique_ratio": [
+      0.3,
+      0.16
+    ]
+  },
+  "final_energy": -4.927281586337881,
+  "exact_energy": -6.172260395302988,
+  "error": 1.244978808965107,
+  "sparsity": 0.0,
+  "sampling_time_s": 0.5995551969999724,
+  "cem_time_s": 0.0,
+  "total_sampling_time_s": 0.5995551969999724,
+  "jax_devices": {
+    "backend": "cpu",
+    "devices": [
+      "cpu:0"
+    ]
+  },
+  "final_ess": 0.7116862130052374,
+  "mean_ess": 0.8558430525680806,
+  "final_kl_exact": 0.1937255595958239,
+  "final_n_unique_ratio": 0.16,
+  "mean_n_unique_ratio": 0.22999999999999998
+}

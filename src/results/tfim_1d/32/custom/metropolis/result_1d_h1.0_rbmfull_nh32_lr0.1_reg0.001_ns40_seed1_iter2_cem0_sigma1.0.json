@@ -1,0 +1,114 @@
+{
+  "config": {
+    "model": "1d",
+    "size": 32,
+    "n_hidden": 32,
+    "rbm": "full",
+    "sampler": "custom",
+    "sampling_method": "metropolis",
+    "iterations": 2,
+    "n_samples": 40,
+    "learning_rate": 0.1,
+    "regularization": 0.001,
+    "output_dir": "results/",
+    "seed": 1,
+    "visualize": false,
+    "sigma": 1.0,
+    "cem": false,
+    "cem_interval": 5,
+    "h": 1.0,
+    "J": 1.0,
+    "J1": 1.0,
+    "J2": 0.5,
+    "delta": 1.0,
+    "alpha": 2.0
+  },
+  "history": {
+    "energy": [
+      -32.90168480469977,
+      -30.16525008263011
+    ],
+    "error": [
+      6.033945432133646,
+      4.485874612007332
+    ],
+    "energy_error": [
+      0.9540505421355633,
+      0.7092790535933641
+    ],
+    "learning_rate": [
+      0.1,
+      0.1
+    ],
+    "grad_norm": [
+      25.729065044967363,
+      4.5017683317278
+    ],
+    "weight_norm": [
+      2.5849129336558785,
+      2.576602045186156
+    ],
+    "s_condition_number": [
+      6.570224423206827e-09,
+      2.3163090999900457e-09
+    ],
+    "beta_x": [
+      1.0,
+      1.0
+    ],
+    "beta_eff_cem": [
+      null,
+      null
+    ],
+    "cg_iterations": [
+      40.0,
+      25.0
+    ],
+    "cg_residual": [
+      6.570224423206827e-09,
+      2.3163090999900457e-09
+    ],
+    "sampling_time_s": [
+      0.1265161840001383,
+      0.130405986000369
+    ],
+    "cem_time_s": [
+      0.0,
+      0.0
+    ],
+    "total_sampling_time_s": [
+      0.1265161840001383,
+      0.130405986000369
+    ],
+    "ess": [
+      0.9998609821925506,
+      0.1467436719768077
+    ],
+    "kl_exact": [
+      null,
+      null
+    ],
+    "n_unique_ratio": [
+      1.0,
+      1.0
+    ]
+  },
+  "final_energy": -30.16525008263011,
+  "exact_energy": -40.76003249419223,
+  "error": 10.594782411562122,
+  "sparsity": 0.0,
+  "sampling_time_s": 0.2569221700005073,
+  "cem_time_s": 0.0,
+  "total_sampling_time_s": 0.2569221700005073,
+  "jax_devices": {
+    "backend": "cpu",
+    "devices": [
+      "cpu:0"
+    ]
+  },
+  "final_ess": 0.1467436719768077,
+  "mean_ess": 0.5733023270846791,
+  "final_kl_exact": null,
+  "final_n_unique_ratio": 1.0,
+  "mean_n_unique_ratio": 1.0
+}
