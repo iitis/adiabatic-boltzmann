@@ -38,8 +38,12 @@ FILTER_AXES = [
     {"col": "model", "label": "Model"},
     {"col": "size", "label": "System size N"},
     {"col": "h", "label": "Field h"},
-    {"col": "alpha", "label": "LR exponent α"},
     {"col": "J", "label": "Coupling J"},
+    {"col": "J1", "label": "Coupling J1"},
+    {"col": "J2", "label": "Coupling J2"},
+    {"col": "delta", "label": "Anisotropy δ"},
+    {"col": "sigma", "label": "Sigma"},
+    {"col": "alpha", "label": "LR exponent α"},
     {"col": "sampler", "label": "Sampler backend"},
     {"col": "sampling_method", "label": "Sampling method"},
     {"col": "rbm", "label": "RBM type"},
@@ -159,16 +163,29 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
         h_val = cfg.get("h")
         alpha_val = cfg.get("alpha")
         J_val = cfg.get("J")
+        J1_val = cfg.get("J1")
+        J2_val = cfg.get("J2")
+        delta_val = cfg.get("delta")
         row["alpha"] = alpha_val
         row["J"] = J_val
         exact_energy = None
-        if model_str and size_val is not None and h_val is not None:
-            if model_str == "lr1d" and alpha_val is not None and J_val is not None:
+        if model_str and size_val is not None:
+            if model_str == "lr1d" and alpha_val is not None and J_val is not None and h_val is not None:
                 lr_model_key = f"lr_tfim_1d_alpha{float(alpha_val):.10g}_J{float(J_val):.10g}"
                 exact_energy = reference_energies.lookup(
                     lr_model_key, int(size_val), float(h_val)
                 )
-            else:
+            elif model_str in ("heisenberg_xxz_1d", "heisenberg_xy_1d") and J_val is not None:
+                d_key = 0.0 if model_str == "heisenberg_xy_1d" else float(delta_val) if delta_val is not None else 1.0
+                xxz_key = f"heisenberg_xxz_1d_delta{d_key:.10g}"
+                exact_energy = reference_energies.lookup(xxz_key, int(size_val), float(J_val))
+            elif model_str == "heisenberg_xxz_2d" and J_val is not None and delta_val is not None:
+                xxz2d_key = f"heisenberg_xxz_2d_delta{float(delta_val):.10g}"
+                exact_energy = reference_energies.lookup(xxz2d_key, int(size_val), float(J_val))
+            elif model_str == "j1j2_1d" and J1_val is not None and J2_val is not None and h_val is not None:
+                j1j2_key = f"j1j2_1d_J1{float(J1_val):.10g}_J2{float(J2_val):.10g}"
+                exact_energy = reference_energies.lookup(j1j2_key, int(size_val), float(h_val))
+            elif h_val is not None:
                 exact_energy = reference_energies.lookup(
                     str(model_str), int(size_val), float(h_val)
                 )
@@ -217,8 +234,12 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
     for col in (
         "size",
         "h",
-        "alpha",
         "J",
+        "J1",
+        "J2",
+        "delta",
+        "sigma",
+        "alpha",
         "n_hidden",
         "learning_rate",
         "regularization",
@@ -400,7 +421,7 @@ def tab_table(df: pd.DataFrame) -> None:
 
 
 def tab_curves(df: pd.DataFrame, histories: dict) -> None:
-    c1, c2, c3, c4, c5 = st.columns(5)
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
 
     metric_idx = c1.selectbox(
         "Y-axis metric",
@@ -424,6 +445,12 @@ def tab_curves(df: pd.DataFrame, histories: dict) -> None:
         value=(metric_key == "energy"),
         key="curve_per_spin",
         help="Divide energy by N (1D) or N² (2D). Only meaningful for the energy metric.",
+    )
+    clip_outliers = c6.checkbox(
+        "Clip outliers",
+        value=True,
+        key="curve_clip",
+        help="Restrict Y axis to the 2nd–98th percentile of plotted values, hiding divergent early iterations.",
     )
 
     runs = df.head(MAX_CURVES)
@@ -452,6 +479,11 @@ def tab_curves(df: pd.DataFrame, histories: dict) -> None:
                     "sampler": f"{r.get('sampler', '')}/{r.get('sampling_method', '')}",
                     "N": r.get("size"),
                     "h": r.get("h"),
+                    "J": r.get("J"),
+                    "J1": r.get("J1"),
+                    "J2": r.get("J2"),
+                    "delta": r.get("delta"),
+                    "sigma": r.get("sigma"),
                     "lr": r.get("learning_rate"),
                     "seed": r.get("seed"),
                     "error": f"{r['error']:.3e}" if pd.notna(r.get("error")) else "N/A",
@@ -484,6 +516,11 @@ def tab_curves(df: pd.DataFrame, histories: dict) -> None:
             "sampler": True,
             "N": True,
             "h": True,
+            "J": True,
+            "J1": True,
+            "J2": True,
+            "delta": True,
+            "sigma": True,
             "lr": True,
             "seed": True,
             "error": True,
@@ -513,6 +550,21 @@ def tab_curves(df: pd.DataFrame, histories: dict) -> None:
 
     if log_y:
         fig.update_yaxes(type="log")
+
+    if clip_outliers and not pf.empty:
+        import numpy as np
+
+        vals = pf["value"][pf["value"] > 0] if log_y else pf["value"]
+        if not vals.empty:
+            lo = float(np.nanpercentile(vals, 2))
+            hi = float(np.nanpercentile(vals, 98))
+            if log_y and lo > 0 and hi > 0:
+                lo_l, hi_l = np.log10(lo), np.log10(hi)
+                pad = (hi_l - lo_l) * 0.05 or 0.1
+                fig.update_yaxes(range=[lo_l - pad, hi_l + pad])
+            elif not log_y:
+                pad = (hi - lo) * 0.05 or abs(hi) * 0.05 or 0.1
+                fig.update_yaxes(range=[lo - pad, hi + pad])
     fig.update_layout(
         hovermode="closest",
         title=_titled(f"Convergence — {y_label}"),
