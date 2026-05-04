@@ -369,6 +369,24 @@ def log_solver_time_ms(
             fcntl.flock(f, fcntl.LOCK_UN)
 
 
+def read_qpu_time_ms(time_path: Path = Path("time.json"), key: str = "time_ms") -> float:
+    """
+    Return accumulated QPU access time in milliseconds from time.json.
+
+    Returns 0.0 if the file does not exist (valid initial state).
+    Raises OSError / json.JSONDecodeError / KeyError if the file exists but
+    cannot be read or parsed — a silent 0 fallback would make budget checks
+    always pass and silently burn QPU time.
+    """
+    if not time_path.exists():
+        return 0.0
+    with time_path.open("r") as f:
+        data = json.load(f)
+    if key not in data:
+        raise KeyError(f"'{key}' missing from {time_path}")
+    return float(data[key])
+
+
 def get_solver_name(architecture="pegasus"):
     if architecture == "pegasus":
         return "Advantage_system6.4"

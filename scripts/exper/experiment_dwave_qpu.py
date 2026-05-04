@@ -15,15 +15,13 @@ RBM strategy per run:
   The result filename records which RBM was actually used (rbmfull,
   rbmpegasus, or rbmzephyr) so skip-detection is unambiguous.
 
-Budget (wall-clock):
-  WALL_BUDGET_S  = 15 * 60   (900 s, override with --budget-s)
-  SECS_PER_ITER  = 0.3       (empirical per-iteration estimate; CEM adds overhead
-                              every cem_interval iterations — treat as lower bound)
-  Before each experiment the remaining budget is compared to
-  SECS_PER_ITER * MIN_ITERATIONS; experiments that would not fit are skipped
-  and the loop stops when no further run can start.  If budget allows fewer
-  than FIXED["iterations"] iterations, the run is launched with the reduced
-  count (partial results are still saved and skip-detection finds them).
+Budget (QPU access time via time.json):
+  QPU_BUDGET_MS   = 15 * 60 * 1000  (15 min; override with --budget-ms)
+  QPU_MS_PER_ITER = 200              (empirical QPU-access-time estimate per iteration)
+  QPU time consumed since script start is read from time.json before each
+  experiment.  If the file cannot be read the script aborts rather than
+  silently exceeding budget.  Runs are capped to the iterations that fit;
+  if fewer than MIN_ITERATIONS would fit the loop stops.
 
 Results written to:
   jax_results/tfim_1d/{size}/dimod/{method}/
@@ -38,8 +36,8 @@ Usage
     python scripts/exper/experiment_dwave_qpu.py --h 0.5 --size 16
     python scripts/exper/experiment_dwave_qpu.py --seeds 1 2 3
     python scripts/exper/experiment_dwave_qpu.py --dry-run
-    python scripts/exper/experiment_dwave_qpu.py --force             # re-run existing
-    python scripts/exper/experiment_dwave_qpu.py --budget-s 600      # 10-min budget
+    python scripts/exper/experiment_dwave_qpu.py --force              # re-run existing
+    python scripts/exper/experiment_dwave_qpu.py --budget-ms 600000  # 10-min budget
 """
 
 import jax
@@ -58,7 +56,7 @@ _SRC = Path(__file__).resolve().parent.parent.parent / "src"
 sys.path.insert(0, str(_SRC))
 
 from encoder import Trainer
-from helpers import save_results
+from helpers import save_results, read_qpu_time_ms
 from ising import TransverseFieldIsing1D
 from model import FullyConnectedRBM, DWaveTopologyRBM
 from sampler import DimodSampler
@@ -68,9 +66,10 @@ from sampler import DimodSampler
 # Budget constants
 # ---------------------------------------------------------------------------
 
-WALL_BUDGET_S  = 15 * 60   # default wall-clock budget (seconds)
-SECS_PER_ITER  = 0.3       # empirical cost estimate per iteration without CEM
-MIN_ITERATIONS = 30        # abort loop when remaining budget fits fewer iters
+QPU_BUDGET_MS  = 15 * 60 * 1000   # default QPU-time budget (ms); override with --budget-ms
+QPU_MS_PER_ITER = 200              # empirical QPU-access-time estimate per iteration (ms)
+MIN_ITERATIONS  = 30               # abort loop when remaining budget fits fewer iters
+TIME_PATH       = Path("time.json")
 
 
 # ---------------------------------------------------------------------------
@@ -318,22 +317,21 @@ def main() -> None:
                         help="Seeds to run (default: 1 2 3 4 5)")
     parser.add_argument("--force", action="store_true",
                         help="Re-run even if result file already exists")
-    parser.add_argument("--budget-s", type=float, default=WALL_BUDGET_S,
-                        help=f"Wall-clock budget in seconds (default: {WALL_BUDGET_S:.0f})")
+    parser.add_argument("--budget-ms", type=float, default=QPU_BUDGET_MS,
+                        help=f"QPU-time budget in milliseconds (default: {QPU_BUDGET_MS:.0f})")
     cli = parser.parse_args()
 
-    methods   = ["zephyr", "pegasus"] if cli.sampler == "all" else [cli.sampler]
-    lr_list   = [cli.lr]   if cli.lr    is not None else LEARNING_RATES
-    seed_list = cli.seeds  if cli.seeds is not None else SEEDS
-    budget_s  = cli.budget_s
+    methods    = ["zephyr", "pegasus"] if cli.sampler == "all" else [cli.sampler]
+    lr_list    = [cli.lr]   if cli.lr    is not None else LEARNING_RATES
+    seed_list  = cli.seeds  if cli.seeds is not None else SEEDS
+    budget_ms  = cli.budget_ms
 
     print(f"JAX devices  : {jax.devices()}")
     print(f"JAX version  : {jax.__version__}")
     print(f"Samplers     : {', '.join(methods)}")
     print(f"Seeds        : {seed_list}")
-    print(f"Wall budget  : {budget_s/60:.1f} min  ({budget_s:.0f} s)")
-    print(f"Iters/run    : {FIXED['iterations']}  @ {SECS_PER_ITER} s/iter  "
-          f"(~{FIXED['iterations'] * SECS_PER_ITER:.0f} s/run)")
+    print(f"QPU budget   : {budget_ms/60000:.1f} min  ({budget_ms:.0f} ms)")
+    print(f"Iters/run    : {FIXED['iterations']}  @ ~{QPU_MS_PER_ITER} ms QPU/iter")
     print(f"Output dir   : {FIXED['output_dir']}/")
 
     grid = build_grid(methods, lr_list, seed_list)
@@ -344,8 +342,8 @@ def main() -> None:
         grid = [r for r in grid if r.h == cli.h]
 
     if cli.dry_run:
-        pending = sum(1 for r in grid if cli.force or not is_done(r))
-        max_runs = int(budget_s / (FIXED["iterations"] * SECS_PER_ITER))
+        pending  = sum(1 for r in grid if cli.force or not is_done(r))
+        max_runs = int(budget_ms / (FIXED["iterations"] * QPU_MS_PER_ITER))
         print(
             f"\n{'Method':>10}  {'N':>4}  {'h':>6}  {'LR':>8}  {'Seed':>4}  {'Done':>4}"
         )
@@ -361,12 +359,14 @@ def main() -> None:
             )
         print(
             f"\nTotal: {len(grid)}  pending: {pending}  done: {len(grid)-pending}"
-            f"\nBudget allows ~{max_runs} full runs at {SECS_PER_ITER} s/iter"
+            f"\nBudget allows ~{max_runs} full runs at {QPU_MS_PER_ITER} ms QPU/iter"
         )
         return
 
     pending = [r for r in grid if cli.force or not is_done(r)]
     n_skip  = len(grid) - len(pending)
+
+    qpu_start_ms = read_qpu_time_ms(TIME_PATH)
 
     print(
         f"\n[{datetime.now():%H:%M:%S}]  {len(grid)} total  "
@@ -374,6 +374,7 @@ def main() -> None:
         f"  Fixed: reg={FIXED['reg']}  ns={FIXED['n_samples']}  "
         f"iter={FIXED['iterations']}  cem=on  cem_interval={FIXED['cem_interval']}\n"
         f"  RBM: FullyConnectedRBM → DWaveTopologyRBM on embedding failure\n"
+        f"  QPU time at start: {qpu_start_ms/60000:.2f} min\n"
     )
 
     log_path = Path(__file__).resolve().parent / "experiment_dwave_qpu_failures.jsonl"
@@ -382,20 +383,26 @@ def main() -> None:
 
     for i, run in enumerate(pending, 1):
         # ── Budget check before every experiment ─────────────────────
-        elapsed_s   = time.perf_counter() - t_wall
-        remaining_s = budget_s - elapsed_s
-        max_iters   = min(FIXED["iterations"], int(remaining_s / SECS_PER_ITER))
+        try:
+            qpu_used_ms = read_qpu_time_ms(TIME_PATH) - qpu_start_ms
+        except (OSError, json.JSONDecodeError, KeyError) as exc:
+            print(f"\n[{datetime.now():%H:%M:%S}]  Cannot read QPU time: {exc} — aborting.")
+            break
+
+        remaining_ms = budget_ms - qpu_used_ms
+        max_iters    = min(FIXED["iterations"], int(remaining_ms / QPU_MS_PER_ITER))
 
         if max_iters < MIN_ITERATIONS:
             print(
-                f"\n[{datetime.now():%H:%M:%S}]  Wall budget exhausted  "
-                f"(used {elapsed_s/60:.1f}/{budget_s/60:.1f} min, "
+                f"\n[{datetime.now():%H:%M:%S}]  QPU budget exhausted  "
+                f"({qpu_used_ms/60000:.1f}/{budget_ms/60000:.1f} min used, "
                 f"only {max_iters} iters would fit — need {MIN_ITERATIONS}). "
                 f"Stopping after {n_done} runs."
             )
             break
 
         # ── Progress line ─────────────────────────────────────────────
+        elapsed_s = time.perf_counter() - t_wall
         if n_done > 0:
             avg_s  = elapsed_s / n_done
             left_s = avg_s * (len(pending) - i + 1)
@@ -404,7 +411,7 @@ def main() -> None:
             eta = ""
 
         budget_note = (
-            f"  [{remaining_s/60:.1f} min left"
+            f"  [{remaining_ms/60000:.1f} min QPU left"
             + (f", capped to {max_iters} iters" if max_iters < FIXED["iterations"] else "")
             + "]"
         )
@@ -433,8 +440,10 @@ def main() -> None:
             print(f"  FAIL  {type(exc).__name__}: {exc}")
             _write_failure(log_path, run, exc)
 
-    total_s = time.perf_counter() - t_wall
-    print(f"\n[{datetime.now():%H:%M:%S}]  Finished in {total_s/3600:.2f}h")
+    total_s      = time.perf_counter() - t_wall
+    qpu_total_ms = read_qpu_time_ms(TIME_PATH) - qpu_start_ms
+    print(f"\n[{datetime.now():%H:%M:%S}]  Finished in {total_s/3600:.2f}h  "
+          f"(QPU time this session: {qpu_total_ms/60000:.2f} min)")
     print(f"  Completed : {n_done}")
     print(f"  Skipped   : {n_skip}  (already existed)")
     print(f"  Failed    : {n_fail}" + (f"  → {log_path}" if n_fail else ""))
