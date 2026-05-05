@@ -15,9 +15,11 @@ from collections import defaultdict
 import subprocess
 import sys
 
-ROOT = Path(__file__).resolve().parent.parent
-RESULTS_DIR = ROOT / "results"
+ROOT = Path(__file__).resolve().parent.parent.parent
+RESULTS_DIR = ROOT / "jax_results"
 PLOTS_DIR = ROOT / "plots" / "energy_convergence"
+
+KNOWN_MODELS = ["tfim_1d", "tfim_2d", "heisenberg_xxz_1d", "lr_tfim_1d"]
 
 METHOD_COLORS = {
     "custom/metropolis":        "#1f77b4",
@@ -81,17 +83,22 @@ def _save_cache(cache: dict) -> None:
 def compute_exact_energy(model, N, h):
     """Return exact ground state energy per spin.
 
-    For 1D: uses Bethe ansatz analytical solution (calls exact_diag_ising_analytical.py).
+    For tfim_1d: uses Bethe ansatz analytical solution (calls exact_diag_ising_analytical.py).
       Results are cached in scripts/exact_energy_cache.json to avoid repeated subprocess calls.
-    For 2D: uses literature reference values (thermodynamic limit).
+    For heisenberg_xxz_2d: uses literature reference values (thermodynamic limit).
+    Other models: not yet supported, returns None.
     """
-    if model == "2d":
+    if model == "tfim_2d":
         if h not in EXACT_ENERGY_2D_PER_SPIN:
             print(f"No 2D reference energy for h={h}. Known values: {list(EXACT_ENERGY_2D_PER_SPIN.keys())}")
             return None
         return EXACT_ENERGY_2D_PER_SPIN[h]
 
-    # 1D: check cache first
+    if model not in ("tfim_1d", "1d", "lr_tfim_1d", "lr1d"):
+        print(f"No exact energy formula for model={model}, skipping.")
+        return None
+
+    # tfim_1d / lr_tfim_1d: check cache first
     cache_key = f"1d_N{N}_h{h}"
     cache = _load_cache()
     if cache_key in cache:
@@ -119,23 +126,29 @@ def compute_exact_energy(model, N, h):
         print(f"Failed to compute exact energy for N={N}, h={h}: {e}")
         return None
 
-def load_results(results_dir=RESULTS_DIR):
+def load_results(results_dir=RESULTS_DIR, model_filter=None):
     """Load all result files organized by (model, N, h, RBM) and method.
+
+    The model key is derived from the top-level subdirectory of results_dir.
+    When model_filter is given, only files under results_dir/model_filter are loaded.
 
     Filters:
     - learning_rate == 0.1  (non-FPGA only; FPGA includes all LRs)
-    - n_hidden == n_visible  (n_visible = N for 1d, N*N for 2d)
+    - n_hidden == n_visible  (n_visible = N for 1d models, N*N for 2d models)
     - cem == False
     """
     results = defaultdict(lambda: defaultdict(list))
 
-    for json_file in results_dir.rglob("*.json"):
+    search_root = results_dir / model_filter if model_filter else results_dir
+
+    for json_file in search_root.rglob("*.json"):
         try:
             with open(json_file) as f:
                 data = json.load(f)
 
             config = data["config"]
-            model = config["model"]
+            # Derive model from directory structure (robust against legacy config values)
+            model = json_file.relative_to(results_dir).parts[0]
             N = config["size"]
             h = config["h"]
             rbm = config["rbm"]
@@ -145,7 +158,7 @@ def load_results(results_dir=RESULTS_DIR):
             lr = config["learning_rate"]
             n_hidden = config["n_hidden"]
 
-            n_visible = N if model == "1d" else N * N
+            n_visible = N * N if "2d" in model else N
 
             is_fpga = sampler == "fpga"
 
@@ -160,7 +173,6 @@ def load_results(results_dir=RESULTS_DIR):
                 method_name = f"fpga/fpga lr={lr:.4g}"
             else:
                 method_name = f"{sampler}/{sampling_method}"
-            # Key includes model, N, h, and RBM type
             results[(model, N, h, rbm)][method_name].append({
                 "data": data,
                 "config": config,
@@ -596,6 +608,12 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Plot VMC convergence results")
     parser.add_argument(
+        "--model",
+        choices=KNOWN_MODELS,
+        default="tfim_1d",
+        help="Model to plot (default: tfim_1d)",
+    )
+    parser.add_argument(
         "--rbm",
         choices=["full", "pegasus", "zephyr"],
         default=None,
@@ -605,12 +623,12 @@ if __name__ == "__main__":
         "--results",
         type=Path,
         default=RESULTS_DIR,
-        help="Path to results directory (default: results/)",
+        help="Path to results directory (default: src/results/)",
     )
     args = parser.parse_args()
 
     print("Loading results...")
-    results = load_results(args.results)
+    results = load_results(args.results, model_filter=args.model)
 
     if args.rbm is not None:
         results = {k: v for k, v in results.items() if k[3] == args.rbm}

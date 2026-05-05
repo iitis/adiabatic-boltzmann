@@ -2,7 +2,7 @@
 """
 Sampling-time scaling plot.
 
-For each model (1d / 2d) produces one figure showing how mean per-iteration
+For each model produces one figure showing how mean per-iteration
 sampling time scales with instance size N, broken down by sampler/method.
 
 Only runs that actually recorded `sampling_time_s` in their history are used;
@@ -15,9 +15,10 @@ Saved to:
     plots/sampling_times/{model}_sampling_times.png
 
 Usage:
-    python scripts/plot_sampling_times.py
-    python scripts/plot_sampling_times.py --model 1d
-    python scripts/plot_sampling_times.py --results path/to/results
+    python scripts/viz/plot_sampling_times.py
+    python scripts/viz/plot_sampling_times.py --model tfim_1d
+    python scripts/viz/plot_sampling_times.py --model heisenberg_xxz_1d
+    python scripts/viz/plot_sampling_times.py --results path/to/results
 """
 
 import argparse
@@ -28,9 +29,11 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-ROOT = Path(__file__).resolve().parent.parent
-RESULTS_DIR = ROOT / "results"
+ROOT = Path(__file__).resolve().parent.parent.parent
+RESULTS_DIR = ROOT / "jax_results"
 PLOTS_DIR = ROOT / "plots" / "sampling_times"
+
+KNOWN_MODELS = ["tfim_1d", "tfim_2d", "heisenberg_xxz_1d", "lr_tfim_1d"]
 
 METHOD_COLORS = {
     "custom/metropolis":         "#1f77b4",
@@ -69,10 +72,12 @@ def load_timing(results_dir: Path, model_filter: str | None):
         timing[(model, method)][(N)] = list of per-iteration sampling times
                                        (all seeds concatenated)
     Only runs that have a non-empty `sampling_time_s` history list are included.
+    The model key is derived from the top-level subdirectory of results_dir.
     """
     timing: dict = defaultdict(lambda: defaultdict(list))
 
-    for json_file in results_dir.rglob("*.json"):
+    search_root = results_dir / model_filter
+    for json_file in search_root.rglob("*.json"):
         try:
             with open(json_file) as f:
                 data = json.load(f)
@@ -83,14 +88,13 @@ def load_timing(results_dir: Path, model_filter: str | None):
         cfg = data.get("config", {})
         history = data.get("history", {})
 
-        model = cfg.get("model")
+        # Derive model from directory structure (robust against legacy config values)
+        model = json_file.relative_to(results_dir).parts[0]
         N = cfg.get("size")
         sampler = cfg.get("sampler")
         method = cfg.get("sampling_method")
 
-        if None in (model, N, sampler, method):
-            continue
-        if model_filter and model != model_filter:
+        if None in (N, sampler, method):
             continue
 
         times = history.get("sampling_time_s")
@@ -169,8 +173,12 @@ def plot_model(model: str, timing: dict, out_dir: Path):
 
 def main():
     parser = argparse.ArgumentParser(description="Plot sampling time scaling per model")
-    parser.add_argument("--model", choices=["1d", "2d"], default=None,
-                        help="Restrict to this model (default: all)")
+    parser.add_argument(
+        "--model",
+        choices=KNOWN_MODELS,
+        default="tfim_1d",
+        help="Model to plot (default: tfim_1d)",
+    )
     parser.add_argument("--results", type=Path, default=RESULTS_DIR,
                         help="Path to results directory")
     args = parser.parse_args()

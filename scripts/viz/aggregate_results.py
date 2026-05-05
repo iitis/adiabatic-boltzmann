@@ -346,7 +346,7 @@ def plot_lr_tfim_vs_size(df_lr: pd.DataFrame, out_path: Path) -> None:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--results-dir", default="jax_results", type=Path)
-    parser.add_argument("--legacy-dir", default="results", type=Path)
+    parser.add_argument("--legacy-dir", default="jax_results", type=Path)
     parser.add_argument("--out", default="aggregated_results.csv", type=Path)
     parser.add_argument("--plot", default="distance_vs_size.png", type=Path)
     args = parser.parse_args()
