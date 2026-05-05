@@ -957,3 +957,2044 @@ Saved  → jax_results/tfim_1d/36/dimod/zephyr/result_1d_h2.0_rbmfull_nh36_lr0.0
   Completed : 4
   Skipped   : 9  (already existed)
   Failed    : 0
+JAX devices  : [CudaDevice(id=0)]
+JAX version  : 0.9.2
+Samplers     : zephyr, pegasus
+Seeds        : [1]
+QPU budget   : 15.0 min  (900000 ms)
+Iters/run    : 300  @ ~200 ms QPU/iter
+Output dir   : jax_results/
+
+[15:23:39]  72 total  (59 pending, 13 already done)
+  Fixed: reg=1e-05  ns=1000  iter=300  cem=on  cem_interval=5
+  RBM: FullyConnectedRBM → DWaveTopologyRBM on embedding failure
+  QPU time at start: 7.15 min
+
+[1/59] 1d N= 49  h=0.5  zephyr  lr=0.01  seed=1  [15.0 min QPU left]
+FullyConnectedRBM(n_visible=49, n_hidden=49)
+<ising.TransverseFieldIsing1D object at 0x7f1560170830>
+namespace(model='1d', size=49, h=0.5, J=1.0, delta=1.0, alpha=2.0, rbm='full', n_hidden=49, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Running minorminer for (49, 'Advantage2_system1')...
+  [embedding] Embedding found and cached for (49, 'Advantage2_system1').
+  [CEM iter   0] β_eff = 38.7061 → beta_x = 12.3118 (EMA α=0.3)
+Iter   0: E = -13.191514 ± 0.185590  β_x = 12.312  CG 200it res=2.62e-04  sample_time=10.614s  ‖x‖=45.3919
+  [rbm_to_ising] beta_x = 12.3118
+  [CEM iter   5] β_eff = 10.5735 → beta_x = 11.7903 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 11.7903
+  [CEM iter  10] β_eff = 12.0170 → beta_x = 11.8583 (EMA α=0.3)
+Iter  10: E = -58.840606 ± 0.062597  β_x = 11.858  CG 200it res=2.99e-04  sample_time=1.078s  ‖x‖=10.0121
+  [CEM iter  15] β_eff = 15.0769 → beta_x = 12.8239 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 12.8239
+  [CEM iter  20] β_eff = 6.1214 → beta_x = 10.8132 (EMA α=0.3)
+Iter  20: E = -62.031484 ± 0.009948  β_x = 10.813  CG 200it res=1.61e-07  sample_time=0.969s  ‖x‖=6.9774
+  [rbm_to_ising] beta_x = 10.8132
+  [CEM iter  25] β_eff = 9.9088 → beta_x = 10.5419 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 10.5419
+  [CEM iter  30] β_eff = 10.7579 → beta_x = 10.6067 (EMA α=0.3)
+Iter  30: E = -61.701882 ± 0.005314  β_x = 10.607  CG 191it res=3.10e-09  sample_time=0.927s  ‖x‖=1.5029
+  [CEM iter  35] β_eff = 9.8829 → beta_x = 10.3895 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 10.3895
+  [CEM iter  40] β_eff = 8.4597 → beta_x = 9.8106 (EMA α=0.3)
+Iter  40: E = -61.564352 ± 0.005244  β_x = 9.811  CG 160it res=8.12e-09  sample_time=0.974s  ‖x‖=1.2366
+  [rbm_to_ising] beta_x = 9.8106
+  [CEM iter  45] β_eff = 9.6242 → beta_x = 9.7547 (EMA α=0.3)
+  [CEM iter  50] β_eff = 9.0814 → beta_x = 9.5527 (EMA α=0.3)
+Iter  50: E = -61.487759 ± 0.001313  β_x = 9.553  CG 149it res=5.92e-09  sample_time=0.979s  ‖x‖=0.1048
+  [rbm_to_ising] beta_x = 9.5527
+  [CEM iter  55] β_eff = 8.8615 → beta_x = 9.3453 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 9.3453
+  [CEM iter  60] β_eff = 8.4768 → beta_x = 9.0848 (EMA α=0.3)
+Iter  60: E = -61.439647 ± 0.003937  β_x = 9.085  CG 173it res=5.84e-09  sample_time=0.981s  ‖x‖=1.9866
+  [rbm_to_ising] beta_x = 9.0848
+  [CEM iter  65] β_eff = 9.1144 → beta_x = 9.0937 (EMA α=0.3)
+  [CEM iter  70] β_eff = 8.5423 → beta_x = 8.9283 (EMA α=0.3)
+Iter  70: E = -61.386137 ± 0.003987  β_x = 8.928  CG 200it res=5.78e-07  sample_time=0.964s  ‖x‖=2.0208
+  [rbm_to_ising] beta_x = 8.9283
+  [CEM iter  75] β_eff = 7.2772 → beta_x = 8.4329 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 8.4329
+  [CEM iter  80] β_eff = 7.1989 → beta_x = 8.0627 (EMA α=0.3)
+Iter  80: E = -61.337923 ± 0.001150  β_x = 8.063  CG 136it res=7.74e-09  sample_time=0.944s  ‖x‖=0.0913
+  [rbm_to_ising] beta_x = 8.0627
+  [CEM iter  85] β_eff = 7.3621 → beta_x = 7.8525 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 7.8525
+  [CEM iter  90] β_eff = 9.2528 → beta_x = 8.2726 (EMA α=0.3)
+Iter  90: E = -61.278439 ± 0.004013  β_x = 8.273  CG 166it res=4.89e-09  sample_time=0.942s  ‖x‖=1.1480
+  [rbm_to_ising] beta_x = 8.2726
+  [CEM iter  95] β_eff = 7.4533 → beta_x = 8.0268 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 8.0268
+  [CEM iter 100] β_eff = 6.6616 → beta_x = 7.6173 (EMA α=0.3)
+Iter 100: E = -61.198430 ± 0.000989  β_x = 7.617  CG 176it res=7.63e-09  sample_time=1.015s  ‖x‖=0.1866
+  [rbm_to_ising] beta_x = 7.6173
+  [CEM iter 105] β_eff = 6.9580 → beta_x = 7.4195 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 7.4195
+  [CEM iter 110] β_eff = 7.1026 → beta_x = 7.3244 (EMA α=0.3)
+Iter 110: E = -61.122233 ± 0.003850  β_x = 7.324  CG 163it res=4.69e-09  sample_time=1.063s  ‖x‖=1.1477
+  [rbm_to_ising] beta_x = 7.3244
+  [CEM iter 115] β_eff = 7.0849 → beta_x = 7.2526 (EMA α=0.3)
+  [CEM iter 120] β_eff = 7.3836 → beta_x = 7.2919 (EMA α=0.3)
+Iter 120: E = -61.044759 ± 0.000921  β_x = 7.292  CG 157it res=8.83e-09  sample_time=0.943s  ‖x‖=0.1650
+  [CEM iter 125] β_eff = 7.3378 → beta_x = 7.3057 (EMA α=0.3)
+  [CEM iter 130] β_eff = 6.6580 → beta_x = 7.1114 (EMA α=0.3)
+Iter 130: E = -60.946114 ± 0.000846  β_x = 7.111  CG 118it res=9.51e-09  sample_time=0.963s  ‖x‖=0.1490
+  [rbm_to_ising] beta_x = 7.1114
+  [CEM iter 135] β_eff = 6.9750 → beta_x = 7.0705 (EMA α=0.3)
+  [CEM iter 140] β_eff = 6.8634 → beta_x = 7.0084 (EMA α=0.3)
+Iter 140: E = -60.940083 ± 0.000785  β_x = 7.008  CG 136it res=7.46e-09  sample_time=0.981s  ‖x‖=0.1307
+  [rbm_to_ising] beta_x = 7.0084
+  [CEM iter 145] β_eff = 7.2281 → beta_x = 7.0743 (EMA α=0.3)
+  [CEM iter 150] β_eff = 6.4873 → beta_x = 6.8982 (EMA α=0.3)
+Iter 150: E = -60.901471 ± 0.005314  β_x = 6.898  CG 200it res=3.14e-08  sample_time=0.820s  ‖x‖=5.7671
+  [rbm_to_ising] beta_x = 6.8982
+  [CEM iter 155] β_eff = 5.6176 → beta_x = 6.5140 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 6.5140
+  [CEM iter 160] β_eff = 5.1044 → beta_x = 6.0911 (EMA α=0.3)
+Iter 160: E = -60.814795 ± 0.000646  β_x = 6.091  CG 142it res=6.62e-09  sample_time=0.823s  ‖x‖=0.0691
+  [rbm_to_ising] beta_x = 6.0911
+  [CEM iter 165] β_eff = 5.5322 → beta_x = 5.9235 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.9235
+  [CEM iter 170] β_eff = 5.2994 → beta_x = 5.7362 (EMA α=0.3)
+Iter 170: E = -60.764874 ± 0.004968  β_x = 5.736  CG 168it res=9.14e-09  sample_time=0.937s  ‖x‖=1.3677
+  [rbm_to_ising] beta_x = 5.7362
+  [CEM iter 175] β_eff = 4.8599 → beta_x = 5.4733 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.4733
+  [CEM iter 180] β_eff = 5.9781 → beta_x = 5.6247 (EMA α=0.3)
+Iter 180: E = -60.704944 ± 0.000713  β_x = 5.625  CG 138it res=9.45e-09  sample_time=0.975s  ‖x‖=0.0650
+  [rbm_to_ising] beta_x = 5.6247
+  [CEM iter 185] β_eff = 5.9552 → beta_x = 5.7239 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.7239
+  [CEM iter 190] β_eff = 6.2165 → beta_x = 5.8717 (EMA α=0.3)
+Iter 190: E = -60.725446 ± 0.000684  β_x = 5.872  CG 133it res=7.66e-09  sample_time=0.937s  ‖x‖=0.0775
+  [rbm_to_ising] beta_x = 5.8717
+  [CEM iter 195] β_eff = 5.4022 → beta_x = 5.7308 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.7308
+  [CEM iter 200] β_eff = 5.6135 → beta_x = 5.6956 (EMA α=0.3)
+Iter 200: E = -60.673361 ± 0.000567  β_x = 5.696  CG 165it res=7.67e-09  sample_time=0.822s  ‖x‖=0.0937
+  [CEM iter 205] β_eff = 5.7585 → beta_x = 5.7145 (EMA α=0.3)
+  [CEM iter 210] β_eff = 5.5762 → beta_x = 5.6730 (EMA α=0.3)
+Iter 210: E = -60.607435 ± 0.005067  β_x = 5.673  CG 200it res=1.20e-06  sample_time=1.027s  ‖x‖=5.1175
+  [rbm_to_ising] beta_x = 5.6730
+  [CEM iter 215] β_eff = 5.4489 → beta_x = 5.6058 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.6058
+  [CEM iter 220] β_eff = 5.5293 → beta_x = 5.5828 (EMA α=0.3)
+Iter 220: E = -60.612577 ± 0.000557  β_x = 5.583  CG 116it res=7.28e-09  sample_time=0.995s  ‖x‖=0.0368
+  [CEM iter 225] β_eff = 5.2081 → beta_x = 5.4704 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.4704
+  [CEM iter 230] β_eff = 5.4015 → beta_x = 5.4497 (EMA α=0.3)
+Iter 230: E = -60.550452 ± 0.000564  β_x = 5.450  CG 130it res=6.65e-09  sample_time=0.974s  ‖x‖=0.1011
+  [CEM iter 235] β_eff = 5.3092 → beta_x = 5.4075 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.4075
+  [CEM iter 240] β_eff = 5.3872 → beta_x = 5.4014 (EMA α=0.3)
+Iter 240: E = -60.424553 ± 0.000565  β_x = 5.401  CG 114it res=3.89e-09  sample_time=0.871s  ‖x‖=0.0935
+  [CEM iter 245] β_eff = 5.7859 → beta_x = 5.5168 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.5168
+  [CEM iter 250] β_eff = 5.8646 → beta_x = 5.6211 (EMA α=0.3)
+Iter 250: E = -60.406426 ± 0.000554  β_x = 5.621  CG 88it res=4.96e-09  sample_time=0.961s  ‖x‖=0.0801
+  [rbm_to_ising] beta_x = 5.6211
+  [CEM iter 255] β_eff = 5.4780 → beta_x = 5.5782 (EMA α=0.3)
+  [CEM iter 260] β_eff = 6.0533 → beta_x = 5.7207 (EMA α=0.3)
+Iter 260: E = -60.376195 ± 0.003701  β_x = 5.721  CG 100it res=2.20e-09  sample_time=0.997s  ‖x‖=1.0345
+  [rbm_to_ising] beta_x = 5.7207
+  [CEM iter 265] β_eff = 5.3681 → beta_x = 5.6149 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.6149
+  [CEM iter 270] β_eff = 5.7796 → beta_x = 5.6643 (EMA α=0.3)
+Iter 270: E = -60.331804 ± 0.000534  β_x = 5.664  CG 90it res=7.52e-09  sample_time=0.821s  ‖x‖=0.0746
+  [CEM iter 275] β_eff = 5.6744 → beta_x = 5.6674 (EMA α=0.3)
+  [CEM iter 280] β_eff = 5.8199 → beta_x = 5.7131 (EMA α=0.3)
+Iter 280: E = -60.299839 ± 0.000635  β_x = 5.713  CG 72it res=9.25e-09  sample_time=1.028s  ‖x‖=0.0534
+  [rbm_to_ising] beta_x = 5.7131
+  [CEM iter 285] β_eff = 6.0994 → beta_x = 5.8290 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.8290
+  [CEM iter 290] β_eff = 6.0548 → beta_x = 5.8968 (EMA α=0.3)
+Iter 290: E = -60.252515 ± 0.000582  β_x = 5.897  CG 117it res=2.23e-09  sample_time=0.974s  ‖x‖=0.0685
+  [rbm_to_ising] beta_x = 5.8968
+  [CEM iter 295] β_eff = 5.8358 → beta_x = 5.8785 (EMA α=0.3)
+Saved  → jax_results/tfim_1d/49/dimod/zephyr/result_1d_h0.5_rbmfull_nh49_lr0.01_reg1e-05_ns1000_seed1_iter300_cem1_sigma1.0.json
+  Final energy : -60.193170
+  Exact energy : -52.113676
+  Error        : 8.079494
+   402.3s  rbm=full  iters=300  rel_err=0.1550
+[2/59] 1d N= 49  h=1.0  zephyr  lr=0.01  seed=1  [14.1 min QPU left]  ETA ~6.5h
+FullyConnectedRBM(n_visible=49, n_hidden=49)
+<ising.TransverseFieldIsing1D object at 0x7f13cc0dead0>
+namespace(model='1d', size=49, h=1.0, J=1.0, delta=1.0, alpha=2.0, rbm='full', n_hidden=49, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Running minorminer for (49, 'Advantage2_system1')...
+  [embedding] Embedding found and cached for (49, 'Advantage2_system1').
+  [CEM iter   0] β_eff = 37.8268 → beta_x = 12.0480 (EMA α=0.3)
+Iter   0: E = -47.420970 ± 0.174676  β_x = 12.048  CG 200it res=1.51e-03  sample_time=17.598s  ‖x‖=89.8942
+  [rbm_to_ising] beta_x = 12.0480
+  [CEM iter   5] β_eff = 11.9838 → beta_x = 12.0288 (EMA α=0.3)
+  [CEM iter  10] β_eff = 9.7054 → beta_x = 11.3318 (EMA α=0.3)
+Iter  10: E = -80.804188 ± 0.059870  β_x = 11.332  CG 200it res=1.47e-03  sample_time=1.009s  ‖x‖=14.8471
+  [rbm_to_ising] beta_x = 11.3318
+  [CEM iter  15] β_eff = 7.8586 → beta_x = 10.2898 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 10.2898
+  [CEM iter  20] β_eff = 8.0656 → beta_x = 9.6225 (EMA α=0.3)
+Iter  20: E = -79.872130 ± 0.050717  β_x = 9.623  CG 200it res=8.78e-04  sample_time=1.000s  ‖x‖=12.1743
+  [rbm_to_ising] beta_x = 9.6225
+  [CEM iter  25] β_eff = 7.1088 → beta_x = 8.8684 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 8.8684
+  [CEM iter  30] β_eff = 6.9442 → beta_x = 8.2912 (EMA α=0.3)
+Iter  30: E = -79.160175 ± 0.041988  β_x = 8.291  CG 200it res=5.03e-04  sample_time=0.859s  ‖x‖=5.7852
+  [rbm_to_ising] beta_x = 8.2912
+  [CEM iter  35] β_eff = 6.4610 → beta_x = 7.7421 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 7.7421
+  [CEM iter  40] β_eff = 5.2649 → beta_x = 6.9990 (EMA α=0.3)
+Iter  40: E = -78.151465 ± 0.035081  β_x = 6.999  CG 200it res=3.34e-04  sample_time=0.983s  ‖x‖=4.0923
+  [rbm_to_ising] beta_x = 6.9990
+  [CEM iter  45] β_eff = 4.8933 → beta_x = 6.3672 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 6.3672
+  [CEM iter  50] β_eff = 4.9037 → beta_x = 5.9282 (EMA α=0.3)
+Iter  50: E = -77.708804 ± 0.040906  β_x = 5.928  CG 200it res=6.90e-05  sample_time=1.006s  ‖x‖=4.4375
+  [rbm_to_ising] beta_x = 5.9282
+  [CEM iter  55] β_eff = 4.8324 → beta_x = 5.5995 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.5995
+  [CEM iter  60] β_eff = 4.7220 → beta_x = 5.3362 (EMA α=0.3)
+Iter  60: E = -77.828087 ± 0.036221  β_x = 5.336  CG 172it res=9.88e-09  sample_time=0.998s  ‖x‖=1.1318
+  [rbm_to_ising] beta_x = 5.3362
+  [CEM iter  65] β_eff = 5.0062 → beta_x = 5.2372 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.2372
+  [CEM iter  70] β_eff = 4.8107 → beta_x = 5.1093 (EMA α=0.3)
+Iter  70: E = -77.727559 ± 0.031167  β_x = 5.109  CG 118it res=2.57e-09  sample_time=1.054s  ‖x‖=1.3207
+  [rbm_to_ising] beta_x = 5.1093
+  [CEM iter  75] β_eff = 5.3306 → beta_x = 5.1757 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.1757
+  [CEM iter  80] β_eff = 5.0185 → beta_x = 5.1285 (EMA α=0.3)
+Iter  80: E = -77.462139 ± 0.024128  β_x = 5.129  CG 76it res=9.19e-09  sample_time=1.121s  ‖x‖=0.8749
+  [CEM iter  85] β_eff = 5.4903 → beta_x = 5.2370 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.2370
+  [CEM iter  90] β_eff = 4.9830 → beta_x = 5.1608 (EMA α=0.3)
+Iter  90: E = -77.253326 ± 0.018003  β_x = 5.161  CG 52it res=4.99e-09  sample_time=0.998s  ‖x‖=0.1477
+  [rbm_to_ising] beta_x = 5.1608
+  [CEM iter  95] β_eff = 5.2206 → beta_x = 5.1788 (EMA α=0.3)
+  [CEM iter 100] β_eff = 4.8867 → beta_x = 5.0912 (EMA α=0.3)
+Iter 100: E = -77.119021 ± 0.013077  β_x = 5.091  CG 45it res=6.98e-09  sample_time=1.034s  ‖x‖=0.6511
+  [rbm_to_ising] beta_x = 5.0912
+  [CEM iter 105] β_eff = 5.2534 → beta_x = 5.1398 (EMA α=0.3)
+  [CEM iter 110] β_eff = 5.4165 → beta_x = 5.2228 (EMA α=0.3)
+Iter 110: E = -76.976166 ± 0.009156  β_x = 5.223  CG 28it res=9.26e-09  sample_time=1.060s  ‖x‖=0.4918
+  [rbm_to_ising] beta_x = 5.2228
+  [CEM iter 115] β_eff = 5.2487 → beta_x = 5.2306 (EMA α=0.3)
+  [CEM iter 120] β_eff = 5.0275 → beta_x = 5.1697 (EMA α=0.3)
+Iter 120: E = -76.734809 ± 0.008888  β_x = 5.170  CG 35it res=1.46e-09  sample_time=0.988s  ‖x‖=0.7486
+  [rbm_to_ising] beta_x = 5.1697
+  [CEM iter 125] β_eff = 4.8517 → beta_x = 5.0743 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.0743
+  [CEM iter 130] β_eff = 4.8953 → beta_x = 5.0206 (EMA α=0.3)
+Iter 130: E = -76.584584 ± 0.006856  β_x = 5.021  CG 22it res=2.22e-13  sample_time=0.979s  ‖x‖=0.5776
+  [rbm_to_ising] beta_x = 5.0206
+  [CEM iter 135] β_eff = 5.2092 → beta_x = 5.0771 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.0771
+  [CEM iter 140] β_eff = 5.0217 → beta_x = 5.0605 (EMA α=0.3)
+Iter 140: E = -76.499970 ± 0.004796  β_x = 5.061  CG 22it res=5.56e-11  sample_time=0.988s  ‖x‖=0.0296
+  [CEM iter 145] β_eff = 5.0568 → beta_x = 5.0594 (EMA α=0.3)
+  [CEM iter 150] β_eff = 4.8397 → beta_x = 4.9935 (EMA α=0.3)
+Iter 150: E = -76.328443 ± 0.004355  β_x = 4.993  CG 20it res=3.90e-09  sample_time=0.985s  ‖x‖=0.0550
+  [rbm_to_ising] beta_x = 4.9935
+  [CEM iter 155] β_eff = 5.1969 → beta_x = 5.0545 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.0545
+  [CEM iter 160] β_eff = 5.0728 → beta_x = 5.0600 (EMA α=0.3)
+Iter 160: E = -76.227652 ± 0.003124  β_x = 5.060  CG 23it res=7.93e-10  sample_time=1.081s  ‖x‖=0.0244
+  [CEM iter 165] β_eff = 5.0558 → beta_x = 5.0587 (EMA α=0.3)
+  [CEM iter 170] β_eff = 5.3874 → beta_x = 5.1573 (EMA α=0.3)
+Iter 170: E = -76.190657 ± 0.003331  β_x = 5.157  CG 26it res=4.30e-11  sample_time=1.066s  ‖x‖=0.5061
+  [rbm_to_ising] beta_x = 5.1573
+  [CEM iter 175] β_eff = 4.9742 → beta_x = 5.1024 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.1024
+  [CEM iter 180] β_eff = 4.8592 → beta_x = 5.0294 (EMA α=0.3)
+Iter 180: E = -76.140574 ± 0.003147  β_x = 5.029  CG 15it res=1.88e-10  sample_time=1.120s  ‖x‖=0.4875
+  [rbm_to_ising] beta_x = 5.0294
+  [CEM iter 185] β_eff = 4.9899 → beta_x = 5.0176 (EMA α=0.3)
+  [CEM iter 190] β_eff = 4.9338 → beta_x = 4.9924 (EMA α=0.3)
+Iter 190: E = -76.070881 ± 0.001540  β_x = 4.992  CG 12it res=3.73e-09  sample_time=1.005s  ‖x‖=0.0214
+  [CEM iter 195] β_eff = 5.0616 → beta_x = 5.0132 (EMA α=0.3)
+  [CEM iter 200] β_eff = 4.7985 → beta_x = 4.9488 (EMA α=0.3)
+Iter 200: E = -75.999675 ± 0.001409  β_x = 4.949  CG 21it res=7.22e-12  sample_time=0.846s  ‖x‖=0.0196
+  [rbm_to_ising] beta_x = 4.9488
+  [CEM iter 205] β_eff = 4.9182 → beta_x = 4.9396 (EMA α=0.3)
+  [CEM iter 210] β_eff = 4.9665 → beta_x = 4.9477 (EMA α=0.3)
+Iter 210: E = -75.966335 ± 0.001179  β_x = 4.948  CG 12it res=5.79e-10  sample_time=1.016s  ‖x‖=0.0627
+  [CEM iter 215] β_eff = 5.3731 → beta_x = 5.0753 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.0753
+  [CEM iter 220] β_eff = 4.8887 → beta_x = 5.0193 (EMA α=0.3)
+Iter 220: E = -75.969659 ± 0.000830  β_x = 5.019  CG 11it res=2.27e-12  sample_time=1.078s  ‖x‖=0.0389
+  [rbm_to_ising] beta_x = 5.0193
+  [CEM iter 225] β_eff = 5.1636 → beta_x = 5.0626 (EMA α=0.3)
+  [CEM iter 230] β_eff = 4.9148 → beta_x = 5.0183 (EMA α=0.3)
+Iter 230: E = -75.934127 ± 0.002230  β_x = 5.018  CG 10it res=1.99e-13  sample_time=0.992s  ‖x‖=0.4240
+  [CEM iter 235] β_eff = 5.0408 → beta_x = 5.0250 (EMA α=0.3)
+  [CEM iter 240] β_eff = 5.3359 → beta_x = 5.1183 (EMA α=0.3)
+Iter 240: E = -75.819260 ± 0.002880  β_x = 5.118  CG 19it res=3.97e-11  sample_time=1.131s  ‖x‖=0.5716
+  [rbm_to_ising] beta_x = 5.1183
+  [CEM iter 245] β_eff = 5.1085 → beta_x = 5.1154 (EMA α=0.3)
+  [CEM iter 250] β_eff = 5.0166 → beta_x = 5.0857 (EMA α=0.3)
+Iter 250: E = -75.764265 ± 0.001261  β_x = 5.086  CG 23it res=4.04e-12  sample_time=1.059s  ‖x‖=0.2419
+  [CEM iter 255] β_eff = 5.2104 → beta_x = 5.1231 (EMA α=0.3)
+  [CEM iter 260] β_eff = 5.1536 → beta_x = 5.1323 (EMA α=0.3)
+Iter 260: E = -75.703909 ± 0.002093  β_x = 5.132  CG 15it res=9.26e-11  sample_time=1.062s  ‖x‖=0.4036
+  [CEM iter 265] β_eff = 5.6087 → beta_x = 5.2752 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.2752
+  [CEM iter 270] β_eff = 5.1310 → beta_x = 5.2319 (EMA α=0.3)
+Iter 270: E = -75.635419 ± 0.000303  β_x = 5.232  CG 11it res=1.46e-11  sample_time=1.054s  ‖x‖=0.0199
+  [CEM iter 275] β_eff = 5.6999 → beta_x = 5.3723 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.3723
+  [CEM iter 280] β_eff = 5.0093 → beta_x = 5.2634 (EMA α=0.3)
+Iter 280: E = -75.579483 ± 0.000267  β_x = 5.263  CG 13it res=1.18e-09  sample_time=1.075s  ‖x‖=0.0172
+  [rbm_to_ising] beta_x = 5.2634
+  [CEM iter 285] β_eff = 5.2302 → beta_x = 5.2535 (EMA α=0.3)
+  [CEM iter 290] β_eff = 4.8868 → beta_x = 5.1435 (EMA α=0.3)
+Iter 290: E = -75.578242 ± 0.000241  β_x = 5.143  CG 13it res=5.78e-09  sample_time=0.991s  ‖x‖=0.0173
+  [rbm_to_ising] beta_x = 5.1435
+  [CEM iter 295] β_eff = 5.5117 → beta_x = 5.2539 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.2539
+Saved  → jax_results/tfim_1d/49/dimod/zephyr/result_1d_h1.0_rbmfull_nh49_lr0.01_reg1e-05_ns1000_seed1_iter300_cem1_sigma1.0.json
+  Final energy : -75.526572
+  Exact energy : -62.399425
+  Error        : 13.127147
+   364.2s  rbm=full  iters=300  rel_err=0.2104
+[3/59] 1d N= 49  h=2.0  zephyr  lr=0.01  seed=1  [13.1 min QPU left]  ETA ~6.1h
+FullyConnectedRBM(n_visible=49, n_hidden=49)
+<ising.TransverseFieldIsing1D object at 0x7f13cc0de5d0>
+namespace(model='1d', size=49, h=2.0, J=1.0, delta=1.0, alpha=2.0, rbm='full', n_hidden=49, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Running minorminer for (49, 'Advantage2_system1')...
+  [embedding] Embedding found and cached for (49, 'Advantage2_system1').
+  [CEM iter   0] β_eff = 39.4478 → beta_x = 12.5343 (EMA α=0.3)
+Iter   0: E = -90.892471 ± 0.160404  β_x = 12.534  CG 200it res=1.45e-03  sample_time=22.746s  ‖x‖=71.7471
+  [rbm_to_ising] beta_x = 12.5343
+  [CEM iter   5] β_eff = 10.4946 → beta_x = 11.9224 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 11.9224
+  [CEM iter  10] β_eff = 7.9454 → beta_x = 10.7293 (EMA α=0.3)
+Iter  10: E = -122.529990 ± 0.067050  β_x = 10.729  CG 200it res=1.21e-02  sample_time=0.994s  ‖x‖=16.0031
+  [rbm_to_ising] beta_x = 10.7293
+  [CEM iter  15] β_eff = 6.2516 → beta_x = 9.3860 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 9.3860
+  [CEM iter  20] β_eff = 5.9253 → beta_x = 8.3478 (EMA α=0.3)
+Iter  20: E = -115.751531 ± 0.044049  β_x = 8.348  CG 200it res=3.32e-03  sample_time=1.069s  ‖x‖=13.4521
+  [rbm_to_ising] beta_x = 8.3478
+  [CEM iter  25] β_eff = 5.9845 → beta_x = 7.6388 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 7.6388
+  [CEM iter  30] β_eff = 5.2809 → beta_x = 6.9314 (EMA α=0.3)
+Iter  30: E = -111.667205 ± 0.028637  β_x = 6.931  CG 200it res=4.07e-03  sample_time=0.968s  ‖x‖=8.5485
+  [rbm_to_ising] beta_x = 6.9314
+  [CEM iter  35] β_eff = 5.1674 → beta_x = 6.4022 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 6.4022
+  [CEM iter  40] β_eff = 4.6812 → beta_x = 5.8859 (EMA α=0.3)
+Iter  40: E = -109.225002 ± 0.023646  β_x = 5.886  CG 200it res=4.49e-03  sample_time=1.131s  ‖x‖=7.4684
+  [rbm_to_ising] beta_x = 5.8859
+  [CEM iter  45] β_eff = 4.4851 → beta_x = 5.4657 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.4657
+  [CEM iter  50] β_eff = 4.6403 → beta_x = 5.2180 (EMA α=0.3)
+Iter  50: E = -107.688575 ± 0.015725  β_x = 5.218  CG 200it res=2.36e-03  sample_time=0.969s  ‖x‖=6.2529
+  [rbm_to_ising] beta_x = 5.2180
+  [CEM iter  55] β_eff = 4.4684 → beta_x = 4.9932 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 4.9932
+  [CEM iter  60] β_eff = 4.4189 → beta_x = 4.8209 (EMA α=0.3)
+Iter  60: E = -106.713819 ± 0.014784  β_x = 4.821  CG 200it res=3.37e-03  sample_time=0.983s  ‖x‖=5.9256
+  [rbm_to_ising] beta_x = 4.8209
+  [CEM iter  65] β_eff = 4.3225 → beta_x = 4.6714 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 4.6714
+  [CEM iter  70] β_eff = 4.1637 → beta_x = 4.5191 (EMA α=0.3)
+Iter  70: E = -105.854644 ± 0.011671  β_x = 4.519  CG 200it res=4.87e-03  sample_time=0.983s  ‖x‖=4.0781
+  [rbm_to_ising] beta_x = 4.5191
+  [CEM iter  75] β_eff = 4.2755 → beta_x = 4.4460 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 4.4460
+  [CEM iter  80] β_eff = 4.0682 → beta_x = 4.3327 (EMA α=0.3)
+Iter  80: E = -105.365546 ± 0.012039  β_x = 4.333  CG 200it res=2.11e-03  sample_time=0.970s  ‖x‖=5.2157
+  [rbm_to_ising] beta_x = 4.3327
+  [CEM iter  85] β_eff = 4.2764 → beta_x = 4.3158 (EMA α=0.3)
+  [CEM iter  90] β_eff = 4.2339 → beta_x = 4.2912 (EMA α=0.3)
+Iter  90: E = -104.753752 ± 0.009365  β_x = 4.291  CG 200it res=3.30e-03  sample_time=0.987s  ‖x‖=4.0823
+  [CEM iter  95] β_eff = 4.1019 → beta_x = 4.2344 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 4.2344
+  [CEM iter 100] β_eff = 4.0677 → beta_x = 4.1844 (EMA α=0.3)
+Iter 100: E = -104.350516 ± 0.010720  β_x = 4.184  CG 200it res=2.38e-03  sample_time=1.005s  ‖x‖=5.2947
+  [rbm_to_ising] beta_x = 4.1844
+  [CEM iter 105] β_eff = 4.0853 → beta_x = 4.1547 (EMA α=0.3)
+  [CEM iter 110] β_eff = 4.1258 → beta_x = 4.1460 (EMA α=0.3)
+Iter 110: E = -104.041606 ± 0.007952  β_x = 4.146  CG 200it res=9.49e-04  sample_time=1.035s  ‖x‖=3.1551
+  [CEM iter 115] β_eff = 4.1804 → beta_x = 4.1563 (EMA α=0.3)
+  [CEM iter 120] β_eff = 4.1200 → beta_x = 4.1454 (EMA α=0.3)
+Iter 120: E = -103.878147 ± 0.008481  β_x = 4.145  CG 200it res=3.43e-03  sample_time=1.011s  ‖x‖=3.9397
+  [CEM iter 125] β_eff = 4.2787 → beta_x = 4.1854 (EMA α=0.3)
+  [CEM iter 130] β_eff = 4.3880 → beta_x = 4.2462 (EMA α=0.3)
+Iter 130: E = -103.486013 ± 0.011049  β_x = 4.246  CG 200it res=2.69e-03  sample_time=0.995s  ‖x‖=6.6082
+  [rbm_to_ising] beta_x = 4.2462
+  [CEM iter 135] β_eff = 4.4392 → beta_x = 4.3041 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 4.3041
+  [CEM iter 140] β_eff = 4.4470 → beta_x = 4.3469 (EMA α=0.3)
+Iter 140: E = -103.185015 ± 0.009010  β_x = 4.347  CG 200it res=3.12e-03  sample_time=0.996s  ‖x‖=3.9579
+  [CEM iter 145] β_eff = 4.5441 → beta_x = 4.4061 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 4.4061
+  [CEM iter 150] β_eff = 4.1984 → beta_x = 4.3438 (EMA α=0.3)
+Iter 150: E = -102.981099 ± 0.010065  β_x = 4.344  CG 200it res=3.95e-03  sample_time=0.972s  ‖x‖=4.8595
+  [rbm_to_ising] beta_x = 4.3438
+  [CEM iter 155] β_eff = 4.2087 → beta_x = 4.3032 (EMA α=0.3)
+  [CEM iter 160] β_eff = 4.4086 → beta_x = 4.3348 (EMA α=0.3)
+Iter 160: E = -102.668807 ± 0.009993  β_x = 4.335  CG 200it res=2.69e-03  sample_time=0.970s  ‖x‖=4.1731
+  [CEM iter 165] β_eff = 4.2916 → beta_x = 4.3219 (EMA α=0.3)
+  [CEM iter 170] β_eff = 4.3435 → beta_x = 4.3284 (EMA α=0.3)
+Iter 170: E = -102.289167 ± 0.010043  β_x = 4.328  CG 200it res=5.17e-03  sample_time=0.963s  ‖x‖=4.7826
+  [CEM iter 175] β_eff = 4.3011 → beta_x = 4.3202 (EMA α=0.3)
+  [CEM iter 180] β_eff = 4.2010 → beta_x = 4.2844 (EMA α=0.3)
+Iter 180: E = -101.887738 ± 0.010494  β_x = 4.284  CG 200it res=4.13e-03  sample_time=1.043s  ‖x‖=4.2166
+  [rbm_to_ising] beta_x = 4.2844
+  [CEM iter 185] β_eff = 4.0666 → beta_x = 4.2191 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 4.2191
+  [CEM iter 190] β_eff = 4.0643 → beta_x = 4.1726 (EMA α=0.3)
+Iter 190: E = -101.676428 ± 0.009561  β_x = 4.173  CG 200it res=3.12e-03  sample_time=0.982s  ‖x‖=4.5862
+  [rbm_to_ising] beta_x = 4.1726
+  [CEM iter 195] β_eff = 4.3162 → beta_x = 4.2157 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 4.2157
+  [CEM iter 200] β_eff = 4.1415 → beta_x = 4.1934 (EMA α=0.3)
+Iter 200: E = -101.346082 ± 0.008457  β_x = 4.193  CG 200it res=2.60e-03  sample_time=0.999s  ‖x‖=4.0500
+  [CEM iter 205] β_eff = 4.1720 → beta_x = 4.1870 (EMA α=0.3)
+  [CEM iter 210] β_eff = 4.0660 → beta_x = 4.1507 (EMA α=0.3)
+Iter 210: E = -100.962719 ± 0.009623  β_x = 4.151  CG 200it res=1.49e-03  sample_time=1.003s  ‖x‖=4.0099
+  [rbm_to_ising] beta_x = 4.1507
+  [CEM iter 215] β_eff = 4.0409 → beta_x = 4.1177 (EMA α=0.3)
+  [CEM iter 220] β_eff = 4.0611 → beta_x = 4.1007 (EMA α=0.3)
+Iter 220: E = -100.768825 ± 0.007603  β_x = 4.101  CG 200it res=1.21e-03  sample_time=0.981s  ‖x‖=3.6144
+  [rbm_to_ising] beta_x = 4.1007
+  [CEM iter 225] β_eff = 4.0328 → beta_x = 4.0804 (EMA α=0.3)
+  [CEM iter 230] β_eff = 4.1670 → beta_x = 4.1064 (EMA α=0.3)
+Iter 230: E = -100.531721 ± 0.008526  β_x = 4.106  CG 200it res=1.58e-03  sample_time=0.982s  ‖x‖=4.5820
+  [CEM iter 235] β_eff = 4.2204 → beta_x = 4.1406 (EMA α=0.3)
+  [CEM iter 240] β_eff = 4.1558 → beta_x = 4.1451 (EMA α=0.3)
+Iter 240: E = -100.311814 ± 0.009834  β_x = 4.145  CG 200it res=2.22e-03  sample_time=0.990s  ‖x‖=4.2560
+  [rbm_to_ising] beta_x = 4.1451
+  [CEM iter 245] β_eff = 4.1903 → beta_x = 4.1587 (EMA α=0.3)
+  [CEM iter 250] β_eff = 4.1320 → beta_x = 4.1507 (EMA α=0.3)
+Iter 250: E = -100.196603 ± 0.007989  β_x = 4.151  CG 200it res=4.49e-03  sample_time=1.033s  ‖x‖=3.5413
+  [CEM iter 255] β_eff = 4.1345 → beta_x = 4.1458 (EMA α=0.3)
+  [CEM iter 260] β_eff = 4.1315 → beta_x = 4.1415 (EMA α=0.3)
+Iter 260: E = -100.220935 ± 0.008875  β_x = 4.142  CG 200it res=2.94e-03  sample_time=0.983s  ‖x‖=3.6469
+  [CEM iter 265] β_eff = 3.9462 → beta_x = 4.0829 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 4.0829
+  [CEM iter 270] β_eff = 3.9153 → beta_x = 4.0326 (EMA α=0.3)
+Iter 270: E = -100.072971 ± 0.010518  β_x = 4.033  CG 200it res=3.30e-03  sample_time=0.950s  ‖x‖=4.0890
+  [rbm_to_ising] beta_x = 4.0326
+  [CEM iter 275] β_eff = 4.1542 → beta_x = 4.0691 (EMA α=0.3)
+  [CEM iter 280] β_eff = 3.9217 → beta_x = 4.0249 (EMA α=0.3)
+Iter 280: E = -99.982214 ± 0.008481  β_x = 4.025  CG 200it res=1.70e-03  sample_time=0.991s  ‖x‖=3.9835
+  [CEM iter 285] β_eff = 4.0309 → beta_x = 4.0267 (EMA α=0.3)
+  [CEM iter 290] β_eff = 3.9031 → beta_x = 3.9896 (EMA α=0.3)
+Iter 290: E = -99.799394 ± 0.006871  β_x = 3.990  CG 200it res=2.68e-03  sample_time=0.860s  ‖x‖=3.1282
+  [rbm_to_ising] beta_x = 3.9896
+  [CEM iter 295] β_eff = 3.9158 → beta_x = 3.9675 (EMA α=0.3)
+Saved  → jax_results/tfim_1d/49/dimod/zephyr/result_1d_h2.0_rbmfull_nh49_lr0.01_reg1e-05_ns1000_seed1_iter300_cem1_sigma1.0.json
+  Final energy : -99.789115
+  Exact energy : -104.227352
+  Error        : 4.438237
+   440.8s  rbm=full  iters=300  rel_err=0.0426
+[4/59] 1d N= 81  h=0.5  zephyr  lr=0.01  seed=1  [12.2 min QPU left]  ETA ~6.3h
+FullyConnectedRBM(n_visible=81, n_hidden=81)
+<ising.TransverseFieldIsing1D object at 0x7f13687c6060>
+namespace(model='1d', size=81, h=0.5, J=1.0, delta=1.0, alpha=2.0, rbm='full', n_hidden=81, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Running minorminer for (81, 'Advantage2_system1')...
+  [embedding] Embedding found and cached for (81, 'Advantage2_system1').
+  [CEM iter   0] β_eff = 16.8531 → beta_x = 5.7559 (EMA α=0.3)
+Iter   0: E = -43.300633 ± 0.297040  β_x = 5.756  CG 200it res=3.54e-05  sample_time=53.061s  ‖x‖=74.2598
+  [rbm_to_ising] beta_x = 5.7559
+  [CEM iter   5] β_eff = 5.3290 → beta_x = 5.6279 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.6279
+  [CEM iter  10] β_eff = 3.9039 → beta_x = 5.1107 (EMA α=0.3)
+Iter  10: E = -90.567237 ± 0.168405  β_x = 5.111  CG 200it res=5.68e-03  sample_time=1.180s  ‖x‖=23.6996
+  [rbm_to_ising] beta_x = 5.1107
+  [CEM iter  15] β_eff = 3.2206 → beta_x = 4.5437 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 4.5437
+  [CEM iter  20] β_eff = 2.9363 → beta_x = 4.0615 (EMA α=0.3)
+Iter  20: E = -89.241212 ± 0.148354  β_x = 4.061  CG 200it res=7.63e-03  sample_time=1.206s  ‖x‖=15.7965
+  [rbm_to_ising] beta_x = 4.0615
+  [CEM iter  25] β_eff = 2.6082 → beta_x = 3.6255 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.6255
+  [CEM iter  30] β_eff = 2.3829 → beta_x = 3.2527 (EMA α=0.3)
+Iter  30: E = -87.764023 ± 0.134288  β_x = 3.253  CG 200it res=1.42e-02  sample_time=1.238s  ‖x‖=13.3596
+  [rbm_to_ising] beta_x = 3.2527
+  [CEM iter  35] β_eff = 2.2429 → beta_x = 2.9498 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.9498
+  [CEM iter  40] β_eff = 2.1428 → beta_x = 2.7077 (EMA α=0.3)
+Iter  40: E = -87.361551 ± 0.126103  β_x = 2.708  CG 200it res=6.71e-03  sample_time=1.200s  ‖x‖=11.8680
+  [rbm_to_ising] beta_x = 2.7077
+  [CEM iter  45] β_eff = 2.0994 → beta_x = 2.5252 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.5252
+  [CEM iter  50] β_eff = 1.9615 → beta_x = 2.3561 (EMA α=0.3)
+Iter  50: E = -86.924606 ± 0.114262  β_x = 2.356  CG 200it res=7.25e-03  sample_time=1.209s  ‖x‖=10.8473
+  [rbm_to_ising] beta_x = 2.3561
+  [CEM iter  55] β_eff = 1.9020 → beta_x = 2.2198 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.2198
+  [CEM iter  60] β_eff = 1.8144 → beta_x = 2.0982 (EMA α=0.3)
+Iter  60: E = -86.688099 ± 0.105567  β_x = 2.098  CG 200it res=7.54e-03  sample_time=1.218s  ‖x‖=9.7664
+  [rbm_to_ising] beta_x = 2.0982
+  [CEM iter  65] β_eff = 1.7730 → beta_x = 2.0007 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.0007
+  [CEM iter  70] β_eff = 1.7447 → beta_x = 1.9239 (EMA α=0.3)
+Iter  70: E = -86.298580 ± 0.091039  β_x = 1.924  CG 200it res=8.82e-03  sample_time=1.193s  ‖x‖=8.4475
+  [rbm_to_ising] beta_x = 1.9239
+  [CEM iter  75] β_eff = 1.6600 → beta_x = 1.8447 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.8447
+  [CEM iter  80] β_eff = 1.6920 → beta_x = 1.7989 (EMA α=0.3)
+Iter  80: E = -85.977666 ± 0.087726  β_x = 1.799  CG 200it res=1.27e-02  sample_time=1.267s  ‖x‖=8.2475
+  [rbm_to_ising] beta_x = 1.7989
+  [CEM iter  85] β_eff = 1.5704 → beta_x = 1.7304 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.7304
+  [CEM iter  90] β_eff = 1.5457 → beta_x = 1.6750 (EMA α=0.3)
+Iter  90: E = -86.115597 ± 0.084357  β_x = 1.675  CG 200it res=6.95e-03  sample_time=1.281s  ‖x‖=8.0878
+  [rbm_to_ising] beta_x = 1.6750
+  [CEM iter  95] β_eff = 1.5218 → beta_x = 1.6290 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.6290
+  [CEM iter 100] β_eff = 1.5117 → beta_x = 1.5938 (EMA α=0.3)
+Iter 100: E = -85.564687 ± 0.080002  β_x = 1.594  CG 200it res=6.44e-03  sample_time=1.249s  ‖x‖=7.5293
+  [rbm_to_ising] beta_x = 1.5938
+  [CEM iter 105] β_eff = 1.4463 → beta_x = 1.5496 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.5496
+  [CEM iter 110] β_eff = 1.4848 → beta_x = 1.5301 (EMA α=0.3)
+Iter 110: E = -85.379270 ± 0.078177  β_x = 1.530  CG 200it res=4.08e-03  sample_time=1.255s  ‖x‖=7.5864
+  [rbm_to_ising] beta_x = 1.5301
+  [CEM iter 115] β_eff = 1.4289 → beta_x = 1.4998 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.4998
+  [CEM iter 120] β_eff = 1.4139 → beta_x = 1.4740 (EMA α=0.3)
+Iter 120: E = -85.904757 ± 0.071279  β_x = 1.474  CG 200it res=1.50e-02  sample_time=1.187s  ‖x‖=6.7565
+  [rbm_to_ising] beta_x = 1.4740
+  [CEM iter 125] β_eff = 1.4027 → beta_x = 1.4526 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.4526
+  [CEM iter 130] β_eff = 1.4026 → beta_x = 1.4376 (EMA α=0.3)
+Iter 130: E = -85.188310 ± 0.076917  β_x = 1.438  CG 200it res=4.13e-03  sample_time=1.229s  ‖x‖=6.9465
+  [rbm_to_ising] beta_x = 1.4376
+  [CEM iter 135] β_eff = 1.3650 → beta_x = 1.4158 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.4158
+  [CEM iter 140] β_eff = 1.3319 → beta_x = 1.3907 (EMA α=0.3)
+Iter 140: E = -85.604854 ± 0.064412  β_x = 1.391  CG 200it res=1.36e-02  sample_time=1.221s  ‖x‖=7.3071
+  [rbm_to_ising] beta_x = 1.3907
+  [CEM iter 145] β_eff = 1.3463 → beta_x = 1.3774 (EMA α=0.3)
+  [CEM iter 150] β_eff = 1.2928 → beta_x = 1.3520 (EMA α=0.3)
+Iter 150: E = -85.338178 ± 0.059999  β_x = 1.352  CG 200it res=5.80e-03  sample_time=1.220s  ‖x‖=6.4307
+  [rbm_to_ising] beta_x = 1.3520
+  [CEM iter 155] β_eff = 1.3114 → beta_x = 1.3398 (EMA α=0.3)
+  [CEM iter 160] β_eff = 1.2840 → beta_x = 1.3231 (EMA α=0.3)
+Iter 160: E = -85.255566 ± 0.062922  β_x = 1.323  CG 200it res=1.25e-02  sample_time=1.227s  ‖x‖=7.1693
+  [rbm_to_ising] beta_x = 1.3231
+  [CEM iter 165] β_eff = 1.2740 → beta_x = 1.3084 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.3084
+  [CEM iter 170] β_eff = 1.2872 → beta_x = 1.3020 (EMA α=0.3)
+Iter 170: E = -85.214415 ± 0.055470  β_x = 1.302  CG 200it res=8.95e-03  sample_time=1.191s  ‖x‖=7.2743
+  [CEM iter 175] β_eff = 1.2811 → beta_x = 1.2957 (EMA α=0.3)
+  [CEM iter 180] β_eff = 1.2913 → beta_x = 1.2944 (EMA α=0.3)
+Iter 180: E = -85.013967 ± 0.053816  β_x = 1.294  CG 200it res=6.80e-03  sample_time=1.210s  ‖x‖=6.0900
+  [rbm_to_ising] beta_x = 1.2944
+  [CEM iter 185] β_eff = 1.2396 → beta_x = 1.2780 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.2780
+  [CEM iter 190] β_eff = 1.2244 → beta_x = 1.2619 (EMA α=0.3)
+Iter 190: E = -85.181117 ± 0.053372  β_x = 1.262  CG 200it res=1.46e-02  sample_time=1.192s  ‖x‖=6.6989
+  [rbm_to_ising] beta_x = 1.2619
+  [CEM iter 195] β_eff = 1.2101 → beta_x = 1.2463 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.2463
+  [CEM iter 200] β_eff = 1.2568 → beta_x = 1.2495 (EMA α=0.3)
+Iter 200: E = -84.939327 ± 0.051902  β_x = 1.249  CG 200it res=9.87e-03  sample_time=1.286s  ‖x‖=6.3179
+  [CEM iter 205] β_eff = 1.2349 → beta_x = 1.2451 (EMA α=0.3)
+  [CEM iter 210] β_eff = 1.2587 → beta_x = 1.2492 (EMA α=0.3)
+Iter 210: E = -85.003675 ± 0.049091  β_x = 1.249  CG 200it res=1.36e-02  sample_time=1.233s  ‖x‖=6.6044
+  [CEM iter 215] β_eff = 1.2172 → beta_x = 1.2396 (EMA α=0.3)
+  [CEM iter 220] β_eff = 1.1980 → beta_x = 1.2271 (EMA α=0.3)
+Iter 220: E = -85.089630 ± 0.048200  β_x = 1.227  CG 200it res=2.10e-02  sample_time=1.193s  ‖x‖=6.6198
+  [rbm_to_ising] beta_x = 1.2271
+  [CEM iter 225] β_eff = 1.1956 → beta_x = 1.2177 (EMA α=0.3)
+  [CEM iter 230] β_eff = 1.1873 → beta_x = 1.2086 (EMA α=0.3)
+Iter 230: E = -85.104869 ± 0.044381  β_x = 1.209  CG 200it res=1.58e-02  sample_time=1.249s  ‖x‖=6.5459
+  [rbm_to_ising] beta_x = 1.2086
+  [CEM iter 235] β_eff = 1.1869 → beta_x = 1.2021 (EMA α=0.3)
+  [CEM iter 240] β_eff = 1.1931 → beta_x = 1.1994 (EMA α=0.3)
+Iter 240: E = -85.099383 ± 0.043535  β_x = 1.199  CG 200it res=9.82e-03  sample_time=1.249s  ‖x‖=6.6002
+  [CEM iter 245] β_eff = 1.1777 → beta_x = 1.1929 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.1929
+  [CEM iter 250] β_eff = 1.1324 → beta_x = 1.1747 (EMA α=0.3)
+Iter 250: E = -85.193354 ± 0.040536  β_x = 1.175  CG 200it res=1.63e-02  sample_time=1.188s  ‖x‖=6.1539
+  [rbm_to_ising] beta_x = 1.1747
+  [CEM iter 255] β_eff = 1.1350 → beta_x = 1.1628 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.1628
+  [CEM iter 260] β_eff = 1.1386 → beta_x = 1.1556 (EMA α=0.3)
+Iter 260: E = -85.056209 ± 0.041168  β_x = 1.156  CG 200it res=8.38e-03  sample_time=1.252s  ‖x‖=6.2735
+  [CEM iter 265] β_eff = 1.1582 → beta_x = 1.1564 (EMA α=0.3)
+  [CEM iter 270] β_eff = 1.1576 → beta_x = 1.1567 (EMA α=0.3)
+Iter 270: E = -84.977733 ± 0.041025  β_x = 1.157  CG 200it res=1.36e-02  sample_time=1.324s  ‖x‖=5.8443
+  [CEM iter 275] β_eff = 1.1862 → beta_x = 1.1656 (EMA α=0.3)
+  [CEM iter 280] β_eff = 1.1727 → beta_x = 1.1677 (EMA α=0.3)
+Iter 280: E = -85.139147 ± 0.042241  β_x = 1.168  CG 200it res=1.06e-02  sample_time=1.203s  ‖x‖=6.1034
+  [CEM iter 285] β_eff = 1.1272 → beta_x = 1.1556 (EMA α=0.3)
+  [CEM iter 290] β_eff = 1.1727 → beta_x = 1.1607 (EMA α=0.3)
+Iter 290: E = -85.090546 ± 0.040787  β_x = 1.161  CG 200it res=1.52e-02  sample_time=1.228s  ‖x‖=6.6370
+  [CEM iter 295] β_eff = 1.1540 → beta_x = 1.1587 (EMA α=0.3)
+Saved  → jax_results/tfim_1d/81/dimod/zephyr/result_1d_h0.5_rbmfull_nh81_lr0.01_reg1e-05_ns1000_seed1_iter300_cem1_sigma1.0.json
+  Final energy : -85.186745
+  Exact energy : -86.147097
+  Error        : 0.960352
+   555.3s  rbm=full  iters=300  rel_err=0.0111
+[5/59] 1d N= 81  h=1.0  zephyr  lr=0.01  seed=1  [11.1 min QPU left]  ETA ~6.7h
+FullyConnectedRBM(n_visible=81, n_hidden=81)
+<ising.TransverseFieldIsing1D object at 0x7f13687c5e00>
+namespace(model='1d', size=81, h=1.0, J=1.0, delta=1.0, alpha=2.0, rbm='full', n_hidden=81, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Running minorminer for (81, 'Advantage2_system1')...
+  [embedding] Embedding found and cached for (81, 'Advantage2_system1').
+  [CEM iter   0] β_eff = 17.4925 → beta_x = 5.9477 (EMA α=0.3)
+Iter   0: E = -83.427621 ± 0.272319  β_x = 5.948  CG 200it res=1.42e-05  sample_time=43.365s  ‖x‖=71.3372
+  [rbm_to_ising] beta_x = 5.9477
+  [CEM iter   5] β_eff = 5.7438 → beta_x = 5.8866 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.8866
+  [CEM iter  10] β_eff = 4.3700 → beta_x = 5.4316 (EMA α=0.3)
+Iter  10: E = -120.453528 ± 0.164426  β_x = 5.432  CG 200it res=1.51e-03  sample_time=1.225s  ‖x‖=23.7433
+  [rbm_to_ising] beta_x = 5.4316
+  [CEM iter  15] β_eff = 3.5620 → beta_x = 4.8707 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 4.8707
+  [CEM iter  20] β_eff = 3.1346 → beta_x = 4.3499 (EMA α=0.3)
+Iter  20: E = -117.445799 ± 0.142912  β_x = 4.350  CG 200it res=1.06e-03  sample_time=1.183s  ‖x‖=16.5815
+  [rbm_to_ising] beta_x = 4.3499
+  [CEM iter  25] β_eff = 2.8634 → beta_x = 3.9039 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.9039
+  [CEM iter  30] β_eff = 2.6975 → beta_x = 3.5420 (EMA α=0.3)
+Iter  30: E = -114.978825 ± 0.122092  β_x = 3.542  CG 200it res=1.85e-03  sample_time=1.274s  ‖x‖=13.4217
+  [rbm_to_ising] beta_x = 3.5420
+  [CEM iter  35] β_eff = 2.5442 → beta_x = 3.2427 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.2427
+  [CEM iter  40] β_eff = 2.4773 → beta_x = 3.0130 (EMA α=0.3)
+Iter  40: E = -113.639917 ± 0.095003  β_x = 3.013  CG 200it res=8.88e-03  sample_time=15.394s  ‖x‖=10.9750
+  [rbm_to_ising] beta_x = 3.0130
+  [CEM iter  45] β_eff = 2.3807 → beta_x = 2.8234 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.8234
+  [CEM iter  50] β_eff = 2.2402 → beta_x = 2.6484 (EMA α=0.3)
+Iter  50: E = -111.948267 ± 0.094858  β_x = 2.648  CG 200it res=2.43e-03  sample_time=1.180s  ‖x‖=10.2495
+  [rbm_to_ising] beta_x = 2.6484
+  [CEM iter  55] β_eff = 2.2329 → beta_x = 2.5238 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.5238
+  [CEM iter  60] β_eff = 2.1609 → beta_x = 2.4149 (EMA α=0.3)
+Iter  60: E = -110.860742 ± 0.084493  β_x = 2.415  CG 200it res=6.54e-03  sample_time=1.158s  ‖x‖=9.8870
+  [rbm_to_ising] beta_x = 2.4149
+  [CEM iter  65] β_eff = 2.0837 → beta_x = 2.3155 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.3155
+  [CEM iter  70] β_eff = 2.0305 → beta_x = 2.2300 (EMA α=0.3)
+Iter  70: E = -110.061989 ± 0.077436  β_x = 2.230  CG 200it res=1.82e-03  sample_time=1.201s  ‖x‖=9.1370
+  [rbm_to_ising] beta_x = 2.2300
+  [CEM iter  75] β_eff = 2.0825 → beta_x = 2.1858 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.1858
+  [CEM iter  80] β_eff = 2.0046 → beta_x = 2.1314 (EMA α=0.3)
+Iter  80: E = -109.831222 ± 0.073561  β_x = 2.131  CG 200it res=5.81e-03  sample_time=1.274s  ‖x‖=9.2868
+  [rbm_to_ising] beta_x = 2.1314
+  [CEM iter  85] β_eff = 2.0376 → beta_x = 2.1032 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.1032
+  [CEM iter  90] β_eff = 1.9033 → beta_x = 2.0432 (EMA α=0.3)
+Iter  90: E = -109.152831 ± 0.070502  β_x = 2.043  CG 200it res=2.40e-03  sample_time=1.205s  ‖x‖=8.5890
+  [rbm_to_ising] beta_x = 2.0432
+  [CEM iter  95] β_eff = 1.8988 → beta_x = 1.9999 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.9999
+  [CEM iter 100] β_eff = 1.8695 → beta_x = 1.9608 (EMA α=0.3)
+Iter 100: E = -108.862619 ± 0.069559  β_x = 1.961  CG 200it res=1.31e-03  sample_time=1.206s  ‖x‖=7.8690
+  [rbm_to_ising] beta_x = 1.9608
+  [CEM iter 105] β_eff = 1.8474 → beta_x = 1.9268 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.9268
+  [CEM iter 110] β_eff = 1.9449 → beta_x = 1.9322 (EMA α=0.3)
+Iter 110: E = -108.548817 ± 0.064255  β_x = 1.932  CG 200it res=3.58e-03  sample_time=1.204s  ‖x‖=7.9903
+  [CEM iter 115] β_eff = 1.8581 → beta_x = 1.9100 (EMA α=0.3)
+  [CEM iter 120] β_eff = 1.8754 → beta_x = 1.8996 (EMA α=0.3)
+Iter 120: E = -108.524305 ± 0.058005  β_x = 1.900  CG 200it res=2.27e-03  sample_time=1.193s  ‖x‖=7.2625
+  [rbm_to_ising] beta_x = 1.8996
+  [CEM iter 125] β_eff = 1.8283 → beta_x = 1.8782 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.8782
+  [CEM iter 130] β_eff = 1.8454 → beta_x = 1.8683 (EMA α=0.3)
+Iter 130: E = -108.291856 ± 0.057777  β_x = 1.868  CG 200it res=2.01e-03  sample_time=1.200s  ‖x‖=7.3497
+  [CEM iter 135] β_eff = 1.8295 → beta_x = 1.8567 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.8567
+  [CEM iter 140] β_eff = 1.7818 → beta_x = 1.8342 (EMA α=0.3)
+Iter 140: E = -108.272020 ± 0.056569  β_x = 1.834  CG 200it res=2.35e-03  sample_time=1.267s  ‖x‖=6.9772
+  [rbm_to_ising] beta_x = 1.8342
+  [CEM iter 145] β_eff = 1.8238 → beta_x = 1.8311 (EMA α=0.3)
+  [CEM iter 150] β_eff = 1.7484 → beta_x = 1.8063 (EMA α=0.3)
+Iter 150: E = -108.063260 ± 0.054925  β_x = 1.806  CG 200it res=3.57e-03  sample_time=1.251s  ‖x‖=7.2450
+  [rbm_to_ising] beta_x = 1.8063
+  [CEM iter 155] β_eff = 1.7928 → beta_x = 1.8022 (EMA α=0.3)
+  [CEM iter 160] β_eff = 1.7959 → beta_x = 1.8003 (EMA α=0.3)
+Iter 160: E = -107.818164 ± 0.051599  β_x = 1.800  CG 200it res=2.44e-03  sample_time=1.196s  ‖x‖=6.6666
+  [CEM iter 165] β_eff = 1.7630 → beta_x = 1.7891 (EMA α=0.3)
+  [CEM iter 170] β_eff = 1.7507 → beta_x = 1.7776 (EMA α=0.3)
+Iter 170: E = -107.712602 ± 0.051077  β_x = 1.778  CG 200it res=3.04e-03  sample_time=1.265s  ‖x‖=6.7607
+  [rbm_to_ising] beta_x = 1.7776
+  [CEM iter 175] β_eff = 1.7528 → beta_x = 1.7702 (EMA α=0.3)
+  [CEM iter 180] β_eff = 1.7530 → beta_x = 1.7650 (EMA α=0.3)
+Iter 180: E = -107.517687 ± 0.051528  β_x = 1.765  CG 200it res=3.79e-03  sample_time=1.173s  ‖x‖=6.8647
+  [CEM iter 185] β_eff = 1.7549 → beta_x = 1.7620 (EMA α=0.3)
+  [CEM iter 190] β_eff = 1.7308 → beta_x = 1.7526 (EMA α=0.3)
+Iter 190: E = -107.549170 ± 0.050659  β_x = 1.753  CG 200it res=2.30e-03  sample_time=1.199s  ‖x‖=6.5752
+  [rbm_to_ising] beta_x = 1.7526
+  [CEM iter 195] β_eff = 1.7165 → beta_x = 1.7418 (EMA α=0.3)
+  [CEM iter 200] β_eff = 1.7116 → beta_x = 1.7328 (EMA α=0.3)
+Iter 200: E = -107.359825 ± 0.047644  β_x = 1.733  CG 200it res=1.90e-03  sample_time=1.292s  ‖x‖=6.0498
+  [rbm_to_ising] beta_x = 1.7328
+  [CEM iter 205] β_eff = 1.7204 → beta_x = 1.7291 (EMA α=0.3)
+  [CEM iter 210] β_eff = 1.6957 → beta_x = 1.7191 (EMA α=0.3)
+Iter 210: E = -107.330594 ± 0.044285  β_x = 1.719  CG 200it res=6.40e-03  sample_time=1.234s  ‖x‖=6.1425
+  [CEM iter 215] β_eff = 1.6917 → beta_x = 1.7109 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.7109
+  [CEM iter 220] β_eff = 1.6904 → beta_x = 1.7047 (EMA α=0.3)
+Iter 220: E = -107.077516 ± 0.050435  β_x = 1.705  CG 200it res=1.53e-03  sample_time=1.207s  ‖x‖=6.5220
+  [CEM iter 225] β_eff = 1.7149 → beta_x = 1.7078 (EMA α=0.3)
+  [CEM iter 230] β_eff = 1.6976 → beta_x = 1.7047 (EMA α=0.3)
+Iter 230: E = -106.909750 ± 0.047647  β_x = 1.705  CG 200it res=1.83e-03  sample_time=1.195s  ‖x‖=6.2157
+  [CEM iter 235] β_eff = 1.6954 → beta_x = 1.7019 (EMA α=0.3)
+  [CEM iter 240] β_eff = 1.6557 → beta_x = 1.6880 (EMA α=0.3)
+Iter 240: E = -106.907586 ± 0.047820  β_x = 1.688  CG 200it res=5.71e-03  sample_time=1.239s  ‖x‖=6.4229
+  [rbm_to_ising] beta_x = 1.6880
+  [CEM iter 245] β_eff = 1.6832 → beta_x = 1.6866 (EMA α=0.3)
+  [CEM iter 250] β_eff = 1.6617 → beta_x = 1.6791 (EMA α=0.3)
+Iter 250: E = -106.762359 ± 0.046373  β_x = 1.679  CG 200it res=3.73e-03  sample_time=1.265s  ‖x‖=6.6470
+  [CEM iter 255] β_eff = 1.6573 → beta_x = 1.6726 (EMA α=0.3)
+  [CEM iter 260] β_eff = 1.6496 → beta_x = 1.6657 (EMA α=0.3)
+Iter 260: E = -106.755204 ± 0.045302  β_x = 1.666  CG 200it res=2.32e-03  sample_time=1.259s  ‖x‖=6.1939
+  [rbm_to_ising] beta_x = 1.6657
+  [CEM iter 265] β_eff = 1.6800 → beta_x = 1.6700 (EMA α=0.3)
+  [CEM iter 270] β_eff = 1.6610 → beta_x = 1.6673 (EMA α=0.3)
+Iter 270: E = -106.697248 ± 0.044256  β_x = 1.667  CG 200it res=2.81e-03  sample_time=1.213s  ‖x‖=6.1724
+  [CEM iter 275] β_eff = 1.6728 → beta_x = 1.6689 (EMA α=0.3)
+  [CEM iter 280] β_eff = 1.6693 → beta_x = 1.6690 (EMA α=0.3)
+Iter 280: E = -106.580207 ± 0.042094  β_x = 1.669  CG 200it res=3.32e-03  sample_time=1.222s  ‖x‖=5.8986
+  [CEM iter 285] β_eff = 1.6631 → beta_x = 1.6673 (EMA α=0.3)
+  [CEM iter 290] β_eff = 1.6301 → beta_x = 1.6561 (EMA α=0.3)
+Iter 290: E = -106.527987 ± 0.041224  β_x = 1.656  CG 200it res=3.27e-03  sample_time=1.228s  ‖x‖=5.5134
+  [CEM iter 295] β_eff = 1.6184 → beta_x = 1.6448 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.6448
+Saved  → jax_results/tfim_1d/81/dimod/zephyr/result_1d_h1.0_rbmfull_nh81_lr0.01_reg1e-05_ns1000_seed1_iter300_cem1_sigma1.0.json
+  Final energy : -106.597474
+  Exact energy : -103.138868
+  Error        : 3.458606
+   570.1s  rbm=full  iters=300  rel_err=0.0335
+[6/59] 1d N= 81  h=2.0  zephyr  lr=0.01  seed=1  [10.0 min QPU left]  ETA ~7.0h
+FullyConnectedRBM(n_visible=81, n_hidden=81)
+<ising.TransverseFieldIsing1D object at 0x7f1340637d10>
+namespace(model='1d', size=81, h=2.0, J=1.0, delta=1.0, alpha=2.0, rbm='full', n_hidden=81, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Running minorminer for (81, 'Advantage2_system1')...
+  [embedding] Embedding found and cached for (81, 'Advantage2_system1').
+  [CEM iter   0] β_eff = 21.2732 → beta_x = 7.0820 (EMA α=0.3)
+Iter   0: E = -161.581315 ± 0.274203  β_x = 7.082  CG 200it res=5.75e-05  sample_time=35.179s  ‖x‖=69.6851
+  [rbm_to_ising] beta_x = 7.0820
+  [CEM iter   5] β_eff = 7.7789 → beta_x = 7.2910 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 7.2910
+  [CEM iter  10] β_eff = 5.6629 → beta_x = 6.8026 (EMA α=0.3)
+Iter  10: E = -197.405128 ± 0.125967  β_x = 6.803  CG 200it res=6.94e-03  sample_time=1.159s  ‖x‖=21.7781
+  [rbm_to_ising] beta_x = 6.8026
+  [CEM iter  15] β_eff = 4.8821 → beta_x = 6.2265 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 6.2265
+  [CEM iter  20] β_eff = 4.3598 → beta_x = 5.6665 (EMA α=0.3)
+Iter  20: E = -190.028300 ± 0.086891  β_x = 5.666  CG 200it res=3.72e-03  sample_time=1.129s  ‖x‖=14.3213
+  [rbm_to_ising] beta_x = 5.6665
+  [CEM iter  25] β_eff = 4.1022 → beta_x = 5.1972 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.1972
+  [CEM iter  30] β_eff = 3.8876 → beta_x = 4.8043 (EMA α=0.3)
+Iter  30: E = -185.282248 ± 0.071862  β_x = 4.804  CG 200it res=5.43e-03  sample_time=1.214s  ‖x‖=12.1309
+  [rbm_to_ising] beta_x = 4.8043
+  [CEM iter  35] β_eff = 3.6498 → beta_x = 4.4580 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 4.4580
+  [CEM iter  40] β_eff = 3.6241 → beta_x = 4.2078 (EMA α=0.3)
+Iter  40: E = -182.800415 ± 0.059567  β_x = 4.208  CG 200it res=3.23e-03  sample_time=1.147s  ‖x‖=10.3482
+  [rbm_to_ising] beta_x = 4.2078
+  [CEM iter  45] β_eff = 3.5242 → beta_x = 4.0027 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 4.0027
+  [CEM iter  50] β_eff = 3.4344 → beta_x = 3.8322 (EMA α=0.3)
+Iter  50: E = -180.869925 ± 0.055962  β_x = 3.832  CG 200it res=4.51e-03  sample_time=1.203s  ‖x‖=9.4889
+  [rbm_to_ising] beta_x = 3.8322
+  [CEM iter  55] β_eff = 3.3469 → beta_x = 3.6866 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.6866
+  [CEM iter  60] β_eff = 3.3698 → beta_x = 3.5916 (EMA α=0.3)
+Iter  60: E = -179.775639 ± 0.049461  β_x = 3.592  CG 200it res=1.85e-03  sample_time=1.140s  ‖x‖=8.0446
+  [rbm_to_ising] beta_x = 3.5916
+  [CEM iter  65] β_eff = 3.2766 → beta_x = 3.4971 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.4971
+  [CEM iter  70] β_eff = 3.2024 → beta_x = 3.4087 (EMA α=0.3)
+Iter  70: E = -179.033339 ± 0.051848  β_x = 3.409  CG 200it res=2.47e-03  sample_time=1.368s  ‖x‖=8.4144
+  [rbm_to_ising] beta_x = 3.4087
+  [CEM iter  75] β_eff = 3.1813 → beta_x = 3.3405 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.3405
+  [CEM iter  80] β_eff = 3.1876 → beta_x = 3.2946 (EMA α=0.3)
+Iter  80: E = -178.438092 ± 0.049082  β_x = 3.295  CG 200it res=1.41e-03  sample_time=1.157s  ‖x‖=7.8313
+  [rbm_to_ising] beta_x = 3.2946
+  [CEM iter  85] β_eff = 3.1006 → beta_x = 3.2364 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.2364
+  [CEM iter  90] β_eff = 3.1788 → beta_x = 3.2191 (EMA α=0.3)
+Iter  90: E = -177.535981 ± 0.051136  β_x = 3.219  CG 200it res=5.72e-04  sample_time=1.436s  ‖x‖=7.9098
+  [CEM iter  95] β_eff = 3.0312 → beta_x = 3.1627 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.1627
+  [CEM iter 100] β_eff = 3.1794 → beta_x = 3.1677 (EMA α=0.3)
+Iter 100: E = -177.253101 ± 0.045756  β_x = 3.168  CG 200it res=1.61e-03  sample_time=1.666s  ‖x‖=7.6900
+  [CEM iter 105] β_eff = 3.0896 → beta_x = 3.1443 (EMA α=0.3)
+  [CEM iter 110] β_eff = 3.0910 → beta_x = 3.1283 (EMA α=0.3)
+Iter 110: E = -177.003158 ± 0.050360  β_x = 3.128  CG 200it res=1.64e-03  sample_time=1.177s  ‖x‖=7.4937
+  [rbm_to_ising] beta_x = 3.1283
+  [CEM iter 115] β_eff = 3.0581 → beta_x = 3.1073 (EMA α=0.3)
+  [CEM iter 120] β_eff = 3.0794 → beta_x = 3.0989 (EMA α=0.3)
+Iter 120: E = -176.665464 ± 0.046150  β_x = 3.099  CG 200it res=4.21e-04  sample_time=1.200s  ‖x‖=6.9639
+  [CEM iter 125] β_eff = 3.0426 → beta_x = 3.0820 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.0820
+  [CEM iter 130] β_eff = 3.0417 → beta_x = 3.0699 (EMA α=0.3)
+Iter 130: E = -176.490871 ± 0.045181  β_x = 3.070  CG 200it res=7.59e-04  sample_time=1.172s  ‖x‖=7.0303
+  [CEM iter 135] β_eff = 3.0873 → beta_x = 3.0751 (EMA α=0.3)
+  [CEM iter 140] β_eff = 3.1196 → beta_x = 3.0885 (EMA α=0.3)
+Iter 140: E = -176.252208 ± 0.045163  β_x = 3.088  CG 200it res=1.74e-03  sample_time=1.138s  ‖x‖=7.1009
+  [CEM iter 145] β_eff = 3.0672 → beta_x = 3.0821 (EMA α=0.3)
+  [CEM iter 150] β_eff = 3.0896 → beta_x = 3.0843 (EMA α=0.3)
+Iter 150: E = -176.319226 ± 0.044463  β_x = 3.084  CG 200it res=1.09e-03  sample_time=1.164s  ‖x‖=6.6704
+  [CEM iter 155] β_eff = 3.1132 → beta_x = 3.0930 (EMA α=0.3)
+  [CEM iter 160] β_eff = 3.1067 → beta_x = 3.0971 (EMA α=0.3)
+Iter 160: E = -176.184467 ± 0.044023  β_x = 3.097  CG 200it res=2.46e-03  sample_time=1.271s  ‖x‖=6.6138
+  [CEM iter 165] β_eff = 3.0943 → beta_x = 3.0963 (EMA α=0.3)
+  [CEM iter 170] β_eff = 3.0783 → beta_x = 3.0909 (EMA α=0.3)
+Iter 170: E = -176.235940 ± 0.042612  β_x = 3.091  CG 200it res=5.41e-04  sample_time=1.152s  ‖x‖=6.0678
+  [CEM iter 175] β_eff = 3.1660 → beta_x = 3.1134 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.1134
+  [CEM iter 180] β_eff = 3.1204 → beta_x = 3.1155 (EMA α=0.3)
+Iter 180: E = -176.113627 ± 0.043657  β_x = 3.116  CG 200it res=4.66e-04  sample_time=1.185s  ‖x‖=6.6271
+  [CEM iter 185] β_eff = 3.0661 → beta_x = 3.1007 (EMA α=0.3)
+  [CEM iter 190] β_eff = 3.0548 → beta_x = 3.0869 (EMA α=0.3)
+Iter 190: E = -176.031296 ± 0.043998  β_x = 3.087  CG 200it res=6.17e-04  sample_time=1.177s  ‖x‖=6.6835
+  [CEM iter 195] β_eff = 3.0312 → beta_x = 3.0702 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.0702
+  [CEM iter 200] β_eff = 3.0270 → beta_x = 3.0572 (EMA α=0.3)
+Iter 200: E = -175.987265 ± 0.041655  β_x = 3.057  CG 200it res=5.51e-04  sample_time=1.203s  ‖x‖=6.5047
+  [CEM iter 205] β_eff = 3.0635 → beta_x = 3.0591 (EMA α=0.3)
+  [CEM iter 210] β_eff = 2.9984 → beta_x = 3.0409 (EMA α=0.3)
+Iter 210: E = -176.035871 ± 0.041393  β_x = 3.041  CG 200it res=7.38e-04  sample_time=1.170s  ‖x‖=6.3758
+  [CEM iter 215] β_eff = 3.1467 → beta_x = 3.0727 (EMA α=0.3)
+  [CEM iter 220] β_eff = 3.1088 → beta_x = 3.0835 (EMA α=0.3)
+Iter 220: E = -175.896253 ± 0.042233  β_x = 3.083  CG 200it res=2.70e-04  sample_time=1.123s  ‖x‖=6.2363
+  [CEM iter 225] β_eff = 3.1440 → beta_x = 3.1016 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.1016
+  [CEM iter 230] β_eff = 3.1337 → beta_x = 3.1112 (EMA α=0.3)
+Iter 230: E = -175.864876 ± 0.042045  β_x = 3.111  CG 200it res=5.62e-04  sample_time=1.161s  ‖x‖=6.5431
+  [CEM iter 235] β_eff = 3.0737 → beta_x = 3.1000 (EMA α=0.3)
+  [CEM iter 240] β_eff = 3.1060 → beta_x = 3.1018 (EMA α=0.3)
+Iter 240: E = -175.917767 ± 0.042223  β_x = 3.102  CG 200it res=2.32e-04  sample_time=1.155s  ‖x‖=6.3366
+  [CEM iter 245] β_eff = 3.0750 → beta_x = 3.0937 (EMA α=0.3)
+  [CEM iter 250] β_eff = 3.1109 → beta_x = 3.0989 (EMA α=0.3)
+Iter 250: E = -175.815481 ± 0.038366  β_x = 3.099  CG 200it res=6.13e-04  sample_time=1.163s  ‖x‖=5.7713
+  [CEM iter 255] β_eff = 3.1124 → beta_x = 3.1030 (EMA α=0.3)
+  [CEM iter 260] β_eff = 3.1392 → beta_x = 3.1138 (EMA α=0.3)
+Iter 260: E = -175.871253 ± 0.042361  β_x = 3.114  CG 200it res=3.86e-04  sample_time=1.149s  ‖x‖=6.2214
+  [CEM iter 265] β_eff = 3.0738 → beta_x = 3.1018 (EMA α=0.3)
+  [CEM iter 270] β_eff = 3.0242 → beta_x = 3.0785 (EMA α=0.3)
+Iter 270: E = -175.876750 ± 0.040087  β_x = 3.079  CG 200it res=3.40e-04  sample_time=1.147s  ‖x‖=5.8285
+  [CEM iter 275] β_eff = 3.0622 → beta_x = 3.0736 (EMA α=0.3)
+  [CEM iter 280] β_eff = 3.0817 → beta_x = 3.0760 (EMA α=0.3)
+Iter 280: E = -175.871694 ± 0.040083  β_x = 3.076  CG 200it res=4.62e-04  sample_time=1.197s  ‖x‖=5.7333
+  [CEM iter 285] β_eff = 3.0138 → beta_x = 3.0574 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.0574
+  [CEM iter 290] β_eff = 3.0607 → beta_x = 3.0584 (EMA α=0.3)
+Iter 290: E = -175.669370 ± 0.041655  β_x = 3.058  CG 200it res=1.90e-04  sample_time=1.182s  ‖x‖=6.0946
+  [CEM iter 295] β_eff = 3.0519 → beta_x = 3.0564 (EMA α=0.3)
+Saved  → jax_results/tfim_1d/81/dimod/zephyr/result_1d_h2.0_rbmfull_nh81_lr0.01_reg1e-05_ns1000_seed1_iter300_cem1_sigma1.0.json
+  Final energy : -175.628801
+  Exact energy : -172.294194
+  Error        : 3.334607
+   558.9s  rbm=full  iters=300  rel_err=0.0194
+[7/59] 1d N=100  h=0.5  zephyr  lr=0.01  seed=1  [9.0 min QPU left]  ETA ~7.1h
+FullyConnectedRBM(n_visible=100, n_hidden=100)
+<ising.TransverseFieldIsing1D object at 0x7f134061e250>
+namespace(model='1d', size=100, h=0.5, J=1.0, delta=1.0, alpha=2.0, rbm='full', n_hidden=100, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Running minorminer for (100, 'Advantage2_system1')...
+  [embedding] Embedding found and cached for (100, 'Advantage2_system1').
+  [CEM iter   0] β_eff = 13.6517 → beta_x = 4.7955 (EMA α=0.3)
+Iter   0: E = -50.564205 ± 0.298443  β_x = 4.796  CG 200it res=5.46e-08  sample_time=47.169s  ‖x‖=55.2642
+  [rbm_to_ising] beta_x = 4.7955
+  [CEM iter   5] β_eff = 6.0339 → beta_x = 5.1671 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.1671
+  [CEM iter  10] β_eff = 4.4335 → beta_x = 4.9470 (EMA α=0.3)
+Iter  10: E = -102.220004 ± 0.243661  β_x = 4.947  CG 200it res=4.13e-03  sample_time=1.304s  ‖x‖=25.3630
+  [rbm_to_ising] beta_x = 4.9470
+  [CEM iter  15] β_eff = 3.5804 → beta_x = 4.5370 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 4.5370
+  [CEM iter  20] β_eff = 3.1199 → beta_x = 4.1119 (EMA α=0.3)
+Iter  20: E = -103.291665 ± 0.218947  β_x = 4.112  CG 200it res=7.13e-03  sample_time=1.348s  ‖x‖=18.2858
+  [rbm_to_ising] beta_x = 4.1119
+  [CEM iter  25] β_eff = 2.6843 → beta_x = 3.6836 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.6836
+  [CEM iter  30] β_eff = 2.4580 → beta_x = 3.3159 (EMA α=0.3)
+Iter  30: E = -100.818813 ± 0.212896  β_x = 3.316  CG 200it res=6.67e-04  sample_time=1.377s  ‖x‖=14.5637
+  [rbm_to_ising] beta_x = 3.3159
+  [CEM iter  35] β_eff = 2.2714 → beta_x = 3.0026 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.0026
+  [CEM iter  40] β_eff = 2.1404 → beta_x = 2.7439 (EMA α=0.3)
+Iter  40: E = -101.676418 ± 0.194898  β_x = 2.744  CG 200it res=1.85e-03  sample_time=1.302s  ‖x‖=13.4023
+  [rbm_to_ising] beta_x = 2.7439
+  [CEM iter  45] β_eff = 2.0081 → beta_x = 2.5232 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.5232
+  [CEM iter  50] β_eff = 1.8727 → beta_x = 2.3280 (EMA α=0.3)
+Iter  50: E = -100.680921 ± 0.181275  β_x = 2.328  CG 200it res=1.21e-03  sample_time=1.361s  ‖x‖=12.0319
+  [rbm_to_ising] beta_x = 2.3280
+  [CEM iter  55] β_eff = 1.8227 → beta_x = 2.1764 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.1764
+  [CEM iter  60] β_eff = 1.7013 → beta_x = 2.0339 (EMA α=0.3)
+Iter  60: E = -99.667667 ± 0.171412  β_x = 2.034  CG 200it res=1.93e-03  sample_time=1.336s  ‖x‖=11.2473
+  [rbm_to_ising] beta_x = 2.0339
+  [CEM iter  65] β_eff = 1.6227 → beta_x = 1.9105 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.9105
+  [CEM iter  70] β_eff = 1.6150 → beta_x = 1.8219 (EMA α=0.3)
+Iter  70: E = -99.938139 ± 0.155874  β_x = 1.822  CG 200it res=6.54e-03  sample_time=1.354s  ‖x‖=10.0740
+  [rbm_to_ising] beta_x = 1.8219
+  [CEM iter  75] β_eff = 1.5581 → beta_x = 1.7427 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.7427
+  [CEM iter  80] β_eff = 1.5047 → beta_x = 1.6713 (EMA α=0.3)
+Iter  80: E = -100.855783 ± 0.140069  β_x = 1.671  CG 200it res=1.73e-03  sample_time=1.299s  ‖x‖=8.8166
+  [rbm_to_ising] beta_x = 1.6713
+  [CEM iter  85] β_eff = 1.4614 → beta_x = 1.6084 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.6084
+  [CEM iter  90] β_eff = 1.4172 → beta_x = 1.5510 (EMA α=0.3)
+Iter  90: E = -100.474747 ± 0.137779  β_x = 1.551  CG 200it res=3.86e-03  sample_time=1.332s  ‖x‖=9.2448
+  [rbm_to_ising] beta_x = 1.5510
+  [CEM iter  95] β_eff = 1.3728 → beta_x = 1.4976 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.4976
+  [CEM iter 100] β_eff = 1.3559 → beta_x = 1.4551 (EMA α=0.3)
+Iter 100: E = -100.776897 ± 0.119699  β_x = 1.455  CG 200it res=5.87e-03  sample_time=1.329s  ‖x‖=8.2755
+  [rbm_to_ising] beta_x = 1.4551
+  [CEM iter 105] β_eff = 1.3151 → beta_x = 1.4131 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.4131
+  [CEM iter 110] β_eff = 1.3053 → beta_x = 1.3808 (EMA α=0.3)
+Iter 110: E = -101.266722 ± 0.115671  β_x = 1.381  CG 200it res=3.53e-03  sample_time=1.311s  ‖x‖=8.4743
+  [rbm_to_ising] beta_x = 1.3808
+  [CEM iter 115] β_eff = 1.2670 → beta_x = 1.3466 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.3466
+  [CEM iter 120] β_eff = 1.2545 → beta_x = 1.3190 (EMA α=0.3)
+Iter 120: E = -101.216278 ± 0.113496  β_x = 1.319  CG 200it res=5.96e-03  sample_time=1.281s  ‖x‖=8.2255
+  [rbm_to_ising] beta_x = 1.3190
+  [CEM iter 125] β_eff = 1.2507 → beta_x = 1.2985 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.2985
+  [CEM iter 130] β_eff = 1.2199 → beta_x = 1.2749 (EMA α=0.3)
+Iter 130: E = -101.585904 ± 0.107662  β_x = 1.275  CG 200it res=6.68e-03  sample_time=1.403s  ‖x‖=8.0884
+  [rbm_to_ising] beta_x = 1.2749
+  [CEM iter 135] β_eff = 1.2051 → beta_x = 1.2540 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.2540
+  [CEM iter 140] β_eff = 1.2130 → beta_x = 1.2417 (EMA α=0.3)
+Iter 140: E = -102.261519 ± 0.095953  β_x = 1.242  CG 200it res=9.86e-03  sample_time=1.282s  ‖x‖=7.8769
+  [CEM iter 145] β_eff = 1.1849 → beta_x = 1.2246 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.2246
+  [CEM iter 150] β_eff = 1.1766 → beta_x = 1.2102 (EMA α=0.3)
+Iter 150: E = -102.093961 ± 0.088156  β_x = 1.210  CG 200it res=8.71e-03  sample_time=1.384s  ‖x‖=7.4213
+  [rbm_to_ising] beta_x = 1.2102
+  [CEM iter 155] β_eff = 1.1679 → beta_x = 1.1975 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.1975
+  [CEM iter 160] β_eff = 1.1646 → beta_x = 1.1877 (EMA α=0.3)
+Iter 160: E = -102.255908 ± 0.090367  β_x = 1.188  CG 200it res=4.76e-03  sample_time=1.297s  ‖x‖=7.3930
+  [CEM iter 165] β_eff = 1.1394 → beta_x = 1.1732 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.1732
+  [CEM iter 170] β_eff = 1.1220 → beta_x = 1.1578 (EMA α=0.3)
+Iter 170: E = -102.300807 ± 0.086518  β_x = 1.158  CG 200it res=6.80e-03  sample_time=1.345s  ‖x‖=7.6401
+  [rbm_to_ising] beta_x = 1.1578
+  [CEM iter 175] β_eff = 1.1360 → beta_x = 1.1513 (EMA α=0.3)
+  [CEM iter 180] β_eff = 1.1152 → beta_x = 1.1404 (EMA α=0.3)
+Iter 180: E = -102.152139 ± 0.089353  β_x = 1.140  CG 200it res=1.17e-02  sample_time=1.362s  ‖x‖=7.7434
+  [rbm_to_ising] beta_x = 1.1404
+  [CEM iter 185] β_eff = 1.1185 → beta_x = 1.1339 (EMA α=0.3)
+  [CEM iter 190] β_eff = 1.0843 → beta_x = 1.1190 (EMA α=0.3)
+Iter 190: E = -102.370947 ± 0.081666  β_x = 1.119  CG 200it res=1.73e-02  sample_time=1.304s  ‖x‖=7.0985
+  [rbm_to_ising] beta_x = 1.1190
+  [CEM iter 195] β_eff = 1.0953 → beta_x = 1.1119 (EMA α=0.3)
+  [CEM iter 200] β_eff = 1.0840 → beta_x = 1.1035 (EMA α=0.3)
+Iter 200: E = -102.816064 ± 0.079789  β_x = 1.104  CG 200it res=1.38e-02  sample_time=1.302s  ‖x‖=7.8236
+  [rbm_to_ising] beta_x = 1.1035
+  [CEM iter 205] β_eff = 1.0862 → beta_x = 1.0983 (EMA α=0.3)
+  [CEM iter 210] β_eff = 1.0746 → beta_x = 1.0912 (EMA α=0.3)
+Iter 210: E = -102.586089 ± 0.077972  β_x = 1.091  CG 200it res=6.24e-03  sample_time=1.274s  ‖x‖=7.5441
+  [rbm_to_ising] beta_x = 1.0912
+  [CEM iter 215] β_eff = 1.0669 → beta_x = 1.0839 (EMA α=0.3)
+  [CEM iter 220] β_eff = 1.0821 → beta_x = 1.0834 (EMA α=0.3)
+Iter 220: E = -102.736865 ± 0.075774  β_x = 1.083  CG 200it res=6.20e-03  sample_time=1.371s  ‖x‖=7.3993
+  [CEM iter 225] β_eff = 1.0844 → beta_x = 1.0837 (EMA α=0.3)
+  [CEM iter 230] β_eff = 1.0592 → beta_x = 1.0764 (EMA α=0.3)
+Iter 230: E = -102.756445 ± 0.075688  β_x = 1.076  CG 200it res=1.01e-02  sample_time=1.285s  ‖x‖=8.0274
+  [rbm_to_ising] beta_x = 1.0764
+  [CEM iter 235] β_eff = 1.0856 → beta_x = 1.0791 (EMA α=0.3)
+  [CEM iter 240] β_eff = 1.0762 → beta_x = 1.0782 (EMA α=0.3)
+Iter 240: E = -102.809678 ± 0.074748  β_x = 1.078  CG 200it res=1.18e-02  sample_time=1.413s  ‖x‖=7.2893
+  [CEM iter 245] β_eff = 1.0835 → beta_x = 1.0798 (EMA α=0.3)
+  [CEM iter 250] β_eff = 1.0784 → beta_x = 1.0794 (EMA α=0.3)
+Iter 250: E = -102.905143 ± 0.070970  β_x = 1.079  CG 200it res=1.03e-02  sample_time=1.284s  ‖x‖=7.6924
+  [CEM iter 255] β_eff = 1.0754 → beta_x = 1.0782 (EMA α=0.3)
+  [CEM iter 260] β_eff = 1.0663 → beta_x = 1.0746 (EMA α=0.3)
+Iter 260: E = -102.880651 ± 0.075166  β_x = 1.075  CG 200it res=8.46e-03  sample_time=1.325s  ‖x‖=6.9782
+  [CEM iter 265] β_eff = 1.0620 → beta_x = 1.0708 (EMA α=0.3)
+  [CEM iter 270] β_eff = 1.0543 → beta_x = 1.0659 (EMA α=0.3)
+Iter 270: E = -103.170151 ± 0.065507  β_x = 1.066  CG 200it res=9.88e-03  sample_time=1.333s  ‖x‖=7.1109
+  [CEM iter 275] β_eff = 1.0548 → beta_x = 1.0625 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.0625
+  [CEM iter 280] β_eff = 1.0510 → beta_x = 1.0591 (EMA α=0.3)
+Iter 280: E = -103.191901 ± 0.062161  β_x = 1.059  CG 200it res=8.65e-03  sample_time=1.372s  ‖x‖=6.4355
+  [CEM iter 285] β_eff = 1.0545 → beta_x = 1.0577 (EMA α=0.3)
+  [CEM iter 290] β_eff = 1.0428 → beta_x = 1.0532 (EMA α=0.3)
+Iter 290: E = -102.899868 ± 0.067657  β_x = 1.053  CG 200it res=9.19e-03  sample_time=1.307s  ‖x‖=7.0018
+  [CEM iter 295] β_eff = 1.0368 → beta_x = 1.0483 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.0483
+Saved  → jax_results/tfim_1d/100/dimod/zephyr/result_1d_h0.5_rbmfull_nh100_lr0.01_reg1e-05_ns1000_seed1_iter300_cem1_sigma1.0.json
+  Final energy : -102.951261
+  Exact energy : -106.354441
+  Error        : 3.403180
+   606.9s  rbm=full  iters=300  rel_err=0.0320
+[8/59] 1d N=100  h=1.0  zephyr  lr=0.01  seed=1  [8.0 min QPU left]  ETA ~7.2h
+FullyConnectedRBM(n_visible=100, n_hidden=100)
+<ising.TransverseFieldIsing1D object at 0x7f134061e250>
+namespace(model='1d', size=100, h=1.0, J=1.0, delta=1.0, alpha=2.0, rbm='full', n_hidden=100, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Running minorminer for (100, 'Advantage2_system1')...
+  [embedding] Embedding found and cached for (100, 'Advantage2_system1').
+  [CEM iter   0] β_eff = 13.6635 → beta_x = 4.7990 (EMA α=0.3)
+Iter   0: E = -104.644759 ± 0.324310  β_x = 4.799  CG 192it res=8.97e-09  sample_time=90.621s  ‖x‖=56.2762
+  [rbm_to_ising] beta_x = 4.7990
+  [CEM iter   5] β_eff = 5.8966 → beta_x = 5.1283 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.1283
+  [CEM iter  10] β_eff = 4.3220 → beta_x = 4.8864 (EMA α=0.3)
+Iter  10: E = -141.349314 ± 0.219901  β_x = 4.886  CG 200it res=5.48e-04  sample_time=1.306s  ‖x‖=23.5801
+  [rbm_to_ising] beta_x = 4.8864
+  [CEM iter  15] β_eff = 3.5786 → beta_x = 4.4941 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 4.4941
+  [CEM iter  20] β_eff = 3.1637 → beta_x = 4.0950 (EMA α=0.3)
+Iter  20: E = -138.575855 ± 0.177139  β_x = 4.095  CG 200it res=1.52e-04  sample_time=1.300s  ‖x‖=15.7825
+  [rbm_to_ising] beta_x = 4.0950
+  [CEM iter  25] β_eff = 2.8124 → beta_x = 3.7102 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.7102
+  [CEM iter  30] β_eff = 2.6514 → beta_x = 3.3926 (EMA α=0.3)
+Iter  30: E = -136.309877 ± 0.158674  β_x = 3.393  CG 200it res=4.29e-04  sample_time=1.386s  ‖x‖=13.6565
+  [rbm_to_ising] beta_x = 3.3926
+  [CEM iter  35] β_eff = 2.4819 → beta_x = 3.1194 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.1194
+  [CEM iter  40] β_eff = 2.3624 → beta_x = 2.8923 (EMA α=0.3)
+Iter  40: E = -135.260467 ± 0.140341  β_x = 2.892  CG 200it res=6.32e-04  sample_time=1.258s  ‖x‖=11.8763
+  [rbm_to_ising] beta_x = 2.8923
+  [CEM iter  45] β_eff = 2.3332 → beta_x = 2.7246 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.7246
+  [CEM iter  50] β_eff = 2.1770 → beta_x = 2.5603 (EMA α=0.3)
+Iter  50: E = -133.820383 ± 0.129232  β_x = 2.560  CG 200it res=4.87e-04  sample_time=1.339s  ‖x‖=10.9057
+  [rbm_to_ising] beta_x = 2.5603
+  [CEM iter  55] β_eff = 2.0597 → beta_x = 2.4101 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.4101
+  [CEM iter  60] β_eff = 2.0406 → beta_x = 2.2993 (EMA α=0.3)
+Iter  60: E = -132.990383 ± 0.114688  β_x = 2.299  CG 200it res=1.78e-04  sample_time=1.336s  ‖x‖=9.7668
+  [rbm_to_ising] beta_x = 2.2993
+  [CEM iter  65] β_eff = 1.9871 → beta_x = 2.2056 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.2056
+  [CEM iter  70] β_eff = 1.9620 → beta_x = 2.1325 (EMA α=0.3)
+Iter  70: E = -132.521493 ± 0.107839  β_x = 2.133  CG 200it res=7.03e-05  sample_time=1.306s  ‖x‖=8.7503
+  [rbm_to_ising] beta_x = 2.1325
+  [CEM iter  75] β_eff = 1.8992 → beta_x = 2.0625 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.0625
+  [CEM iter  80] β_eff = 1.8563 → beta_x = 2.0006 (EMA α=0.3)
+Iter  80: E = -132.002833 ± 0.106593  β_x = 2.001  CG 200it res=9.76e-05  sample_time=1.348s  ‖x‖=8.7813
+  [rbm_to_ising] beta_x = 2.0006
+  [CEM iter  85] β_eff = 1.8265 → beta_x = 1.9484 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.9484
+  [CEM iter  90] β_eff = 1.8208 → beta_x = 1.9101 (EMA α=0.3)
+Iter  90: E = -131.651399 ± 0.099945  β_x = 1.910  CG 200it res=8.91e-05  sample_time=1.324s  ‖x‖=8.8116
+  [rbm_to_ising] beta_x = 1.9101
+  [CEM iter  95] β_eff = 1.7675 → beta_x = 1.8673 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.8673
+  [CEM iter 100] β_eff = 1.7330 → beta_x = 1.8270 (EMA α=0.3)
+Iter 100: E = -131.302865 ± 0.095208  β_x = 1.827  CG 200it res=1.22e-04  sample_time=1.331s  ‖x‖=8.0840
+  [rbm_to_ising] beta_x = 1.8270
+  [CEM iter 105] β_eff = 1.7320 → beta_x = 1.7985 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.7985
+  [CEM iter 110] β_eff = 1.7225 → beta_x = 1.7757 (EMA α=0.3)
+Iter 110: E = -130.909324 ± 0.089774  β_x = 1.776  CG 200it res=2.41e-04  sample_time=1.466s  ‖x‖=7.8311
+  [rbm_to_ising] beta_x = 1.7757
+  [CEM iter 115] β_eff = 1.7349 → beta_x = 1.7635 (EMA α=0.3)
+  [CEM iter 120] β_eff = 1.6688 → beta_x = 1.7351 (EMA α=0.3)
+Iter 120: E = -130.671170 ± 0.086642  β_x = 1.735  CG 200it res=3.40e-04  sample_time=1.282s  ‖x‖=7.5866
+  [rbm_to_ising] beta_x = 1.7351
+  [CEM iter 125] β_eff = 1.6675 → beta_x = 1.7148 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.7148
+  [CEM iter 130] β_eff = 1.6364 → beta_x = 1.6913 (EMA α=0.3)
+Iter 130: E = -130.534311 ± 0.089426  β_x = 1.691  CG 200it res=7.56e-05  sample_time=1.401s  ‖x‖=7.6698
+  [rbm_to_ising] beta_x = 1.6913
+  [CEM iter 135] β_eff = 1.6539 → beta_x = 1.6801 (EMA α=0.3)
+  [CEM iter 140] β_eff = 1.6339 → beta_x = 1.6662 (EMA α=0.3)
+Iter 140: E = -130.302415 ± 0.081735  β_x = 1.666  CG 200it res=1.45e-04  sample_time=1.322s  ‖x‖=7.0337
+  [rbm_to_ising] beta_x = 1.6662
+  [CEM iter 145] β_eff = 1.6378 → beta_x = 1.6577 (EMA α=0.3)
+  [CEM iter 150] β_eff = 1.5823 → beta_x = 1.6351 (EMA α=0.3)
+Iter 150: E = -130.207211 ± 0.078256  β_x = 1.635  CG 200it res=1.48e-04  sample_time=1.310s  ‖x‖=7.5054
+  [rbm_to_ising] beta_x = 1.6351
+  [CEM iter 155] β_eff = 1.5808 → beta_x = 1.6188 (EMA α=0.3)
+  [CEM iter 160] β_eff = 1.6007 → beta_x = 1.6134 (EMA α=0.3)
+Iter 160: E = -129.957366 ± 0.086364  β_x = 1.613  CG 200it res=2.86e-05  sample_time=1.421s  ‖x‖=7.2529
+  [rbm_to_ising] beta_x = 1.6134
+  [CEM iter 165] β_eff = 1.5573 → beta_x = 1.5965 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.5965
+  [CEM iter 170] β_eff = 1.5672 → beta_x = 1.5877 (EMA α=0.3)
+Iter 170: E = -129.865112 ± 0.086736  β_x = 1.588  CG 200it res=2.85e-05  sample_time=1.432s  ‖x‖=6.9348
+  [CEM iter 175] β_eff = 1.5755 → beta_x = 1.5841 (EMA α=0.3)
+  [CEM iter 180] β_eff = 1.5610 → beta_x = 1.5771 (EMA α=0.3)
+Iter 180: E = -129.833250 ± 0.083000  β_x = 1.577  CG 200it res=2.86e-05  sample_time=1.300s  ‖x‖=6.8261
+  [rbm_to_ising] beta_x = 1.5771
+  [CEM iter 185] β_eff = 1.5524 → beta_x = 1.5697 (EMA α=0.3)
+  [CEM iter 190] β_eff = 1.5481 → beta_x = 1.5632 (EMA α=0.3)
+Iter 190: E = -129.768311 ± 0.080952  β_x = 1.563  CG 200it res=3.56e-05  sample_time=1.322s  ‖x‖=6.5991
+  [CEM iter 195] β_eff = 1.5450 → beta_x = 1.5578 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.5578
+  [CEM iter 200] β_eff = 1.5378 → beta_x = 1.5518 (EMA α=0.3)
+Iter 200: E = -129.589821 ± 0.079514  β_x = 1.552  CG 200it res=5.36e-05  sample_time=1.315s  ‖x‖=6.3261
+  [CEM iter 205] β_eff = 1.5161 → beta_x = 1.5411 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.5411
+  [CEM iter 210] β_eff = 1.5131 → beta_x = 1.5327 (EMA α=0.3)
+Iter 210: E = -129.483851 ± 0.074734  β_x = 1.533  CG 200it res=2.99e-05  sample_time=1.314s  ‖x‖=6.2976
+  [CEM iter 215] β_eff = 1.4894 → beta_x = 1.5197 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.5197
+  [CEM iter 220] β_eff = 1.4994 → beta_x = 1.5136 (EMA α=0.3)
+Iter 220: E = -129.336097 ± 0.075604  β_x = 1.514  CG 200it res=3.48e-05  sample_time=1.311s  ‖x‖=6.8265
+  [CEM iter 225] β_eff = 1.5042 → beta_x = 1.5108 (EMA α=0.3)
+  [CEM iter 230] β_eff = 1.5010 → beta_x = 1.5078 (EMA α=0.3)
+Iter 230: E = -129.284251 ± 0.075685  β_x = 1.508  CG 200it res=1.01e-05  sample_time=1.323s  ‖x‖=6.0427
+  [CEM iter 235] β_eff = 1.4966 → beta_x = 1.5045 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.5045
+  [CEM iter 240] β_eff = 1.5112 → beta_x = 1.5065 (EMA α=0.3)
+Iter 240: E = -129.064958 ± 0.074550  β_x = 1.506  CG 200it res=8.66e-06  sample_time=1.319s  ‖x‖=5.9600
+  [CEM iter 245] β_eff = 1.4859 → beta_x = 1.5003 (EMA α=0.3)
+  [CEM iter 250] β_eff = 1.4816 → beta_x = 1.4947 (EMA α=0.3)
+Iter 250: E = -128.989648 ± 0.078432  β_x = 1.495  CG 200it res=8.54e-06  sample_time=1.345s  ‖x‖=6.0835
+  [CEM iter 255] β_eff = 1.4763 → beta_x = 1.4892 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.4892
+  [CEM iter 260] β_eff = 1.5157 → beta_x = 1.4972 (EMA α=0.3)
+Iter 260: E = -129.159563 ± 0.078452  β_x = 1.497  CG 200it res=1.49e-05  sample_time=1.372s  ‖x‖=6.1981
+  [CEM iter 265] β_eff = 1.4741 → beta_x = 1.4902 (EMA α=0.3)
+  [CEM iter 270] β_eff = 1.4842 → beta_x = 1.4884 (EMA α=0.3)
+Iter 270: E = -129.009514 ± 0.080490  β_x = 1.488  CG 200it res=3.41e-05  sample_time=1.425s  ‖x‖=6.4186
+  [CEM iter 275] β_eff = 1.4725 → beta_x = 1.4836 (EMA α=0.3)
+  [CEM iter 280] β_eff = 1.4830 → beta_x = 1.4834 (EMA α=0.3)
+Iter 280: E = -129.040995 ± 0.073749  β_x = 1.483  CG 200it res=1.80e-05  sample_time=1.288s  ‖x‖=5.8856
+  [CEM iter 285] β_eff = 1.4269 → beta_x = 1.4665 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.4665
+  [CEM iter 290] β_eff = 1.4651 → beta_x = 1.4661 (EMA α=0.3)
+Iter 290: E = -128.934014 ± 0.074908  β_x = 1.466  CG 200it res=1.24e-05  sample_time=1.391s  ‖x‖=6.1236
+  [CEM iter 295] β_eff = 1.4636 → beta_x = 1.4653 (EMA α=0.3)
+Saved  → jax_results/tfim_1d/100/dimod/zephyr/result_1d_h1.0_rbmfull_nh100_lr0.01_reg1e-05_ns1000_seed1_iter300_cem1_sigma1.0.json
+  Final energy : -128.944169
+  Exact energy : -127.329191
+  Error        : 1.614979
+   669.0s  rbm=full  iters=300  rel_err=0.0127
+[9/59] 1d N=100  h=2.0  zephyr  lr=0.01  seed=1  [6.9 min QPU left]  ETA ~7.4h
+FullyConnectedRBM(n_visible=100, n_hidden=100)
+<ising.TransverseFieldIsing1D object at 0x7f13cc2bdf50>
+namespace(model='1d', size=100, h=2.0, J=1.0, delta=1.0, alpha=2.0, rbm='full', n_hidden=100, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Running minorminer for (100, 'Advantage2_system1')...
+  [embedding] Embedding found and cached for (100, 'Advantage2_system1').
+  [CEM iter   0] β_eff = 15.2941 → beta_x = 5.2882 (EMA α=0.3)
+Iter   0: E = -201.558974 ± 0.305858  β_x = 5.288  CG 200it res=8.12e-08  sample_time=81.848s  ‖x‖=57.0274
+  [rbm_to_ising] beta_x = 5.2882
+  [CEM iter   5] β_eff = 7.4055 → beta_x = 5.9234 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.9234
+  [CEM iter  10] β_eff = 5.4767 → beta_x = 5.7894 (EMA α=0.3)
+Iter  10: E = -242.499746 ± 0.178618  β_x = 5.789  CG 200it res=8.28e-03  sample_time=1.366s  ‖x‖=24.4499
+  [rbm_to_ising] beta_x = 5.7894
+  [CEM iter  15] β_eff = 4.4564 → beta_x = 5.3895 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.3895
+  [CEM iter  20] β_eff = 4.0083 → beta_x = 4.9751 (EMA α=0.3)
+Iter  20: E = -232.132616 ± 0.124224  β_x = 4.975  CG 200it res=1.32e-02  sample_time=1.297s  ‖x‖=15.9862
+  [rbm_to_ising] beta_x = 4.9751
+  [CEM iter  25] β_eff = 3.6529 → beta_x = 4.5785 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 4.5785
+  [CEM iter  30] β_eff = 3.4776 → beta_x = 4.2482 (EMA α=0.3)
+Iter  30: E = -226.539568 ± 0.087391  β_x = 4.248  CG 200it res=7.07e-03  sample_time=1.295s  ‖x‖=12.0943
+  [rbm_to_ising] beta_x = 4.2482
+  [CEM iter  35] β_eff = 3.3005 → beta_x = 3.9639 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.9639
+  [CEM iter  40] β_eff = 3.1145 → beta_x = 3.7091 (EMA α=0.3)
+Iter  40: E = -222.799283 ± 0.081209  β_x = 3.709  CG 200it res=7.89e-03  sample_time=1.286s  ‖x‖=10.6578
+  [rbm_to_ising] beta_x = 3.7091
+  [CEM iter  45] β_eff = 3.1048 → beta_x = 3.5278 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.5278
+  [CEM iter  50] β_eff = 3.1143 → beta_x = 3.4037 (EMA α=0.3)
+Iter  50: E = -220.406745 ± 0.067379  β_x = 3.404  CG 200it res=5.64e-03  sample_time=1.312s  ‖x‖=8.9907
+  [rbm_to_ising] beta_x = 3.4037
+  [CEM iter  55] β_eff = 3.0122 → beta_x = 3.2863 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.2863
+  [CEM iter  60] β_eff = 2.9538 → beta_x = 3.1865 (EMA α=0.3)
+Iter  60: E = -218.499581 ± 0.069155  β_x = 3.187  CG 200it res=3.54e-03  sample_time=1.303s  ‖x‖=8.5102
+  [rbm_to_ising] beta_x = 3.1865
+  [CEM iter  65] β_eff = 2.9463 → beta_x = 3.1145 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.1145
+  [CEM iter  70] β_eff = 3.0031 → beta_x = 3.0810 (EMA α=0.3)
+Iter  70: E = -217.320227 ± 0.056737  β_x = 3.081  CG 200it res=4.93e-03  sample_time=1.312s  ‖x‖=7.8516
+  [rbm_to_ising] beta_x = 3.0810
+  [CEM iter  75] β_eff = 2.9521 → beta_x = 3.0424 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.0424
+  [CEM iter  80] β_eff = 2.8888 → beta_x = 2.9963 (EMA α=0.3)
+Iter  80: E = -216.494374 ± 0.062666  β_x = 2.996  CG 200it res=1.30e-03  sample_time=1.341s  ‖x‖=7.6506
+  [rbm_to_ising] beta_x = 2.9963
+  [CEM iter  85] β_eff = 2.9186 → beta_x = 2.9730 (EMA α=0.3)
+  [CEM iter  90] β_eff = 2.8847 → beta_x = 2.9465 (EMA α=0.3)
+Iter  90: E = -215.928283 ± 0.064656  β_x = 2.947  CG 200it res=2.69e-03  sample_time=1.333s  ‖x‖=7.4641
+  [rbm_to_ising] beta_x = 2.9465
+  [CEM iter  95] β_eff = 2.9022 → beta_x = 2.9332 (EMA α=0.3)
+  [CEM iter 100] β_eff = 2.8761 → beta_x = 2.9161 (EMA α=0.3)
+Iter 100: E = -215.624935 ± 0.063803  β_x = 2.916  CG 200it res=1.04e-03  sample_time=1.295s  ‖x‖=7.2525
+  [rbm_to_ising] beta_x = 2.9161
+  [CEM iter 105] β_eff = 2.8950 → beta_x = 2.9097 (EMA α=0.3)
+  [CEM iter 110] β_eff = 2.8766 → beta_x = 2.8998 (EMA α=0.3)
+Iter 110: E = -215.284592 ± 0.062063  β_x = 2.900  CG 200it res=3.17e-03  sample_time=1.370s  ‖x‖=7.4353
+  [CEM iter 115] β_eff = 2.9008 → beta_x = 2.9001 (EMA α=0.3)
+  [CEM iter 120] β_eff = 2.8759 → beta_x = 2.8928 (EMA α=0.3)
+Iter 120: E = -214.855850 ± 0.059580  β_x = 2.893  CG 200it res=5.88e-03  sample_time=1.403s  ‖x‖=7.2085
+  [CEM iter 125] β_eff = 2.8728 → beta_x = 2.8868 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.8868
+  [CEM iter 130] β_eff = 2.7771 → beta_x = 2.8539 (EMA α=0.3)
+Iter 130: E = -214.750455 ± 0.059057  β_x = 2.854  CG 200it res=3.87e-03  sample_time=1.316s  ‖x‖=7.4184
+  [rbm_to_ising] beta_x = 2.8539
+  [CEM iter 135] β_eff = 2.8698 → beta_x = 2.8586 (EMA α=0.3)
+  [CEM iter 140] β_eff = 2.8268 → beta_x = 2.8491 (EMA α=0.3)
+Iter 140: E = -214.618215 ± 0.056606  β_x = 2.849  CG 200it res=1.64e-03  sample_time=1.274s  ‖x‖=6.3000
+  [CEM iter 145] β_eff = 2.7848 → beta_x = 2.8298 (EMA α=0.3)
+  [CEM iter 150] β_eff = 2.8071 → beta_x = 2.8230 (EMA α=0.3)
+Iter 150: E = -214.575835 ± 0.057442  β_x = 2.823  CG 200it res=7.45e-04  sample_time=1.407s  ‖x‖=6.6961
+  [rbm_to_ising] beta_x = 2.8230
+  [CEM iter 155] β_eff = 2.8189 → beta_x = 2.8218 (EMA α=0.3)
+  [CEM iter 160] β_eff = 2.8079 → beta_x = 2.8176 (EMA α=0.3)
+Iter 160: E = -214.310603 ± 0.058002  β_x = 2.818  CG 200it res=4.80e-04  sample_time=1.364s  ‖x‖=6.6429
+  [CEM iter 165] β_eff = 2.7790 → beta_x = 2.8060 (EMA α=0.3)
+  [CEM iter 170] β_eff = 2.7722 → beta_x = 2.7959 (EMA α=0.3)
+Iter 170: E = -214.470431 ± 0.056905  β_x = 2.796  CG 200it res=2.11e-03  sample_time=1.267s  ‖x‖=6.4500
+  [CEM iter 175] β_eff = 2.7724 → beta_x = 2.7888 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.7888
+  [CEM iter 180] β_eff = 2.7891 → beta_x = 2.7889 (EMA α=0.3)
+Iter 180: E = -214.253849 ± 0.054156  β_x = 2.789  CG 200it res=2.31e-04  sample_time=1.347s  ‖x‖=5.5392
+  [CEM iter 185] β_eff = 2.7710 → beta_x = 2.7835 (EMA α=0.3)
+  [CEM iter 190] β_eff = 2.7305 → beta_x = 2.7676 (EMA α=0.3)
+Iter 190: E = -214.350533 ± 0.055245  β_x = 2.768  CG 200it res=5.17e-04  sample_time=1.343s  ‖x‖=5.8522
+  [CEM iter 195] β_eff = 2.7902 → beta_x = 2.7744 (EMA α=0.3)
+  [CEM iter 200] β_eff = 2.7139 → beta_x = 2.7562 (EMA α=0.3)
+Iter 200: E = -214.349449 ± 0.056625  β_x = 2.756  CG 200it res=3.79e-04  sample_time=1.345s  ‖x‖=6.2066
+  [rbm_to_ising] beta_x = 2.7562
+  [CEM iter 205] β_eff = 2.7418 → beta_x = 2.7519 (EMA α=0.3)
+  [CEM iter 210] β_eff = 2.7571 → beta_x = 2.7535 (EMA α=0.3)
+Iter 210: E = -214.517517 ± 0.054850  β_x = 2.753  CG 200it res=2.32e-04  sample_time=1.305s  ‖x‖=5.7096
+  [CEM iter 215] β_eff = 2.8414 → beta_x = 2.7799 (EMA α=0.3)
+  [CEM iter 220] β_eff = 2.7530 → beta_x = 2.7718 (EMA α=0.3)
+Iter 220: E = -214.549852 ± 0.051079  β_x = 2.772  CG 200it res=1.90e-03  sample_time=1.329s  ‖x‖=5.9005
+  [CEM iter 225] β_eff = 2.7918 → beta_x = 2.7778 (EMA α=0.3)
+  [CEM iter 230] β_eff = 2.7597 → beta_x = 2.7724 (EMA α=0.3)
+Iter 230: E = -214.345949 ± 0.052473  β_x = 2.772  CG 200it res=7.24e-04  sample_time=1.288s  ‖x‖=5.7435
+  [CEM iter 235] β_eff = 2.7491 → beta_x = 2.7654 (EMA α=0.3)
+  [CEM iter 240] β_eff = 2.7917 → beta_x = 2.7733 (EMA α=0.3)
+Iter 240: E = -214.307693 ± 0.053410  β_x = 2.773  CG 200it res=6.49e-04  sample_time=1.286s  ‖x‖=5.2921
+  [CEM iter 245] β_eff = 2.7627 → beta_x = 2.7701 (EMA α=0.3)
+  [CEM iter 250] β_eff = 2.7820 → beta_x = 2.7737 (EMA α=0.3)
+Iter 250: E = -214.384164 ± 0.050324  β_x = 2.774  CG 200it res=1.53e-04  sample_time=1.429s  ‖x‖=5.2894
+  [CEM iter 255] β_eff = 2.7686 → beta_x = 2.7721 (EMA α=0.3)
+  [CEM iter 260] β_eff = 2.7540 → beta_x = 2.7667 (EMA α=0.3)
+Iter 260: E = -214.507063 ± 0.057379  β_x = 2.767  CG 200it res=1.98e-04  sample_time=1.321s  ‖x‖=5.8296
+  [CEM iter 265] β_eff = 2.6908 → beta_x = 2.7439 (EMA α=0.3)
+  [CEM iter 270] β_eff = 2.7133 → beta_x = 2.7347 (EMA α=0.3)
+Iter 270: E = -214.606826 ± 0.050870  β_x = 2.735  CG 200it res=2.33e-04  sample_time=1.339s  ‖x‖=5.3890
+  [CEM iter 275] β_eff = 2.7520 → beta_x = 2.7399 (EMA α=0.3)
+  [CEM iter 280] β_eff = 2.7261 → beta_x = 2.7358 (EMA α=0.3)
+Iter 280: E = -214.701354 ± 0.055621  β_x = 2.736  CG 200it res=7.85e-05  sample_time=1.286s  ‖x‖=5.1882
+  [CEM iter 285] β_eff = 2.7951 → beta_x = 2.7536 (EMA α=0.3)
+  [CEM iter 290] β_eff = 2.7464 → beta_x = 2.7514 (EMA α=0.3)
+Iter 290: E = -214.767263 ± 0.051674  β_x = 2.751  CG 200it res=1.53e-04  sample_time=1.281s  ‖x‖=5.2820
+  [CEM iter 295] β_eff = 2.7279 → beta_x = 2.7444 (EMA α=0.3)
+Saved  → jax_results/tfim_1d/100/dimod/zephyr/result_1d_h2.0_rbmfull_nh100_lr0.01_reg1e-05_ns1000_seed1_iter300_cem1_sigma1.0.json
+  Final energy : -215.006821
+  Exact energy : -212.708882
+  Error        : 2.297939
+   631.4s  rbm=full  iters=300  rel_err=0.0108
+[10/59] 1d N=121  h=0.5  zephyr  lr=0.01  seed=1  [5.8 min QPU left]  ETA ~7.4h
+FullyConnectedRBM(n_visible=121, n_hidden=121)
+<ising.TransverseFieldIsing1D object at 0x7f13cc2bdf50>
+namespace(model='1d', size=121, h=0.5, J=1.0, delta=1.0, alpha=2.0, rbm='full', n_hidden=121, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Running minorminer for (121, 'Advantage2_system1')...
+  [Trainer] Sampling failed at iteration 0: minorminer failed to find an embedding for n_visible=121 on solver 'Advantage2_system1'.
+  [Trainer] Aborting this experiment.
+  [embed] Full RBM: no embedding found for N=121 on zephyr → retrying with DWaveTopologyRBM
+[DWaveTopologyRBM] Saved embedding to /home/phanussek/adiabatic-boltzmann/embeddings/Advantage2_system1_242_seed42.json
+DWaveTopologyRBM(n_visible=121, n_hidden=121, connections=1589/14641, sparsity=89.15%)
+<ising.TransverseFieldIsing1D object at 0x7f0ce81c4d70>
+namespace(model='1d', size=121, h=0.5, J=1.0, delta=1.0, alpha=2.0, rbm='zephyr', n_hidden=121, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Trivial identity embedding cached for (121, 'Advantage2_system1').
+  [CEM iter   0] β_eff = 50.0000 → beta_x = 15.7000 (EMA α=0.3)
+Iter   0: E = -61.689790 ± 0.239093  β_x = 15.700  CG 200it res=8.01e-04  sample_time=1.631s  ‖x‖=86.5950
+  [rbm_to_ising] beta_x = 15.7000
+  [CEM iter   5] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 20.0000
+  [CEM iter  10] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  10: E = -81.367638 ± 0.121128  β_x = 20.000  CG 77it res=3.67e-09  sample_time=0.784s  ‖x‖=9.9457
+  [CEM iter  15] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  20] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  20: E = -87.382394 ± 0.099694  β_x = 20.000  CG 44it res=5.05e-09  sample_time=0.803s  ‖x‖=6.6377
+  [CEM iter  25] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  30] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  30: E = -84.299340 ± 0.110553  β_x = 20.000  CG 28it res=4.34e-09  sample_time=0.738s  ‖x‖=12.3134
+  [CEM iter  35] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  40] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  40: E = -82.377688 ± 0.132329  β_x = 20.000  CG 52it res=1.55e-09  sample_time=0.729s  ‖x‖=3.8435
+  [CEM iter  45] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  50] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  50: E = -80.285888 ± 0.105830  β_x = 20.000  CG 44it res=5.73e-09  sample_time=0.725s  ‖x‖=22.7297
+  [CEM iter  55] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  60] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  60: E = -82.144899 ± 0.048712  β_x = 20.000  CG 35it res=6.30e-09  sample_time=0.756s  ‖x‖=5.8363
+  [CEM iter  65] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  70] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  70: E = -85.258217 ± 0.074546  β_x = 20.000  CG 42it res=6.01e-09  sample_time=0.800s  ‖x‖=5.2366
+  [CEM iter  75] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  80] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  80: E = -86.688383 ± 0.073437  β_x = 20.000  CG 27it res=1.01e-10  sample_time=0.765s  ‖x‖=3.2270
+  [CEM iter  85] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  90] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  90: E = -90.422683 ± 0.058973  β_x = 20.000  CG 46it res=1.69e-09  sample_time=0.744s  ‖x‖=3.5754
+  [CEM iter  95] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 100] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 100: E = -89.720511 ± 0.047262  β_x = 20.000  CG 28it res=6.89e-09  sample_time=0.741s  ‖x‖=2.7762
+  [CEM iter 105] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 110] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 110: E = -89.861652 ± 0.041512  β_x = 20.000  CG 51it res=1.55e-09  sample_time=0.787s  ‖x‖=3.6462
+  [CEM iter 115] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 120] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 120: E = -89.875091 ± 0.038552  β_x = 20.000  CG 38it res=7.93e-09  sample_time=0.745s  ‖x‖=1.5372
+  [CEM iter 125] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 130] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 130: E = -90.235067 ± 0.046392  β_x = 20.000  CG 63it res=8.97e-09  sample_time=0.780s  ‖x‖=2.5717
+  [CEM iter 135] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 140] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 140: E = -90.478471 ± 0.078600  β_x = 20.000  CG 92it res=4.70e-09  sample_time=0.756s  ‖x‖=3.5814
+  [CEM iter 145] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 150] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 150: E = -91.287726 ± 0.078518  β_x = 20.000  CG 81it res=2.80e-09  sample_time=0.754s  ‖x‖=2.5950
+  [CEM iter 155] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 160] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 160: E = -92.208455 ± 0.066317  β_x = 20.000  CG 62it res=7.51e-09  sample_time=0.737s  ‖x‖=2.2422
+  [CEM iter 165] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 170] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 170: E = -92.516856 ± 0.039875  β_x = 20.000  CG 59it res=1.84e-09  sample_time=0.762s  ‖x‖=2.5785
+  [CEM iter 175] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 180] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 180: E = -92.571438 ± 0.035459  β_x = 20.000  CG 55it res=1.40e-09  sample_time=1.331s  ‖x‖=1.8838
+  [CEM iter 185] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 190] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 190: E = -92.438677 ± 0.047608  β_x = 20.000  CG 98it res=3.30e-09  sample_time=0.740s  ‖x‖=10.8419
+  [CEM iter 195] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 200] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 200: E = -92.796430 ± 0.032043  β_x = 20.000  CG 70it res=3.40e-09  sample_time=0.759s  ‖x‖=2.5639
+  [CEM iter 205] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 210] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 210: E = -92.570437 ± 0.036333  β_x = 20.000  CG 49it res=2.09e-09  sample_time=0.732s  ‖x‖=2.3877
+  [CEM iter 215] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 220] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 220: E = -92.936506 ± 0.037214  β_x = 20.000  CG 55it res=8.04e-09  sample_time=0.743s  ‖x‖=2.7783
+  [CEM iter 225] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 230] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 230: E = -92.896096 ± 0.037514  β_x = 20.000  CG 59it res=6.77e-09  sample_time=0.748s  ‖x‖=1.6957
+  [CEM iter 235] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 240] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 240: E = -92.915808 ± 0.042286  β_x = 20.000  CG 55it res=1.35e-09  sample_time=0.752s  ‖x‖=2.2395
+  [CEM iter 245] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 250] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 250: E = -92.871055 ± 0.035028  β_x = 20.000  CG 53it res=6.60e-09  sample_time=0.738s  ‖x‖=1.4899
+  [CEM iter 255] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 260] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 260: E = -92.695146 ± 0.037478  β_x = 20.000  CG 59it res=2.78e-10  sample_time=0.744s  ‖x‖=2.6909
+  [CEM iter 265] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 270] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 270: E = -92.763235 ± 0.041128  β_x = 20.000  CG 46it res=8.80e-09  sample_time=0.749s  ‖x‖=1.0367
+  [CEM iter 275] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 280] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 280: E = -92.636120 ± 0.034533  β_x = 20.000  CG 38it res=3.87e-09  sample_time=0.745s  ‖x‖=1.8745
+  [CEM iter 285] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 290] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 290: E = -92.788561 ± 0.033426  β_x = 20.000  CG 51it res=3.18e-09  sample_time=1.154s  ‖x‖=1.4502
+  [CEM iter 295] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Saved  → jax_results/tfim_1d/121/dimod/zephyr/result_1d_h0.5_rbmzephyr_nh121_lr0.01_reg1e-05_ns1000_seed1_iter300_cem1_sigma1.0.json
+  Final energy : -93.200121
+  Exact energy : -128.688874
+  Error        : 35.488753
+   293.7s  rbm=zephyr  iters=300  rel_err=0.2758
+[11/59] 1d N=121  h=1.0  zephyr  lr=0.01  seed=1  [4.9 min QPU left]  ETA ~8.3h
+FullyConnectedRBM(n_visible=121, n_hidden=121)
+<ising.TransverseFieldIsing1D object at 0x7f0c8464b3e0>
+namespace(model='1d', size=121, h=1.0, J=1.0, delta=1.0, alpha=2.0, rbm='full', n_hidden=121, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Running minorminer for (121, 'Advantage2_system1')...
+  [embedding] Embedding found and cached for (121, 'Advantage2_system1').
+  [CEM iter   0] β_eff = 14.7575 → beta_x = 5.1273 (EMA α=0.3)
+Iter   0: E = -120.937705 ± 0.347229  β_x = 5.127  CG 200it res=1.16e-08  sample_time=288.577s  ‖x‖=43.6600
+  [rbm_to_ising] beta_x = 5.1273
+  [CEM iter   5] β_eff = 7.6127 → beta_x = 5.8729 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.8729
+  [CEM iter  10] β_eff = 5.7130 → beta_x = 5.8249 (EMA α=0.3)
+Iter  10: E = -188.180041 ± 0.202612  β_x = 5.825  CG 200it res=1.02e-02  sample_time=1.363s  ‖x‖=23.0717
+  [CEM iter  15] β_eff = 4.6912 → beta_x = 5.4848 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.4848
+  [CEM iter  20] β_eff = 4.0757 → beta_x = 5.0621 (EMA α=0.3)
+Iter  20: E = -183.543188 ± 0.166605  β_x = 5.062  CG 200it res=1.73e-02  sample_time=1.430s  ‖x‖=17.2346
+  [rbm_to_ising] beta_x = 5.0621
+  [CEM iter  25] β_eff = 3.6098 → beta_x = 4.6264 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 4.6264
+  [CEM iter  30] β_eff = 3.2959 → beta_x = 4.2272 (EMA α=0.3)
+Iter  30: E = -179.792435 ± 0.139732  β_x = 4.227  CG 200it res=1.19e-02  sample_time=1.391s  ‖x‖=13.9747
+  [rbm_to_ising] beta_x = 4.2272
+  [CEM iter  35] β_eff = 3.0625 → beta_x = 3.8778 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.8778
+  [CEM iter  40] β_eff = 2.9092 → beta_x = 3.5872 (EMA α=0.3)
+Iter  40: E = -177.267985 ± 0.124859  β_x = 3.587  CG 200it res=1.37e-02  sample_time=1.370s  ‖x‖=12.4419
+  [rbm_to_ising] beta_x = 3.5872
+  [CEM iter  45] β_eff = 2.8178 → beta_x = 3.3564 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.3564
+  [CEM iter  50] β_eff = 2.6494 → beta_x = 3.1443 (EMA α=0.3)
+Iter  50: E = -174.999850 ± 0.100763  β_x = 3.144  CG 200it res=3.10e-02  sample_time=1.381s  ‖x‖=10.8998
+  [rbm_to_ising] beta_x = 3.1443
+  [CEM iter  55] β_eff = 2.6073 → beta_x = 2.9832 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.9832
+  [CEM iter  60] β_eff = 2.4958 → beta_x = 2.8370 (EMA α=0.3)
+Iter  60: E = -172.808159 ± 0.090171  β_x = 2.837  CG 200it res=1.54e-02  sample_time=1.406s  ‖x‖=9.8167
+  [rbm_to_ising] beta_x = 2.8370
+  [CEM iter  65] β_eff = 2.4063 → beta_x = 2.7078 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.7078
+  [CEM iter  70] β_eff = 2.3602 → beta_x = 2.6035 (EMA α=0.3)
+Iter  70: E = -171.196640 ± 0.093309  β_x = 2.603  CG 200it res=1.24e-02  sample_time=1.362s  ‖x‖=8.7811
+  [rbm_to_ising] beta_x = 2.6035
+  [CEM iter  75] β_eff = 2.2670 → beta_x = 2.5025 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.5025
+  [CEM iter  80] β_eff = 2.3117 → beta_x = 2.4453 (EMA α=0.3)
+Iter  80: E = -170.136517 ± 0.079204  β_x = 2.445  CG 200it res=1.37e-02  sample_time=1.417s  ‖x‖=8.1177
+  [rbm_to_ising] beta_x = 2.4453
+  [CEM iter  85] β_eff = 2.2282 → beta_x = 2.3802 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.3802
+  [CEM iter  90] β_eff = 2.2114 → beta_x = 2.3295 (EMA α=0.3)
+Iter  90: E = -169.222188 ± 0.070730  β_x = 2.330  CG 200it res=2.55e-02  sample_time=1.457s  ‖x‖=8.1563
+  [rbm_to_ising] beta_x = 2.3295
+  [CEM iter  95] β_eff = 2.1404 → beta_x = 2.2728 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.2728
+  [CEM iter 100] β_eff = 2.1751 → beta_x = 2.2435 (EMA α=0.3)
+Iter 100: E = -168.425546 ± 0.067905  β_x = 2.243  CG 200it res=2.17e-02  sample_time=1.375s  ‖x‖=7.7095
+  [rbm_to_ising] beta_x = 2.2435
+  [CEM iter 105] β_eff = 2.1636 → beta_x = 2.2195 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.2195
+  [CEM iter 110] β_eff = 2.1040 → beta_x = 2.1849 (EMA α=0.3)
+Iter 110: E = -167.514243 ± 0.065432  β_x = 2.185  CG 200it res=1.16e-02  sample_time=1.361s  ‖x‖=7.0538
+  [rbm_to_ising] beta_x = 2.1849
+  [CEM iter 115] β_eff = 2.1171 → beta_x = 2.1645 (EMA α=0.3)
+  [CEM iter 120] β_eff = 2.1170 → beta_x = 2.1503 (EMA α=0.3)
+Iter 120: E = -166.813009 ± 0.062075  β_x = 2.150  CG 200it res=9.43e-03  sample_time=1.467s  ‖x‖=6.5068
+  [rbm_to_ising] beta_x = 2.1503
+  [CEM iter 125] β_eff = 2.1356 → beta_x = 2.1459 (EMA α=0.3)
+  [CEM iter 130] β_eff = 2.0550 → beta_x = 2.1186 (EMA α=0.3)
+Iter 130: E = -166.128836 ± 0.060467  β_x = 2.119  CG 200it res=1.03e-02  sample_time=1.360s  ‖x‖=6.7617
+  [rbm_to_ising] beta_x = 2.1186
+  [CEM iter 135] β_eff = 2.0078 → beta_x = 2.0854 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.0854
+  [CEM iter 140] β_eff = 2.0417 → beta_x = 2.0723 (EMA α=0.3)
+Iter 140: E = -165.516809 ± 0.060690  β_x = 2.072  CG 200it res=2.22e-02  sample_time=1.337s  ‖x‖=6.9248
+  [CEM iter 145] β_eff = 2.0164 → beta_x = 2.0555 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.0555
+  [CEM iter 150] β_eff = 2.0623 → beta_x = 2.0576 (EMA α=0.3)
+Iter 150: E = -165.169314 ± 0.055105  β_x = 2.058  CG 200it res=8.02e-03  sample_time=1.486s  ‖x‖=5.7635
+  [CEM iter 155] β_eff = 2.0071 → beta_x = 2.0424 (EMA α=0.3)
+  [CEM iter 160] β_eff = 2.0458 → beta_x = 2.0434 (EMA α=0.3)
+Iter 160: E = -164.749877 ± 0.054475  β_x = 2.043  CG 200it res=7.83e-03  sample_time=1.414s  ‖x‖=5.8725
+  [CEM iter 165] β_eff = 2.0386 → beta_x = 2.0420 (EMA α=0.3)
+  [CEM iter 170] β_eff = 1.9661 → beta_x = 2.0192 (EMA α=0.3)
+Iter 170: E = -164.431258 ± 0.051793  β_x = 2.019  CG 200it res=1.61e-02  sample_time=1.358s  ‖x‖=5.5147
+  [rbm_to_ising] beta_x = 2.0192
+  [CEM iter 175] β_eff = 2.0228 → beta_x = 2.0203 (EMA α=0.3)
+  [CEM iter 180] β_eff = 1.9895 → beta_x = 2.0110 (EMA α=0.3)
+Iter 180: E = -164.200119 ± 0.054180  β_x = 2.011  CG 200it res=2.02e-02  sample_time=1.372s  ‖x‖=5.6792
+  [CEM iter 185] β_eff = 1.9647 → beta_x = 1.9971 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.9971
+  [CEM iter 190] β_eff = 1.9933 → beta_x = 1.9960 (EMA α=0.3)
+Iter 190: E = -163.954598 ± 0.046323  β_x = 1.996  CG 200it res=1.96e-02  sample_time=1.365s  ‖x‖=5.5493
+  [CEM iter 195] β_eff = 1.9428 → beta_x = 1.9800 (EMA α=0.3)
+  [CEM iter 200] β_eff = 1.9876 → beta_x = 1.9823 (EMA α=0.3)
+Iter 200: E = -163.826940 ± 0.043497  β_x = 1.982  CG 200it res=3.00e-02  sample_time=1.382s  ‖x‖=5.7187
+  [CEM iter 205] β_eff = 1.9850 → beta_x = 1.9831 (EMA α=0.3)
+  [CEM iter 210] β_eff = 1.9430 → beta_x = 1.9711 (EMA α=0.3)
+Iter 210: E = -163.435976 ± 0.045337  β_x = 1.971  CG 200it res=5.30e-03  sample_time=1.410s  ‖x‖=5.1536
+  [rbm_to_ising] beta_x = 1.9711
+  [CEM iter 215] β_eff = 1.9412 → beta_x = 1.9621 (EMA α=0.3)
+  [CEM iter 220] β_eff = 1.9266 → beta_x = 1.9515 (EMA α=0.3)
+Iter 220: E = -163.185489 ± 0.044229  β_x = 1.951  CG 200it res=2.39e-02  sample_time=1.397s  ‖x‖=5.0342
+  [CEM iter 225] β_eff = 1.9774 → beta_x = 1.9593 (EMA α=0.3)
+  [CEM iter 230] β_eff = 1.9411 → beta_x = 1.9538 (EMA α=0.3)
+Iter 230: E = -162.942481 ± 0.046948  β_x = 1.954  CG 200it res=8.93e-03  sample_time=1.360s  ‖x‖=5.1773
+  [CEM iter 235] β_eff = 1.9165 → beta_x = 1.9426 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.9426
+  [CEM iter 240] β_eff = 1.8982 → beta_x = 1.9293 (EMA α=0.3)
+Iter 240: E = -162.977390 ± 0.038998  β_x = 1.929  CG 200it res=9.59e-03  sample_time=1.462s  ‖x‖=4.8476
+  [CEM iter 245] β_eff = 1.9311 → beta_x = 1.9298 (EMA α=0.3)
+  [CEM iter 250] β_eff = 1.9172 → beta_x = 1.9260 (EMA α=0.3)
+Iter 250: E = -162.835492 ± 0.040765  β_x = 1.926  CG 200it res=1.44e-02  sample_time=1.378s  ‖x‖=4.6750
+  [CEM iter 255] β_eff = 1.8775 → beta_x = 1.9115 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 1.9115
+  [CEM iter 260] β_eff = 1.9117 → beta_x = 1.9115 (EMA α=0.3)
+Iter 260: E = -162.632795 ± 0.041555  β_x = 1.912  CG 200it res=3.34e-02  sample_time=1.402s  ‖x‖=4.8016
+  [CEM iter 265] β_eff = 1.8729 → beta_x = 1.9000 (EMA α=0.3)
+  [CEM iter 270] β_eff = 1.8635 → beta_x = 1.8890 (EMA α=0.3)
+Iter 270: E = -162.466570 ± 0.038831  β_x = 1.889  CG 200it res=1.16e-02  sample_time=1.387s  ‖x‖=4.5103
+  [rbm_to_ising] beta_x = 1.8890
+  [CEM iter 275] β_eff = 1.9217 → beta_x = 1.8988 (EMA α=0.3)
+  [CEM iter 280] β_eff = 1.9052 → beta_x = 1.9008 (EMA α=0.3)
+Iter 280: E = -162.279245 ± 0.040551  β_x = 1.901  CG 200it res=1.57e-02  sample_time=1.366s  ‖x‖=4.6118
+  [CEM iter 285] β_eff = 1.8955 → beta_x = 1.8992 (EMA α=0.3)
+  [CEM iter 290] β_eff = 1.8960 → beta_x = 1.8982 (EMA α=0.3)
+Iter 290: E = -162.052929 ± 0.036724  β_x = 1.898  CG 200it res=7.18e-03  sample_time=1.381s  ‖x‖=4.3391
+  [CEM iter 295] β_eff = 1.8835 → beta_x = 1.8938 (EMA α=0.3)
+Saved  → jax_results/tfim_1d/121/dimod/zephyr/result_1d_h1.0_rbmfull_nh121_lr0.01_reg1e-05_ns1000_seed1_iter300_cem1_sigma1.0.json
+  Final energy : -161.956053
+  Exact energy : -154.066312
+  Error        : 7.889741
+   858.4s  rbm=full  iters=300  rel_err=0.0512
+[12/59] 1d N=121  h=2.0  zephyr  lr=0.01  seed=1  [3.8 min QPU left]  ETA ~8.4h
+FullyConnectedRBM(n_visible=121, n_hidden=121)
+<ising.TransverseFieldIsing1D object at 0x7f0cdc167bd0>
+namespace(model='1d', size=121, h=2.0, J=1.0, delta=1.0, alpha=2.0, rbm='full', n_hidden=121, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Running minorminer for (121, 'Advantage2_system1')...
+  [embedding] Embedding found and cached for (121, 'Advantage2_system1').
+  [CEM iter   0] β_eff = 14.3701 → beta_x = 5.0110 (EMA α=0.3)
+Iter   0: E = -238.706526 ± 0.334165  β_x = 5.011  CG 200it res=1.30e-06  sample_time=409.910s  ‖x‖=44.7150
+  [rbm_to_ising] beta_x = 5.0110
+  [CEM iter   5] β_eff = 7.5349 → beta_x = 5.7682 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.7682
+  [CEM iter  10] β_eff = 5.3306 → beta_x = 5.6369 (EMA α=0.3)
+Iter  10: E = -298.762213 ± 0.170663  β_x = 5.637  CG 200it res=1.36e-02  sample_time=1.385s  ‖x‖=23.9059
+  [rbm_to_ising] beta_x = 5.6369
+  [CEM iter  15] β_eff = 4.3937 → beta_x = 5.2640 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 5.2640
+  [CEM iter  20] β_eff = 4.0122 → beta_x = 4.8885 (EMA α=0.3)
+Iter  20: E = -287.873508 ± 0.120638  β_x = 4.888  CG 200it res=1.05e-02  sample_time=1.368s  ‖x‖=14.5916
+  [rbm_to_ising] beta_x = 4.8885
+  [CEM iter  25] β_eff = 3.6672 → beta_x = 4.5221 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 4.5221
+  [CEM iter  30] β_eff = 3.4314 → beta_x = 4.1949 (EMA α=0.3)
+Iter  30: E = -282.335500 ± 0.094265  β_x = 4.195  CG 200it res=1.32e-02  sample_time=1.487s  ‖x‖=11.8166
+  [rbm_to_ising] beta_x = 4.1949
+  [CEM iter  35] β_eff = 3.2343 → beta_x = 3.9067 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.9067
+  [CEM iter  40] β_eff = 3.0700 → beta_x = 3.6557 (EMA α=0.3)
+Iter  40: E = -277.481183 ± 0.076883  β_x = 3.656  CG 200it res=7.30e-03  sample_time=1.405s  ‖x‖=9.8767
+  [rbm_to_ising] beta_x = 3.6557
+  [CEM iter  45] β_eff = 2.9889 → beta_x = 3.4557 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.4557
+  [CEM iter  50] β_eff = 2.9046 → beta_x = 3.2903 (EMA α=0.3)
+Iter  50: E = -274.108547 ± 0.067297  β_x = 3.290  CG 200it res=2.51e-02  sample_time=1.427s  ‖x‖=9.6133
+  [rbm_to_ising] beta_x = 3.2903
+  [CEM iter  55] β_eff = 2.8891 → beta_x = 3.1700 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 3.1700
+  [CEM iter  60] β_eff = 2.7618 → beta_x = 3.0475 (EMA α=0.3)
+Iter  60: E = -271.400827 ± 0.061058  β_x = 3.048  CG 200it res=1.08e-02  sample_time=1.391s  ‖x‖=9.0704
+  [rbm_to_ising] beta_x = 3.0475
+  [CEM iter  65] β_eff = 2.7148 → beta_x = 2.9477 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.9477
+  [CEM iter  70] β_eff = 2.7142 → beta_x = 2.8777 (EMA α=0.3)
+Iter  70: E = -268.875369 ± 0.054182  β_x = 2.878  CG 200it res=8.10e-03  sample_time=1.413s  ‖x‖=8.0982
+  [rbm_to_ising] beta_x = 2.8777
+  [CEM iter  75] β_eff = 2.6543 → beta_x = 2.8107 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.8107
+  [CEM iter  80] β_eff = 2.5908 → beta_x = 2.7447 (EMA α=0.3)
+Iter  80: E = -267.513665 ± 0.050470  β_x = 2.745  CG 200it res=5.74e-03  sample_time=1.515s  ‖x‖=7.3902
+  [rbm_to_ising] beta_x = 2.7447
+  [CEM iter  85] β_eff = 2.6224 → beta_x = 2.7080 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.7080
+  [CEM iter  90] β_eff = 2.5298 → beta_x = 2.6546 (EMA α=0.3)
+Iter  90: E = -265.789714 ± 0.048438  β_x = 2.655  CG 200it res=1.27e-02  sample_time=1.407s  ‖x‖=7.6114
+  [rbm_to_ising] beta_x = 2.6546
+  [CEM iter  95] β_eff = 2.4937 → beta_x = 2.6063 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.6063
+  [CEM iter 100] β_eff = 2.5037 → beta_x = 2.5755 (EMA α=0.3)
+Iter 100: E = -264.891192 ± 0.043210  β_x = 2.576  CG 200it res=1.41e-02  sample_time=1.341s  ‖x‖=6.5694
+  [rbm_to_ising] beta_x = 2.5755
+  [CEM iter 105] β_eff = 2.4939 → beta_x = 2.5511 (EMA α=0.3)
+  [CEM iter 110] β_eff = 2.4459 → beta_x = 2.5195 (EMA α=0.3)
+Iter 110: E = -263.855894 ± 0.045069  β_x = 2.520  CG 200it res=5.90e-03  sample_time=1.399s  ‖x‖=6.7692
+  [rbm_to_ising] beta_x = 2.5195
+  [CEM iter 115] β_eff = 2.4508 → beta_x = 2.4989 (EMA α=0.3)
+  [CEM iter 120] β_eff = 2.4184 → beta_x = 2.4748 (EMA α=0.3)
+Iter 120: E = -262.701028 ± 0.047731  β_x = 2.475  CG 200it res=7.75e-03  sample_time=1.465s  ‖x‖=7.2229
+  [rbm_to_ising] beta_x = 2.4748
+  [CEM iter 125] β_eff = 2.4200 → beta_x = 2.4583 (EMA α=0.3)
+  [CEM iter 130] β_eff = 2.4754 → beta_x = 2.4635 (EMA α=0.3)
+Iter 130: E = -261.987836 ± 0.044747  β_x = 2.463  CG 200it res=4.65e-03  sample_time=1.368s  ‖x‖=6.1258
+  [CEM iter 135] β_eff = 2.4920 → beta_x = 2.4720 (EMA α=0.3)
+  [CEM iter 140] β_eff = 2.3889 → beta_x = 2.4471 (EMA α=0.3)
+Iter 140: E = -261.204921 ± 0.045782  β_x = 2.447  CG 200it res=3.50e-03  sample_time=1.366s  ‖x‖=6.0659
+  [rbm_to_ising] beta_x = 2.4471
+  [CEM iter 145] β_eff = 2.4031 → beta_x = 2.4339 (EMA α=0.3)
+  [CEM iter 150] β_eff = 2.3480 → beta_x = 2.4081 (EMA α=0.3)
+Iter 150: E = -260.420997 ± 0.040946  β_x = 2.408  CG 200it res=1.00e-02  sample_time=1.470s  ‖x‖=6.3011
+  [rbm_to_ising] beta_x = 2.4081
+  [CEM iter 155] β_eff = 2.3215 → beta_x = 2.3821 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.3821
+  [CEM iter 160] β_eff = 2.3372 → beta_x = 2.3686 (EMA α=0.3)
+Iter 160: E = -259.445700 ± 0.039522  β_x = 2.369  CG 200it res=8.46e-03  sample_time=1.405s  ‖x‖=6.0096
+  [CEM iter 165] β_eff = 2.2961 → beta_x = 2.3469 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.3469
+  [CEM iter 170] β_eff = 2.3182 → beta_x = 2.3383 (EMA α=0.3)
+Iter 170: E = -258.980763 ± 0.040343  β_x = 2.338  CG 200it res=4.50e-03  sample_time=1.361s  ‖x‖=5.2950
+  [CEM iter 175] β_eff = 2.3095 → beta_x = 2.3296 (EMA α=0.3)
+  [CEM iter 180] β_eff = 2.3176 → beta_x = 2.3260 (EMA α=0.3)
+Iter 180: E = -258.615492 ± 0.038865  β_x = 2.326  CG 200it res=7.25e-03  sample_time=1.359s  ‖x‖=5.6357
+  [CEM iter 185] β_eff = 2.3131 → beta_x = 2.3221 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.3221
+  [CEM iter 190] β_eff = 2.2686 → beta_x = 2.3061 (EMA α=0.3)
+Iter 190: E = -258.267398 ± 0.038203  β_x = 2.306  CG 200it res=6.81e-03  sample_time=1.366s  ‖x‖=5.4266
+  [CEM iter 195] β_eff = 2.2190 → beta_x = 2.2799 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.2799
+  [CEM iter 200] β_eff = 2.3036 → beta_x = 2.2870 (EMA α=0.3)
+Iter 200: E = -257.901693 ± 0.037225  β_x = 2.287  CG 200it res=3.78e-03  sample_time=1.946s  ‖x‖=4.9601
+  [CEM iter 205] β_eff = 2.3298 → beta_x = 2.2999 (EMA α=0.3)
+  [CEM iter 210] β_eff = 2.2447 → beta_x = 2.2833 (EMA α=0.3)
+Iter 210: E = -257.175610 ± 0.035919  β_x = 2.283  CG 200it res=5.56e-03  sample_time=1.388s  ‖x‖=5.1190
+  [CEM iter 215] β_eff = 2.2547 → beta_x = 2.2747 (EMA α=0.3)
+  [CEM iter 220] β_eff = 2.3241 → beta_x = 2.2895 (EMA α=0.3)
+Iter 220: E = -256.603174 ± 0.037899  β_x = 2.290  CG 200it res=6.62e-03  sample_time=1.397s  ‖x‖=4.9306
+  [CEM iter 225] β_eff = 2.2773 → beta_x = 2.2859 (EMA α=0.3)
+  [CEM iter 230] β_eff = 2.2824 → beta_x = 2.2848 (EMA α=0.3)
+Iter 230: E = -255.915347 ± 0.037801  β_x = 2.285  CG 200it res=8.34e-03  sample_time=1.353s  ‖x‖=5.0602
+  [CEM iter 235] β_eff = 2.3105 → beta_x = 2.2925 (EMA α=0.3)
+  [CEM iter 240] β_eff = 2.2862 → beta_x = 2.2906 (EMA α=0.3)
+Iter 240: E = -255.527855 ± 0.034035  β_x = 2.291  CG 200it res=3.60e-03  sample_time=1.393s  ‖x‖=4.6922
+  [CEM iter 245] β_eff = 2.3135 → beta_x = 2.2975 (EMA α=0.3)
+  [CEM iter 250] β_eff = 2.2708 → beta_x = 2.2895 (EMA α=0.3)
+Iter 250: E = -255.180961 ± 0.035719  β_x = 2.289  CG 200it res=3.23e-03  sample_time=1.354s  ‖x‖=4.6579
+  [CEM iter 255] β_eff = 2.2216 → beta_x = 2.2691 (EMA α=0.3)
+  [CEM iter 260] β_eff = 2.2952 → beta_x = 2.2769 (EMA α=0.3)
+Iter 260: E = -254.851425 ± 0.038115  β_x = 2.277  CG 200it res=4.29e-03  sample_time=1.354s  ‖x‖=4.9678
+  [CEM iter 265] β_eff = 2.2242 → beta_x = 2.2611 (EMA α=0.3)
+  [CEM iter 270] β_eff = 2.2121 → beta_x = 2.2464 (EMA α=0.3)
+Iter 270: E = -254.705344 ± 0.035967  β_x = 2.246  CG 200it res=8.78e-03  sample_time=1.391s  ‖x‖=4.7687
+  [rbm_to_ising] beta_x = 2.2464
+  [CEM iter 275] β_eff = 2.2125 → beta_x = 2.2362 (EMA α=0.3)
+  [CEM iter 280] β_eff = 2.2316 → beta_x = 2.2348 (EMA α=0.3)
+Iter 280: E = -254.352662 ± 0.035189  β_x = 2.235  CG 200it res=4.34e-03  sample_time=1.391s  ‖x‖=5.0711
+  [CEM iter 285] β_eff = 2.2322 → beta_x = 2.2341 (EMA α=0.3)
+  [CEM iter 290] β_eff = 2.2592 → beta_x = 2.2416 (EMA α=0.3)
+Iter 290: E = -254.205750 ± 0.033777  β_x = 2.242  CG 200it res=1.04e-02  sample_time=1.380s  ‖x‖=4.5320
+  [CEM iter 295] β_eff = 2.1816 → beta_x = 2.2236 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 2.2236
+Saved  → jax_results/tfim_1d/121/dimod/zephyr/result_1d_h2.0_rbmfull_nh121_lr0.01_reg1e-05_ns1000_seed1_iter300_cem1_sigma1.0.json
+  Final energy : -253.945169
+  Exact energy : -257.377747
+  Error        : 3.432578
+   982.0s  rbm=full  iters=300  rel_err=0.0133
+[13/59] 1d N=144  h=0.5  zephyr  lr=0.01  seed=1  [2.8 min QPU left]  ETA ~8.6h
+FullyConnectedRBM(n_visible=144, n_hidden=144)
+<ising.TransverseFieldIsing1D object at 0x7f0c28730210>
+namespace(model='1d', size=144, h=0.5, J=1.0, delta=1.0, alpha=2.0, rbm='full', n_hidden=144, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Running minorminer for (144, 'Advantage2_system1')...
+  [Trainer] Sampling failed at iteration 0: minorminer failed to find an embedding for n_visible=144 on solver 'Advantage2_system1'.
+  [Trainer] Aborting this experiment.
+  [embed] Full RBM: no embedding found for N=144 on zephyr → retrying with DWaveTopologyRBM
+[DWaveTopologyRBM] Saved embedding to /home/phanussek/adiabatic-boltzmann/embeddings/Advantage2_system1_288_seed42.json
+DWaveTopologyRBM(n_visible=144, n_hidden=144, connections=1910/20736, sparsity=90.79%)
+<ising.TransverseFieldIsing1D object at 0x7f0c442e7520>
+namespace(model='1d', size=144, h=0.5, J=1.0, delta=1.0, alpha=2.0, rbm='zephyr', n_hidden=144, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Trivial identity embedding cached for (144, 'Advantage2_system1').
+  [CEM iter   0] β_eff = 50.0000 → beta_x = 15.7000 (EMA α=0.3)
+Iter   0: E = -84.296808 ± 0.218176  β_x = 15.700  CG 200it res=3.34e-03  sample_time=1.644s  ‖x‖=120.1294
+  [rbm_to_ising] beta_x = 15.7000
+  [CEM iter   5] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 20.0000
+  [CEM iter  10] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  10: E = -137.497906 ± 0.207010  β_x = 20.000  CG 200it res=9.76e-03  sample_time=0.876s  ‖x‖=47.1087
+  [CEM iter  15] β_eff = 49.1774 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  20] β_eff = 48.4692 → beta_x = 20.0000 (EMA α=0.3)
+Iter  20: E = -142.110291 ± 0.104974  β_x = 20.000  CG 200it res=2.89e-05  sample_time=0.958s  ‖x‖=20.3533
+  [CEM iter  25] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  30] β_eff = 49.1147 → beta_x = 20.0000 (EMA α=0.3)
+Iter  30: E = -149.889676 ± 0.095674  β_x = 20.000  CG 200it res=5.58e-07  sample_time=0.911s  ‖x‖=16.8597
+  [CEM iter  35] β_eff = 45.5622 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  40] β_eff = 46.5276 → beta_x = 20.0000 (EMA α=0.3)
+Iter  40: E = -153.200603 ± 0.166287  β_x = 20.000  CG 200it res=8.67e-07  sample_time=0.845s  ‖x‖=6.0769
+  [CEM iter  45] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  50] β_eff = 47.1743 → beta_x = 20.0000 (EMA α=0.3)
+Iter  50: E = -156.988670 ± 0.077181  β_x = 20.000  CG 94it res=8.45e-09  sample_time=1.003s  ‖x‖=5.1513
+  [CEM iter  55] β_eff = 48.4204 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  60] β_eff = 47.5660 → beta_x = 20.0000 (EMA α=0.3)
+Iter  60: E = -153.985352 ± 0.321431  β_x = 20.000  CG 200it res=8.92e-06  sample_time=0.747s  ‖x‖=8.6730
+  [CEM iter  65] β_eff = 45.9558 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  70] β_eff = 46.4348 → beta_x = 20.0000 (EMA α=0.3)
+Iter  70: E = -155.856848 ± 0.158055  β_x = 20.000  CG 200it res=2.87e-07  sample_time=0.766s  ‖x‖=5.3399
+  [CEM iter  75] β_eff = 45.6178 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  80] β_eff = 45.1181 → beta_x = 20.0000 (EMA α=0.3)
+Iter  80: E = -154.411909 ± 0.208232  β_x = 20.000  CG 200it res=2.53e-07  sample_time=1.040s  ‖x‖=4.6905
+  [CEM iter  85] β_eff = 43.6785 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  90] β_eff = 44.0002 → beta_x = 20.0000 (EMA α=0.3)
+Iter  90: E = -154.058402 ± 0.286367  β_x = 20.000  CG 200it res=5.46e-05  sample_time=0.815s  ‖x‖=5.6132
+  [CEM iter  95] β_eff = 41.7621 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 100] β_eff = 46.9008 → beta_x = 20.0000 (EMA α=0.3)
+Iter 100: E = -154.052572 ± 0.285594  β_x = 20.000  CG 200it res=1.82e-05  sample_time=0.966s  ‖x‖=5.7802
+  [CEM iter 105] β_eff = 47.5235 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 110] β_eff = 45.3405 → beta_x = 20.0000 (EMA α=0.3)
+Iter 110: E = -149.480902 ± 0.237843  β_x = 20.000  CG 129it res=8.00e-09  sample_time=0.902s  ‖x‖=4.2135
+  [CEM iter 115] β_eff = 44.6519 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 120] β_eff = 45.1330 → beta_x = 20.0000 (EMA α=0.3)
+Iter 120: E = -148.701757 ± 0.224952  β_x = 20.000  CG 190it res=8.97e-09  sample_time=0.764s  ‖x‖=4.7418
+  [CEM iter 125] β_eff = 46.7664 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 130] β_eff = 47.6926 → beta_x = 20.0000 (EMA α=0.3)
+Iter 130: E = -150.389728 ± 0.177852  β_x = 20.000  CG 200it res=1.32e-07  sample_time=0.892s  ‖x‖=4.4958
+  [CEM iter 135] β_eff = 46.2994 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 140] β_eff = 49.0932 → beta_x = 20.0000 (EMA α=0.3)
+Iter 140: E = -151.975864 ± 0.154019  β_x = 20.000  CG 200it res=6.93e-07  sample_time=0.763s  ‖x‖=4.9183
+  [CEM iter 145] β_eff = 44.7608 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 150] β_eff = 45.3946 → beta_x = 20.0000 (EMA α=0.3)
+Iter 150: E = -151.454205 ± 0.168339  β_x = 20.000  CG 173it res=3.85e-09  sample_time=1.240s  ‖x‖=3.6260
+  [CEM iter 155] β_eff = 44.3850 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 160] β_eff = 45.1800 → beta_x = 20.0000 (EMA α=0.3)
+Iter 160: E = -150.944577 ± 0.160242  β_x = 20.000  CG 139it res=9.64e-09  sample_time=1.593s  ‖x‖=3.8484
+  [CEM iter 165] β_eff = 46.2862 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 170] β_eff = 45.6832 → beta_x = 20.0000 (EMA α=0.3)
+Iter 170: E = -150.614467 ± 0.149868  β_x = 20.000  CG 173it res=2.98e-09  sample_time=1.449s  ‖x‖=3.6612
+  [CEM iter 175] β_eff = 43.9142 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 180] β_eff = 43.8998 → beta_x = 20.0000 (EMA α=0.3)
+Iter 180: E = -147.447883 ± 0.242628  β_x = 20.000  CG 200it res=7.12e-07  sample_time=1.693s  ‖x‖=4.1829
+  [CEM iter 185] β_eff = 45.8108 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 190] β_eff = 45.7755 → beta_x = 20.0000 (EMA α=0.3)
+Iter 190: E = -148.335010 ± 0.176535  β_x = 20.000  CG 106it res=6.87e-09  sample_time=1.372s  ‖x‖=2.3043
+  [CEM iter 195] β_eff = 45.1961 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 200] β_eff = 46.4253 → beta_x = 20.0000 (EMA α=0.3)
+Iter 200: E = -148.128316 ± 0.176258  β_x = 20.000  CG 122it res=6.33e-09  sample_time=1.875s  ‖x‖=2.7771
+  [CEM iter 205] β_eff = 47.8159 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 210] β_eff = 45.3827 → beta_x = 20.0000 (EMA α=0.3)
+Iter 210: E = -147.635071 ± 0.199825  β_x = 20.000  CG 180it res=9.20e-09  sample_time=1.791s  ‖x‖=3.5617
+  [CEM iter 215] β_eff = 47.4731 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 220] β_eff = 46.2896 → beta_x = 20.0000 (EMA α=0.3)
+Iter 220: E = -143.165323 ± 0.278846  β_x = 20.000  CG 200it res=2.37e-06  sample_time=1.234s  ‖x‖=2.6205
+  [CEM iter 225] β_eff = 45.1492 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 230] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 230: E = -138.858761 ± 0.284013  β_x = 20.000  CG 174it res=7.17e-09  sample_time=1.232s  ‖x‖=3.3013
+  [CEM iter 235] β_eff = 46.2333 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 240] β_eff = 46.6567 → beta_x = 20.0000 (EMA α=0.3)
+Iter 240: E = -139.830935 ± 0.276087  β_x = 20.000  CG 153it res=6.22e-09  sample_time=3.684s  ‖x‖=2.1679
+  [CEM iter 245] β_eff = 47.6382 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 250] β_eff = 46.3282 → beta_x = 20.0000 (EMA α=0.3)
+Iter 250: E = -144.625415 ± 0.234118  β_x = 20.000  CG 157it res=8.23e-09  sample_time=2.284s  ‖x‖=3.1748
+  [CEM iter 255] β_eff = 45.8454 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 260] β_eff = 44.0090 → beta_x = 20.0000 (EMA α=0.3)
+Iter 260: E = -143.663474 ± 0.241522  β_x = 20.000  CG 108it res=5.33e-09  sample_time=1.710s  ‖x‖=2.2540
+  [CEM iter 265] β_eff = 46.0728 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 270] β_eff = 45.8863 → beta_x = 20.0000 (EMA α=0.3)
+Iter 270: E = -144.936070 ± 0.215002  β_x = 20.000  CG 107it res=8.54e-09  sample_time=1.942s  ‖x‖=2.8336
+  [CEM iter 275] β_eff = 45.6221 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 280] β_eff = 45.4724 → beta_x = 20.0000 (EMA α=0.3)
+Iter 280: E = -144.630497 ± 0.224646  β_x = 20.000  CG 100it res=8.84e-09  sample_time=1.457s  ‖x‖=2.5995
+  [CEM iter 285] β_eff = 44.5374 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 290] β_eff = 47.1470 → beta_x = 20.0000 (EMA α=0.3)
+Iter 290: E = -142.690763 ± 0.265956  β_x = 20.000  CG 118it res=2.01e-09  sample_time=1.743s  ‖x‖=3.4795
+  [CEM iter 295] β_eff = 47.8715 → beta_x = 20.0000 (EMA α=0.3)
+Saved  → jax_results/tfim_1d/144/dimod/zephyr/result_1d_h0.5_rbmzephyr_nh144_lr0.01_reg1e-05_ns1000_seed1_iter300_cem1_sigma1.0.json
+  Final energy : -144.000213
+  Exact energy : -153.150395
+  Error        : 9.150182
+   574.2s  rbm=zephyr  iters=300  rel_err=0.0597
+[14/59] 1d N=144  h=1.0  zephyr  lr=0.01  seed=1  [1.9 min QPU left]  ETA ~9.4h
+FullyConnectedRBM(n_visible=144, n_hidden=144)
+<ising.TransverseFieldIsing1D object at 0x7f0c842eeed0>
+namespace(model='1d', size=144, h=1.0, J=1.0, delta=1.0, alpha=2.0, rbm='full', n_hidden=144, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Running minorminer for (144, 'Advantage2_system1')...
+  [Trainer] Sampling failed at iteration 0: minorminer failed to find an embedding for n_visible=144 on solver 'Advantage2_system1'.
+  [Trainer] Aborting this experiment.
+  [embed] Full RBM: no embedding found for N=144 on zephyr → retrying with DWaveTopologyRBM
+[DWaveTopologyRBM] Loading cached embedding from /home/phanussek/adiabatic-boltzmann/embeddings/Advantage2_system1_288_seed42.json
+DWaveTopologyRBM(n_visible=144, n_hidden=144, connections=1910/20736, sparsity=90.79%)
+<ising.TransverseFieldIsing1D object at 0x7f0d3c2a8ad0>
+namespace(model='1d', size=144, h=1.0, J=1.0, delta=1.0, alpha=2.0, rbm='zephyr', n_hidden=144, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=300, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Trivial identity embedding cached for (144, 'Advantage2_system1').
+  [CEM iter   0] β_eff = 50.0000 → beta_x = 15.7000 (EMA α=0.3)
+Iter   0: E = -156.654567 ± 0.204734  β_x = 15.700  CG 200it res=3.50e-03  sample_time=3.050s  ‖x‖=116.3157
+  [rbm_to_ising] beta_x = 15.7000
+  [CEM iter   5] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 20.0000
+  [CEM iter  10] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  10: E = -195.656880 ± 0.182493  β_x = 20.000  CG 200it res=2.63e-03  sample_time=1.788s  ‖x‖=23.8842
+  [CEM iter  15] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  20] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  20: E = -183.350931 ± 0.491487  β_x = 20.000  CG 200it res=1.16e-02  sample_time=1.612s  ‖x‖=21.6455
+  [CEM iter  25] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  30] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  30: E = -160.286759 ± 0.332592  β_x = 20.000  CG 200it res=5.81e-05  sample_time=1.728s  ‖x‖=8.1920
+  [CEM iter  35] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  40] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  40: E = -165.707195 ± 0.181856  β_x = 20.000  CG 200it res=1.16e-05  sample_time=1.986s  ‖x‖=6.9785
+  [CEM iter  45] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  50] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  50: E = -168.243867 ± 0.137953  β_x = 20.000  CG 200it res=1.37e-06  sample_time=1.572s  ‖x‖=5.0176
+  [CEM iter  55] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  60] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  60: E = -169.485319 ± 0.115885  β_x = 20.000  CG 200it res=1.75e-07  sample_time=1.744s  ‖x‖=3.2844
+  [CEM iter  65] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  70] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  70: E = -175.095611 ± 0.075728  β_x = 20.000  CG 200it res=8.86e-07  sample_time=1.665s  ‖x‖=4.6320
+  [CEM iter  75] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  80] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  80: E = -175.383829 ± 0.076890  β_x = 20.000  CG 200it res=1.97e-06  sample_time=1.936s  ‖x‖=3.7092
+  [CEM iter  85] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  90] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  90: E = -175.134428 ± 0.045381  β_x = 20.000  CG 200it res=6.40e-09  sample_time=1.666s  ‖x‖=3.0993
+  [CEM iter  95] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 100] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 100: E = -175.207313 ± 0.041127  β_x = 20.000  CG 188it res=5.91e-09  sample_time=1.913s  ‖x‖=2.4067
+  [CEM iter 105] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 110] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 110: E = -177.716473 ± 0.062672  β_x = 20.000  CG 200it res=1.08e-07  sample_time=1.639s  ‖x‖=3.0816
+  [CEM iter 115] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 120] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 120: E = -178.714025 ± 0.050422  β_x = 20.000  CG 200it res=6.82e-09  sample_time=1.817s  ‖x‖=3.1670
+  [CEM iter 125] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 130] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 130: E = -178.735629 ± 0.043076  β_x = 20.000  CG 137it res=6.63e-09  sample_time=1.676s  ‖x‖=1.9718
+  [CEM iter 135] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 140] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 140: E = -179.128395 ± 0.048236  β_x = 20.000  CG 113it res=8.20e-09  sample_time=1.465s  ‖x‖=1.9806
+  [CEM iter 145] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 150] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 150: E = -180.947871 ± 0.080201  β_x = 20.000  CG 200it res=2.72e-07  sample_time=1.826s  ‖x‖=2.7179
+  [CEM iter 155] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 160] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 160: E = -183.846570 ± 0.045495  β_x = 20.000  CG 199it res=9.97e-09  sample_time=1.807s  ‖x‖=2.5694
+  [CEM iter 165] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 170] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 170: E = -184.328296 ± 0.037801  β_x = 20.000  CG 200it res=1.94e-08  sample_time=1.443s  ‖x‖=2.0319
+  [CEM iter 175] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 180] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 180: E = -184.267494 ± 0.038147  β_x = 20.000  CG 188it res=7.43e-09  sample_time=1.861s  ‖x‖=2.1537
+  [CEM iter 185] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 190] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 190: E = -184.098831 ± 0.015339  β_x = 20.000  CG 120it res=7.23e-09  sample_time=1.957s  ‖x‖=1.6854
+  [CEM iter 195] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 200] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 200: E = -184.015479 ± 0.013279  β_x = 20.000  CG 114it res=3.14e-09  sample_time=1.490s  ‖x‖=1.8817
+  [CEM iter 205] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 210] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 210: E = -183.938254 ± 0.011489  β_x = 20.000  CG 94it res=6.34e-09  sample_time=2.030s  ‖x‖=1.7640
+  [CEM iter 215] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 220] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 220: E = -183.893672 ± 0.007659  β_x = 20.000  CG 80it res=7.79e-09  sample_time=1.749s  ‖x‖=1.0237
+  [CEM iter 225] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 230] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 230: E = -183.820464 ± 0.012450  β_x = 20.000  CG 103it res=7.84e-09  sample_time=1.866s  ‖x‖=1.3479
+  [CEM iter 235] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 240] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 240: E = -183.882860 ± 0.017008  β_x = 20.000  CG 148it res=5.58e-09  sample_time=1.974s  ‖x‖=2.1479
+  [CEM iter 245] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 250] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 250: E = -183.787754 ± 0.013040  β_x = 20.000  CG 117it res=7.29e-09  sample_time=1.959s  ‖x‖=2.6550
+  [CEM iter 255] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 260] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 260: E = -183.761537 ± 0.007377  β_x = 20.000  CG 83it res=6.91e-09  sample_time=1.593s  ‖x‖=1.0057
+  [CEM iter 265] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 270] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 270: E = -183.748317 ± 0.006766  β_x = 20.000  CG 76it res=9.08e-09  sample_time=1.792s  ‖x‖=0.6319
+  [CEM iter 275] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 280] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 280: E = -183.759358 ± 0.015074  β_x = 20.000  CG 117it res=7.01e-09  sample_time=1.229s  ‖x‖=2.0971
+  [CEM iter 285] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 290] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 290: E = -183.869726 ± 0.015742  β_x = 20.000  CG 161it res=4.53e-09  sample_time=1.629s  ‖x‖=2.0233
+  [CEM iter 295] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Saved  → jax_results/tfim_1d/144/dimod/zephyr/result_1d_h1.0_rbmzephyr_nh144_lr0.01_reg1e-05_ns1000_seed1_iter300_cem1_sigma1.0.json
+  Final energy : -185.211255
+  Exact energy : -183.350131
+  Error        : 1.861124
+   717.1s  rbm=zephyr  iters=300  rel_err=0.0102
+[15/59] 1d N=144  h=2.0  zephyr  lr=0.01  seed=1  [1.0 min QPU left, capped to 296 iters]  ETA ~10.1h
+FullyConnectedRBM(n_visible=144, n_hidden=144)
+<ising.TransverseFieldIsing1D object at 0x7f0b8c2fdc80>
+namespace(model='1d', size=144, h=2.0, J=1.0, delta=1.0, alpha=2.0, rbm='full', n_hidden=144, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=296, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Running minorminer for (144, 'Advantage2_system1')...
+  [Trainer] Sampling failed at iteration 0: minorminer failed to find an embedding for n_visible=144 on solver 'Advantage2_system1'.
+  [Trainer] Aborting this experiment.
+  [embed] Full RBM: no embedding found for N=144 on zephyr → retrying with DWaveTopologyRBM
+[DWaveTopologyRBM] Loading cached embedding from /home/phanussek/adiabatic-boltzmann/embeddings/Advantage2_system1_288_seed42.json
+DWaveTopologyRBM(n_visible=144, n_hidden=144, connections=1910/20736, sparsity=90.79%)
+<ising.TransverseFieldIsing1D object at 0x7f0b8412eaf0>
+namespace(model='1d', size=144, h=2.0, J=1.0, delta=1.0, alpha=2.0, rbm='zephyr', n_hidden=144, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=296, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Trivial identity embedding cached for (144, 'Advantage2_system1').
+  [CEM iter   0] β_eff = 50.0000 → beta_x = 15.7000 (EMA α=0.3)
+Iter   0: E = -300.660785 ± 0.219849  β_x = 15.700  CG 200it res=2.10e-03  sample_time=3.151s  ‖x‖=107.1660
+  [rbm_to_ising] beta_x = 15.7000
+  [CEM iter   5] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 20.0000
+  [CEM iter  10] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  10: E = -326.919823 ± 0.420372  β_x = 20.000  CG 200it res=7.88e-03  sample_time=1.796s  ‖x‖=28.9451
+  [CEM iter  15] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  20] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  20: E = -333.557625 ± 0.470726  β_x = 20.000  CG 200it res=1.87e-02  sample_time=1.544s  ‖x‖=20.2297
+  [CEM iter  25] β_eff = 48.9598 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  30] β_eff = 48.4091 → beta_x = 20.0000 (EMA α=0.3)
+Iter  30: E = -317.836036 ± 0.142103  β_x = 20.000  CG 200it res=6.08e-05  sample_time=1.716s  ‖x‖=7.6206
+  [CEM iter  35] β_eff = 49.0188 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  40] β_eff = 49.3551 → beta_x = 20.0000 (EMA α=0.3)
+Iter  40: E = -319.835943 ± 0.078496  β_x = 20.000  CG 128it res=3.31e-09  sample_time=1.641s  ‖x‖=3.6862
+  [CEM iter  45] β_eff = 48.7789 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  50] β_eff = 48.4781 → beta_x = 20.0000 (EMA α=0.3)
+Iter  50: E = -320.134657 ± 0.066725  β_x = 20.000  CG 136it res=2.11e-09  sample_time=1.432s  ‖x‖=3.8556
+  [CEM iter  55] β_eff = 48.1446 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  60] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  60: E = -320.917979 ± 0.065065  β_x = 20.000  CG 127it res=8.41e-09  sample_time=2.115s  ‖x‖=3.0660
+  [CEM iter  65] β_eff = 48.4426 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  70] β_eff = 47.4983 → beta_x = 20.0000 (EMA α=0.3)
+Iter  70: E = -321.662423 ± 0.053996  β_x = 20.000  CG 116it res=1.58e-09  sample_time=1.625s  ‖x‖=3.0215
+  [CEM iter  75] β_eff = 48.8545 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  80] β_eff = 48.3295 → beta_x = 20.0000 (EMA α=0.3)
+Iter  80: E = -321.744406 ± 0.048634  β_x = 20.000  CG 106it res=9.88e-09  sample_time=1.858s  ‖x‖=2.5512
+  [CEM iter  85] β_eff = 49.0308 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  90] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  90: E = -321.871900 ± 0.046017  β_x = 20.000  CG 86it res=4.12e-09  sample_time=1.796s  ‖x‖=3.0856
+  [CEM iter  95] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 100] β_eff = 49.6884 → beta_x = 20.0000 (EMA α=0.3)
+Iter 100: E = -321.917807 ± 0.044079  β_x = 20.000  CG 131it res=6.80e-09  sample_time=1.744s  ‖x‖=2.3047
+  [CEM iter 105] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 110] β_eff = 49.3663 → beta_x = 20.0000 (EMA α=0.3)
+Iter 110: E = -322.138008 ± 0.043368  β_x = 20.000  CG 75it res=7.70e-09  sample_time=1.612s  ‖x‖=0.6846
+  [CEM iter 115] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 120] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 120: E = -322.298820 ± 0.045699  β_x = 20.000  CG 123it res=4.66e-09  sample_time=1.778s  ‖x‖=2.2877
+  [CEM iter 125] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 130] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 130: E = -322.509014 ± 0.045295  β_x = 20.000  CG 107it res=6.52e-09  sample_time=0.996s  ‖x‖=2.9941
+  [CEM iter 135] β_eff = 49.5457 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 140] β_eff = 49.1847 → beta_x = 20.0000 (EMA α=0.3)
+Iter 140: E = -322.441112 ± 0.042402  β_x = 20.000  CG 83it res=4.70e-09  sample_time=1.881s  ‖x‖=1.5393
+  [CEM iter 145] β_eff = 48.6699 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 150] β_eff = 48.3845 → beta_x = 20.0000 (EMA α=0.3)
+Iter 150: E = -322.573996 ± 0.044069  β_x = 20.000  CG 80it res=2.24e-09  sample_time=1.476s  ‖x‖=2.0575
+  [CEM iter 155] β_eff = 45.4831 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 160] β_eff = 46.0503 → beta_x = 20.0000 (EMA α=0.3)
+Iter 160: E = -323.007915 ± 0.042391  β_x = 20.000  CG 54it res=7.50e-09  sample_time=1.706s  ‖x‖=1.3153
+  [CEM iter 165] β_eff = 49.4804 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 170] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 170: E = -323.057106 ± 0.040030  β_x = 20.000  CG 70it res=6.63e-09  sample_time=1.825s  ‖x‖=2.0268
+  [CEM iter 175] β_eff = 48.0531 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 180] β_eff = 46.9792 → beta_x = 20.0000 (EMA α=0.3)
+Iter 180: E = -323.003128 ± 0.039709  β_x = 20.000  CG 48it res=4.32e-09  sample_time=1.421s  ‖x‖=1.3897
+  [CEM iter 185] β_eff = 45.0003 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 190] β_eff = 48.5087 → beta_x = 20.0000 (EMA α=0.3)
+Iter 190: E = -323.091321 ± 0.038766  β_x = 20.000  CG 64it res=6.14e-09  sample_time=1.851s  ‖x‖=1.7852
+  [CEM iter 195] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 200] β_eff = 49.6358 → beta_x = 20.0000 (EMA α=0.3)
+Iter 200: E = -323.012623 ± 0.041325  β_x = 20.000  CG 64it res=3.38e-09  sample_time=1.914s  ‖x‖=2.0604
+  [CEM iter 205] β_eff = 47.6559 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 210] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 210: E = -323.223769 ± 0.041404  β_x = 20.000  CG 75it res=4.72e-09  sample_time=1.376s  ‖x‖=1.8610
+  [CEM iter 215] β_eff = 47.6745 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 220] β_eff = 47.3549 → beta_x = 20.0000 (EMA α=0.3)
+Iter 220: E = -323.095924 ± 0.037566  β_x = 20.000  CG 49it res=7.63e-09  sample_time=1.385s  ‖x‖=1.0921
+  [CEM iter 225] β_eff = 48.6459 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 230] β_eff = 46.8240 → beta_x = 20.0000 (EMA α=0.3)
+Iter 230: E = -323.298710 ± 0.040007  β_x = 20.000  CG 101it res=9.47e-09  sample_time=1.530s  ‖x‖=1.8526
+  [CEM iter 235] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 240] β_eff = 48.5187 → beta_x = 20.0000 (EMA α=0.3)
+Iter 240: E = -323.313977 ± 0.039217  β_x = 20.000  CG 70it res=4.81e-09  sample_time=1.757s  ‖x‖=1.5882
+  [CEM iter 245] β_eff = 49.0492 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 250] β_eff = 48.7725 → beta_x = 20.0000 (EMA α=0.3)
+Iter 250: E = -323.218326 ± 0.036618  β_x = 20.000  CG 57it res=6.28e-09  sample_time=1.592s  ‖x‖=15.6060
+  [CEM iter 255] β_eff = 46.7031 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 260] β_eff = 48.9621 → beta_x = 20.0000 (EMA α=0.3)
+Iter 260: E = -323.198560 ± 0.040214  β_x = 20.000  CG 81it res=2.92e-09  sample_time=2.007s  ‖x‖=13.2435
+  [CEM iter 265] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 270] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 270: E = -323.221520 ± 0.036160  β_x = 20.000  CG 62it res=1.87e-09  sample_time=1.781s  ‖x‖=1.0485
+  [CEM iter 275] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 280] β_eff = 49.5860 → beta_x = 20.0000 (EMA α=0.3)
+Iter 280: E = -323.012950 ± 0.034680  β_x = 20.000  CG 64it res=3.58e-09  sample_time=1.650s  ‖x‖=0.9008
+  [CEM iter 285] β_eff = 47.5130 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter 290] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter 290: E = -323.005888 ± 0.036270  β_x = 20.000  CG 50it res=3.84e-10  sample_time=1.536s  ‖x‖=1.0582
+  [CEM iter 295] β_eff = 48.9119 → beta_x = 20.0000 (EMA α=0.3)
+Saved  → jax_results/tfim_1d/144/dimod/zephyr/result_1d_h2.0_rbmzephyr_nh144_lr0.01_reg1e-05_ns1000_seed1_iter296_cem1_sigma1.0.json
+  Final energy : -322.992311
+  Exact energy : -306.300790
+  Error        : 16.691521
+   622.3s  rbm=zephyr  iters=296  rel_err=0.0545
+[16/59] 1d N=169  h=0.5  zephyr  lr=0.01  seed=1  [0.1 min QPU left, capped to 32 iters]  ETA ~10.5h
+FullyConnectedRBM(n_visible=169, n_hidden=169)
+<ising.TransverseFieldIsing1D object at 0x7f0b844798b0>
+namespace(model='1d', size=169, h=0.5, J=1.0, delta=1.0, alpha=2.0, rbm='full', n_hidden=169, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=32, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Running minorminer for (169, 'Advantage2_system1')...
+  [Trainer] Sampling failed at iteration 0: minorminer failed to find an embedding for n_visible=169 on solver 'Advantage2_system1'.
+  [Trainer] Aborting this experiment.
+  [embed] Full RBM: no embedding found for N=169 on zephyr → retrying with DWaveTopologyRBM
+[DWaveTopologyRBM] Saved embedding to /home/phanussek/adiabatic-boltzmann/embeddings/Advantage2_system1_338_seed42.json
+DWaveTopologyRBM(n_visible=169, n_hidden=169, connections=2253/28561, sparsity=92.11%)
+<ising.TransverseFieldIsing1D object at 0x7f0b84343b10>
+namespace(model='1d', size=169, h=0.5, J=1.0, delta=1.0, alpha=2.0, rbm='zephyr', n_hidden=169, sampler='dimod', sampling_method='zephyr', n_samples=1000, iterations=32, learning_rate=0.01, regularization=1e-05, cem=True, cem_interval=5, seed=1, visualize=False, output_dir='jax_results', sigma=1.0, lsb_steps=100, lsb_delta=1.0)
+  [CEM] β scheduling ENABLED — estimating β_eff every 5 iteration(s) from joint LSB samples, EMA α=0.3
+Checkpoint interval: 10
+  [rbm_to_ising] beta_x = 1.0000
+  [embedding] Trivial identity embedding cached for (169, 'Advantage2_system1').
+  [CEM iter   0] β_eff = 50.0000 → beta_x = 15.7000 (EMA α=0.3)
+Iter   0: E = -73.108188 ± 0.351997  β_x = 15.700  CG 200it res=7.25e-03  sample_time=2.661s  ‖x‖=123.7915
+  [rbm_to_ising] beta_x = 15.7000
+  [CEM iter   5] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [rbm_to_ising] beta_x = 20.0000
+  [CEM iter  10] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  10: E = -102.646216 ± 0.256263  β_x = 20.000  CG 200it res=3.41e-05  sample_time=2.022s  ‖x‖=15.1274
+  [CEM iter  15] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  20] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  20: E = -113.901177 ± 0.046951  β_x = 20.000  CG 60it res=1.65e-09  sample_time=1.749s  ‖x‖=8.0885
+  [CEM iter  25] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+  [CEM iter  30] β_eff = 50.0000 → beta_x = 20.0000 (EMA α=0.3)
+Iter  30: E = -118.110883 ± 0.065828  β_x = 20.000  CG 70it res=1.22e-09  sample_time=1.977s  ‖x‖=20.1243
+Saved  → jax_results/tfim_1d/169/dimod/zephyr/result_1d_h0.5_rbmzephyr_nh169_lr0.01_reg1e-05_ns1000_seed1_iter32_cem1_sigma1.0.json
+  Final energy : -117.188419
+  Exact energy : -179.739005
+  Error        : 62.550586
+    80.3s  rbm=zephyr  iters=32  rel_err=0.3480
+
+[19:17:04]  QPU budget exhausted  (15.0/15.0 min used, only 4 iters would fit — need 30). Stopping after 16 runs.
+
+[19:17:04]  Finished in 3.89h  (QPU time this session: 14.99 min)
+  Completed : 16
+  Skipped   : 13  (already existed)
+  Failed    : 0
