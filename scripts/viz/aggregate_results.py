@@ -358,10 +358,33 @@ def main():
     out_plot = root / args.plot
 
     df = load_all(results_dir, legacy_dir)
-    DIMOD_SAMPLING_TIME_PER_ITER = 0.3  # seconds, fixed override for pegasus/zephyr
+
+    times_path = root / "scripts" / "dwave_sampling_times.json"
+    if not times_path.exists():
+        raise FileNotFoundError(
+            f"D-Wave timing file not found: {times_path}\n"
+            "Run:  python scripts/measure_dwave_times.py"
+        )
+    with times_path.open() as _f:
+        _dwave_times: dict[str, dict[str, float]] = json.load(_f)
+
+    def _lookup_dwave_time(row) -> float:
+        t = _dwave_times.get(row["solver"], {}).get(str(int(row["N"])))
+        if t is None:
+            raise KeyError(
+                f"No measured QPU time for solver={row['solver']} N={int(row['N'])}. "
+                "Re-run scripts/measure_dwave_times.py."
+            )
+        return float(t)
+
     dimod_mask = df["sampler"] == "dimod"
-    df.loc[dimod_mask, "mean_sampling_time_all_s"] = DIMOD_SAMPLING_TIME_PER_ITER
-    df.loc[dimod_mask, "avg_sampling_time_s"] = DIMOD_SAMPLING_TIME_PER_ITER
+    if dimod_mask.any():
+        df.loc[dimod_mask, "mean_sampling_time_all_s"] = (
+            df[dimod_mask].apply(_lookup_dwave_time, axis=1)
+        )
+        df.loc[dimod_mask, "avg_sampling_time_s"] = (
+            df[dimod_mask].apply(_lookup_dwave_time, axis=1)
+        )
 
     df["time_to_conv_s"] = df["conv_iter"] * df["mean_sampling_time_all_s"]
     df["time_total_s"] = df["total_iters"] * df["mean_sampling_time_all_s"]

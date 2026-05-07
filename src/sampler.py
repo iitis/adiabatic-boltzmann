@@ -928,6 +928,7 @@ class DimodSampler(Sampler):
     def sample(
         self, rbm, n_samples: int, config: dict = {}, return_hidden: bool = False
     ):
+        self.__dict__.pop("last_sampling_time_s", None)
         beta_x = config.get("beta_x", 1.0)
         J, h = self.rbm_to_ising(rbm, beta_x)
         self.n_visible = rbm.n_visible
@@ -1045,6 +1046,7 @@ class DimodSampler(Sampler):
                 sampleset = composite.sample(bqm, **sample_kwargs)
                 access_time_us = sampleset.info["timing"]["qpu_access_time"]
                 self._log_access_time(access_time_us)
+                self.last_sampling_time_s = access_time_us * 1e-6
                 success = True
             except Exception as e:
                 print(f"  D-Wave sampling attempt {tries}/{MAX_DWAVE_RETRIES} failed: {e}")

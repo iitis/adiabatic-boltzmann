@@ -404,8 +404,16 @@ class Trainer:
                     return_hidden=_need_hidden,
                 )
                 elapsed = time.perf_counter() - _t0
-                fpga_time = getattr(self.sampler, "last_sampling_time_s", None)
-                sample_time_s = float(fpga_time) if fpga_time is not None else elapsed
+                _has_hw_time = hasattr(self.sampler, "last_sampling_time_s")
+                if _has_hw_time:
+                    sample_time_s = self.sampler.last_sampling_time_s
+                    if sample_time_s is None:
+                        raise RuntimeError(
+                            f"[Trainer] last_sampling_time_s is None after sampling "
+                            f"at iteration {iteration}."
+                        )
+                else:
+                    sample_time_s = elapsed
                 self.history["sampling_time_s"].append(sample_time_s)
             except Exception as e:
                 print(f"  [Trainer] Sampling failed at iteration {iteration}: {e}")
@@ -527,7 +535,7 @@ class Trainer:
             self.history["n_unique_ratio"].append(n_unique_ratio)
 
             if iteration % 10 == 0:
-                time_label = "fpga_time" if fpga_time is not None else "sample_time"
+                time_label = "hw_time" if _has_hw_time else "sample_time"
                 print(
                     f"Iter {iteration:3d}: "
                     f"E = {E_mean:.6f} ± {E_error:.6f}  "
