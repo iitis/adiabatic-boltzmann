@@ -5,8 +5,10 @@ import argparse
 
 from helpers import save_results
 from model import FullyConnectedRBM, DWaveTopologyRBM
-from sampler import ClassicalSampler, DimodSampler, VeloxSampler
+from model_vit import ViTWaveFunction
+from sampler import ClassicalSampler, DimodSampler, VeloxSampler, GenericClassicalSampler
 from encoder import Trainer
+from encoder_generic import TrainerGeneric
 from ising import (
     TransverseFieldIsing1D,
     TransverseFieldIsing2D,
@@ -61,18 +63,44 @@ def parse_arguments():
         "--alpha", type=float, default=2.0, help="Power-law exponent α (LR-TFIM)"
     )
 
-    # RBM architecture
+    # Ansatz selection
+    parser.add_argument(
+        "--ansatz",
+        choices=["rbm", "vit"],
+        default="rbm",
+        help="Wave function ansatz: RBM or Vision Transformer",
+    )
+
+    # RBM architecture (used when --ansatz rbm)
     parser.add_argument(
         "--rbm",
         choices=["full", "pegasus", "zephyr"],
         default="full",
-        help="RBM connectivity pattern",
+        help="RBM connectivity pattern (--ansatz rbm only)",
     )
     parser.add_argument(
         "--n-hidden",
         type=int,
         default=None,
-        help="Number of hidden units (default: equal to visible)",
+        help="Number of RBM hidden units (default: equal to visible)",
+    )
+
+    # ViT architecture (used when --ansatz vit)
+    parser.add_argument(
+        "--d-model", type=int, default=32,
+        help="ViT embedding dimension (--ansatz vit only)",
+    )
+    parser.add_argument(
+        "--n-layers", type=int, default=2,
+        help="ViT number of transformer encoder blocks",
+    )
+    parser.add_argument(
+        "--n-heads", type=int, default=4,
+        help="ViT number of attention heads (must divide d-model)",
+    )
+    parser.add_argument(
+        "--patch-size", type=int, default=2,
+        help="Spins per patch for 1D, or patch side length for 2D",
     )
 
     # Sampling
@@ -163,15 +191,28 @@ def main():
         _model_desc = f"{args.model} with J={args.J}, Δ={args.delta}"
     else:
         _model_desc = f"{args.model} with h={args.h}"
+
+    if args.ansatz == "vit" and args.sampler in ("dimod", "velox"):
+        raise ValueError(
+            f"--ansatz vit is incompatible with --sampler {args.sampler}. "
+            "ViT cannot be mapped to an Ising problem. Use --sampler custom."
+        )
+
     print(f"Configuration:")
     print(f"  Model: {_model_desc}")
     print(f"  System size: {args.size}")
-    print(f"  RBM: {args.rbm}")
+    print(f"  Ansatz: {args.ansatz}", end="")
+    if args.ansatz == "rbm":
+        print(f" ({args.rbm})")
+    else:
+        print(f" (d_model={args.d_model}, n_layers={args.n_layers}, "
+              f"n_heads={args.n_heads}, patch_size={args.patch_size})")
     print(f"  Sampler: {args.sampler} ({args.sampling_method})")
     print(f"  Training: {args.iterations} iterations, lr={args.learning_rate}")
-    print(
-        f"  CEM β scheduling: {'ON (interval=' + str(args.cem_interval) + ')' if args.cem else 'OFF'}"
-    )
+    if args.ansatz == "rbm":
+        print(
+            f"  CEM β scheduling: {'ON (interval=' + str(args.cem_interval) + ')' if args.cem else 'OFF'}"
+        )
     print(f"  JAX devices: {jax.devices()}")
 
     _1d_models = ("1d", "heisenberg_xxz_1d", "lr1d", "j1j2_1d", "heisenberg_xy_1d")
@@ -192,27 +233,50 @@ def main():
         ising = HeisenbergXY1D(args.size, J=args.J)
     elif args.model == "heisenberg_xxz_2d":
         ising = HeisenbergXXZ2D(args.size, J=args.J, delta=args.delta)
-
-    # 2. Instantiate RBM
-    if args.n_hidden is not None:
-        n_hidden = args.n_hidden
-    elif args.model in _1d_models:
-        n_hidden = args.size
-    elif args.model in _2d_models:
-        n_hidden = args.size**2
     else:
-        raise ValueError(f"Unsupported model type: {args.model}")
+        raise ValueError(f"Unknown model: {args.model}")
 
     n_visible = args.size if args.model in _1d_models else args.size**2
-    args.n_hidden = n_hidden
-    key, rbm_key = jax.random.split(key)
-    if args.rbm == "full":
-        rbm = FullyConnectedRBM(n_visible, n_hidden, rbm_key)
-    else:
-        rbm = DWaveTopologyRBM(n_visible, n_hidden, rbm_key, solver=args.rbm)
+    key, model_key = jax.random.split(key)
+
+    # 2. Instantiate ansatz
+    if args.ansatz == "rbm":
+        if args.n_hidden is not None:
+            n_hidden = args.n_hidden
+        elif args.model in _1d_models:
+            n_hidden = args.size
+        elif args.model in _2d_models:
+            n_hidden = args.size**2
+        else:
+            raise ValueError(f"Unsupported model type: {args.model}")
+        args.n_hidden = n_hidden
+        if args.rbm == "full":
+            wave_fn = FullyConnectedRBM(n_visible, n_hidden, model_key)
+        else:
+            wave_fn = DWaveTopologyRBM(n_visible, n_hidden, model_key, solver=args.rbm)
+    else:  # vit
+        geometry = "2d" if args.model in _2d_models else "1d"
+        wave_fn = ViTWaveFunction(
+            n_visible=n_visible,
+            n_layers=args.n_layers,
+            d_model=args.d_model,
+            n_heads=args.n_heads,
+            patch_size=args.patch_size,
+            key=model_key,
+            geometry=geometry,
+        )
+        # Set n_hidden to None so helpers don't crash on RBM-specific fields
+        args.n_hidden = None
 
     # 3. Instantiate sampler
-    if args.sampler == "custom":
+    if args.ansatz == "vit":
+        key, sampler_key = jax.random.split(key)
+        sampler = GenericClassicalSampler(
+            n_warmup=getattr(args, "n_warmup", 20),
+            n_sweeps=1,
+        )
+        sampler._key = sampler_key
+    elif args.sampler == "custom":
         sampler = ClassicalSampler(
             method=args.sampling_method,
             n_sweeps=getattr(args, "gibbs_sweeps", 10)
@@ -226,29 +290,39 @@ def main():
     elif args.sampler == "velox":
         sampler = VeloxSampler(method=args.sampling_method)
 
-    # 4. Build trainer config
-    _is_dwave = args.sampling_method in ("pegasus", "zephyr")
-    trainer_config = {
-        "learning_rate": args.learning_rate,
-        "n_iterations": args.iterations,
-        "n_samples": args.n_samples,
-        "regularization": args.regularization,
-        "save_checkpoints": _is_dwave,
-        "checkpoint_interval": 10,
-        "use_cem": args.cem,
-        "cem_interval": args.cem_interval,
-        "lsb_sigma": args.sigma,
-        "seed": args.seed,
-    }
-
-    # 5. Create trainer and run
-    trainer = Trainer(rbm, ising, sampler, trainer_config, args=args)
-
-    print(f"\nStarting training...")
-    history = trainer.train()
-    save_results(args, history, ising, rbm)
-    if args.rbm != "full":
-        print(f"sparsity: {rbm.connectivity_summary()['sparsity']}")
+    # 4. Build trainer config and run
+    if args.ansatz == "vit":
+        trainer_config = {
+            "learning_rate": args.learning_rate,
+            "n_iterations": args.iterations,
+            "n_samples": args.n_samples,
+            "regularization": args.regularization,
+            "seed": args.seed,
+        }
+        trainer = TrainerGeneric(wave_fn, ising, sampler, trainer_config, args=args)
+        print("\nStarting ViT training...")
+        history = trainer.train()
+        save_results(args, history, ising, rbm=None)
+    else:
+        _is_dwave = args.sampling_method in ("pegasus", "zephyr")
+        trainer_config = {
+            "learning_rate": args.learning_rate,
+            "n_iterations": args.iterations,
+            "n_samples": args.n_samples,
+            "regularization": args.regularization,
+            "save_checkpoints": _is_dwave,
+            "checkpoint_interval": 10,
+            "use_cem": args.cem,
+            "cem_interval": args.cem_interval,
+            "lsb_sigma": args.sigma,
+            "seed": args.seed,
+        }
+        trainer = Trainer(wave_fn, ising, sampler, trainer_config, args=args)
+        print(f"\nStarting RBM training...")
+        history = trainer.train()
+        save_results(args, history, ising, wave_fn)
+        if args.rbm != "full" and hasattr(wave_fn, "connectivity_summary"):
+            print(f"sparsity: {wave_fn.connectivity_summary()['sparsity']}")
 
 
 if __name__ == "__main__":

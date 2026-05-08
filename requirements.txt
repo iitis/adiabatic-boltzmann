@@ -10,4 +10,5 @@ simulated-bifurcation
 #cupy-cuda12x
 streamlit
 plotly
+flax
 

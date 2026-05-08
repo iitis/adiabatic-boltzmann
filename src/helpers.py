@@ -193,6 +193,21 @@ def _safe_rel_error(final_energy, ising):
         return None
 
 
+def _ansatz_str(args) -> str:
+    """Return the ansatz component of the result filename."""
+    ansatz = getattr(args, "ansatz", "rbm")
+    if ansatz == "vit":
+        d_model  = getattr(args, "d_model", 32)
+        n_layers = getattr(args, "n_layers", 2)
+        n_heads  = getattr(args, "n_heads", 4)
+        patch    = getattr(args, "patch_size", 2)
+        return f"_vit_dm{d_model}_nl{n_layers}_nh{n_heads}_ph{patch}"
+    # Default: RBM
+    rbm     = getattr(args, "rbm", "full")
+    n_hidden = getattr(args, "n_hidden", None)
+    return f"_rbm{rbm}_nh{n_hidden}"
+
+
 def save_results(args, history, ising, rbm=None):
     # Directory structure: results/{model}/{size}/{sampler}/{method}/
     output_dir = Path(
@@ -240,15 +255,14 @@ def save_results(args, history, ising, rbm=None):
         f"result"
         f"_{args.model}"
         f"{_model_params_str(args)}"
-        f"_rbm{args.rbm}"
-        f"_nh{args.n_hidden}"
+        f"{_ansatz_str(args)}"
         f"_lr{args.learning_rate}"
         f"_reg{args.regularization}"
         f"_ns{args.n_samples}"
         f"_seed{args.seed}"
         f"_iter{args.iterations}"
         f"_cem{int(use_cem)}"
-        f"_sigma{float(args.sigma)}"
+        f"_sigma{float(getattr(args, 'sigma', 1.0))}"
         f".json"
     )
 

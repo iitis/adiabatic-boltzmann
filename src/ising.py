@@ -342,6 +342,21 @@ class IsingModel(ABC):
         """
         pass
 
+    def local_energy_batch_generic(self, V: jax.Array, log_psi_fn) -> jax.Array:
+        """
+        Generic local energy for arbitrary wave functions.
+
+        V          : (ns, N)  spin configs ±1
+        log_psi_fn : callable (N,) → scalar  — log|Ψ(v)|
+
+        Default implementation raises NotImplementedError; subclasses that
+        support non-RBM ansätze override this method.
+        """
+        raise NotImplementedError(  # noqa: PIE796
+            f"{self.__class__.__name__} does not implement local_energy_batch_generic. "
+            "Override it to support non-RBM ansätze."
+        )
+
     @abstractmethod
     def exact_ground_energy(self) -> float:
         pass
@@ -380,6 +395,28 @@ class TransverseFieldIsing1D(IsingModel):
         """
         V_jax = jnp.asarray(V, dtype=jnp.float64)
         return _local_energy_1d_jit(V_jax, rbm.W, rbm.a, rbm.b, self.h, self.size)
+
+    def local_energy_batch_generic(self, V: jax.Array, log_psi_fn) -> jax.Array:
+        """
+        Generic 1D TFIM local energy via log_psi_fn.
+
+        Evaluates N single-spin-flip ratios per sample using jax.vmap.
+        log_psi_fn : callable (N,) → scalar
+        """
+        N = self.size
+        h = self.h
+        log_p_V = jax.vmap(log_psi_fn)(V)                   # (ns,)
+        right = (jnp.arange(N) + 1) % N
+        E_diag = -jnp.sum(V * V[:, right], axis=1)           # (ns,)
+
+        def ratio_for_site(i):
+            mask = jax.nn.one_hot(i, N, dtype=jnp.float64)
+            V_flip = V * (1.0 - 2.0 * mask[None, :])         # (ns, N)
+            return jnp.exp(jax.vmap(log_psi_fn)(V_flip) - log_p_V)  # (ns,)
+
+        all_ratios = jax.vmap(ratio_for_site)(jnp.arange(N))  # (N, ns)
+        E_off = -h * jnp.sum(all_ratios, axis=0)              # (ns,)
+        return E_diag + E_off
 
     def exact_ground_energy(self) -> float:
         from reference_energies import get_or_compute
@@ -450,6 +487,31 @@ class TransverseFieldIsing2D(IsingModel):
         return _local_energy_2d_jit(
             V_jax, rbm.W, rbm.a, rbm.b, self.h, self.size, self.linear_size
         )
+
+    def local_energy_batch_generic(self, V: jax.Array, log_psi_fn) -> jax.Array:
+        """
+        Generic 2D TFIM local energy via log_psi_fn (single-spin flips).
+
+        log_psi_fn : callable (N,) → scalar
+        """
+        N = self.size
+        L = self.linear_size
+        h = self.h
+        log_p_V = jax.vmap(log_psi_fn)(V)                    # (ns,)
+
+        i_idx = jnp.arange(N)
+        right_idx = (i_idx // L) * L + (i_idx % L + 1) % L
+        down_idx  = ((i_idx // L + 1) % L) * L + i_idx % L
+        E_diag = -jnp.sum(V * V[:, right_idx] + V * V[:, down_idx], axis=1)  # (ns,)
+
+        def ratio_for_site(i):
+            mask = jax.nn.one_hot(i, N, dtype=jnp.float64)
+            V_flip = V * (1.0 - 2.0 * mask[None, :])
+            return jnp.exp(jax.vmap(log_psi_fn)(V_flip) - log_p_V)
+
+        all_ratios = jax.vmap(ratio_for_site)(jnp.arange(N))  # (N, ns)
+        E_off = -h * jnp.sum(all_ratios, axis=0)
+        return E_diag + E_off
 
     def exact_ground_energy(self) -> float:
         from reference_energies import get_or_compute
@@ -577,6 +639,31 @@ class HeisenbergXXZ1D(IsingModel):
             V_jax, rbm.W, rbm.a, rbm.b, self.J, self.delta, self.size
         )
 
+    def local_energy_batch_generic(self, V: jax.Array, log_psi_fn) -> jax.Array:
+        """
+        Generic 1D XXZ local energy via log_psi_fn (two-spin exchange).
+
+        log_psi_fn : callable (N,) → scalar
+        """
+        N = self.size
+        J, delta = self.J, self.delta
+        log_p_V = jax.vmap(log_psi_fn)(V)                    # (ns,)
+
+        right = (jnp.arange(N) + 1) % N
+        E_diag = J * delta * jnp.sum(V * V[:, right], axis=1)  # (ns,)
+
+        def exchange_ratio_for_bond(i):
+            j = (i + 1) % N
+            mask = (jax.nn.one_hot(i, N, dtype=jnp.float64)
+                    + jax.nn.one_hot(j, N, dtype=jnp.float64))
+            V_flip = V * (1.0 - 2.0 * mask[None, :])         # (ns, N)
+            return jnp.exp(jax.vmap(log_psi_fn)(V_flip) - log_p_V)  # (ns,)
+
+        all_ratios = jax.vmap(exchange_ratio_for_bond)(jnp.arange(N))  # (N, ns)
+        exchange = (1.0 - V * V[:, right]).T                  # (N, ns)
+        E_off = J * jnp.sum(exchange * all_ratios, axis=0)    # (ns,)
+        return E_diag + E_off
+
     def exact_ground_energy(self) -> float:
         from reference_energies import get_or_compute
 
@@ -678,6 +765,29 @@ class LongRangeTFIM1D(IsingModel):
             V_jax, rbm.W, rbm.a, rbm.b, self.J, self.h, self.alpha, self.size
         )
 
+    def local_energy_batch_generic(self, V: jax.Array, log_psi_fn) -> jax.Array:
+        """Generic LR-TFIM local energy (single-spin flips, all-to-all diagonal)."""
+        N = self.size
+        J, h, alpha = self.J, self.h, self.alpha
+        log_p_V = jax.vmap(log_psi_fn)(V)
+
+        # All-pair diagonal coupling
+        idx = jnp.arange(N)
+        raw_dist = jnp.abs(idx[:, None] - idx[None, :])
+        dist = jnp.minimum(raw_dist, N - raw_dist).astype(jnp.float64)
+        safe_dist = jnp.where(dist > 0.0, dist, 1.0)
+        J_mat = jnp.where(dist > 0.0, J / safe_dist**alpha, 0.0)
+        E_diag = -0.5 * jnp.einsum("si,ij,sj->s", V, J_mat, V)
+
+        def ratio_for_site(i):
+            mask = jax.nn.one_hot(i, N, dtype=jnp.float64)
+            V_flip = V * (1.0 - 2.0 * mask[None, :])
+            return jnp.exp(jax.vmap(log_psi_fn)(V_flip) - log_p_V)
+
+        all_ratios = jax.vmap(ratio_for_site)(jnp.arange(N))
+        E_off = -h * jnp.sum(all_ratios, axis=0)
+        return E_diag + E_off
+
     def exact_ground_energy(self) -> float:
         from reference_energies import get_or_compute
 
@@ -763,6 +873,29 @@ class J1J2Ising1D(IsingModel):
         return _local_energy_j1j2_1d_jit(
             V_jax, rbm.W, rbm.a, rbm.b, self.J1, self.J2, self.h, self.size
         )
+
+    def local_energy_batch_generic(self, V: jax.Array, log_psi_fn) -> jax.Array:
+        """Generic J1-J2 1D local energy (single-spin flips)."""
+        N = self.size
+        J1, J2, h = self.J1, self.J2, self.h
+        log_p_V = jax.vmap(log_psi_fn)(V)
+
+        idx = jnp.arange(N)
+        right1 = (idx + 1) % N
+        right2 = (idx + 2) % N
+        E_diag = (
+            -J1 * jnp.sum(V * V[:, right1], axis=1)
+            - J2 * jnp.sum(V * V[:, right2], axis=1)
+        )
+
+        def ratio_for_site(i):
+            mask = jax.nn.one_hot(i, N, dtype=jnp.float64)
+            V_flip = V * (1.0 - 2.0 * mask[None, :])
+            return jnp.exp(jax.vmap(log_psi_fn)(V_flip) - log_p_V)
+
+        all_ratios = jax.vmap(ratio_for_site)(jnp.arange(N))
+        E_off = -h * jnp.sum(all_ratios, axis=0)
+        return E_diag + E_off
 
     def exact_ground_energy(self) -> float:
         from reference_energies import get_or_compute
@@ -885,6 +1018,44 @@ class HeisenbergXXZ2D(IsingModel):
         return _local_energy_xxz_2d_jit(
             V_jax, rbm.W, rbm.a, rbm.b, self.J, self.delta, self.size, self.linear_size
         )
+
+    def local_energy_batch_generic(self, V: jax.Array, log_psi_fn) -> jax.Array:
+        """Generic 2D XXZ local energy via log_psi_fn (two-spin exchange)."""
+        N = self.size
+        L = self.linear_size
+        J, delta = self.J, self.delta
+        log_p_V = jax.vmap(log_psi_fn)(V)                    # (ns,)
+
+        i_idx = jnp.arange(N)
+        right_idx = (i_idx // L) * L + (i_idx % L + 1) % L
+        down_idx  = ((i_idx // L + 1) % L) * L + i_idx % L
+
+        E_diag = J * delta * jnp.sum(
+            V * V[:, right_idx] + V * V[:, down_idx], axis=1
+        )  # (ns,)
+
+        def exchange_ratio_for_bond(bond):
+            # bond encodes (site_i, partner_j) as bond = i * N + j
+            i = bond // N
+            j = bond % N
+            mask = (jax.nn.one_hot(i, N, dtype=jnp.float64)
+                    + jax.nn.one_hot(j, N, dtype=jnp.float64))
+            V_flip = V * (1.0 - 2.0 * mask[None, :])
+            return jnp.exp(jax.vmap(log_psi_fn)(V_flip) - log_p_V)  # (ns,)
+
+        # Build bond index array: right and down bonds
+        right_bonds = i_idx * N + right_idx  # (N,)
+        down_bonds  = i_idx * N + down_idx   # (N,)
+        all_bonds   = jnp.concatenate([right_bonds, down_bonds])  # (2N,)
+
+        all_ratios = jax.vmap(exchange_ratio_for_bond)(all_bonds)  # (2N, ns)
+
+        right_exchange = (1.0 - V * V[:, right_idx]).T   # (N, ns)
+        down_exchange  = (1.0 - V * V[:, down_idx]).T    # (N, ns)
+        all_exchange = jnp.concatenate([right_exchange, down_exchange], axis=0)  # (2N, ns)
+
+        E_off = J * jnp.sum(all_exchange * all_ratios, axis=0)  # (ns,)
+        return E_diag + E_off
 
     def exact_ground_energy(self) -> float:
         from reference_energies import get_or_compute

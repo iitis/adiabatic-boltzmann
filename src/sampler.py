@@ -1075,3 +1075,127 @@ class DimodSampler(Sampler):
             h_cols = list(range(self.n_visible, self.n_visible + self.n_hidden))
             return v, df.loc[:, h_cols].to_numpy()
         return v
+
+
+# ---------------------------------------------------------------------------
+# Generic Metropolis-Hastings sampler (works with any log_psi callable)
+# ---------------------------------------------------------------------------
+
+
+def _make_generic_mh_jit(log_psi_fn, C: int, N: int, n_steps: int):
+    """
+    JIT-compile a batched MH sweep for a fixed (log_psi_fn, C, N, n_steps).
+
+    log_psi_fn(params, v) must be a pure JAX function where params is a
+    traced pytree and v is a (N,) array.
+
+    Returns a compiled function sweep(v, log_p_v, params, key).
+    The sweep runs n_steps single-spin-flip proposals on C parallel chains.
+    """
+
+    @jax.jit
+    def sweep(
+        v: jax.Array,
+        log_p_v: jax.Array,
+        params,
+        key: jax.Array,
+    ):
+        def one_step(carry, _):
+            v, log_p_v, key = carry
+            key, k1, k2 = jax.random.split(key, 3)
+            flip_idx = jax.random.randint(k1, (C,), 0, N)
+            # Build flipped configs: flip one site per chain
+            mask = jax.nn.one_hot(flip_idx, N, dtype=jnp.float64)   # (C, N)
+            v_flip = v * (1.0 - 2.0 * mask)                          # (C, N)
+            # Evaluate log|Ψ| for all flipped configs in one batched call
+            log_p_flip = jax.vmap(lambda vi: log_psi_fn(params, vi))(v_flip)  # (C,)
+            log_ratio = 2.0 * (log_p_flip - log_p_v)
+            u = jax.random.uniform(k2, (C,), dtype=jnp.float64)
+            accept = jnp.log(u) < log_ratio
+            v = jnp.where(accept[:, None], v_flip, v)
+            log_p_v = jnp.where(accept, log_p_flip, log_p_v)
+            return (v, log_p_v, key), None
+
+        (v, log_p_v, _), _ = jax.lax.scan(
+            one_step, (v, log_p_v, key), None, length=n_steps
+        )
+        return v, log_p_v
+
+    return sweep
+
+
+class GenericClassicalSampler:
+    """
+    Metropolis-Hastings sampler for arbitrary wave functions.
+
+    Uses log_psi_fn(params, v) for acceptance ratios — no analytical
+    psi_ratio required. Compatible with ViTWaveFunction and any model
+    implementing the (params, v) → scalar interface.
+
+    Because each MH step requires a full forward pass (vs. the RBM's O(M)
+    analytical ratio), use fewer warmup steps than ClassicalSampler:
+        n_warmup=20, n_sweeps=1  is a good starting point for ViT.
+
+    Parameters
+    ----------
+    n_warmup : int   MH steps before collecting the sample (default: 20)
+    n_sweeps : int   MH steps between successive collected samples (default: 1)
+    """
+
+    def __init__(self, n_warmup: int = 20, n_sweeps: int = 1):
+        self.n_warmup = n_warmup
+        self.n_sweeps = n_sweeps
+        self._key = None
+        self._sweep_jit = {}   # cache compiled sweeps keyed by (C, N, n_steps)
+
+    def _next_key(self) -> jax.Array:
+        if self._key is None:
+            seed = int(np.random.randint(0, 2**31))
+            self._key = jax.random.PRNGKey(seed)
+        self._key, subkey = jax.random.split(self._key)
+        return subkey
+
+    def sample(self, model, n_samples: int, config: dict | None = None, **_):
+        """
+        Draw n_samples spin configurations targeting |Ψ(v)|².
+
+        model    : ViTWaveFunction (must have log_psi_single and params)
+        n_samples: number of chains = number of samples returned
+        config   : optional dict with 'n_warmup', 'n_sweeps' overrides
+
+        Returns (n_samples, N) array of ±1 spins.
+        """
+        if config is None:
+            config = {}
+        n_warmup = config.get("n_warmup", self.n_warmup)
+        n_sweeps = config.get("n_sweeps", self.n_sweeps)
+
+        C = n_samples
+        N = model.n_visible
+        n_steps_total = N * (n_warmup + n_sweeps)
+
+        cache_key = (C, N, n_steps_total)
+        if cache_key not in self._sweep_jit:
+            self._sweep_jit[cache_key] = _make_generic_mh_jit(
+                model.log_psi_single, C, N, n_steps_total
+            )
+        sweep = self._sweep_jit[cache_key]
+
+        params = model.params
+        log_psi_fn = model.log_psi_single
+
+        # Initialise chains uniformly at random
+        key = self._next_key()
+        k1, k2 = jax.random.split(key)
+        v = jax.random.choice(
+            k1, jnp.array([-1.0, 1.0]), shape=(C, N)
+        ).astype(jnp.float64)
+        log_p_v = jax.vmap(lambda vi: log_psi_fn(params, vi))(v)  # (C,)
+
+        # Run the compiled sweep
+        v, _ = sweep(v, log_p_v, params, k2)
+
+        v_np = np.asarray(v)
+        unique = len(set(map(tuple, v_np.tolist())))
+        print(f"  [GenericMH] n_steps={n_steps_total}  unique={unique}/{n_samples}")
+        return v_np
