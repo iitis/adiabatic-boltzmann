@@ -1,33 +1,28 @@
 """
-ViT benchmark on the J1-J2 1D frustrated Ising chain.
+ViT hyperparameter search on the J1-J2 1D frustrated Ising chain.
 
-Runs the ViT wave function ansatz on the same (N, J2, seed) combinations
-that exist in results/j1j2_1d/ from the RBM baseline, so the two can be
-compared directly.
+Sweeps learning rate and patch size to find the best ViT configuration.
+Results land in the same results/j1j2_1d/ tree as the RBM baseline, keyed
+by the full hyperparameter set in the filename, so nothing is overwritten.
 
 Usage (from project root):
     python scripts/vit_j1j2_benchmark.py
     python scripts/vit_j1j2_benchmark.py --dry-run
-    python scripts/vit_j1j2_benchmark.py --sizes 8 16
-    python scripts/vit_j1j2_benchmark.py --sizes 32 --seeds 1 42
-
-The script skips any (N, J2, seed) for which a ViT result file already exists.
+    python scripts/vit_j1j2_benchmark.py --sizes 8 --lrs 0.05 0.1
+    python scripts/vit_j1j2_benchmark.py --patch-sizes 1
 """
 
 import argparse
 import sys
 import time
-import json
 from pathlib import Path
 from argparse import Namespace
 
-# ── Path setup ────────────────────────────────────────────────────────────────
 _REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO / "src"))
 
 import jax
 jax.config.update("jax_enable_x64", True)
-import jax.numpy as jnp
 
 from model_vit import ViTWaveFunction
 from sampler import GenericClassicalSampler
@@ -35,37 +30,42 @@ from encoder_generic import TrainerGeneric
 from ising import J1J2Ising1D
 from helpers import save_results
 
-# ── Parameter space (mirrors the RBM baseline) ───────────────────────────────
+# ── Parameter space ───────────────────────────────────────────────────────────
 
-J2_VALUES = [0.0, 0.1, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8, 0.9, 1.0]
-SEEDS     = [1, 7, 42, 123]
-J1        = 1.0
-H         = 0.5
+J2_VALUES   = [0.0, 0.1, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8, 0.9, 1.0]
+SEEDS       = [1, 42]
+J1          = 1.0
+H           = 0.5
 
-# Iterations to match RBM baseline
-_ITERATIONS = {8: 300, 16: 300, 32: 500}
+# Hyperparameter axes being searched
+LR_VALUES   = [0.01, 0.05, 0.1, 0.2]
 
-# ViT architecture scaled to system size.
-# patch_size=2 → n_patches = N//2 tokens fed into attention.
-# d_model and n_layers grow with N to keep expressivity comparable to n_hidden=N.
-_VIT_CONFIG = {
-    8:  dict(d_model=16, n_heads=2, n_layers=2, patch_size=2),
-    16: dict(d_model=32, n_heads=4, n_layers=2, patch_size=2),
-    32: dict(d_model=32, n_heads=4, n_layers=3, patch_size=4),
+# patch_size=1: each spin its own token — attention directly learns NN and NNN
+#   correlations, fully general for the J1-J2 chain.
+# patch_size=2: NN pairs as tokens — J1 bond lives inside a patch, J2 connects
+#   adjacent patches, a natural coarsening for this Hamiltonian.
+# Both are physically motivated; patch_size>2 conflates spins too aggressively.
+PATCH_SIZES = [1, 2]
+
+_ITERATIONS = {8: 300, 16: 300, 32: 300}
+
+# d_model/n_heads/n_layers fixed per N; only patch_size varies across the sweep
+# so that LR and patch_size effects can be disentangled.
+_VIT_BASE = {
+    8:  dict(d_model=16, n_heads=2, n_layers=2),
+    16: dict(d_model=32, n_heads=4, n_layers=2),
+    32: dict(d_model=64, n_heads=4, n_layers=3),
 }
 
-# Training hyperparameters
-LR           = 0.05    # ViT needs a smaller step than RBM (0.1)
 REGULARIZATION = 0.001
-N_SAMPLES    = 1000
-N_WARMUP     = 20      # MH warmup steps (in units of N); fewer than RBM because
-                        # each ViT forward pass is ~10× more expensive than psi_ratio
+N_SAMPLES      = 1000
+N_WARMUP       = 20
 
 
-# ── Result path helpers ───────────────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _make_args(N: int, J2: float, seed: int, vit_cfg: dict) -> Namespace:
-    """Build the argparse.Namespace that helpers.save_results() expects."""
+def _make_args(N: int, J2: float, seed: int, lr: float, patch_size: int) -> Namespace:
+    base = _VIT_BASE[N]
     return Namespace(
         model="j1j2_1d",
         size=N,
@@ -76,17 +76,17 @@ def _make_args(N: int, J2: float, seed: int, vit_cfg: dict) -> Namespace:
         delta=1.0,
         alpha=2.0,
         ansatz="vit",
-        rbm="full",          # unused for ViT but needed by some helpers
+        rbm="full",
         n_hidden=None,
-        d_model=vit_cfg["d_model"],
-        n_layers=vit_cfg["n_layers"],
-        n_heads=vit_cfg["n_heads"],
-        patch_size=vit_cfg["patch_size"],
+        d_model=base["d_model"],
+        n_layers=base["n_layers"],
+        n_heads=base["n_heads"],
+        patch_size=patch_size,
         sampler="custom",
         sampling_method="metropolis",
         n_samples=N_SAMPLES,
         iterations=_ITERATIONS[N],
-        learning_rate=LR,
+        learning_rate=lr,
         regularization=REGULARIZATION,
         seed=seed,
         cem=False,
@@ -98,7 +98,6 @@ def _make_args(N: int, J2: float, seed: int, vit_cfg: dict) -> Namespace:
 
 
 def _result_path(args: Namespace) -> Path:
-    """Reconstruct the output file path without actually running training."""
     from helpers import _model_subdir, _model_params_str, _ansatz_str
     output_dir = (
         Path(args.output_dir)
@@ -124,14 +123,19 @@ def _result_path(args: Namespace) -> Path:
     return output_dir / fname
 
 
-# ── Single training run ───────────────────────────────────────────────────────
+# ── Single run ────────────────────────────────────────────────────────────────
 
-def run_one(N: int, J2: float, seed: int, dry_run: bool = False) -> dict | None:
-    vit_cfg = _VIT_CONFIG[N]
-    args    = _make_args(N, J2, seed, vit_cfg)
-    out     = _result_path(args)
+def run_one(
+    N: int, J2: float, seed: int, lr: float, patch_size: int, dry_run: bool = False
+) -> dict | None:
+    base = _VIT_BASE[N]
+    args = _make_args(N, J2, seed, lr, patch_size)
+    out  = _result_path(args)
 
-    label = f"N={N:2d}  J2={J2:.2f}  seed={seed:3d}"
+    label = (
+        f"N={N:2d}  J2={J2:.2f}  seed={seed:3d}"
+        f"  lr={lr}  ph={patch_size}"
+    )
 
     if out.exists():
         print(f"  [skip]  {label}  → {out.name}")
@@ -141,22 +145,22 @@ def run_one(N: int, J2: float, seed: int, dry_run: bool = False) -> dict | None:
         print(f"  [would run]  {label}")
         return None
 
-    print(f"\n{'='*60}")
+    print(f"\n{'='*70}")
     print(f"  {label}")
-    print(f"  ViT: d_model={vit_cfg['d_model']}  n_layers={vit_cfg['n_layers']}"
-          f"  n_heads={vit_cfg['n_heads']}  patch_size={vit_cfg['patch_size']}")
-    print(f"  iters={args.iterations}  ns={N_SAMPLES}  lr={LR}")
-    print(f"{'='*60}")
+    print(f"  ViT: d_model={base['d_model']}  n_layers={base['n_layers']}"
+          f"  n_heads={base['n_heads']}  patch_size={patch_size}")
+    print(f"  iters={args.iterations}  ns={N_SAMPLES}  reg={REGULARIZATION}")
+    print(f"{'='*70}")
 
     key = jax.random.PRNGKey(seed)
     key, vit_key, sampler_key = jax.random.split(key, 3)
 
     vit = ViTWaveFunction(
         n_visible=N,
-        n_layers=vit_cfg["n_layers"],
-        d_model=vit_cfg["d_model"],
-        n_heads=vit_cfg["n_heads"],
-        patch_size=vit_cfg["patch_size"],
+        n_layers=base["n_layers"],
+        d_model=base["d_model"],
+        n_heads=base["n_heads"],
+        patch_size=patch_size,
         key=vit_key,
         geometry="1d",
     )
@@ -174,20 +178,20 @@ def run_one(N: int, J2: float, seed: int, dry_run: bool = False) -> dict | None:
     sampler._key = sampler_key
 
     config = {
-        "learning_rate": LR,
+        "learning_rate": lr,
         "n_iterations": args.iterations,
         "n_samples": N_SAMPLES,
         "regularization": REGULARIZATION,
         "seed": seed,
     }
 
-    t0 = time.perf_counter()
+    t0      = time.perf_counter()
     trainer = TrainerGeneric(vit, ising, sampler, config, args=args)
     history = trainer.train()
     elapsed = time.perf_counter() - t0
 
     final_E = history["energy"][-1]
-    error = abs(final_E - exact) if exact is not None else None
+    error   = abs(final_E - exact) if exact is not None else None
 
     print(f"\n  Final energy : {final_E:.6f}")
     if exact is not None:
@@ -202,49 +206,51 @@ def run_one(N: int, J2: float, seed: int, dry_run: bool = False) -> dict | None:
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="ViT J1-J2 benchmark")
-    parser.add_argument("--sizes",  type=int,   nargs="+", default=[8, 16, 32],
-                        help="System sizes to run (default: 8 16 32)")
-    parser.add_argument("--seeds",  type=int,   nargs="+", default=SEEDS,
-                        help="Random seeds (default: 1 7 42 123)")
-    parser.add_argument("--j2",     type=float, nargs="+", default=J2_VALUES,
-                        help="J2 values to sweep (default: all 13)")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Print what would run without executing")
+    parser = argparse.ArgumentParser(description="ViT J1-J2 hyperparameter search")
+    parser.add_argument("--sizes",       type=int,   nargs="+", default=[8, 16, 32])
+    parser.add_argument("--seeds",       type=int,   nargs="+", default=SEEDS)
+    parser.add_argument("--j2",          type=float, nargs="+", default=J2_VALUES)
+    parser.add_argument("--lrs",         type=float, nargs="+", default=LR_VALUES)
+    parser.add_argument("--patch-sizes", type=int,   nargs="+", default=PATCH_SIZES)
+    parser.add_argument("--dry-run",     action="store_true")
     cli = parser.parse_args()
 
-    sizes = sorted(cli.sizes)
-    seeds = sorted(cli.seeds)
-    j2s   = sorted(cli.j2)
+    sizes       = sorted(cli.sizes)
+    seeds       = sorted(cli.seeds)
+    j2s         = sorted(cli.j2)
+    lrs         = sorted(cli.lrs)
+    patch_sizes = sorted(cli.patch_sizes)
 
-    total = len(sizes) * len(j2s) * len(seeds)
-    print(f"ViT J1-J2 benchmark")
-    print(f"  Sizes : {sizes}")
-    print(f"  J2    : {j2s}")
-    print(f"  Seeds : {seeds}")
-    print(f"  Total : {total} runs\n")
+    total = len(sizes) * len(j2s) * len(seeds) * len(lrs) * len(patch_sizes)
+    print(f"ViT J1-J2 hyperparameter search")
+    print(f"  Sizes       : {sizes}")
+    print(f"  J2          : {j2s}")
+    print(f"  Seeds       : {seeds}")
+    print(f"  LRs         : {lrs}")
+    print(f"  Patch sizes : {patch_sizes}")
+    print(f"  Total       : {total} runs\n")
 
-    done = 0
-    skipped = 0
-    failed  = 0
+    done = skipped = failed = 0
 
     for N in sizes:
-        if N not in _VIT_CONFIG:
-            print(f"[warn] No ViT config defined for N={N}, skipping.")
+        if N not in _VIT_BASE:
+            print(f"[warn] No ViT config for N={N}, skipping.")
             continue
-        for J2 in j2s:
-            for seed in seeds:
-                try:
-                    result = run_one(N, J2, seed, dry_run=cli.dry_run)
-                    if result is None:
-                        skipped += 1
-                    else:
-                        done += 1
-                except Exception as e:
-                    print(f"\n  [ERROR] N={N} J2={J2} seed={seed}: {e}")
-                    failed += 1
+        for patch_size in patch_sizes:
+            for lr in lrs:
+                for J2 in j2s:
+                    for seed in seeds:
+                        try:
+                            result = run_one(N, J2, seed, lr, patch_size, dry_run=cli.dry_run)
+                            if result is None:
+                                skipped += 1
+                            else:
+                                done += 1
+                        except Exception as e:
+                            print(f"\n  [ERROR] N={N} J2={J2} seed={seed} lr={lr} ph={patch_size}: {e}")
+                            failed += 1
 
-    print(f"\n{'='*60}")
+    print(f"\n{'='*70}")
     print(f"Done: {done}  Skipped: {skipped}  Failed: {failed}")
 
 
