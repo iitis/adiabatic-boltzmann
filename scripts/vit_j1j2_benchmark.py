@@ -32,13 +32,13 @@ from helpers import save_results
 
 # ── Parameter space ───────────────────────────────────────────────────────────
 
-J2_VALUES   = [0.0, 0.1, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.7, 0.8, 0.9, 1.0]
+J2_VALUES   = [0.0, 0.1, 0.3, 0.45,0.55, 0.7, 1.0]
 SEEDS       = [1, 42]
 J1          = 1.0
 H           = 0.5
 
 # Hyperparameter axes being searched
-LR_VALUES   = [0.01, 0.05, 0.1, 0.2]
+LR_VALUES   = [0.01, 0.05, 0.01, 0.05, 0.1]
 
 # patch_size=1: each spin its own token — attention directly learns NN and NNN
 #   correlations, fully general for the J1-J2 chain.
