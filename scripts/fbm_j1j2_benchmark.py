@@ -123,7 +123,7 @@ def _make_args(
         learning_rate=lr,
         regularization=regularization,
         seed=seed,
-        cem=False,
+        cem=True,
         cem_interval=5,
         sigma=1.0,
         visualize=False,
@@ -222,6 +222,8 @@ def run_one(
         "n_samples": N_SAMPLES,
         "regularization": REGULARIZATION,
         "seed": seed,
+        "use_cem": True,
+        "cem_interval": args.cem_interval,
     }
 
     t0      = time.perf_counter()
@@ -303,6 +305,8 @@ def run_dwave_one(
         "n_samples": N_SAMPLES,
         "regularization": DWAVE_REGULARIZATION,
         "seed": seed,
+        "use_cem": True,
+        "cem_interval": args.cem_interval,
     }
 
     t0      = time.perf_counter()
