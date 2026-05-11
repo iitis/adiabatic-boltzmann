@@ -53,7 +53,7 @@ LR_VALUES   = [0.01, 0.05, 0.01, 0.05, 0.1]
 # Both are physically motivated; patch_size>2 conflates spins too aggressively.
 PATCH_SIZES = [1, 2]
 
-_ITERATIONS = {8: 300, 16: 300, 32: 300}
+_ITERATIONS = {8: 60, 16: 60, 32: 60}
 
 # d_model/n_heads/n_layers fixed per N; only patch_size varies across the sweep
 # so that LR and patch_size effects can be disentangled.
