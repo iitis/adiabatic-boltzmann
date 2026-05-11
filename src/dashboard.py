@@ -10,7 +10,7 @@ HOW TO EXTEND
   New filter         → add one dict to FILTER_AXES
   New scalar metric  → add one tuple to SCALAR_METRICS
   New history series → add one tuple to HISTORY_METRICS
-  New solver/run     → drop JSON files in results/ and hit "Reload data"
+  New solver/run     → drop JSON files in results/{model}/ and hit "Reload data"
                        (auto-discovered, zero code changes needed)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
@@ -28,7 +28,7 @@ import streamlit as st
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
 _ROOT = Path(__file__).parent.parent
-RESULTS_DIRS = [d for d in (_ROOT / "results", _ROOT / "jax_results") if d.exists()]
+RESULTS_DIRS = [_ROOT / "results"]
 
 # ── Extension points ───────────────────────────────────────────────────────────
 # Add one dict  → new sidebar filter appears automatically
@@ -46,8 +46,13 @@ FILTER_AXES = [
     {"col": "alpha", "label": "LR exponent α"},
     {"col": "sampler", "label": "Sampler backend"},
     {"col": "sampling_method", "label": "Sampling method"},
+    {"col": "ansatz", "label": "Ansatz (rbm / vit)"},
     {"col": "rbm", "label": "RBM type"},
     {"col": "n_hidden", "label": "Hidden units"},
+    {"col": "d_model", "label": "ViT d_model"},
+    {"col": "n_layers", "label": "ViT layers"},
+    {"col": "n_heads", "label": "ViT heads"},
+    {"col": "patch_size", "label": "ViT patch size"},
     {"col": "learning_rate", "label": "Learning rate"},
     {"col": "regularization", "label": "Regularization"},
     {"col": "n_samples", "label": "Samples / iter"},
@@ -145,6 +150,10 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
         for ax in FILTER_AXES:
             row[ax["col"]] = cfg.get(ax["col"])
 
+        # Runs without an explicit ansatz field are RBM runs
+        if row.get("ansatz") is None:
+            row["ansatz"] = "rbm"
+
         # Scalar outputs — exact_energy and error come from the master cache,
         # not from the JSON file (those values may be stale or inaccurate).
         for key in (
@@ -241,6 +250,10 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
         "sigma",
         "alpha",
         "n_hidden",
+        "d_model",
+        "n_layers",
+        "n_heads",
+        "patch_size",
         "learning_rate",
         "regularization",
         "n_samples",

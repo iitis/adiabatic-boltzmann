@@ -495,6 +495,45 @@ def main():
     fig2.savefig(out_plot2, dpi=150)
     print(f"Saved → {out_plot2}")
 
+    # third plot: error and cost at the first converged window
+    out_plot3 = out_plot.parent / (out_plot.stem + "_conv_window" + out_plot.suffix)
+    base_conv = df[(df["model"] == "1d") & df["distance_at_conv"].notna()]
+    dimod_mask_conv = base_conv["solver"].isin(["pegasus", "zephyr"])
+    df1d_conv = filter_df(pd.concat([
+        base_conv[~dimod_mask_conv & (base_conv["lr"] == 0.01)],
+        base_conv[dimod_mask_conv & (base_conv["rbm"] == "full")],
+    ], ignore_index=True))
+    fig3, axes3 = plt.subplots(
+        2, len(h_values), figsize=(5 * len(h_values), 9), sharey="row"
+    )
+    for col, h in enumerate(h_values):
+        sub = df1d_conv[df1d_conv["h"] == h]
+
+        ax_top = axes3[0, col]
+        plot_metric(sub, "distance_at_conv",
+                    r"$|e_\mathrm{VMC} - e_\mathrm{exact}|$", ax_top,
+                    log=True, linestyle="-", marker="o")
+        ax_top.set_title(f"Energy error at convergence  |  h = {h}")
+
+        ax_bot = axes3[1, col]
+        plot_metric(sub, "time_to_conv_s", "Time to convergence (s)", ax_bot,
+                    log=True, linestyle="--", marker="s")
+        ax_bot.set_title(f"Cost to convergence  |  h = {h}")
+
+    for col in range(len(h_values)):
+        axes3[0, col].set_ylabel(r"Mean $|e_\mathrm{VMC} - e_\mathrm{exact}|$ at conv. window")
+        axes3[1, col].set_ylabel("Mean time to convergence (s)")
+        for row in range(2):
+            axes3[row, col].tick_params(labelleft=True)
+
+    fig3.suptitle(
+        f"1D TFIM — quality and cost at first converged window\n"
+        f"(CV < {CONV_THRESHOLD:.1%} over {CONV_WINDOW} iters; mean over all runs per solver×N)"
+    )
+    fig3.tight_layout()
+    fig3.savefig(out_plot3, dpi=150)
+    print(f"Saved → {out_plot3}")
+
 
 if __name__ == "__main__":
     main()

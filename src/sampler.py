@@ -32,7 +32,7 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 from abc import ABC, abstractmethod
-from model import RBM
+from model import RBM, FullyConnectedRBM
 import dimod
 from pathlib import Path
 from helpers import get_solver_name
@@ -1199,3 +1199,143 @@ class GenericClassicalSampler:
         unique = len(set(map(tuple, v_np.tolist())))
         print(f"  [GenericMH] n_steps={n_steps_total}  unique={unique}/{n_samples}")
         return v_np
+
+
+# ---------------------------------------------------------------------------
+# D-Wave MH proposal sampler for ViT wave functions
+# ---------------------------------------------------------------------------
+
+
+class DWaveProposalSampler:
+    """
+    Metropolis-Hastings sampler for ViT wave functions using D-Wave as proposal.
+
+    An auxiliary FullyConnectedRBM is fitted online to the current ViT
+    distribution via contrastive divergence:
+        positive phase : accepted ViT samples from the previous VMC iteration
+        negative phase : D-Wave QPU samples drawn from the auxiliary RBM
+
+    One QPU call per VMC iteration — same cost as the standard RBM+D-Wave mode.
+    Acceptance corrects for the mismatch between the RBM proposal and the true
+    ViT target:
+
+        α(v → v') = min(1, |Ψ_ViT(v')|² · p_RBM(v)
+                          / (|Ψ_ViT(v)|²  · p_RBM(v')))
+
+    where p_RBM(v) ∝ |Ψ_RBM(v)|² (normalization cancels).
+
+    Parameters
+    ----------
+    n_visible    : number of visible spins
+    n_hidden     : hidden units in the auxiliary RBM
+    key          : JAX PRNG key (for RBM init and MH acceptance)
+    dwave_method : "pegasus" or "zephyr"
+    rbm_lr       : learning rate for the online CD update (default 0.01)
+    """
+
+    def __init__(
+        self,
+        n_visible: int,
+        n_hidden: int,
+        key: jax.Array,
+        dwave_method: str = "pegasus",
+        rbm_lr: float = 0.01,
+    ):
+        key, rbm_key = jax.random.split(key)
+        self.rbm = FullyConnectedRBM(n_visible, n_hidden, rbm_key)
+        self._dwave = DimodSampler(method=dwave_method)
+        self.rbm_lr = rbm_lr
+        self._key = key
+        self._v_current: np.ndarray | None = None   # persistent chain (ns, N) ±1
+
+    def _next_key(self) -> jax.Array:
+        self._key, subkey = jax.random.split(self._key)
+        return subkey
+
+    def _rbm_log_psi_batch(self, V: jax.Array) -> jax.Array:
+        """log|Ψ_RBM(v)| for a batch V : (ns, N) → (ns,)."""
+        theta = self.rbm.b[None, :] + V @ self.rbm.W   # (ns, nh)
+        return (
+            -V @ self.rbm.a / 2
+            + 0.5 * jnp.sum(jnp.logaddexp(theta, -theta), axis=1)
+        )
+
+    def _update_rbm(self, V_pos: np.ndarray, V_neg: np.ndarray) -> None:
+        """
+        One CD gradient step.
+
+        V_pos : accepted ViT samples  (positive phase / data)
+        V_neg : D-Wave RBM samples    (negative phase / model)
+
+        For an RBM with log p(v) ∝ 2 log|Ψ_RBM(v)| = -a·v + Σⱼ log 2cosh(θⱼ):
+
+            ∂ log L / ∂a   =  <v>_neg  − <v>_pos
+            ∂ log L / ∂b   =  <tanh θ>_pos − <tanh θ>_neg
+            ∂ log L / ∂Wᵢⱼ =  <vᵢ tanh θⱼ>_pos − <vᵢ tanh θⱼ>_neg
+        """
+        Vp = jnp.asarray(V_pos, dtype=jnp.float64)
+        Vn = jnp.asarray(V_neg, dtype=jnp.float64)
+
+        tanh_pos = jnp.tanh(self.rbm.b[None, :] + Vp @ self.rbm.W)  # (ns, nh)
+        tanh_neg = jnp.tanh(self.rbm.b[None, :] + Vn @ self.rbm.W)  # (ns, nh)
+
+        lr = self.rbm_lr
+        self.rbm.a = self.rbm.a + lr * (Vn.mean(0) - Vp.mean(0))
+        self.rbm.b = self.rbm.b + lr * (tanh_pos.mean(0) - tanh_neg.mean(0))
+        self.rbm.W = self.rbm.W + lr * (
+            Vp.T @ tanh_pos / Vp.shape[0]
+            - Vn.T @ tanh_neg / Vn.shape[0]
+        )
+
+    def sample(
+        self, model, n_samples: int, config: dict | None = None, **_
+    ) -> np.ndarray:
+        """
+        Draw n_samples spin configurations targeting |Ψ_ViT(v)|².
+
+        model    : ViTWaveFunction (must expose log_psi_batch)
+        n_samples: number of parallel chains = number of returned samples
+        config   : forwarded to DimodSampler (beta_x, annealing_time, …)
+
+        Returns (n_samples, N) numpy array of ±1 spins.
+        """
+        if config is None:
+            config = {}
+
+        # ── 1. One QPU call: draw proposals from the auxiliary RBM ───────
+        V_prop = self._dwave.sample(self.rbm, n_samples, config)   # (ns, N) numpy
+
+        # ── 2. First iteration: no persistent state, accept all proposals ─
+        if self._v_current is None:
+            self._v_current = V_prop
+            return V_prop
+
+        # ── 3. MH acceptance (RBM density evaluated BEFORE parameter update)
+        V_curr_j = jnp.asarray(self._v_current, dtype=jnp.float64)
+        V_prop_j = jnp.asarray(V_prop, dtype=jnp.float64)
+
+        log_psi_vit_curr = model.log_psi_batch(V_curr_j).real   # (ns,)
+        log_psi_vit_prop = model.log_psi_batch(V_prop_j).real   # (ns,)
+        log_psi_rbm_curr = self._rbm_log_psi_batch(V_curr_j)    # (ns,)
+        log_psi_rbm_prop = self._rbm_log_psi_batch(V_prop_j)    # (ns,)
+
+        log_alpha = (
+            2.0 * (log_psi_vit_prop - log_psi_vit_curr)
+            + 2.0 * (log_psi_rbm_curr - log_psi_rbm_prop)
+        )
+        u = jax.random.uniform(self._next_key(), (n_samples,), dtype=jnp.float64)
+        accept = jnp.log(u) < log_alpha                          # (ns,) bool
+
+        V_accepted = jnp.where(accept[:, None], V_prop_j, V_curr_j)
+        self._v_current = np.asarray(V_accepted)
+
+        n_acc = int(accept.sum())
+        unique = len(set(map(tuple, self._v_current.tolist())))
+        print(
+            f"  [DWaveMH] accept={n_acc/n_samples:.3f}  unique={unique}/{n_samples}"
+        )
+
+        # ── 4. Update auxiliary RBM: accepted ViT samples vs D-Wave proposals
+        self._update_rbm(self._v_current, V_prop)
+
+        return self._v_current
