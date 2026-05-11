@@ -13,7 +13,6 @@ Usage (from project root):
     python scripts/fbm_j1j2_benchmark.py --dry-run
     python scripts/fbm_j1j2_benchmark.py --sizes 8 --lrs 0.05 0.1
     python scripts/fbm_j1j2_benchmark.py --j2 0.0 0.5 1.0
-    python scripts/fbm_j1j2_benchmark.py --nh-ratios 1 2
 """
 
 import argparse
@@ -43,10 +42,6 @@ H          = 0.5
 
 LR_VALUES  = [0.01, 0.05, 0.1]
 
-# n_hidden = NH_RATIO * N.  ratio=1 matches visible count; ratio=2 gives more
-# expressive power at the cost of extra J parameters: N*(N-1)/2 grows as N².
-NH_RATIOS  = [1, 2]
-
 _ITERATIONS = {8: 300, 16: 300}
 
 REGULARIZATION = 1e-3
@@ -62,7 +57,6 @@ def _make_args(
     J2: float,
     seed: int,
     lr: float,
-    n_hidden: int,
     rbm_type: str,          # "full" | "fullbm"
 ) -> Namespace:
     return Namespace(
@@ -76,7 +70,7 @@ def _make_args(
         alpha=2.0,
         ansatz="rbm",
         rbm=rbm_type,
-        n_hidden=n_hidden,
+        n_hidden=N,
         # ViT fields left at defaults so _ansatz_str / _result_path work
         d_model=32,
         n_layers=2,
@@ -131,16 +125,15 @@ def run_one(
     J2: float,
     seed: int,
     lr: float,
-    n_hidden: int,
     rbm_type: str,
     dry_run: bool = False,
 ) -> dict | None:
-    args = _make_args(N, J2, seed, lr, n_hidden, rbm_type)
+    args = _make_args(N, J2, seed, lr, rbm_type)
     out  = _result_path(args)
 
     label = (
         f"N={N:2d}  J2={J2:.2f}  seed={seed:3d}"
-        f"  lr={lr}  nh={n_hidden}  rbm={rbm_type}"
+        f"  lr={lr}  rbm={rbm_type}"
     )
 
     if out.exists():
@@ -160,9 +153,9 @@ def run_one(
     key, model_key, sampler_key = jax.random.split(key, 3)
 
     if rbm_type == "fullbm":
-        wave_fn = FullBoltzmannMachine(N, n_hidden, model_key)
+        wave_fn = FullBoltzmannMachine(N, N, model_key)
     else:
-        wave_fn = FullyConnectedRBM(N, n_hidden, model_key)
+        wave_fn = FullyConnectedRBM(N, N, model_key)
     print(f"  {wave_fn}")
 
     ising = J1J2Ising1D(N, J1=J1, J2=J2, h=H)
@@ -218,17 +211,14 @@ def main():
     parser.add_argument("--sizes",     type=int,   nargs="+", default=[8, 16])
     parser.add_argument("--seeds",     type=int,   nargs="+", default=SEEDS)
     parser.add_argument("--j2",        type=float, nargs="+", default=J2_VALUES)
-    parser.add_argument("--lrs",       type=float, nargs="+", default=LR_VALUES)
-    parser.add_argument("--nh-ratios", type=int,   nargs="+", default=NH_RATIOS,
-                        help="n_hidden = ratio * N (default: 1 2)")
+    parser.add_argument("--lrs",     type=float, nargs="+", default=LR_VALUES)
     parser.add_argument("--dry-run", action="store_true")
     cli = parser.parse_args()
 
-    sizes     = sorted(cli.sizes)
-    seeds     = sorted(cli.seeds)
-    j2s       = sorted(cli.j2)
-    lrs       = sorted(cli.lrs)
-    nh_ratios = sorted(cli.nh_ratios)
+    sizes = sorted(cli.sizes)
+    seeds = sorted(cli.seeds)
+    j2s   = sorted(cli.j2)
+    lrs   = sorted(cli.lrs)
 
     rbm_types = []
     if cli.ansatz in ("rbm", "both"):
@@ -241,40 +231,37 @@ def main():
         print(f"[warn] No iteration budget for N={unsupported}; skipping those sizes.")
         sizes = [N for N in sizes if N in _ITERATIONS]
 
-    total = len(sizes) * len(rbm_types) * len(nh_ratios) * len(lrs) * len(j2s) * len(seeds)
-    print(f"FBM vs RBM J1-J2 benchmark")
-    print(f"  Ansatz    : {rbm_types}")
-    print(f"  Sizes     : {sizes}")
-    print(f"  J2        : {j2s}")
-    print(f"  Seeds     : {seeds}")
-    print(f"  LRs       : {lrs}")
-    print(f"  NH ratios : {nh_ratios}")
-    print(f"  Total     : {total} runs\n")
+    total = len(sizes) * len(rbm_types) * len(lrs) * len(j2s) * len(seeds)
+    print(f"FBM vs RBM J1-J2 benchmark  (n_hidden = N)")
+    print(f"  Ansatz : {rbm_types}")
+    print(f"  Sizes  : {sizes}")
+    print(f"  J2     : {j2s}")
+    print(f"  Seeds  : {seeds}")
+    print(f"  LRs    : {lrs}")
+    print(f"  Total  : {total} runs\n")
 
     done = skipped = failed = 0
 
     for N in sizes:
         for rbm_type in rbm_types:
-            for nh_ratio in nh_ratios:
-                n_hidden = N * nh_ratio
-                for lr in lrs:
-                    for J2 in j2s:
-                        for seed in seeds:
-                            try:
-                                result = run_one(
-                                    N, J2, seed, lr, n_hidden, rbm_type,
-                                    dry_run=cli.dry_run,
-                                )
-                                if result is None:
-                                    skipped += 1
-                                else:
-                                    done += 1
-                            except Exception as e:
-                                print(
-                                    f"\n  [ERROR] N={N} J2={J2} seed={seed} "
-                                    f"lr={lr} nh={n_hidden} rbm={rbm_type}: {e}"
-                                )
-                                failed += 1
+            for lr in lrs:
+                for J2 in j2s:
+                    for seed in seeds:
+                        try:
+                            result = run_one(
+                                N, J2, seed, lr, rbm_type,
+                                dry_run=cli.dry_run,
+                            )
+                            if result is None:
+                                skipped += 1
+                            else:
+                                done += 1
+                        except Exception as e:
+                            print(
+                                f"\n  [ERROR] N={N} J2={J2} seed={seed} "
+                                f"lr={lr} rbm={rbm_type}: {e}"
+                            )
+                            failed += 1
 
     print(f"\n{'='*70}")
     print(f"Done: {done}  Skipped: {skipped}  Failed: {failed}")
