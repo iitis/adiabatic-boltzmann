@@ -4,7 +4,7 @@ jax.config.update("jax_enable_x64", True)
 import argparse
 
 from helpers import save_results
-from model import FullyConnectedRBM, DWaveTopologyRBM
+from model import FullyConnectedRBM, DWaveTopologyRBM, FullBoltzmannMachine
 from model_vit import ViTWaveFunction
 from sampler import ClassicalSampler, DimodSampler, VeloxSampler, GenericClassicalSampler
 from encoder import Trainer
@@ -74,9 +74,10 @@ def parse_arguments():
     # RBM architecture (used when --ansatz rbm)
     parser.add_argument(
         "--rbm",
-        choices=["full", "pegasus", "zephyr"],
+        choices=["full", "fullbm", "pegasus", "zephyr"],
         default="full",
-        help="RBM connectivity pattern (--ansatz rbm only)",
+        help="RBM/FBM connectivity pattern (--ansatz rbm only). "
+             "'fullbm' adds visible-visible couplings J.",
     )
     parser.add_argument(
         "--n-hidden",
@@ -252,6 +253,8 @@ def main():
         args.n_hidden = n_hidden
         if args.rbm == "full":
             wave_fn = FullyConnectedRBM(n_visible, n_hidden, model_key)
+        elif args.rbm == "fullbm":
+            wave_fn = FullBoltzmannMachine(n_visible, n_hidden, model_key)
         else:
             wave_fn = DWaveTopologyRBM(n_visible, n_hidden, model_key, solver=args.rbm)
     else:  # vit

@@ -285,6 +285,14 @@ class Sampler(ABC):
                 if abs(W_np[i, j]) > 1e-6:
                     quadratic[(i, Nv + j)] = -float(W_np[i, j]) / beta_x
 
+        # FBM: add visible-visible couplings (chain-free QUBO edges)
+        if hasattr(rbm, "J"):
+            J_np = np.asarray(rbm.J)
+            for i in range(Nv):
+                for k in range(i + 1, Nv):
+                    if abs(J_np[i, k]) > 1e-6:
+                        quadratic[(i, k)] = -float(J_np[i, k]) / beta_x
+
         return quadratic, linear
 
     @abstractmethod

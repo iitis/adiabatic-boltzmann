@@ -42,6 +42,20 @@ class RBMParams(NamedTuple):
     W: jax.Array  # (n_visible, n_hidden) weight matrix
 
 
+class FBMParams(NamedTuple):
+    """
+    Immutable Full Boltzmann Machine parameter PyTree.
+
+    Extends RBMParams with a visible-visible coupling matrix J
+    (symmetric, zero diagonal).
+    """
+
+    a: jax.Array  # (n_visible,)
+    b: jax.Array  # (n_hidden,)
+    W: jax.Array  # (n_visible, n_hidden)
+    J: jax.Array  # (n_visible, n_visible) symmetric, zero diagonal
+
+
 # ---------------------------------------------------------------------------
 # Abstract base
 # ---------------------------------------------------------------------------
@@ -443,6 +457,192 @@ class DWaveTopologyRBM(RBM):
             f"n_hidden={self.n_hidden}, "
             f"connections={s['n_connections']}/{s['max_connections']}, "
             f"sparsity={s['sparsity']:.2%})"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Full Boltzmann Machine
+# ---------------------------------------------------------------------------
+
+
+class FullBoltzmannMachine:
+    """
+    Full Boltzmann Machine VMC ansatz.
+
+    Extends the RBM with visible-visible couplings J (symmetric, zero diagonal).
+    Tracing out the hidden units remains analytically tractable:
+
+        log Ψ(v) = -a·v/2 + ¼vᵀJv + ½ Σⱼ log[2·cosh(bⱼ + Wⱼ·v)]
+
+    J maps directly to vis-vis QUBO edges — chain-free on D-Wave.
+    """
+
+    def __init__(self, n_visible: int, n_hidden: int, key: jax.Array):
+        self.n_visible = n_visible
+        self.n_hidden = n_hidden
+        self.scale = 0.01
+        # Precompute upper-triangle index arrays for J serialisation.
+        self._triu_k, self._triu_l = np.triu_indices(n_visible, k=1)
+        W = jax.random.normal(key, (n_visible, n_hidden), dtype=jnp.float64) * self.scale
+        self.params = FBMParams(
+            a=jnp.zeros(n_visible, dtype=jnp.float64),
+            b=jnp.zeros(n_hidden, dtype=jnp.float64),
+            W=W,
+            J=jnp.zeros((n_visible, n_visible), dtype=jnp.float64),
+        )
+
+    # ── Properties ───────────────────────────────────────────────────────
+
+    @property
+    def a(self) -> jax.Array:
+        return self.params.a
+
+    @a.setter
+    def a(self, v):
+        self.params = FBMParams(
+            a=jnp.asarray(v, dtype=jnp.float64),
+            b=self.params.b, W=self.params.W, J=self.params.J,
+        )
+
+    @property
+    def b(self) -> jax.Array:
+        return self.params.b
+
+    @b.setter
+    def b(self, v):
+        self.params = FBMParams(
+            a=self.params.a,
+            b=jnp.asarray(v, dtype=jnp.float64),
+            W=self.params.W, J=self.params.J,
+        )
+
+    @property
+    def W(self) -> jax.Array:
+        return self.params.W
+
+    @W.setter
+    def W(self, v):
+        self.params = FBMParams(
+            a=self.params.a, b=self.params.b,
+            W=jnp.asarray(v, dtype=jnp.float64),
+            J=self.params.J,
+        )
+
+    @property
+    def J(self) -> jax.Array:
+        return self.params.J
+
+    @J.setter
+    def J(self, v):
+        self.params = FBMParams(
+            a=self.params.a, b=self.params.b, W=self.params.W,
+            J=jnp.asarray(v, dtype=jnp.float64),
+        )
+
+    # ── Core maths ────────────────────────────────────────────────────────
+
+    def logcosh(self, x):
+        return jnp.logaddexp(x, -x)
+
+    def log_psi(self, v: jax.Array) -> jax.Array:
+        """log Ψ(v) = -a·v/2 + ¼vᵀJv + ½ Σⱼ log[2·cosh(bⱼ + Wⱼ·v)]"""
+        p = self.params
+        theta = p.b + p.W.T @ v
+        jvv = 0.25 * v @ p.J @ v
+        return -p.a @ v / 2 + jvv + 0.5 * jnp.sum(jnp.log(2) + self.logcosh(theta))
+
+    def psi(self, v: jax.Array) -> jax.Array:
+        return jnp.exp(self.log_psi(v))
+
+    def psi_ratio(self, v: jax.Array, flip_idx: int) -> jax.Array:
+        """Ψ(v with spin flip_idx flipped) / Ψ(v), in log space."""
+        p = self.params
+        vi = v[flip_idx]
+        theta = p.b + p.W.T @ v
+        theta_flipped = theta - 2 * vi * p.W[flip_idx, :]
+        log_ratio = (
+            p.a[flip_idx] * vi
+            - vi * (p.J[flip_idx, :] @ v)
+            + 0.5 * jnp.sum(self.logcosh(theta_flipped) - self.logcosh(theta))
+        )
+        return jnp.exp(log_ratio)
+
+    def psi_ratio_pair(self, v: jax.Array, flip_i: int, flip_j: int) -> jax.Array:
+        """Ψ(v with spins i and j simultaneously flipped) / Ψ(v)."""
+        p = self.params
+        vi, vj = v[flip_i], v[flip_j]
+        theta = p.b + p.W.T @ v
+        theta_flipped = theta - 2 * vi * p.W[flip_i, :] - 2 * vj * p.W[flip_j, :]
+        log_ratio = (
+            p.a[flip_i] * vi + p.a[flip_j] * vj
+            - vi * (p.J[flip_i, :] @ v)
+            - vj * (p.J[flip_j, :] @ v)
+            + 2 * vi * vj * p.J[flip_i, flip_j]
+            + 0.5 * jnp.sum(self.logcosh(theta_flipped) - self.logcosh(theta))
+        )
+        return jnp.exp(log_ratio)
+
+    def gradient_log_psi(self, v: jax.Array) -> dict:
+        """
+        ∂log Ψ/∂p for all parameters.
+
+        ∂log Ψ/∂a_i  = -v_i / 2
+        ∂log Ψ/∂b_j  =  tanh(θ_j) / 2
+        ∂log Ψ/∂W_ij =  v_i · tanh(θ_j) / 2
+        ∂log Ψ/∂J_ij =  v_i · v_j / 4   (i≠j, returned as full symmetric matrix)
+        """
+        p = self.params
+        theta = p.b + p.W.T @ v
+        tanh_theta = jnp.tanh(theta)
+        N = self.n_visible
+        diag_idx = jnp.arange(N)
+        J_grad = (0.25 * jnp.outer(v, v)).at[diag_idx, diag_idx].set(0.0)
+        return {
+            "a": -0.5 * v,
+            "b": 0.5 * tanh_theta,
+            "W": 0.5 * jnp.outer(v, tanh_theta),
+            "J": J_grad,
+        }
+
+    # ── Weight serialisation ──────────────────────────────────────────────
+
+    def get_weights(self) -> jax.Array:
+        """Flatten params → 1-D JAX array  [a, b, W.ravel(), J_upper_tri]."""
+        p = self.params
+        J_flat = p.J[self._triu_k, self._triu_l]
+        return jnp.concatenate([p.a.ravel(), p.b.ravel(), p.W.ravel(), J_flat])
+
+    def set_weights(self, w: jax.Array) -> FBMParams:
+        """Unpack flat vector [a, b, W.ravel(), J_upper_tri] into FBMParams."""
+        N, M = self.n_visible, self.n_hidden
+        a = w[:N]
+        b = w[N : N + M]
+        W = w[N + M : N + M + N * M].reshape(N, M)
+        J_flat = w[N + M + N * M :]
+        J = jnp.zeros((N, N), dtype=jnp.float64)
+        J = J.at[self._triu_k, self._triu_l].set(J_flat)
+        J = J + J.T  # symmetrise
+        self.params = FBMParams(a=a, b=b, W=W, J=J)
+        return self.params
+
+    # ── Diagnostics ───────────────────────────────────────────────────────
+
+    def n_parameters(self) -> int:
+        N, M = self.n_visible, self.n_hidden
+        return N + M + N * M + N * (N - 1) // 2
+
+    def get_connectivity_mask(self) -> np.ndarray:
+        return np.ones((self.n_visible, self.n_hidden))
+
+    def sparsity(self) -> float:
+        return 0.0
+
+    def __repr__(self) -> str:
+        n_J = self.n_visible * (self.n_visible - 1) // 2
+        return (
+            f"FullBoltzmannMachine("
+            f"n_visible={self.n_visible}, n_hidden={self.n_hidden}, "
+            f"n_params={self.n_parameters()}, n_J={n_J})"
         )
 
 

@@ -22,6 +22,7 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 from helpers import save_rbm_checkpoint, save_dwave_samples
+from model import FullBoltzmannMachine
 from sampler import ClassicalSampler
 from scipy.optimize import minimize_scalar
 
@@ -146,6 +147,117 @@ class SRLinearSystem:
 
 
 # ---------------------------------------------------------------------------
+# FBM SR matvec kernel
+# ---------------------------------------------------------------------------
+
+
+@functools.partial(jax.jit, static_argnums=(7, 8, 9, 10))
+def _fbm_sr_matvec_jit(
+    V: jax.Array,       # (ns, N)
+    H: jax.Array,       # (ns, M)
+    V_vv_c: jax.Array,  # (ns, n_J)  centred vis-vis gradient matrix
+    mu_a: jax.Array,    # (N,)
+    mu_b: jax.Array,    # (M,)
+    mu_W: jax.Array,    # (M, N)
+    diag_shift: float,
+    N: int,
+    M: int,
+    ns: int,
+    n_J: int,
+    x: jax.Array,
+) -> jax.Array:
+    """
+    S·x for the FBM parameter vector  [a(N), b(M), W(M*N), J_flat(n_J)].
+
+    V_vv_c is already mean-centred so the J block does not require an extra
+    subtraction in the centering step — only a, b, W are centred below.
+    """
+    xa = x[:N]
+    xb = x[N : N + M]
+    xW = x[N + M : N + M + M * N].reshape(M, N)
+    xJ = x[N + M + M * N :]
+
+    # Forward: z_s = Σ_p (O_sp - <O_p>) x_p
+    z = -0.5 * (V @ xa)
+    z = z + 0.5 * (H @ xb)
+    z = z + 0.5 * jnp.einsum("sm,mn,sn->s", H, xW, V)
+    z = z + V_vv_c @ xJ                                      # already centred
+    z = z - (mu_a @ xa + mu_b @ xb + jnp.sum(mu_W * xW))    # centre a,b,W
+
+    # Backward: out_p = (1/ns) Σ_s z_s (O_sp - <O_p>)
+    out_a = -0.5 * (z @ V) / ns + diag_shift * xa
+    out_b = 0.5 * (z @ H) / ns + diag_shift * xb
+    out_W = 0.5 * (H.T @ (z[:, None] * V)) / ns + diag_shift * xW
+    out_J = (V_vv_c.T @ z) / ns + diag_shift * xJ
+
+    return jnp.concatenate([out_a.ravel(), out_b.ravel(), out_W.ravel(), out_J.ravel()])
+
+
+class FBMSRLinearSystem(SRLinearSystem):
+    """
+    SR linear system for FullBoltzmannMachine.
+
+    Extends SRLinearSystem with the J_vv parameter block.
+
+    Additional gradient:  O_{J,kl} = 0.5 * v_k * v_l   (k < l, upper-triangle
+    parameterisation where J_{kl} = J_{lk} is one independent parameter).
+    """
+
+    def __init__(
+        self,
+        V: jax.Array,
+        H: jax.Array,
+        E: jax.Array,
+        diag_shift: float,
+        triu_k: np.ndarray,
+        triu_l: np.ndarray,
+    ):
+        super().__init__(V, H, E, diag_shift)
+        N = self.N
+        self.n_J = N * (N - 1) // 2
+
+        # O_{s,kl} = 0.5 * v_{s,k} * v_{s,l}  for (k,l) in upper triangle
+        V_vv_raw = 0.5 * self.V[:, triu_k] * self.V[:, triu_l]  # (ns, n_J)
+        self.mu_J = jnp.mean(V_vv_raw, axis=0)                   # (n_J,)
+        self.V_vv_c = V_vv_raw - self.mu_J[None, :]              # (ns, n_J)
+
+        centered_E = self.E - jnp.mean(self.E)
+        self.F_J = (self.V_vv_c.T @ centered_E) / self.ns        # (n_J,)
+
+    def unpack(self, x: jax.Array):
+        """Split 1-D vector → (a, b, W, J_flat)."""
+        N, M = self.N, self.M
+        a = x[:N]
+        b = x[N : N + M]
+        W = x[N + M : N + M + M * N].reshape(M, N)
+        J_flat = x[N + M + M * N :]
+        return a, b, W, J_flat
+
+    @property
+    def force(self) -> jax.Array:
+        return jnp.concatenate([
+            self.pack(self.F_a, self.F_b, self.F_W),
+            self.F_J,
+        ])
+
+    def matvec(self, x: jax.Array) -> jax.Array:
+        return _fbm_sr_matvec_jit(
+            self.V,
+            self.H,
+            self.V_vv_c,
+            self.mu_a,
+            self.mu_b,
+            self.mu_W,
+            self.diag_shift,
+            self.N,
+            self.M,
+            self.ns,
+            self.n_J,
+            x,
+        )
+
+
+# ---------------------------------------------------------------------------
 # Conjugate gradient
 # ---------------------------------------------------------------------------
 
@@ -246,6 +358,7 @@ class Trainer:
         self.ising = ising_model
         self.sampler = sampler
         self.args = args
+        self._is_fbm = isinstance(rbm, FullBoltzmannMachine)
         print(self.rbm)
         print(self.ising)
         print(self.args)
@@ -344,8 +457,12 @@ class Trainer:
         v_np = np.asarray(V)
         n_unique_ratio = float(len(np.unique(v_np, axis=0))) / ns
 
-        # ESS: log|Ψ|² = -a·v + Σ_j logcosh(θ_j)
-        log_psi2 = -(V @ self.rbm.a) + jnp.sum(jnp.logaddexp(Theta, -Theta), axis=1)
+        # ESS: log|Ψ|²
+        if self._is_fbm:
+            J_term = 0.5 * jnp.einsum("si,ij,sj->s", V, self.rbm.J, V)
+            log_psi2 = -(V @ self.rbm.a) + J_term + jnp.sum(jnp.logaddexp(Theta, -Theta), axis=1)
+        else:
+            log_psi2 = -(V @ self.rbm.a) + jnp.sum(jnp.logaddexp(Theta, -Theta), axis=1)
         lw = log_psi2 - jnp.max(log_psi2)
         w = jnp.exp(lw)
         w = w / jnp.sum(w)
@@ -360,9 +477,15 @@ class Trainer:
 
         all_v = self._kl_all_v
         Theta_all = all_v @ self.rbm.W + self.rbm.b[None, :]
-        log_psi2_all = -(all_v @ self.rbm.a) + jnp.sum(
-            jnp.logaddexp(Theta_all, -Theta_all), axis=1
-        )
+        if self._is_fbm:
+            J_term_all = 0.5 * jnp.einsum("si,ij,sj->s", all_v, self.rbm.J, all_v)
+            log_psi2_all = -(all_v @ self.rbm.a) + J_term_all + jnp.sum(
+                jnp.logaddexp(Theta_all, -Theta_all), axis=1
+            )
+        else:
+            log_psi2_all = -(all_v @ self.rbm.a) + jnp.sum(
+                jnp.logaddexp(Theta_all, -Theta_all), axis=1
+            )
         lw_all = log_psi2_all - jnp.max(log_psi2_all)
         p_true = jnp.exp(lw_all)
         p_true = p_true / jnp.sum(p_true)
@@ -463,7 +586,13 @@ class Trainer:
             self.history["total_sampling_time_s"].append(sample_time_s + cem_time)
 
             # ── 4. Build SR system and solve with CG ──────────────────────
-            sr = SRLinearSystem(V, TanH, local_energies, self.regularization)
+            if self._is_fbm:
+                sr = FBMSRLinearSystem(
+                    V, TanH, local_energies, self.regularization,
+                    self.rbm._triu_k, self.rbm._triu_l,
+                )
+            else:
+                sr = SRLinearSystem(V, TanH, local_energies, self.regularization)
             x, cg_info = conjugate_gradient(
                 sr.matvec,
                 sr.force,
@@ -472,10 +601,14 @@ class Trainer:
             )
 
             # ── 5. Apply parameter update ──────────────────────────────────
-            xa, xb, xW = sr.unpack(x)
-            # xW is (M, N) — transpose to (N, M) to match rbm.W layout
             w = self.rbm.get_weights()
-            update = jnp.concatenate([xa.ravel(), xb.ravel(), xW.T.ravel()])
+            if self._is_fbm:
+                xa, xb, xW, xJ = sr.unpack(x)
+                update = jnp.concatenate([xa.ravel(), xb.ravel(), xW.T.ravel(), xJ.ravel()])
+            else:
+                xa, xb, xW = sr.unpack(x)
+                # xW is (M, N) — transpose to (N, M) to match rbm.W layout
+                update = jnp.concatenate([xa.ravel(), xb.ravel(), xW.T.ravel()])
             w_new = w - self.learning_rate * update
 
             if self.param_clip is not None:

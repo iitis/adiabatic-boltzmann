@@ -314,6 +314,41 @@ def _local_energy_xxz_1d_jit(
 
 
 # ---------------------------------------------------------------------------
+# FBM off-diagonal kernel (shared by all single-flip Hamiltonians)
+# ---------------------------------------------------------------------------
+
+
+@functools.partial(jax.jit, static_argnums=(5, 6))
+def _fbm_off_diagonal_jit(
+    V: jax.Array,
+    W: jax.Array,
+    a: jax.Array,
+    b: jax.Array,
+    J: jax.Array,
+    h: float,
+    N: int,
+) -> jax.Array:
+    """
+    Off-diagonal FBM local energy  -h Σᵢ Ψ(vᶠˡⁱᵖⁱ)/Ψ(v)  for single-spin
+    flip Hamiltonians (TFIM, J1J2, LR-TFIM).
+
+    log_ratio(s, i) = a_i v_{s,i}
+                    + ½ Σⱼ [logcosh(θ'ⱼ) - logcosh(θⱼ)]   [RBM part]
+                    - v_{s,i} Σₖ J[i,k] v_{s,k}              [J_vv correction]
+
+    The J_vv term vectorises as  V * (V @ J)  — elementwise product, (ns, N).
+    """
+    theta = V @ W + b[None, :]                                        # (ns, M)
+    blc = jnp.logaddexp(theta, -theta)                                # (ns, M)
+    theta_flipped = theta[:, None, :] - 2.0 * V[:, :, None] * W[None, :, :]  # (ns, N, M)
+    log_ratios = a[None, :] * V + 0.5 * jnp.sum(
+        jnp.logaddexp(theta_flipped, -theta_flipped) - blc[:, None, :], axis=2
+    )                                                                  # (ns, N)
+    log_ratios = log_ratios - V * (V @ J)                             # J_vv correction
+    return -h * jnp.sum(jnp.exp(log_ratios), axis=1)                  # (ns,)
+
+
+# ---------------------------------------------------------------------------
 # Abstract base
 # ---------------------------------------------------------------------------
 
@@ -387,13 +422,11 @@ class TransverseFieldIsing1D(IsingModel):
         return E_diag + E_off_diag
 
     def local_energy_batch(self, V, rbm) -> jax.Array:
-        """
-        JIT-compiled batched local energy.
-
-        Dispatches to _local_energy_1d_jit which compiles to a single XLA
-        kernel — runs on GPU automatically when JAX is configured for CUDA.
-        """
         V_jax = jnp.asarray(V, dtype=jnp.float64)
+        if hasattr(rbm, "J"):
+            E_off = _fbm_off_diagonal_jit(V_jax, rbm.W, rbm.a, rbm.b, rbm.J, self.h, self.size)
+            right = (jnp.arange(self.size) + 1) % self.size
+            return -jnp.sum(V_jax * V_jax[:, right], axis=1) + E_off
         return _local_energy_1d_jit(V_jax, rbm.W, rbm.a, rbm.b, self.h, self.size)
 
     def local_energy_batch_generic(self, V: jax.Array, log_psi_fn) -> jax.Array:
@@ -482,8 +515,15 @@ class TransverseFieldIsing2D(IsingModel):
         return E_diag + E_off_diag
 
     def local_energy_batch(self, V, rbm) -> jax.Array:
-        """JIT-compiled batched 2D local energy."""
         V_jax = jnp.asarray(V, dtype=jnp.float64)
+        if hasattr(rbm, "J"):
+            E_off = _fbm_off_diagonal_jit(V_jax, rbm.W, rbm.a, rbm.b, rbm.J, self.h, self.size)
+            N, L = self.size, self.linear_size
+            i_idx = jnp.arange(N)
+            right_idx = (i_idx // L) * L + (i_idx % L + 1) % L
+            down_idx = ((i_idx // L + 1) % L) * L + i_idx % L
+            E_diag = -jnp.sum(V_jax * V_jax[:, right_idx] + V_jax * V_jax[:, down_idx], axis=1)
+            return E_diag + E_off
         return _local_energy_2d_jit(
             V_jax, rbm.W, rbm.a, rbm.b, self.h, self.size, self.linear_size
         )
@@ -633,8 +673,10 @@ class HeisenbergXXZ1D(IsingModel):
         return E_diag + E_off
 
     def local_energy_batch(self, V, rbm) -> jax.Array:
-        """JIT-compiled batched XXZ local energy."""
         V_jax = jnp.asarray(V, dtype=jnp.float64)
+        if hasattr(rbm, "J"):
+            # XXZ uses pair flips; no single-flip JIT kernel for FBM — use generic
+            return self.local_energy_batch_generic(V_jax, rbm.log_psi)
         return _local_energy_xxz_1d_jit(
             V_jax, rbm.W, rbm.a, rbm.b, self.J, self.delta, self.size
         )
@@ -761,6 +803,16 @@ class LongRangeTFIM1D(IsingModel):
 
     def local_energy_batch(self, V, rbm) -> jax.Array:
         V_jax = jnp.asarray(V, dtype=jnp.float64)
+        if hasattr(rbm, "J"):
+            E_off = _fbm_off_diagonal_jit(V_jax, rbm.W, rbm.a, rbm.b, rbm.J, self.h, self.size)
+            N = self.size
+            idx = jnp.arange(N)
+            raw_dist = jnp.abs(idx[:, None] - idx[None, :])
+            dist = jnp.minimum(raw_dist, N - raw_dist).astype(jnp.float64)
+            safe_dist = jnp.where(dist > 0.0, dist, 1.0)
+            J_mat = jnp.where(dist > 0.0, self.J / safe_dist ** self.alpha, 0.0)
+            E_diag = -0.5 * jnp.einsum("si,ij,sj->s", V_jax, J_mat, V_jax)
+            return E_diag + E_off
         return _local_energy_lr1d_jit(
             V_jax, rbm.W, rbm.a, rbm.b, self.J, self.h, self.alpha, self.size
         )
@@ -870,6 +922,16 @@ class J1J2Ising1D(IsingModel):
 
     def local_energy_batch(self, V, rbm) -> jax.Array:
         V_jax = jnp.asarray(V, dtype=jnp.float64)
+        if hasattr(rbm, "J"):
+            E_off = _fbm_off_diagonal_jit(V_jax, rbm.W, rbm.a, rbm.b, rbm.J, self.h, self.size)
+            idx = jnp.arange(self.size)
+            right1 = (idx + 1) % self.size
+            right2 = (idx + 2) % self.size
+            E_diag = (
+                -self.J1 * jnp.sum(V_jax * V_jax[:, right1], axis=1)
+                - self.J2 * jnp.sum(V_jax * V_jax[:, right2], axis=1)
+            )
+            return E_diag + E_off
         return _local_energy_j1j2_1d_jit(
             V_jax, rbm.W, rbm.a, rbm.b, self.J1, self.J2, self.h, self.size
         )
@@ -1015,6 +1077,8 @@ class HeisenbergXXZ2D(IsingModel):
 
     def local_energy_batch(self, V, rbm) -> jax.Array:
         V_jax = jnp.asarray(V, dtype=jnp.float64)
+        if hasattr(rbm, "J"):
+            return self.local_energy_batch_generic(V_jax, rbm.log_psi)
         return _local_energy_xxz_2d_jit(
             V_jax, rbm.W, rbm.a, rbm.b, self.J, self.delta, self.size, self.linear_size
         )
