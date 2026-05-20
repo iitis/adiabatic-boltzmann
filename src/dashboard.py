@@ -58,6 +58,8 @@ FILTER_AXES = [
     {"col": "n_samples", "label": "Samples / iter"},
     {"col": "iterations", "label": "Iterations"},
     {"col": "cem", "label": "CEM"},
+    {"col": "mh_warmup", "label": "MH warmup rounds"},
+    {"col": "mh_sweeps", "label": "MH sweep rounds"},
     {"col": "seed", "label": "Seed"},
 ]
 
@@ -74,6 +76,7 @@ SCALAR_METRICS = [
     ("final_energy", "Final energy"),
     ("exact_energy", "Exact energy"),
     ("sparsity", "RBM sparsity"),
+    ("mean_mh_acceptance_rate", "Mean MH acceptance rate"),
 ]
 
 # Add one tuple → series appears in convergence curves
@@ -89,6 +92,7 @@ HISTORY_METRICS = [
     ("s_condition_number", "SR condition number"),
     ("sampling_time_s", "Sampling time / iter (s)"),
     ("beta_x", "Beta x"),
+    ("mh_acceptance_rate", "MH acceptance rate"),
 ]
 
 MAX_CURVES = 60  # max lines drawn in convergence tab before a warning
@@ -163,6 +167,7 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
             "final_kl_exact",
             "sampling_time_s",
             "sparsity",
+            "mean_mh_acceptance_rate",
         ):
             row[key] = d.get(key)
 

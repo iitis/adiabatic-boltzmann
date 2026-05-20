@@ -267,11 +267,118 @@ def test_rbm_variational_bound():
 
 
 # ---------------------------------------------------------------------------
+# Reverse annealing tests (no QPU required — composite is mocked)
+# ---------------------------------------------------------------------------
+
+
+def test_ra_fallback_on_first_iteration():
+    """reverse_annealing delegates to dwave() when no initial state is available."""
+    import dimod
+    from unittest.mock import MagicMock, patch
+    from sampler import DimodSampler
+
+    sampler = DimodSampler(method="pegasus_ra")
+    sampler.n_visible = N
+    sampler.n_hidden = N
+    bqm = dimod.BinaryQuadraticModel({i: 0.1 for i in range(2 * N)}, {}, 0.0, "SPIN")
+    config = {"solver": None, "ra_s_target": 0.45, "ra_anneal_time": 10, "ra_pause_time": 10}
+
+    mock_dwave = MagicMock(return_value=np.ones((4, N), dtype=np.float64))
+    with patch.object(sampler, "dwave", mock_dwave):
+        result = sampler.reverse_annealing(bqm, 4, config, rbm=None, return_hidden=False)
+
+    mock_dwave.assert_called_once()
+    assert result.shape == (4, N)
+
+
+def test_ra_anneal_schedule_shape():
+    """reverse_annealing builds a 4-point schedule with correct s values and reinitialize_state=True."""
+    import dimod
+    import pandas as pd
+    from unittest.mock import MagicMock, patch
+    from sampler import DimodSampler
+
+    sampler = DimodSampler(method="pegasus_ra")
+    sampler.n_visible = N
+    sampler.n_hidden = N
+    bqm = dimod.BinaryQuadraticModel({i: 0.1 for i in range(2 * N)}, {}, 0.0, "SPIN")
+    config = {
+        "solver": None,
+        "ra_s_target": 0.3,
+        "ra_anneal_time": 5,
+        "ra_pause_time": 8,
+        "ra_initial_state": {i: 1 for i in range(2 * N)},
+    }
+
+    captured_kwargs = {}
+
+    def fake_sample(bqm_arg, **kwargs):
+        captured_kwargs.update(kwargs)
+        data = {i: [1] * 4 for i in range(2 * N)}
+        data["num_occurrences"] = [1] * 4
+        ss = MagicMock()
+        ss.info = {"timing": {"qpu_access_time": 100}}
+        ss.to_pandas_dataframe.return_value = pd.DataFrame(data)
+        return ss
+
+    fake_composite = MagicMock()
+    fake_composite.sample.side_effect = fake_sample
+
+    sampler._log_access_time = MagicMock()
+    with patch.object(sampler, "_get_composite", return_value=(fake_composite, True, (N, None))):
+        sampler.reverse_annealing(bqm, 4, config, rbm=None, return_hidden=False)
+
+    sched = captured_kwargs["anneal_schedule"]
+    assert len(sched) == 4
+    assert sched[0] == (0.0, 1.0)
+    assert sched[1][1] == pytest.approx(0.3)
+    assert sched[2][1] == pytest.approx(0.3)
+    assert sched[3][1] == pytest.approx(1.0)
+    times = [t for t, _ in sched]
+    assert times == sorted(times), "anneal schedule times must be monotonically increasing"
+    assert captured_kwargs["reinitialize_state"] is True
+
+
+def test_ra_initial_state_format():
+    """_update_ra_initial_state produces a dict covering all variables with ±1 spin values."""
+    from sampler import DimodSampler
+    from encoder import Trainer
+    from ising import TransverseFieldIsing1D
+
+    key = jax.random.PRNGKey(0)
+    rbm = FullyConnectedRBM(N, N, key)
+    ising = TransverseFieldIsing1D(N, H_FIELD)
+    sampler = DimodSampler(method="pegasus_ra")
+    config = {
+        "n_iterations": 1,
+        "n_samples": 4,
+        "ra_s_target": 0.45,
+        "ra_anneal_time": 10,
+        "ra_pause_time": 10,
+    }
+    trainer = Trainer(rbm, ising, sampler, config)
+
+    rng = np.random.default_rng(7)
+    v_samples = rng.choice([-1, 1], size=(8, N)).astype(np.float64)
+    h_samples = rng.choice([-1, 1], size=(8, N)).astype(np.float64)
+
+    trainer._update_ra_initial_state(v_samples, h_samples)
+
+    state = trainer._ra_initial_state
+    assert state is not None
+    assert set(state.keys()) == set(range(2 * N)), "must cover all visible + hidden variables"
+    assert all(v in (-1, 1) for v in state.values()), "all spin values must be ±1"
+
+
+# ---------------------------------------------------------------------------
 # Direct execution (no pytest)
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     tests = [
+        test_ra_fallback_on_first_iteration,
+        test_ra_anneal_schedule_shape,
+        test_ra_initial_state_format,
         test_fbm_psi_ratio_consistent_with_log_psi,
         test_fbm_psi_ratio_pair_consistent_with_log_psi,
         test_fbm_local_energy_consistent_with_hamiltonian,

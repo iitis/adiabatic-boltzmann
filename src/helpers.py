@@ -248,6 +248,13 @@ def save_results(args, history, ising, rbm=None):
         )
         if history.get("n_unique_ratio")
         else None,
+        "mean_mh_acceptance_rate": float(
+            np.mean([x for x in history["mh_acceptance_rate"] if x is not None])
+        )
+        if history.get("mh_acceptance_rate") and any(
+            x is not None for x in history["mh_acceptance_rate"]
+        )
+        else None,
     }
 
     # Filename encodes every axis that varies in the sweep
@@ -289,9 +296,10 @@ def save_results(args, history, ising, rbm=None):
 
             plt.subplot(1, 2, 1)
             plt.plot(history["energy"])
-            plt.axhline(
-                results["exact_energy"], color="r", linestyle="--", label="Exact"
-            )
+            if results["exact_energy"] is not None:
+                plt.axhline(
+                    results["exact_energy"], color="r", linestyle="--", label="Exact"
+                )
             plt.xlabel("Iteration")
             plt.ylabel("Energy")
             plt.title("Convergence")

@@ -6,7 +6,7 @@ import argparse
 from helpers import save_results
 from model import FullyConnectedRBM, DWaveTopologyRBM, FullBoltzmannMachine
 from model_vit import ViTWaveFunction
-from sampler import ClassicalSampler, DimodSampler, VeloxSampler, GenericClassicalSampler
+from sampler import ClassicalSampler, DimodSampler, DWaveMHSampler, VeloxSampler, GenericClassicalSampler
 from encoder import Trainer
 from encoder_generic import TrainerGeneric
 from ising import (
@@ -116,6 +116,10 @@ def parse_arguments():
         choices=[
             "pegasus",
             "zephyr",
+            "pegasus_mh",
+            "zephyr_mh",
+            "pegasus_ra",
+            "zephyr_ra",
             "metropolis",
             "velox",
             "simulated_annealing",
@@ -125,7 +129,41 @@ def parse_arguments():
             "exchange",
         ],
         default="simulated_annealing",
-        help="Classical sampling algorithm",
+        help="Classical sampling algorithm. "
+             "pegasus_mh/zephyr_mh use D-Wave proposals inside an MH chain.",
+    )
+    parser.add_argument(
+        "--mh-warmup",
+        type=int,
+        default=0,
+        help="D-Wave query rounds used as MH warmup (no QPU budget savings; "
+             "only used with pegasus_mh / zephyr_mh)",
+    )
+    parser.add_argument(
+        "--mh-sweeps",
+        type=int,
+        default=1,
+        help="D-Wave query rounds per training iteration for MH collection "
+             "(default 1; only used with pegasus_mh / zephyr_mh)",
+    )
+    parser.add_argument(
+        "--ra-s-target",
+        type=float,
+        default=0.45,
+        help="Reverse anneal: target s value to reverse to (0=full quantum, 1=classical). "
+             "Default 0.45. Only used with pegasus_ra / zephyr_ra.",
+    )
+    parser.add_argument(
+        "--ra-pause-time",
+        type=int,
+        default=10,
+        help="Reverse anneal: microseconds to hold at s_target. Default 10.",
+    )
+    parser.add_argument(
+        "--ra-anneal-time",
+        type=int,
+        default=10,
+        help="Reverse anneal: microseconds for each reverse/forward anneal leg. Default 10.",
     )
     parser.add_argument(
         "--n-samples", type=int, default=1000, help="Samples per iteration"
@@ -289,7 +327,14 @@ def main():
         key, sampler_key = jax.random.split(key)
         sampler._key = sampler_key
     elif args.sampler == "dimod":
-        sampler = DimodSampler(method=args.sampling_method)
+        if args.sampling_method in ("pegasus_mh", "zephyr_mh"):
+            sampler = DWaveMHSampler(
+                method=args.sampling_method,
+                n_warmup=args.mh_warmup,
+                n_sweeps=args.mh_sweeps,
+            )
+        else:
+            sampler = DimodSampler(method=args.sampling_method)
     elif args.sampler == "velox":
         sampler = VeloxSampler(method=args.sampling_method)
 
@@ -307,7 +352,9 @@ def main():
         history = trainer.train()
         save_results(args, history, ising, rbm=None)
     else:
-        _is_dwave = args.sampling_method in ("pegasus", "zephyr")
+        _is_dwave = args.sampling_method in (
+            "pegasus", "zephyr", "pegasus_mh", "zephyr_mh", "pegasus_ra", "zephyr_ra",
+        )
         trainer_config = {
             "learning_rate": args.learning_rate,
             "n_iterations": args.iterations,
@@ -319,6 +366,9 @@ def main():
             "cem_interval": args.cem_interval,
             "lsb_sigma": args.sigma,
             "seed": args.seed,
+            "ra_s_target": args.ra_s_target,
+            "ra_pause_time": args.ra_pause_time,
+            "ra_anneal_time": args.ra_anneal_time,
         }
         trainer = Trainer(wave_fn, ising, sampler, trainer_config, args=args)
         print(f"\nStarting RBM training...")

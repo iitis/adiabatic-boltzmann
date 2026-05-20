@@ -408,6 +408,9 @@ class Trainer:
         _seed = config.get("seed", 0)
         self._key = jax.random.PRNGKey(_seed)
 
+        self._is_ra = getattr(sampler, "method", "").endswith("_ra")
+        self._ra_initial_state: dict | None = None
+
         self.history = {
             "energy": [],
             "error": [],
@@ -426,10 +429,29 @@ class Trainer:
             "ess": [],
             "kl_exact": [],
             "n_unique_ratio": [],
+            "mh_acceptance_rate": [],
         }
 
         self._kl_all_v = None
         self._kl_config_idx = None
+
+    def _update_ra_initial_state(self, v_samples: np.ndarray, h_samples):
+        """Pick the MAP configuration under |Ψ|² and store it as the RA warm start."""
+        V = jnp.asarray(v_samples, dtype=jnp.float64)
+        Theta = V @ self.rbm.W + self.rbm.b[None, :]
+        if self._is_fbm:
+            J_term = 0.5 * jnp.einsum("si,ij,sj->s", V, self.rbm.J, V)
+            log_psi2 = -(V @ self.rbm.a) + J_term + jnp.sum(jnp.logaddexp(Theta, -Theta), axis=1)
+        else:
+            log_psi2 = -(V @ self.rbm.a) + jnp.sum(jnp.logaddexp(Theta, -Theta), axis=1)
+        best_idx = int(jnp.argmax(log_psi2))
+        v_best = v_samples[best_idx]
+        nv = self.rbm.n_visible
+        state = {i: int(v_best[i]) for i in range(nv)}
+        if h_samples is not None:
+            h_best = np.asarray(h_samples)[best_idx]
+            state.update({nv + j: int(h_best[j]) for j in range(self.rbm.n_hidden)})
+        self._ra_initial_state = state
 
     def _build_kl_cache(self):
         """Pre-compute all 2^N configs and index map for exact KL. Called once."""
@@ -517,13 +539,16 @@ class Trainer:
 
         for iteration in range(start_iteration, self.n_iterations):
             # ── 1. Sample ──────────────────────────────────────────────────
-            _need_hidden = self.use_cem and not self._beta_fixed
+            _need_hidden = self._is_ra or (self.use_cem and not self._beta_fixed)
+            _sample_config = {**self.config, "beta_x": self.beta_x}
+            if self._is_ra and self._ra_initial_state is not None:
+                _sample_config["ra_initial_state"] = self._ra_initial_state
             try:
                 _t0 = time.perf_counter()
                 _result = self.sampler.sample(
                     self.rbm,
                     self.n_samples,
-                    config={**self.config, "beta_x": self.beta_x},
+                    config=_sample_config,
                     return_hidden=_need_hidden,
                 )
                 elapsed = time.perf_counter() - _t0
@@ -543,10 +568,15 @@ class Trainer:
                 print("  [Trainer] Aborting this experiment.")
                 raise
 
+            _mh_accept_rate = getattr(self.sampler, "last_acceptance_rate", None)
+
             if _need_hidden and isinstance(_result, tuple):
                 _V_raw, _H_raw = _result
             else:
                 _V_raw, _H_raw = _result, None
+
+            if self._is_ra:
+                self._update_ra_initial_state(np.asarray(_V_raw), _H_raw)
 
             V = jnp.asarray(_V_raw, dtype=jnp.float64)  # (ns, N)
             ns = int(V.shape[0])
@@ -565,6 +595,10 @@ class Trainer:
             if self.args and getattr(self.args, "sampling_method", "") in (
                 "pegasus",
                 "zephyr",
+                "pegasus_mh",
+                "zephyr_mh",
+                "pegasus_ra",
+                "zephyr_ra",
             ):
                 save_dwave_samples(np.asarray(V), self.args, iteration)
 
@@ -666,6 +700,7 @@ class Trainer:
             self.history["ess"].append(ess_norm)
             self.history["kl_exact"].append(kl)
             self.history["n_unique_ratio"].append(n_unique_ratio)
+            self.history["mh_acceptance_rate"].append(_mh_accept_rate)
 
             if iteration % 10 == 0:
                 time_label = "hw_time" if _has_hw_time else "sample_time"
