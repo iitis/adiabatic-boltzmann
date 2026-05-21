@@ -6,6 +6,7 @@ import argparse
 from helpers import save_results
 from model import FullyConnectedRBM, DWaveTopologyRBM, FullBoltzmannMachine
 from model_vit import ViTWaveFunction
+from model_dbm import DeepBoltzmannMachine
 from sampler import ClassicalSampler, DimodSampler, DWaveMHSampler, VeloxSampler, GenericClassicalSampler
 from encoder import Trainer
 from encoder_generic import TrainerGeneric
@@ -66,9 +67,23 @@ def parse_arguments():
     # Ansatz selection
     parser.add_argument(
         "--ansatz",
-        choices=["rbm", "vit"],
+        choices=["rbm", "vit", "dbm"],
         default="rbm",
-        help="Wave function ansatz: RBM or Vision Transformer",
+        help="Wave function ansatz: RBM, Vision Transformer, or Deep Boltzmann Machine",
+    )
+
+    # DBM architecture (used when --ansatz dbm)
+    parser.add_argument(
+        "--dbm-hidden",
+        type=str,
+        default="8",
+        help="Comma-separated hidden layer sizes for DBM, e.g. '8,4' (--ansatz dbm only)",
+    )
+    parser.add_argument(
+        "--n-mf-steps",
+        type=int,
+        default=10,
+        help="Mean-field iterations for DBM log_psi approximation (--ansatz dbm only)",
     )
 
     # RBM architecture (used when --ansatz rbm)
@@ -236,6 +251,11 @@ def main():
             f"--ansatz vit is incompatible with --sampler {args.sampler}. "
             "ViT cannot be mapped to an Ising problem. Use --sampler custom."
         )
+    if args.ansatz == "dbm" and args.sampler == "velox":
+        raise ValueError(
+            "--ansatz dbm is not compatible with --sampler velox. "
+            "Use --sampler custom (Metropolis) or --sampler dimod (SA / D-Wave QPU)."
+        )
 
     print(f"Configuration:")
     print(f"  Model: {_model_desc}")
@@ -243,6 +263,8 @@ def main():
     print(f"  Ansatz: {args.ansatz}", end="")
     if args.ansatz == "rbm":
         print(f" ({args.rbm})")
+    elif args.ansatz == "dbm":
+        print(f" (hidden={args.dbm_hidden}, n_mf_steps={args.n_mf_steps})")
     else:
         print(f" (d_model={args.d_model}, n_layers={args.n_layers}, "
               f"n_heads={args.n_heads}, patch_size={args.patch_size})")
@@ -295,6 +317,15 @@ def main():
             wave_fn = FullBoltzmannMachine(n_visible, n_hidden, model_key)
         else:
             wave_fn = DWaveTopologyRBM(n_visible, n_hidden, model_key, solver=args.rbm)
+    elif args.ansatz == "dbm":
+        hidden_sizes = [int(x) for x in args.dbm_hidden.split(",")]
+        wave_fn = DeepBoltzmannMachine(
+            n_visible=n_visible,
+            hidden_sizes=hidden_sizes,
+            key=model_key,
+            n_mf_steps=args.n_mf_steps,
+        )
+        args.n_hidden = None
     else:  # vit
         geometry = "2d" if args.model in _2d_models else "1d"
         wave_fn = ViTWaveFunction(
@@ -317,6 +348,25 @@ def main():
             n_sweeps=1,
         )
         sampler._key = sampler_key
+    elif args.ansatz == "dbm":
+        if args.sampler == "custom":
+            key, sampler_key = jax.random.split(key)
+            sampler = GenericClassicalSampler(
+                n_warmup=getattr(args, "n_warmup", 20),
+                n_sweeps=1,
+            )
+            sampler._key = sampler_key
+        elif args.sampler == "dimod":
+            if args.sampling_method in ("pegasus_mh", "zephyr_mh"):
+                sampler = DWaveMHSampler(
+                    method=args.sampling_method,
+                    n_warmup=args.mh_warmup,
+                    n_sweeps=args.mh_sweeps,
+                )
+            else:
+                sampler = DimodSampler(method=args.sampling_method)
+        else:
+            raise ValueError(f"Unsupported sampler '{args.sampler}' for --ansatz dbm.")
     elif args.sampler == "custom":
         sampler = ClassicalSampler(
             method=args.sampling_method,
@@ -339,7 +389,7 @@ def main():
         sampler = VeloxSampler(method=args.sampling_method)
 
     # 4. Build trainer config and run
-    if args.ansatz == "vit":
+    if args.ansatz in ("vit", "dbm"):
         trainer_config = {
             "learning_rate": args.learning_rate,
             "n_iterations": args.iterations,
@@ -348,7 +398,8 @@ def main():
             "seed": args.seed,
         }
         trainer = TrainerGeneric(wave_fn, ising, sampler, trainer_config, args=args)
-        print("\nStarting ViT training...")
+        label = "ViT" if args.ansatz == "vit" else "DBM"
+        print(f"\nStarting {label} training...")
         history = trainer.train()
         save_results(args, history, ising, rbm=None)
     else:

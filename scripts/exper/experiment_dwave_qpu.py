@@ -1,22 +1,23 @@
 """
-D-Wave QPU experiment runner — pegasus and zephyr samplers, 1D TFIM only.
+D-Wave QPU experiment runner — lr1d size sweep on Zephyr (TTE probe).
 
 Grid:
-  1D TFIM    sizes 16..200 spins    h = [0.5, 1.0, 2.0, 3.044]
-  LR         [1e-2]
-  seeds      [1, 2, 3, 4, 5]
+  LR-TFIM (α=2.0)  sizes [8, 24, 32, 64, 96, 200]  h=0.5
+  LR         [0.1]
+  seeds      [42]
+  iterations 150 per run   (minimises QPU time while capturing TTE)
 
-Samplers: dimod/pegasus  dimod/zephyr
+Sampler: dimod/zephyr only.
 
 RBM strategy per run:
   1. FullyConnectedRBM — triggers minorminer to find a QPU embedding.
   2. If minorminer cannot embed → fall back to DWaveTopologyRBM (chain-free,
      trivial embedding on the matching QPU topology).
-  The result filename records which RBM was actually used (rbmfull,
-  rbmpegasus, or rbmzephyr) so skip-detection is unambiguous.
+  The result filename records which RBM was actually used (rbmfull or
+  rbmzephyr) so skip-detection is unambiguous.
 
 Budget (QPU access time via time.json):
-  QPU_BUDGET_MS   = 15 * 60 * 1000  (15 min; override with --budget-ms)
+  QPU_BUDGET_MS   = 20 * 60 * 1000  (20 min; override with --budget-ms)
   QPU_MS_PER_ITER = 200              (empirical QPU-access-time estimate per iteration)
   QPU time consumed since script start is read from time.json before each
   experiment.  If the file cannot be read the script aborts rather than
@@ -24,17 +25,14 @@ Budget (QPU access time via time.json):
   if fewer than MIN_ITERATIONS would fit the loop stops.
 
 Results written to:
-  jax_results/tfim_1d/{size}/dimod/{method}/
+  results/lr_tfim_1d/{size}/dimod/zephyr/
 Skips runs whose result file already exists (checks both rbmfull and
-rbm{method} variants, across any iteration count).
+rbmzephyr variants, across any iteration count).
 
 Usage
 -----
     cd <repo-root>
-    python scripts/exper/experiment_dwave_qpu.py                    # both QPU types
-    python scripts/exper/experiment_dwave_qpu.py --sampler pegasus
-    python scripts/exper/experiment_dwave_qpu.py --h 0.5 --size 16
-    python scripts/exper/experiment_dwave_qpu.py --seeds 1 2 3
+    python scripts/exper/experiment_dwave_qpu.py
     python scripts/exper/experiment_dwave_qpu.py --dry-run
     python scripts/exper/experiment_dwave_qpu.py --force              # re-run existing
     python scripts/exper/experiment_dwave_qpu.py --budget-ms 600000  # 10-min budget
@@ -57,7 +55,7 @@ sys.path.insert(0, str(_SRC))
 
 from encoder import Trainer
 from helpers import save_results, read_qpu_time_ms
-from ising import TransverseFieldIsing1D
+from ising import LongRangeTFIM1D
 from model import FullyConnectedRBM, DWaveTopologyRBM
 from sampler import DimodSampler
 
@@ -66,9 +64,9 @@ from sampler import DimodSampler
 # Budget constants
 # ---------------------------------------------------------------------------
 
-QPU_BUDGET_MS  = 15 * 60 * 1000   # default QPU-time budget (ms); override with --budget-ms
+QPU_BUDGET_MS  = 20 * 60 * 1000   # default QPU-time budget (ms); override with --budget-ms
 QPU_MS_PER_ITER = 200              # empirical QPU-access-time estimate per iteration (ms)
-MIN_ITERATIONS  = 30               # abort loop when remaining budget fits fewer iters
+MIN_ITERATIONS  = 20               # abort loop when remaining budget fits fewer iters
 TIME_PATH       = Path("time.json")
 
 
@@ -79,20 +77,21 @@ TIME_PATH       = Path("time.json")
 FIXED = dict(
     n_samples=1000,
     reg=1e-5,
-    iterations=300,
+    iterations=150,
     visualize=False,
-    output_dir="jax_results",
+    output_dir="results",
     sigma=1.0,
-    cem_interval=5,      # CEM step every N iterations
+    cem_interval=5,
     annealing_time=20,   # QPU annealing time in µs
 )
 
-LEARNING_RATES  = [1e-2]
-SEEDS           = [1]
+LEARNING_RATES  = [0.1]
+SEEDS           = [42]
 SAMPLER_BACKEND = "dimod"
 
-H_VALUES  = [0.5, 1.0, 2.0]
-SIZES_1D  = [16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 200]
+H_VALUES  = [0.5]
+SIZES_1D  = [8, 24, 32, 64, 96, 200]
+ALPHA     = 2.0   # LR-TFIM power-law exponent
 
 # Error string raised by minorminer inside DimodSampler.dwave()
 _EMBED_FAIL_MSG = "minorminer failed to find an embedding"
@@ -123,9 +122,7 @@ def build_grid(
                 for lr in learning_rates:
                     for seed in seeds:
                         grid.append(Run(size, h, lr, seed, method))
-    # zephyr before pegasus, then small systems first
-    _method_order = {"zephyr": 0, "pegasus": 1}
-    grid.sort(key=lambda r: (_method_order.get(r.method, 99), r.size, r.h, r.seed))
+    grid.sort(key=lambda r: (r.size, r.h, r.seed))
     return grid
 
 
@@ -134,22 +131,22 @@ def build_grid(
 # ---------------------------------------------------------------------------
 
 def _result_dir(run: Run) -> Path:
-    return Path(FIXED["output_dir"]) / "tfim_1d" / str(run.size) / SAMPLER_BACKEND / run.method
+    return Path(FIXED["output_dir"]) / "lr_tfim_1d" / str(run.size) / SAMPLER_BACKEND / run.method
 
 
 def is_done(run: Run) -> bool:
     """True if any result file exists for this (size, h, lr, method) combination.
 
-    Matches any seed, any iteration count, and both rbmfull / rbm{method} variants.
+    Matches any rbm type and any iteration count.
     """
     d = _result_dir(run)
     if not d.exists():
         return False
     for rbm_type in ("full", run.method):
         pattern = (
-            f"result_1d_h{run.h}_rbm{rbm_type}_nh{run.size}"
+            f"result_lr1d_h{run.h}_alpha{ALPHA}_rbm{rbm_type}_nh{run.size}"
             f"_lr{run.lr}_reg{FIXED['reg']}_ns{FIXED['n_samples']}"
-            f"_seed*_iter*_cem1_sigma*.json"
+            f"_seed{run.seed}_iter*_cem0_sigma*.json"
         )
         if any(d.glob(pattern)):
             return True
@@ -162,28 +159,40 @@ def is_done(run: Run) -> bool:
 
 def build_args(run: Run, n_iterations: int, rbm_type: str) -> SimpleNamespace:
     return SimpleNamespace(
-        model="1d",
+        model="lr1d",
         size=run.size,
         h=run.h,
         J=1.0,
+        J1=1.0,
+        J2=0.5,
         delta=1.0,
-        alpha=2.0,
+        alpha=ALPHA,
+        ansatz="rbm",
+        dbm_hidden="8",
+        n_mf_steps=10,
         rbm=rbm_type,
         n_hidden=run.size,
+        d_model=32,
+        n_layers=2,
+        n_heads=4,
+        patch_size=2,
         sampler=SAMPLER_BACKEND,
         sampling_method=run.method,
+        mh_warmup=0,
+        mh_sweeps=1,
+        ra_s_target=0.45,
+        ra_pause_time=10,
+        ra_anneal_time=10,
         n_samples=FIXED["n_samples"],
         iterations=n_iterations,
         learning_rate=run.lr,
         regularization=FIXED["reg"],
-        cem=True,
+        cem=False,
         cem_interval=FIXED["cem_interval"],
         seed=run.seed,
         visualize=FIXED["visualize"],
         output_dir=FIXED["output_dir"],
         sigma=FIXED["sigma"],
-        lsb_steps=100,
-        lsb_delta=1.0,
     )
 
 
@@ -204,7 +213,7 @@ def _train_once(
     key = jax.random.PRNGKey(run.seed)
     key, rbm_key = jax.random.split(key)
 
-    ising = TransverseFieldIsing1D(run.size, run.h)
+    ising = LongRangeTFIM1D(run.size, run.h, alpha=ALPHA)
 
     if rbm_type == "full":
         rbm = FullyConnectedRBM(run.size, run.size, rbm_key)
@@ -221,7 +230,7 @@ def _train_once(
         regularization=FIXED["reg"],
         save_checkpoints=False,
         checkpoint_interval=10,
-        use_cem=True,
+        use_cem=False,
         cem_interval=FIXED["cem_interval"],
         lsb_sigma=FIXED["sigma"],
         seed=run.seed,
@@ -244,6 +253,7 @@ def execute_run(run: Run, n_iterations: int) -> dict:
     Run with FullyConnectedRBM first; fall back to DWaveTopologyRBM on
     embedding failure.  Saves results and returns a summary dict.
     """
+    _result_dir(run).mkdir(parents=True, exist_ok=True)
     rbm_type = "full"
     try:
         rbm, ising, args, history, elapsed = _train_once(run, n_iterations, rbm_type)
@@ -275,25 +285,6 @@ def execute_run(run: Run, n_iterations: int) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Failure log
-# ---------------------------------------------------------------------------
-
-def _write_failure(log_path: Path, run: Run, exc: Exception) -> None:
-    entry = dict(
-        timestamp=datetime.now().isoformat(),
-        size=run.size,
-        h=run.h,
-        lr=run.lr,
-        seed=run.seed,
-        method=run.method,
-        error=type(exc).__name__,
-        message=str(exc),
-    )
-    with log_path.open("a") as f:
-        f.write(json.dumps(entry) + "\n")
-
-
-# ---------------------------------------------------------------------------
 # Main driver
 # ---------------------------------------------------------------------------
 
@@ -301,62 +292,38 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument(
-        "--sampler", choices=["pegasus", "zephyr", "all"], default="all",
-        help="QPU topology to use (default: both)",
-    )
     parser.add_argument("--dry-run", action="store_true",
                         help="Print the run grid without executing")
-    parser.add_argument("--size",  type=int,   default=None,
-                        help="Run only this system size")
-    parser.add_argument("--h",     type=float, default=None,
-                        help="Run only this transverse field value")
-    parser.add_argument("--lr",    type=float, default=None,
-                        help="Override learning rate")
-    parser.add_argument("--seeds", type=int, nargs="+", default=None,
-                        help="Seeds to run (default: 1 2 3 4 5)")
     parser.add_argument("--force", action="store_true",
                         help="Re-run even if result file already exists")
     parser.add_argument("--budget-ms", type=float, default=QPU_BUDGET_MS,
                         help=f"QPU-time budget in milliseconds (default: {QPU_BUDGET_MS:.0f})")
     cli = parser.parse_args()
 
-    methods    = ["zephyr", "pegasus"] if cli.sampler == "all" else [cli.sampler]
-    lr_list    = [cli.lr]   if cli.lr    is not None else LEARNING_RATES
-    seed_list  = cli.seeds  if cli.seeds is not None else SEEDS
-    budget_ms  = cli.budget_ms
+    budget_ms = cli.budget_ms
 
     print(f"JAX devices  : {jax.devices()}")
     print(f"JAX version  : {jax.__version__}")
-    print(f"Samplers     : {', '.join(methods)}")
-    print(f"Seeds        : {seed_list}")
+    print(f"Model        : lr1d  h={H_VALUES[0]}  α={ALPHA}")
+    print(f"Sizes        : {SIZES_1D}")
+    print(f"Sampler      : dimod/zephyr  CEM=off")
     print(f"QPU budget   : {budget_ms/60000:.1f} min  ({budget_ms:.0f} ms)")
     print(f"Iters/run    : {FIXED['iterations']}  @ ~{QPU_MS_PER_ITER} ms QPU/iter")
-    print(f"Output dir   : {FIXED['output_dir']}/")
+    print(f"Output dir   : {FIXED['output_dir']}/lr_tfim_1d/")
 
-    grid = build_grid(methods, lr_list, seed_list)
-
-    if cli.size is not None:
-        grid = [r for r in grid if r.size == cli.size]
-    if cli.h is not None:
-        grid = [r for r in grid if r.h == cli.h]
+    grid = build_grid(["zephyr"])
 
     if cli.dry_run:
         pending  = sum(1 for r in grid if cli.force or not is_done(r))
         max_runs = int(budget_ms / (FIXED["iterations"] * QPU_MS_PER_ITER))
-        print(
-            f"\n{'Method':>10}  {'N':>4}  {'h':>6}  {'LR':>8}  {'Seed':>4}  {'Done':>4}"
-        )
-        print("-" * 55)
+        print(f"\n{'N':>6}  {'h':>6}  {'LR':>8}  {'Seed':>4}  {'Done':>4}")
+        print("-" * 38)
         for r in grid:
             done_flag = is_done(r)
             done_str  = "yes" if done_flag else "no"
             if done_flag and cli.force:
                 done_str += " (force)"
-            print(
-                f"{r.method:>10}  {r.size:>4}  {r.h:>6}  "
-                f"{r.lr:>8.4g}  {r.seed:>4}  {done_str}"
-            )
+            print(f"{r.size:>6}  {r.h:>6}  {r.lr:>8.4g}  {r.seed:>4}  {done_str}")
         print(
             f"\nTotal: {len(grid)}  pending: {pending}  done: {len(grid)-pending}"
             f"\nBudget allows ~{max_runs} full runs at {QPU_MS_PER_ITER} ms QPU/iter"
@@ -372,13 +339,12 @@ def main() -> None:
         f"\n[{datetime.now():%H:%M:%S}]  {len(grid)} total  "
         f"({len(pending)} pending, {n_skip} already done)\n"
         f"  Fixed: reg={FIXED['reg']}  ns={FIXED['n_samples']}  "
-        f"iter={FIXED['iterations']}  cem=on  cem_interval={FIXED['cem_interval']}\n"
+        f"iter={FIXED['iterations']}  cem=off\n"
         f"  RBM: FullyConnectedRBM → DWaveTopologyRBM on embedding failure\n"
         f"  QPU time at start: {qpu_start_ms/60000:.2f} min\n"
     )
 
-    log_path = Path(__file__).resolve().parent / "experiment_dwave_qpu_failures.jsonl"
-    n_done = n_fail = 0
+    n_done = 0
     t_wall = time.perf_counter()
 
     for i, run in enumerate(pending, 1):
@@ -418,7 +384,7 @@ def main() -> None:
 
         print(
             f"[{i}/{len(pending)}] "
-            f"1d N={run.size:>3}  h={run.h}  {run.method}  "
+            f"lr1d N={run.size:>4}  h={run.h}  α={ALPHA}  {run.method}  "
             f"lr={run.lr:.4g}  seed={run.seed}"
             f"{budget_note}{eta}"
         )
@@ -436,9 +402,8 @@ def main() -> None:
             print("\n[interrupted]")
             raise
         except Exception as exc:
-            n_fail += 1
-            print(f"  FAIL  {type(exc).__name__}: {exc}")
-            _write_failure(log_path, run, exc)
+            print(f"  ERROR  {type(exc).__name__}: {exc}")
+            sys.exit(1)
 
     total_s      = time.perf_counter() - t_wall
     qpu_total_ms = read_qpu_time_ms(TIME_PATH) - qpu_start_ms
@@ -446,10 +411,6 @@ def main() -> None:
           f"(QPU time this session: {qpu_total_ms/60000:.2f} min)")
     print(f"  Completed : {n_done}")
     print(f"  Skipped   : {n_skip}  (already existed)")
-    print(f"  Failed    : {n_fail}" + (f"  → {log_path}" if n_fail else ""))
-
-    if n_fail > 0:
-        sys.exit(1)
 
 
 if __name__ == "__main__":

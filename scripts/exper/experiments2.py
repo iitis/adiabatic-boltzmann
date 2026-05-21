@@ -24,7 +24,6 @@ Usage
 """
 
 import argparse
-import json
 import sys
 from dataclasses import dataclass
 from datetime import datetime
@@ -209,11 +208,12 @@ def make_sampler(run: Run):
 def execute_run(run: Run) -> dict:
     """
     Execute one VMC training run. Returns a summary dict.
-    Raises on any unrecoverable error — caller logs and continues.
+    Raises on any unrecoverable error.
     """
     np.random.seed(run.seed)
 
     args = build_args(run)
+    result_path(run).parent.mkdir(parents=True, exist_ok=True)
     n_visible = run.size if run.model == "1d" else run.size**2
     n_hidden = n_visible
 
@@ -258,27 +258,6 @@ def execute_run(run: Run) -> dict:
         final_kl=kl,
         grad_norm=gn,
     )
-
-
-# ---------------------------------------------------------------------------
-# Failure log
-# ---------------------------------------------------------------------------
-
-
-def _write_failure(log_path: Path, run: Run, exc: Exception):
-    entry = dict(
-        timestamp=datetime.now().isoformat(),
-        model=run.model,
-        size=run.size,
-        h=run.h,
-        sampler=run.sampler,
-        lr=run.lr,
-        seed=run.seed,
-        error=type(exc).__name__,
-        message=str(exc),
-    )
-    with log_path.open("a") as f:
-        f.write(json.dumps(entry) + "\n")
 
 
 # ---------------------------------------------------------------------------
@@ -347,8 +326,7 @@ def main():
         f"  LR sweep: {LEARNING_RATES}  CEM sweep: lsb only\n"
     )
 
-    log_path = Path(__file__).resolve().parent / "experiment_lsb_gibbs_failures.jsonl"
-    n_done = n_fail = 0
+    n_done = 0
 
     for i, run in enumerate(pending, 1):
         tag = (
@@ -375,18 +353,13 @@ def main():
             print("\n[interrupted]")
             raise
         except Exception as exc:
-            n_fail += 1
-            print(f"  FAIL  {tag}")
+            print(f"  ERROR  {tag}")
             print(f"         {type(exc).__name__}: {exc}")
-            _write_failure(log_path, run, exc)
+            sys.exit(1)
 
     print(f"\n[{datetime.now():%H:%M:%S}] Finished.")
     print(f"  Completed : {n_done}")
     print(f"  Skipped   : {n_skip}  (already existed)")
-    print(f"  Failed    : {n_fail}" + (f"  → see {log_path}" if n_fail else ""))
-
-    if n_fail > 0:
-        sys.exit(1)
 
 
 if __name__ == "__main__":

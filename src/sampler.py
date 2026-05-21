@@ -295,6 +295,69 @@ class Sampler(ABC):
 
         return quadratic, linear
 
+    def dbm_to_ising(self, dbm, beta_x: float = 1.0):
+        """
+        Convert DBM parameters to Ising (J, h) for external solvers.
+
+        Node IDs:
+          visible v    : 0 .. n_v - 1
+          hidden  h^1  : n_v .. n_v + n_h1 - 1
+          hidden  h^2  : n_v + n_h1 .. n_v + n_h1 + n_h2 - 1
+          ...
+
+        Couplings: W[l] connects layer l to layer l+1; no skip-layer edges.
+        """
+        _last = getattr(self, "_last_beta_x_logged", None)
+        if _last is None or abs(beta_x - _last) / max(abs(_last), 1e-9) > 0.01:
+            print(f"  [dbm_to_ising] beta_x = {beta_x:.4f}")
+            self._last_beta_x_logged = beta_x
+
+        Nv = dbm.n_visible
+        hidden_sizes = dbm.hidden_sizes
+
+        # Cumulative offsets within the hidden-node block
+        # layer_starts[l] = first node ID for hidden layer l (relative to Nv)
+        layer_starts = []
+        offset = 0
+        for nh in hidden_sizes:
+            layer_starts.append(offset)
+            offset += nh
+
+        linear = {}
+        quadratic = {}
+
+        # Visible biases
+        a_np = np.asarray(dbm.params.a)
+        for i in range(Nv):
+            linear[i] = -float(a_np[i]) / beta_x
+
+        # Per-layer: biases for hidden layer l, couplings W[l] from layer l to l+1
+        for l, (b_l, W_l) in enumerate(zip(dbm.params.b, dbm.params.W)):
+            b_np = np.asarray(b_l)
+            W_np = np.asarray(W_l)
+
+            # Source layer: visible (l=0) or hidden layer l-1 (l>0)
+            src_start = 0 if l == 0 else Nv + layer_starts[l - 1]
+
+            # Destination: hidden layer l
+            dst_start = Nv + layer_starts[l]
+            n_dst = int(b_np.shape[0])
+
+            # Hidden biases
+            for j in range(n_dst):
+                linear[dst_start + j] = -float(b_np[j]) / beta_x
+
+            # Inter-layer couplings
+            n_src = int(W_np.shape[0])
+            for i in range(n_src):
+                for j in range(n_dst):
+                    if abs(W_np[i, j]) > 1e-6:
+                        quadratic[(src_start + i, dst_start + j)] = (
+                            -float(W_np[i, j]) / beta_x
+                        )
+
+        return quadratic, linear
+
     @abstractmethod
     def sample(
         self, rbm, n_samples: int, config: dict = None, return_hidden: bool = False
@@ -936,11 +999,19 @@ class DimodSampler(Sampler):
     def sample(
         self, rbm, n_samples: int, config: dict = {}, return_hidden: bool = False
     ):
+        from model_dbm import DeepBoltzmannMachine
         self.__dict__.pop("last_sampling_time_s", None)
         beta_x = config.get("beta_x", 1.0)
-        J, h = self.rbm_to_ising(rbm, beta_x)
-        self.n_visible = rbm.n_visible
-        self.n_hidden = rbm.n_hidden
+        if isinstance(rbm, DeepBoltzmannMachine):
+            J, h = self.dbm_to_ising(rbm, beta_x)
+            self.n_visible = rbm.n_visible
+            self.n_hidden = sum(rbm.hidden_sizes)
+            self._n_cache = self.n_visible + self.n_hidden
+        else:
+            J, h = self.rbm_to_ising(rbm, beta_x)
+            self.n_visible = rbm.n_visible
+            self.n_hidden = rbm.n_hidden
+            self._n_cache = self.n_visible
         bqm = dimod.BinaryQuadraticModel.from_ising(h, J, 0.0)
 
         if self.method == "simulated_annealing":
@@ -1003,7 +1074,7 @@ class DimodSampler(Sampler):
         from dwave.system import DWaveSampler, FixedEmbeddingComposite
         from model import DWaveTopologyRBM
 
-        cache_key = (self.n_visible, solver_name)
+        cache_key = (getattr(self, "_n_cache", self.n_visible), solver_name)
         if cache_key not in self._embedding_cache:
             dwave_sampler = DWaveSampler(solver=solver_name)
             if rbm is not None and isinstance(rbm, DWaveTopologyRBM):

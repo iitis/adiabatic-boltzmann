@@ -33,7 +33,6 @@ Usage
 import jax
 jax.config.update("jax_enable_x64", True)
 
-import json
 import sys
 import time
 from dataclasses import dataclass
@@ -179,6 +178,7 @@ def execute_run(run: Run) -> dict:
     key, rbm_key = jax.random.split(key)
 
     args     = build_args(run)
+    result_path(run).parent.mkdir(parents=True, exist_ok=True)
     n_visible = run.size if run.model == "1d" else run.size ** 2
     n_hidden  = n_visible
 
@@ -232,27 +232,6 @@ def execute_run(run: Run) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Failure log
-# ---------------------------------------------------------------------------
-
-def _write_failure(log_path: Path, run: Run, exc: Exception):
-    entry = dict(
-        timestamp=datetime.now().isoformat(),
-        model=run.model,
-        size=run.size,
-        h=run.h,
-        sampler=run.sampler,
-        lr=run.lr,
-        seed=run.seed,
-        use_cem=run.use_cem,
-        error=type(exc).__name__,
-        message=str(exc),
-    )
-    with log_path.open("a") as f:
-        f.write(json.dumps(entry) + "\n")
-
-
-# ---------------------------------------------------------------------------
 # Main driver
 # ---------------------------------------------------------------------------
 
@@ -303,8 +282,7 @@ def main():
         f"iter={FIXED['iterations']}  sigma={FIXED['sigma']}\n"
     )
 
-    log_path = Path(__file__).resolve().parent / "jax_benchmark_failures.jsonl"
-    n_done = n_fail = 0
+    n_done = 0
     t_wall = time.perf_counter()
 
     for i, run in enumerate(pending, 1):
@@ -340,18 +318,13 @@ def main():
             print("\n[interrupted]")
             raise
         except Exception as exc:
-            n_fail += 1
-            print(f"  FAIL  {type(exc).__name__}: {exc}")
-            _write_failure(log_path, run, exc)
+            print(f"  ERROR  {type(exc).__name__}: {exc}")
+            sys.exit(1)
 
     total_h = (time.perf_counter() - t_wall) / 3600
     print(f"\n[{datetime.now():%H:%M:%S}]  Finished in {total_h:.2f}h")
     print(f"  Completed : {n_done}")
     print(f"  Skipped   : {n_skip}  (already existed)")
-    print(f"  Failed    : {n_fail}" + (f"  → {log_path}" if n_fail else ""))
-
-    if n_fail > 0:
-        sys.exit(1)
 
 
 if __name__ == "__main__":

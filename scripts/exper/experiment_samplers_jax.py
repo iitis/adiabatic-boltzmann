@@ -254,6 +254,7 @@ def execute_run(run: Run) -> dict:
     key, rbm_key = jax.random.split(key)
 
     args      = build_args(run)
+    result_path(run).parent.mkdir(parents=True, exist_ok=True)
     n_visible = run.size if run.model != "2d" else run.size ** 2
     use_cem   = METHOD_CONFIG[run.method]["use_cem"]
 
@@ -316,29 +317,6 @@ def execute_run(run: Run) -> dict:
     gn = history.get("grad_norm", [None])[-1]
 
     return dict(elapsed_s=elapsed, rel_error=rel_err, final_kl=kl, grad_norm=gn)
-
-
-# ---------------------------------------------------------------------------
-# Failure log
-# ---------------------------------------------------------------------------
-
-def _write_failure(log_path: Path, run: Run, exc: Exception):
-    entry = dict(
-        timestamp=datetime.now().isoformat(),
-        model=run.model,
-        size=run.size,
-        h=run.h,
-        J=run.J,
-        delta=run.delta,
-        alpha=run.alpha,
-        lr=run.lr,
-        seed=run.seed,
-        method=run.method,
-        error=type(exc).__name__,
-        message=str(exc),
-    )
-    with log_path.open("a") as f:
-        f.write(json.dumps(entry) + "\n")
 
 
 # ---------------------------------------------------------------------------
@@ -483,8 +461,7 @@ def main():
         f"  metropolis: n_warmup={FIXED['n_warmup']}  cem=off\n"
     )
 
-    log_path = Path(__file__).resolve().parent / "experiment_samplers_jax_failures.jsonl"
-    n_done = n_fail = 0
+    n_done = 0
     t_wall = time.perf_counter()
 
     for i, run in enumerate(pending, 1):
@@ -524,18 +501,13 @@ def main():
             print("\n[interrupted]")
             raise
         except Exception as exc:
-            n_fail += 1
-            print(f"  FAIL  {type(exc).__name__}: {exc}")
-            _write_failure(log_path, run, exc)
+            print(f"  ERROR  {type(exc).__name__}: {exc}")
+            sys.exit(1)
 
     total_h = (time.perf_counter() - t_wall) / 3600
     print(f"\n[{datetime.now():%H:%M:%S}]  Finished in {total_h:.2f}h")
     print(f"  Completed : {n_done}")
     print(f"  Skipped   : {n_skip}  (already existed)")
-    print(f"  Failed    : {n_fail}" + (f"  → {log_path}" if n_fail else ""))
-
-    if n_fail > 0:
-        sys.exit(1)
 
 
 if __name__ == "__main__":
