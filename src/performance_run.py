@@ -48,7 +48,7 @@ SEEDS = [1, 42]
 N_SAMPLES = 1000
 REGULARIZATION = 1e-3
 N_ITERATIONS = 300
-OUTPUT_DIR = "results/"
+OUTPUT_DIR = str(Path(__file__).parent.parent / "results")
 
 SAMPLER_METHODS = [
     ("custom", "metropolis"),

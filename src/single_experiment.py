@@ -23,7 +23,7 @@ def parse_args():
     p.add_argument("--sampler", type=str, required=True)
     p.add_argument("--method", type=str, required=True)
     p.add_argument("--seed", type=int, required=True)
-    p.add_argument("--output-dir", type=str, default="results/")
+    p.add_argument("--output-dir", type=str, default=str(Path(__file__).parent.parent / "results"))
     p.add_argument("--model", choices=["1d", "2d"], default="1d")
 
     p.add_argument(

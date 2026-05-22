@@ -153,12 +153,12 @@ class SRLinearSystem:
 
 @functools.partial(jax.jit, static_argnums=(7, 8, 9, 10))
 def _fbm_sr_matvec_jit(
-    V: jax.Array,       # (ns, N)
-    H: jax.Array,       # (ns, M)
+    V: jax.Array,  # (ns, N)
+    H: jax.Array,  # (ns, M)
     V_vv_c: jax.Array,  # (ns, n_J)  centred vis-vis gradient matrix
-    mu_a: jax.Array,    # (N,)
-    mu_b: jax.Array,    # (M,)
-    mu_W: jax.Array,    # (M, N)
+    mu_a: jax.Array,  # (N,)
+    mu_b: jax.Array,  # (M,)
+    mu_W: jax.Array,  # (M, N)
     diag_shift: float,
     N: int,
     M: int,
@@ -181,8 +181,8 @@ def _fbm_sr_matvec_jit(
     z = -0.5 * (V @ xa)
     z = z + 0.5 * (H @ xb)
     z = z + 0.5 * jnp.einsum("sm,mn,sn->s", H, xW, V)
-    z = z + V_vv_c @ xJ                                      # already centred
-    z = z - (mu_a @ xa + mu_b @ xb + jnp.sum(mu_W * xW))    # centre a,b,W
+    z = z + V_vv_c @ xJ  # already centred
+    z = z - (mu_a @ xa + mu_b @ xb + jnp.sum(mu_W * xW))  # centre a,b,W
 
     # Backward: out_p = (1/ns) Σ_s z_s (O_sp - <O_p>)
     out_a = -0.5 * (z @ V) / ns + diag_shift * xa
@@ -218,11 +218,11 @@ class FBMSRLinearSystem(SRLinearSystem):
 
         # O_{s,kl} = 0.5 * v_{s,k} * v_{s,l}  for (k,l) in upper triangle
         V_vv_raw = 0.5 * self.V[:, triu_k] * self.V[:, triu_l]  # (ns, n_J)
-        self.mu_J = jnp.mean(V_vv_raw, axis=0)                   # (n_J,)
-        self.V_vv_c = V_vv_raw - self.mu_J[None, :]              # (ns, n_J)
+        self.mu_J = jnp.mean(V_vv_raw, axis=0)  # (n_J,)
+        self.V_vv_c = V_vv_raw - self.mu_J[None, :]  # (ns, n_J)
 
         centered_E = self.E - jnp.mean(self.E)
-        self.F_J = (self.V_vv_c.T @ centered_E) / self.ns        # (n_J,)
+        self.F_J = (self.V_vv_c.T @ centered_E) / self.ns  # (n_J,)
 
     def unpack(self, x: jax.Array):
         """Split 1-D vector → (a, b, W, J_flat)."""
@@ -235,10 +235,12 @@ class FBMSRLinearSystem(SRLinearSystem):
 
     @property
     def force(self) -> jax.Array:
-        return jnp.concatenate([
-            self.pack(self.F_a, self.F_b, self.F_W),
-            self.F_J,
-        ])
+        return jnp.concatenate(
+            [
+                self.pack(self.F_a, self.F_b, self.F_W),
+                self.F_J,
+            ]
+        )
 
     def matvec(self, x: jax.Array) -> jax.Array:
         return _fbm_sr_matvec_jit(
@@ -441,7 +443,11 @@ class Trainer:
         Theta = V @ self.rbm.W + self.rbm.b[None, :]
         if self._is_fbm:
             J_term = 0.5 * jnp.einsum("si,ij,sj->s", V, self.rbm.J, V)
-            log_psi2 = -(V @ self.rbm.a) + J_term + jnp.sum(jnp.logaddexp(Theta, -Theta), axis=1)
+            log_psi2 = (
+                -(V @ self.rbm.a)
+                + J_term
+                + jnp.sum(jnp.logaddexp(Theta, -Theta), axis=1)
+            )
         else:
             log_psi2 = -(V @ self.rbm.a) + jnp.sum(jnp.logaddexp(Theta, -Theta), axis=1)
         best_idx = int(jnp.argmax(log_psi2))
@@ -482,7 +488,11 @@ class Trainer:
         # ESS: log|Ψ|²
         if self._is_fbm:
             J_term = 0.5 * jnp.einsum("si,ij,sj->s", V, self.rbm.J, V)
-            log_psi2 = -(V @ self.rbm.a) + J_term + jnp.sum(jnp.logaddexp(Theta, -Theta), axis=1)
+            log_psi2 = (
+                -(V @ self.rbm.a)
+                + J_term
+                + jnp.sum(jnp.logaddexp(Theta, -Theta), axis=1)
+            )
         else:
             log_psi2 = -(V @ self.rbm.a) + jnp.sum(jnp.logaddexp(Theta, -Theta), axis=1)
         lw = log_psi2 - jnp.max(log_psi2)
@@ -501,8 +511,10 @@ class Trainer:
         Theta_all = all_v @ self.rbm.W + self.rbm.b[None, :]
         if self._is_fbm:
             J_term_all = 0.5 * jnp.einsum("si,ij,sj->s", all_v, self.rbm.J, all_v)
-            log_psi2_all = -(all_v @ self.rbm.a) + J_term_all + jnp.sum(
-                jnp.logaddexp(Theta_all, -Theta_all), axis=1
+            log_psi2_all = (
+                -(all_v @ self.rbm.a)
+                + J_term_all
+                + jnp.sum(jnp.logaddexp(Theta_all, -Theta_all), axis=1)
             )
         else:
             log_psi2_all = -(all_v @ self.rbm.a) + jnp.sum(
@@ -622,8 +634,12 @@ class Trainer:
             # ── 4. Build SR system and solve with CG ──────────────────────
             if self._is_fbm:
                 sr = FBMSRLinearSystem(
-                    V, TanH, local_energies, self.regularization,
-                    self.rbm._triu_k, self.rbm._triu_l,
+                    V,
+                    TanH,
+                    local_energies,
+                    self.regularization,
+                    self.rbm._triu_k,
+                    self.rbm._triu_l,
                 )
             else:
                 sr = SRLinearSystem(V, TanH, local_energies, self.regularization)
@@ -638,7 +654,9 @@ class Trainer:
             w = self.rbm.get_weights()
             if self._is_fbm:
                 xa, xb, xW, xJ = sr.unpack(x)
-                update = jnp.concatenate([xa.ravel(), xb.ravel(), xW.T.ravel(), xJ.ravel()])
+                update = jnp.concatenate(
+                    [xa.ravel(), xb.ravel(), xW.T.ravel(), xJ.ravel()]
+                )
             else:
                 xa, xb, xW = sr.unpack(x)
                 # xW is (M, N) — transpose to (N, M) to match rbm.W layout
@@ -660,9 +678,7 @@ class Trainer:
                 self.beta_x = (
                     1.0 - self.cem_ema_alpha
                 ) * self.beta_x + self.cem_ema_alpha * _cem_beta_raw
-                self.beta_x = float(
-                    jnp.clip(self.beta_x, self.beta_min, self.beta_max)
-                )
+                self.beta_x = float(jnp.clip(self.beta_x, self.beta_min, self.beta_max))
                 beta_eff_this_iter = self.beta_x
                 print(
                     f"  [CEM iter {iteration:3d}] β_eff = {_cem_beta_raw:.4f}"
@@ -738,5 +754,13 @@ class Trainer:
                         f"Final E = {E_mean:.6f}"
                     )
                     break
+
+        if getattr(self.sampler, "_qubo_tracked", False):
+            s = self.sampler
+            print(
+                f"\n[QUBO range over all iterations]"
+                f"  h: min h={s._qubo_h_min:.4g}  max h={s._qubo_h_max:.4g}"
+                f"  J: min J={s._qubo_J_min:.4g}  max J={s._qubo_J_max:.4g}"
+            )
 
         return self.history

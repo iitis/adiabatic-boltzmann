@@ -2,6 +2,7 @@ import jax
 jax.config.update("jax_enable_x64", True)
 
 import argparse
+from pathlib import Path
 
 from helpers import save_results
 from model import FullyConnectedRBM, DWaveTopologyRBM, FullBoltzmannMachine
@@ -135,6 +136,8 @@ def parse_arguments():
             "zephyr_mh",
             "pegasus_ra",
             "zephyr_ra",
+            "pegasus_fast",
+            "zephyr_fast",
             "metropolis",
             "velox",
             "simulated_annealing",
@@ -217,7 +220,7 @@ def parse_arguments():
 
     # Output
     parser.add_argument(
-        "--output-dir", type=str, default="results/", help="Directory for results"
+        "--output-dir", type=str, default=str(Path(__file__).parent.parent / "results"), help="Directory for results"
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument(
@@ -405,6 +408,7 @@ def main():
     else:
         _is_dwave = args.sampling_method in (
             "pegasus", "zephyr", "pegasus_mh", "zephyr_mh", "pegasus_ra", "zephyr_ra",
+            "pegasus_fast", "zephyr_fast",
         )
         trainer_config = {
             "learning_rate": args.learning_rate,

@@ -72,18 +72,17 @@ def _mh_sweep_jit(
     def one_flip(carry, _):
         v, theta, key = carry
         key, k1, k2 = jax.random.split(key, 3)
-        flip_idx = jax.random.randint(k1, (C,), 0, N)   # (C,) — different site per chain
-        vi = v[ci, flip_idx]                              # (C,)
-        W_row = W[flip_idx]                               # (C, Nh)
-        theta_flip = theta - 2.0 * vi[:, None] * W_row   # (C, Nh)
+        flip_idx = jax.random.randint(k1, (C,), 0, N)  # (C,) — different site per chain
+        vi = v[ci, flip_idx]  # (C,)
+        W_row = W[flip_idx]  # (C, Nh)
+        theta_flip = theta - 2.0 * vi[:, None] * W_row  # (C, Nh)
         lc_diff = 0.5 * jnp.sum(
-            jnp.logaddexp(theta_flip, -theta_flip)
-            - jnp.logaddexp(theta, -theta),
+            jnp.logaddexp(theta_flip, -theta_flip) - jnp.logaddexp(theta, -theta),
             axis=1,
         )  # (C,)
-        log_ratio = a[flip_idx] * vi + lc_diff            # (C,)
+        log_ratio = a[flip_idx] * vi + lc_diff  # (C,)
         rand_u = jax.random.uniform(k2, (C,), dtype=jnp.float64)
-        accept = jnp.log(rand_u) < 2.0 * log_ratio       # (C,) bool
+        accept = jnp.log(rand_u) < 2.0 * log_ratio  # (C,) bool
         v = v.at[ci, flip_idx].set(jnp.where(accept, -vi, vi))
         theta = jnp.where(accept[:, None], theta_flip, theta)
         return (v, theta, key), None
@@ -123,8 +122,7 @@ def _sa_sweep_jit(
         W_row = W[flip_idx]
         theta_flip = theta - 2.0 * vi[:, None] * W_row
         lc_diff = 0.5 * jnp.sum(
-            jnp.logaddexp(theta_flip, -theta_flip)
-            - jnp.logaddexp(theta, -theta),
+            jnp.logaddexp(theta_flip, -theta_flip) - jnp.logaddexp(theta, -theta),
             axis=1,
         )
         log_ratio = a[flip_idx] * vi + lc_diff
@@ -175,18 +173,17 @@ def _exchange_mh_sweep_jit(
         # Guarantee i ≠ j by shifting j when they coincide
         j_idx = jnp.where(j_raw == i_idx, (i_idx + 1) % N, j_raw)
 
-        vi = v[ci, i_idx]   # (C,)
-        vj = v[ci, j_idx]   # (C,)
+        vi = v[ci, i_idx]  # (C,)
+        vj = v[ci, j_idx]  # (C,)
 
-        Wi_row = W[i_idx]   # (C, Nh) — gathered rows
-        Wj_row = W[j_idx]   # (C, Nh)
+        Wi_row = W[i_idx]  # (C, Nh) — gathered rows
+        Wj_row = W[j_idx]  # (C, Nh)
 
         # Hidden activations after simultaneously flipping i and j
         theta_flip = theta - 2.0 * vi[:, None] * Wi_row - 2.0 * vj[:, None] * Wj_row
 
         lc_diff = 0.5 * jnp.sum(
-            jnp.logaddexp(theta_flip, -theta_flip)
-            - jnp.logaddexp(theta, -theta),
+            jnp.logaddexp(theta_flip, -theta_flip) - jnp.logaddexp(theta, -theta),
             axis=1,
         )  # (C,)
         log_ratio = a[i_idx] * vi + a[j_idx] * vj + lc_diff  # (C,)
@@ -195,7 +192,7 @@ def _exchange_mh_sweep_jit(
         accept_mh = jnp.log(rand_u) < 2.0 * log_ratio  # (C,)
 
         # Only exchange antiparallel pairs — parallel pairs skip (preserves S_z)
-        antiparallel = vi != vj                          # (C,)
+        antiparallel = vi != vj  # (C,)
         accept = accept_mh & antiparallel
 
         v = v.at[ci, i_idx].set(jnp.where(accept, -vi, vi))
@@ -396,9 +393,14 @@ class ClassicalSampler(Sampler):
         self.sb_heated = sb_heated
         self.sb_max_steps = sb_max_steps
 
-        self._gibbs_v = None          # persistent chain state (JAX array)
-        self._key = None              # JAX PRNG key — initialised lazily
+        self._gibbs_v = None  # persistent chain state (JAX array)
+        self._key = None  # JAX PRNG key — initialised lazily
         self._last_sample_config: dict = {}
+        self._qubo_h_min = float("inf")
+        self._qubo_h_max = 0.0
+        self._qubo_J_min = float("inf")
+        self._qubo_J_max = 0.0
+        self._qubo_tracked = False
 
     def _next_key(self) -> jax.Array:
         """Advance self._key and return a fresh subkey."""
@@ -503,9 +505,9 @@ class ClassicalSampler(Sampler):
 
         def init_chains(n, key):
             k1, k2 = jax.random.split(key)
-            V_ = jax.random.choice(
-                k1, jnp.array([-1.0, 1.0]), shape=(n, Nv)
-            ).astype(jnp.float64)
+            V_ = jax.random.choice(k1, jnp.array([-1.0, 1.0]), shape=(n, Nv)).astype(
+                jnp.float64
+            )
             for _ in range(n_warmup):
                 k2, k = jax.random.split(k2)
                 V_ = gibbs_sweep(V_, k)
@@ -532,6 +534,19 @@ class ClassicalSampler(Sampler):
         v_np = np.asarray(V)
         unique = len(set(map(tuple, v_np.tolist())))
         print(f"  [Gibbs] k={n_sweeps}  unique={unique}/{n_samples}")
+
+        quadratic, linear = self.rbm_to_ising(rbm)
+        if linear:
+            hs = np.array(list(linear.values()))
+            self._qubo_h_min = min(self._qubo_h_min, float(hs.min()))
+            self._qubo_h_max = max(self._qubo_h_max, float(hs.max()))
+            self._qubo_tracked = True
+        if quadratic:
+            Js = np.array(list(quadratic.values()))
+            self._qubo_J_min = min(self._qubo_J_min, float(Js.min()))
+            self._qubo_J_max = max(self._qubo_J_max, float(Js.max()))
+            self._qubo_tracked = True
+
         return v_np, h_np
 
     def _sample_hidden(self, rbm: RBM, v_samples) -> np.ndarray:
@@ -563,9 +578,9 @@ class ClassicalSampler(Sampler):
 
         key = self._next_key()
         k1, k2 = jax.random.split(key)
-        v = jax.random.choice(
-            k1, jnp.array([-1.0, 1.0]), shape=(C, N)
-        ).astype(jnp.float64)
+        v = jax.random.choice(k1, jnp.array([-1.0, 1.0]), shape=(C, N)).astype(
+            jnp.float64
+        )
         theta = b[None, :] + v @ W  # (C, Nh)
 
         total_steps = N * (n_warmup + n_sweeps)
@@ -597,9 +612,9 @@ class ClassicalSampler(Sampler):
         k1, k2, k3 = jax.random.split(key, 3)
 
         # Warmup at T_initial
-        v = jax.random.choice(
-            k1, jnp.array([-1.0, 1.0]), shape=(C, N)
-        ).astype(jnp.float64)
+        v = jax.random.choice(k1, jnp.array([-1.0, 1.0]), shape=(C, N)).astype(
+            jnp.float64
+        )
         theta = b[None, :] + v @ W
         warmup_steps = N * n_warmup
         v, theta = _sa_sweep_jit(
@@ -645,14 +660,13 @@ class ClassicalSampler(Sampler):
         # Initialise each chain as a random shuffle of N//2 up-spins, rest down.
         n_up = N // 2
         base = jnp.concatenate(
-            [jnp.ones(n_up, dtype=jnp.float64),
-             -jnp.ones(N - n_up, dtype=jnp.float64)]
+            [jnp.ones(n_up, dtype=jnp.float64), -jnp.ones(N - n_up, dtype=jnp.float64)]
         )
         perms = jax.vmap(lambda k: jax.random.permutation(k, N))(
             jax.random.split(k1, C)
         )
-        v = base[perms]                     # (C, N)
-        theta = b[None, :] + v @ W          # (C, Nh)
+        v = base[perms]  # (C, N)
+        theta = b[None, :] + v @ W  # (C, Nh)
 
         total_steps = N * (n_warmup + n_sweeps)
         v, _ = _exchange_mh_sweep_jit(v, theta, W, a, k2, C, N, total_steps)
@@ -694,6 +708,7 @@ class VeloxSampler(Sampler):
             self.solver = SBMSolver(parameters=params)
         else:
             from veloxq_sdk import VeloxQSolver
+
             self.solver = VeloxQSolver()
 
     def sample(
@@ -827,7 +842,9 @@ class FPGASampler(Sampler):
         except ValueError:
             return None
 
-    def sample(self, rbm, n_samples: int, config: dict = None, return_hidden: bool = False):
+    def sample(
+        self, rbm, n_samples: int, config: dict = None, return_hidden: bool = False
+    ):
         if config is None:
             config = {}
         self.last_sampling_time_s = None
@@ -853,10 +870,19 @@ class FPGASampler(Sampler):
         transport = str(config.get("fpga_transport", self.transport))
 
         cmd = [
-            self.julia_cmd, f"--project={self.project_path}", str(self.script_path),
-            str(model_path), str(out_path), str(num_rep), str(num_steps),
-            str(num_sweeps), str(start_temp), str(stop_temp),
-            schedule_type, transport, str(meta_path),
+            self.julia_cmd,
+            f"--project={self.project_path}",
+            str(self.script_path),
+            str(model_path),
+            str(out_path),
+            str(num_rep),
+            str(num_steps),
+            str(num_sweeps),
+            str(start_temp),
+            str(stop_temp),
+            schedule_type,
+            transport,
+            str(meta_path),
         ]
 
         env = os.environ.copy()
@@ -890,8 +916,12 @@ class FPGASampler(Sampler):
                         pass
 
             proc = subprocess.Popen(
-                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                text=True, bufsize=1, env=env,
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+                env=env,
             )
             t_out = threading.Thread(
                 target=_reader, args=(proc.stdout, _sys.stdout, stdout_lines)
@@ -930,8 +960,12 @@ class FPGASampler(Sampler):
         else:
             try:
                 result = subprocess.run(
-                    cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                    text=True, env=env, timeout=timeout_s,
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    env=env,
+                    timeout=timeout_s,
                 )
             except subprocess.TimeoutExpired as e:
                 msg = f"FPGA sampler timed out after {timeout_s} seconds."
@@ -1000,6 +1034,7 @@ class DimodSampler(Sampler):
         self, rbm, n_samples: int, config: dict = {}, return_hidden: bool = False
     ):
         from model_dbm import DeepBoltzmannMachine
+
         self.__dict__.pop("last_sampling_time_s", None)
         beta_x = config.get("beta_x", 1.0)
         if isinstance(rbm, DeepBoltzmannMachine):
@@ -1020,10 +1055,19 @@ class DimodSampler(Sampler):
             return self.tabu_search(bqm, n_samples, config, return_hidden)
         elif self.method in ("pegasus", "zephyr"):
             config["solver"] = get_solver_name(self.method)
-            return self.dwave(bqm, n_samples, config, rbm=rbm, return_hidden=return_hidden)
+            return self.dwave(
+                bqm, n_samples, config, rbm=rbm, return_hidden=return_hidden
+            )
         elif self.method in ("pegasus_ra", "zephyr_ra"):
             config["solver"] = get_solver_name(self.method.replace("_ra", ""))
-            return self.reverse_annealing(bqm, n_samples, config, rbm=rbm, return_hidden=return_hidden)
+            return self.reverse_annealing(
+                bqm, n_samples, config, rbm=rbm, return_hidden=return_hidden
+            )
+        elif self.method in ("pegasus_fast", "zephyr_fast"):
+            config["solver"] = get_solver_name(self.method.replace("_fast", ""))
+            return self.fast_anneal(
+                bqm, n_samples, config, rbm=rbm, return_hidden=return_hidden
+            )
         else:
             raise ValueError(f"Unknown method: {self.method}")
 
@@ -1042,6 +1086,7 @@ class DimodSampler(Sampler):
 
     def simulated_annealing(self, bqm, n_samples, config={}, return_hidden=False):
         import neal
+
         sampler = neal.SimulatedAnnealingSampler()
         sampleset = sampler.sample(
             bqm,
@@ -1060,6 +1105,7 @@ class DimodSampler(Sampler):
 
     def tabu_search(self, bqm, n_samples, config={}, return_hidden=False):
         from dwave.samplers import TabuSampler
+
         sampler = TabuSampler()
         sampleset = sampler.sample(bqm, num_reads=n_samples)
         sort_idx = np.argsort(list(sampleset.variables))
@@ -1083,12 +1129,16 @@ class DimodSampler(Sampler):
                     logical: [phys] for phys, logical in rbm._qubit_mapping.items()
                 }
                 composite = FixedEmbeddingComposite(dwave_sampler, identity_embedding)
-                print(f"  [embedding] Trivial identity embedding cached for {cache_key}.")
+                print(
+                    f"  [embedding] Trivial identity embedding cached for {cache_key}."
+                )
             else:
                 print(f"  [embedding] Running minorminer for {cache_key}...")
                 import minorminer
+
                 embedding = minorminer.find_embedding(
-                    list(bqm.quadratic.keys()), dwave_sampler.edgelist,
+                    list(bqm.quadratic.keys()),
+                    dwave_sampler.edgelist,
                 )
                 if not embedding:
                     raise RuntimeError(
@@ -1117,8 +1167,10 @@ class DimodSampler(Sampler):
         composite, is_trivial, cache_key = self._get_composite(bqm, solver_name, rbm)
 
         sample_kwargs = dict(
-            num_reads=num_reads, annealing_time=annealing_time,
-            answer_mode="raw", auto_scale=True,
+            num_reads=num_reads,
+            annealing_time=annealing_time,
+            answer_mode="raw",
+            auto_scale=True,
         )
         if not is_trivial and chain_strength is not None:
             sample_kwargs["chain_strength"] = chain_strength
@@ -1132,13 +1184,17 @@ class DimodSampler(Sampler):
                 self.last_sampling_time_s = access_time_us * 1e-6
                 break
             except Exception as e:
-                print(f"  D-Wave sampling attempt {tries}/{MAX_DWAVE_RETRIES} failed: {e}")
+                print(
+                    f"  D-Wave sampling attempt {tries}/{MAX_DWAVE_RETRIES} failed: {e}"
+                )
                 if tries == MAX_DWAVE_RETRIES:
                     raise RuntimeError(
                         f"D-Wave sampling failed after {MAX_DWAVE_RETRIES} attempts."
                     )
                 self._embedding_cache.pop(cache_key, None)
-                composite, is_trivial, cache_key = self._get_composite(bqm, solver_name, rbm)
+                composite, is_trivial, cache_key = self._get_composite(
+                    bqm, solver_name, rbm
+                )
 
         df = sampleset.to_pandas_dataframe()
         df = df.loc[df.index.repeat(df["num_occurrences"])].reset_index(drop=True)
@@ -1148,11 +1204,17 @@ class DimodSampler(Sampler):
             return v, df.loc[:, h_cols].to_numpy()
         return v
 
-    def reverse_annealing(self, bqm, n_samples, config={}, rbm=None, return_hidden=False):
+    def reverse_annealing(
+        self, bqm, n_samples, config={}, rbm=None, return_hidden=False
+    ):
         ra_initial_state = config.get("ra_initial_state")
         if ra_initial_state is None:
-            print("  [RA] No initial state for iteration 0 — falling back to forward anneal.")
-            return self.dwave(bqm, n_samples, config, rbm=rbm, return_hidden=return_hidden)
+            print(
+                "  [RA] No initial state for iteration 0 — falling back to forward anneal."
+            )
+            return self.dwave(
+                bqm, n_samples, config, rbm=rbm, return_hidden=return_hidden
+            )
 
         solver_name = config.get("solver", None)
         num_reads = config.get("num_reads", n_samples)
@@ -1188,13 +1250,81 @@ class DimodSampler(Sampler):
                 self.last_sampling_time_s = access_time_us * 1e-6
                 break
             except Exception as e:
-                print(f"  D-Wave RA sampling attempt {tries}/{MAX_DWAVE_RETRIES} failed: {e}")
+                print(
+                    f"  D-Wave RA sampling attempt {tries}/{MAX_DWAVE_RETRIES} failed: {e}"
+                )
                 if tries == MAX_DWAVE_RETRIES:
                     raise RuntimeError(
                         f"D-Wave RA sampling failed after {MAX_DWAVE_RETRIES} attempts."
                     )
                 self._embedding_cache.pop(cache_key, None)
-                composite, is_trivial, cache_key = self._get_composite(bqm, solver_name, rbm)
+                composite, is_trivial, cache_key = self._get_composite(
+                    bqm, solver_name, rbm
+                )
+
+        df = sampleset.to_pandas_dataframe()
+        df = df.loc[df.index.repeat(df["num_occurrences"])].reset_index(drop=True)
+        v = df.loc[:, list(range(self.n_visible))].to_numpy()
+        if return_hidden:
+            h_cols = list(range(self.n_visible, self.n_visible + self.n_hidden))
+            return v, df.loc[:, h_cols].to_numpy()
+        return v
+
+    def fast_anneal(self, bqm, n_samples, config={}, rbm=None, return_hidden=False):
+        """
+        D-Wave fast anneal in the coherent regime (default 7 ns).
+
+        fast_anneal=True requires all linear (h) biases to be zero.
+        The h biases from the RBM are silently dropped; only J couplings are used.
+        """
+        solver_name = config.get("solver", None)
+        anneal_time_ns = float(config.get("fast_anneal_time_ns", 7.0))
+        num_reads = config.get("num_reads", n_samples)
+        chain_strength = config.get("chain_strength", None)
+
+        # Zero out linear biases — fast_anneal requires h=0 on all qubits
+        bqm_no_h = bqm.copy()
+        for var in list(bqm_no_h.variables):
+            bqm_no_h.set_linear(var, 0.0)
+        n_dropped = sum(1 for b in bqm.linear.values() if abs(b) > 1e-9)
+        if n_dropped:
+            print(
+                f"  [FastAnneal] dropping {n_dropped} non-zero h biases"
+                f" (fast_anneal requires h=0)"
+            )
+
+        composite, is_trivial, cache_key = self._get_composite(bqm_no_h, solver_name, rbm)
+
+        sample_kwargs = dict(
+            num_reads=num_reads,
+            fast_anneal=True,
+            annealing_time=anneal_time_ns,
+            answer_mode="raw",
+            auto_scale=True,
+        )
+        if not is_trivial and chain_strength is not None:
+            sample_kwargs["chain_strength"] = chain_strength
+
+        MAX_DWAVE_RETRIES = 3
+        for tries in range(1, MAX_DWAVE_RETRIES + 1):
+            try:
+                sampleset = composite.sample(bqm_no_h, **sample_kwargs)
+                access_time_us = sampleset.info["timing"]["qpu_access_time"]
+                self._log_access_time(access_time_us)
+                self.last_sampling_time_s = access_time_us * 1e-6
+                break
+            except Exception as e:
+                print(
+                    f"  D-Wave fast anneal attempt {tries}/{MAX_DWAVE_RETRIES} failed: {e}"
+                )
+                if tries == MAX_DWAVE_RETRIES:
+                    raise RuntimeError(
+                        f"D-Wave fast anneal failed after {MAX_DWAVE_RETRIES} attempts."
+                    )
+                self._embedding_cache.pop(cache_key, None)
+                composite, is_trivial, cache_key = self._get_composite(
+                    bqm_no_h, solver_name, rbm
+                )
 
         df = sampleset.to_pandas_dataframe()
         df = df.loc[df.index.repeat(df["num_occurrences"])].reset_index(drop=True)
@@ -1223,7 +1353,7 @@ def _rbm_log_psi2_batch(
     V : (ns, N)  spin configs ±1
     Returns (ns,) log|Ψ|² = -a·v + Σ_j logaddexp(θ_j, -θ_j)
     """
-    Theta = V @ W + b[None, :]          # (ns, M)
+    Theta = V @ W + b[None, :]  # (ns, M)
     # logcosh convention in this codebase: self.logcosh(x) = logaddexp(x,-x) = log(2·cosh(x)),
     # so log|Ψ|² = -a·v + Σ_j [log(2) + logaddexp(θ_j,-θ_j)] matches 2·log_psi exactly.
     return -(V @ a) + jnp.sum(jnp.log(2.0) + jnp.logaddexp(Theta, -Theta), axis=1)
@@ -1243,9 +1373,11 @@ def _fbm_log_psi2_batch(
     V : (ns, N), J : (N, N) symmetric, zero diagonal
     Returns (ns,) log|Ψ|² = -a·v + ½vᵀJv + Σ_j logaddexp(θ_j, -θ_j)
     """
-    Theta = V @ W + b[None, :]                          # (ns, M)
+    Theta = V @ W + b[None, :]  # (ns, M)
     J_term = 0.5 * jnp.einsum("si,ij,sj->s", V, J, V)  # (ns,)  ½vᵀJv
-    return -(V @ a) + J_term + jnp.sum(jnp.log(2.0) + jnp.logaddexp(Theta, -Theta), axis=1)
+    return (
+        -(V @ a) + J_term + jnp.sum(jnp.log(2.0) + jnp.logaddexp(Theta, -Theta), axis=1)
+    )
 
 
 @jax.jit
@@ -1268,9 +1400,9 @@ def _dwave_mh_accept_jit(
     Acceptance: α = min(1, |Ψ(v')|² / |Ψ(v)|²)
     Returns (v_new (ns, N), accept_rate scalar).
     """
-    log_alpha = lp_prop - lp_curr                          # (ns,)
+    log_alpha = lp_prop - lp_curr  # (ns,)
     u = jax.random.uniform(key, (v_curr.shape[0],), dtype=jnp.float64)
-    accept = jnp.log(u) < log_alpha                        # (ns,) bool
+    accept = jnp.log(u) < log_alpha  # (ns,) bool
     v_new = jnp.where(accept[:, None], v_prop, v_curr)
     accept_rate = jnp.mean(accept.astype(jnp.float64))
     return v_new, accept_rate
@@ -1302,11 +1434,11 @@ class DWaveMHSampler(Sampler):
 
     def __init__(self, method: str, n_warmup: int = 0, n_sweeps: int = 1):
         self.method = method
-        dwave_arch = method.replace("_mh", "")           # 'pegasus' or 'zephyr'
+        dwave_arch = method.replace("_mh", "")  # 'pegasus' or 'zephyr'
         self._dwave = DimodSampler(method=dwave_arch)
         self.n_warmup = n_warmup
         self.n_sweeps = n_sweeps
-        self._chains: jax.Array | None = None            # persistent MH chain state
+        self._chains: jax.Array | None = None  # persistent MH chain state
         self._key = jax.random.PRNGKey(0)
         self.last_sampling_time_s: float | None = None
         self.last_acceptance_rate: float | None = None
@@ -1318,11 +1450,14 @@ class DWaveMHSampler(Sampler):
     def _log_psi2_batch(self, V: jax.Array, rbm) -> jax.Array:
         """Dispatch to RBM or FBM batch log|Ψ|² kernel."""
         from model import FullBoltzmannMachine
+
         if isinstance(rbm, FullBoltzmannMachine):
             return _fbm_log_psi2_batch(V, rbm.a, rbm.b, rbm.W, rbm.J)
         return _rbm_log_psi2_batch(V, rbm.a, rbm.b, rbm.W)
 
-    def _mh_round(self, rbm, n_samples: int, config: dict) -> tuple[jax.Array, float, float]:
+    def _mh_round(
+        self, rbm, n_samples: int, config: dict
+    ) -> tuple[jax.Array, float, float]:
         """
         One D-Wave query + MH accept/reject step.
 
@@ -1370,7 +1505,9 @@ class DWaveMHSampler(Sampler):
             sweep_accept_rates.append(ar)
 
         self.last_sampling_time_s = total_qpu_time
-        self.last_acceptance_rate = float(np.mean(sweep_accept_rates)) if sweep_accept_rates else None
+        self.last_acceptance_rate = (
+            float(np.mean(sweep_accept_rates)) if sweep_accept_rates else None
+        )
 
         V_out = np.asarray(self._chains)
         unique = len(set(map(tuple, V_out.tolist())))
@@ -1418,8 +1555,8 @@ def _make_generic_mh_jit(log_psi_fn, C: int, N: int, n_steps: int):
             key, k1, k2 = jax.random.split(key, 3)
             flip_idx = jax.random.randint(k1, (C,), 0, N)
             # Build flipped configs: flip one site per chain
-            mask = jax.nn.one_hot(flip_idx, N, dtype=jnp.float64)   # (C, N)
-            v_flip = v * (1.0 - 2.0 * mask)                          # (C, N)
+            mask = jax.nn.one_hot(flip_idx, N, dtype=jnp.float64)  # (C, N)
+            v_flip = v * (1.0 - 2.0 * mask)  # (C, N)
             # Evaluate log|Ψ| for all flipped configs in one batched call
             log_p_flip = jax.vmap(lambda vi: log_psi_fn(params, vi))(v_flip)  # (C,)
             log_ratio = 2.0 * (log_p_flip - log_p_v)
@@ -1459,7 +1596,7 @@ class GenericClassicalSampler:
         self.n_warmup = n_warmup
         self.n_sweeps = n_sweeps
         self._key = None
-        self._sweep_jit = {}   # cache compiled sweeps keyed by (C, N, n_steps)
+        self._sweep_jit = {}  # cache compiled sweeps keyed by (C, N, n_steps)
 
     def _next_key(self) -> jax.Array:
         if self._key is None:
@@ -1500,9 +1637,9 @@ class GenericClassicalSampler:
         # Initialise chains uniformly at random
         key = self._next_key()
         k1, k2 = jax.random.split(key)
-        v = jax.random.choice(
-            k1, jnp.array([-1.0, 1.0]), shape=(C, N)
-        ).astype(jnp.float64)
+        v = jax.random.choice(k1, jnp.array([-1.0, 1.0]), shape=(C, N)).astype(
+            jnp.float64
+        )
         log_p_v = jax.vmap(lambda vi: log_psi_fn(params, vi))(v)  # (C,)
 
         # Run the compiled sweep
@@ -1559,7 +1696,7 @@ class DWaveProposalSampler:
         self._dwave = DimodSampler(method=dwave_method)
         self.rbm_lr = rbm_lr
         self._key = key
-        self._v_current: np.ndarray | None = None   # persistent chain (ns, N) ±1
+        self._v_current: np.ndarray | None = None  # persistent chain (ns, N) ±1
 
     def _next_key(self) -> jax.Array:
         self._key, subkey = jax.random.split(self._key)
@@ -1567,11 +1704,8 @@ class DWaveProposalSampler:
 
     def _rbm_log_psi_batch(self, V: jax.Array) -> jax.Array:
         """log|Ψ_RBM(v)| for a batch V : (ns, N) → (ns,)."""
-        theta = self.rbm.b[None, :] + V @ self.rbm.W   # (ns, nh)
-        return (
-            -V @ self.rbm.a / 2
-            + 0.5 * jnp.sum(jnp.logaddexp(theta, -theta), axis=1)
-        )
+        theta = self.rbm.b[None, :] + V @ self.rbm.W  # (ns, nh)
+        return -V @ self.rbm.a / 2 + 0.5 * jnp.sum(jnp.logaddexp(theta, -theta), axis=1)
 
     def _update_rbm(self, V_pos: np.ndarray, V_neg: np.ndarray) -> None:
         """
@@ -1596,8 +1730,7 @@ class DWaveProposalSampler:
         self.rbm.a = self.rbm.a + lr * (Vn.mean(0) - Vp.mean(0))
         self.rbm.b = self.rbm.b + lr * (tanh_pos.mean(0) - tanh_neg.mean(0))
         self.rbm.W = self.rbm.W + lr * (
-            Vp.T @ tanh_pos / Vp.shape[0]
-            - Vn.T @ tanh_neg / Vn.shape[0]
+            Vp.T @ tanh_pos / Vp.shape[0] - Vn.T @ tanh_neg / Vn.shape[0]
         )
 
     def sample(
@@ -1616,7 +1749,7 @@ class DWaveProposalSampler:
             config = {}
 
         # ── 1. One QPU call: draw proposals from the auxiliary RBM ───────
-        V_prop = self._dwave.sample(self.rbm, n_samples, config)   # (ns, N) numpy
+        V_prop = self._dwave.sample(self.rbm, n_samples, config)  # (ns, N) numpy
 
         # ── 2. First iteration: no persistent state, accept all proposals ─
         if self._v_current is None:
@@ -1627,17 +1760,16 @@ class DWaveProposalSampler:
         V_curr_j = jnp.asarray(self._v_current, dtype=jnp.float64)
         V_prop_j = jnp.asarray(V_prop, dtype=jnp.float64)
 
-        log_psi_vit_curr = model.log_psi_batch(V_curr_j).real   # (ns,)
-        log_psi_vit_prop = model.log_psi_batch(V_prop_j).real   # (ns,)
-        log_psi_rbm_curr = self._rbm_log_psi_batch(V_curr_j)    # (ns,)
-        log_psi_rbm_prop = self._rbm_log_psi_batch(V_prop_j)    # (ns,)
+        log_psi_vit_curr = model.log_psi_batch(V_curr_j).real  # (ns,)
+        log_psi_vit_prop = model.log_psi_batch(V_prop_j).real  # (ns,)
+        log_psi_rbm_curr = self._rbm_log_psi_batch(V_curr_j)  # (ns,)
+        log_psi_rbm_prop = self._rbm_log_psi_batch(V_prop_j)  # (ns,)
 
-        log_alpha = (
-            2.0 * (log_psi_vit_prop - log_psi_vit_curr)
-            + 2.0 * (log_psi_rbm_curr - log_psi_rbm_prop)
+        log_alpha = 2.0 * (log_psi_vit_prop - log_psi_vit_curr) + 2.0 * (
+            log_psi_rbm_curr - log_psi_rbm_prop
         )
         u = jax.random.uniform(self._next_key(), (n_samples,), dtype=jnp.float64)
-        accept = jnp.log(u) < log_alpha                          # (ns,) bool
+        accept = jnp.log(u) < log_alpha  # (ns,) bool
 
         V_accepted = jnp.where(accept[:, None], V_prop_j, V_curr_j)
         self._v_current = np.asarray(V_accepted)
@@ -1645,7 +1777,7 @@ class DWaveProposalSampler:
         n_acc = int(accept.sum())
         unique = len(set(map(tuple, self._v_current.tolist())))
         print(
-            f"  [DWaveMH] accept={n_acc/n_samples:.3f}  unique={unique}/{n_samples}"
+            f"  [DWaveMH] accept={n_acc / n_samples:.3f}  unique={unique}/{n_samples}"
         )
 
         # ── 4. Update auxiliary RBM: accepted ViT samples vs D-Wave proposals
