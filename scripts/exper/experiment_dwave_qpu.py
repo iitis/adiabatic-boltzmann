@@ -3,11 +3,11 @@ D-Wave QPU experiment runner — lr1d size sweep on Zephyr (TTE probe).
 
 Grid:
   LR-TFIM (α=2.0)  sizes [8, 24, 32, 64, 96, 200]  h=0.5
-  LR         [0.1]
+  LR         [0.01]
   seeds      [42]
-  iterations 150 per run   (minimises QPU time while capturing TTE)
+  iterations 150 per run (zephyr) / 300 per run (gibbs companion)
 
-Sampler: dimod/zephyr only.
+Sampler: dimod/zephyr + Gibbs companion for each run.
 
 RBM strategy per run:
   1. FullyConnectedRBM — triggers minorminer to find a QPU embedding.
@@ -57,7 +57,7 @@ from encoder import Trainer
 from helpers import save_results, read_qpu_time_ms
 from ising import LongRangeTFIM1D
 from model import FullyConnectedRBM, DWaveTopologyRBM
-from sampler import DimodSampler
+from sampler import ClassicalSampler, DimodSampler
 
 
 # ---------------------------------------------------------------------------
@@ -68,6 +68,9 @@ QPU_BUDGET_MS  = 20 * 60 * 1000   # default QPU-time budget (ms); override with 
 QPU_MS_PER_ITER = 200              # empirical QPU-access-time estimate per iteration (ms)
 MIN_ITERATIONS  = 20               # abort loop when remaining budget fits fewer iters
 TIME_PATH       = Path("time.json")
+
+GIBBS_ITERATIONS = 300
+GIBBS_N_SWEEPS   = 10
 
 
 # ---------------------------------------------------------------------------
@@ -85,7 +88,7 @@ FIXED = dict(
     annealing_time=20,   # QPU annealing time in µs
 )
 
-LEARNING_RATES  = [0.1]
+LEARNING_RATES  = [0.01]
 SEEDS           = [42]
 SAMPLER_BACKEND = "dimod"
 
@@ -151,6 +154,111 @@ def is_done(run: Run) -> bool:
         if any(d.glob(pattern)):
             return True
     return False
+
+
+# ---------------------------------------------------------------------------
+# Gibbs companion helpers
+# ---------------------------------------------------------------------------
+
+def _gibbs_result_dir(run: Run) -> Path:
+    return Path(FIXED["output_dir"]) / "lr_tfim_1d" / str(run.size) / "custom" / "gibbs"
+
+
+def is_gibbs_done(run: Run) -> bool:
+    d = _gibbs_result_dir(run)
+    if not d.exists():
+        return False
+    pattern = (
+        f"result_lr1d_h{run.h}_alpha{ALPHA}_rbmfull_nh{run.size}"
+        f"_lr{run.lr}_reg{FIXED['reg']}_ns{FIXED['n_samples']}"
+        f"_seed{run.seed}_iter*_cem0_sigma*.json"
+    )
+    return any(d.glob(pattern))
+
+
+def build_gibbs_args(run: Run) -> SimpleNamespace:
+    return SimpleNamespace(
+        model="lr1d",
+        size=run.size,
+        h=run.h,
+        J=1.0,
+        J1=1.0,
+        J2=0.5,
+        delta=1.0,
+        alpha=ALPHA,
+        ansatz="rbm",
+        dbm_hidden="8",
+        n_mf_steps=10,
+        rbm="full",
+        n_hidden=run.size,
+        d_model=32,
+        n_layers=2,
+        n_heads=4,
+        patch_size=2,
+        sampler="custom",
+        sampling_method="gibbs",
+        mh_warmup=0,
+        mh_sweeps=1,
+        ra_s_target=0.45,
+        ra_pause_time=10,
+        ra_anneal_time=10,
+        n_samples=FIXED["n_samples"],
+        iterations=GIBBS_ITERATIONS,
+        learning_rate=run.lr,
+        regularization=FIXED["reg"],
+        cem=False,
+        cem_interval=FIXED["cem_interval"],
+        seed=run.seed,
+        visualize=FIXED["visualize"],
+        output_dir=FIXED["output_dir"],
+        sigma=FIXED["sigma"],
+    )
+
+
+def execute_gibbs_run(run: Run) -> dict:
+    """Run a Gibbs companion (FullyConnectedRBM, ClassicalSampler/gibbs) for this config."""
+    _gibbs_result_dir(run).mkdir(parents=True, exist_ok=True)
+
+    key = jax.random.PRNGKey(run.seed)
+    key, rbm_key = jax.random.split(key)
+
+    ising = LongRangeTFIM1D(run.size, run.h, alpha=ALPHA)
+    rbm = FullyConnectedRBM(run.size, run.size, rbm_key)
+    sampler = ClassicalSampler(method="gibbs", n_sweeps=GIBBS_N_SWEEPS)
+    args = build_gibbs_args(run)
+
+    trainer_config = dict(
+        learning_rate=run.lr,
+        n_iterations=GIBBS_ITERATIONS,
+        n_samples=FIXED["n_samples"],
+        regularization=FIXED["reg"],
+        save_checkpoints=False,
+        checkpoint_interval=10,
+        use_cem=False,
+        cem_interval=FIXED["cem_interval"],
+        lsb_sigma=FIXED["sigma"],
+        seed=run.seed,
+    )
+
+    t0 = time.perf_counter()
+    trainer = Trainer(rbm, ising, sampler, trainer_config, args=args)
+    history = trainer.train()
+    elapsed = time.perf_counter() - t0
+
+    save_results(args, history, ising, rbm)
+
+    try:
+        exact = ising.exact_ground_energy()
+        final = history["energy"][-1]
+        rel_err = abs(final - exact) / abs(exact)
+    except NotImplementedError:
+        rel_err = float("nan")
+
+    return dict(
+        elapsed_s=elapsed,
+        rel_error=rel_err,
+        n_iters=len(history["energy"]),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -306,111 +414,149 @@ def main() -> None:
     print(f"JAX version  : {jax.__version__}")
     print(f"Model        : lr1d  h={H_VALUES[0]}  α={ALPHA}")
     print(f"Sizes        : {SIZES_1D}")
-    print(f"Sampler      : dimod/zephyr  CEM=off")
+    print(f"Sampler      : dimod/zephyr + gibbs companion  CEM=off")
     print(f"QPU budget   : {budget_ms/60000:.1f} min  ({budget_ms:.0f} ms)")
-    print(f"Iters/run    : {FIXED['iterations']}  @ ~{QPU_MS_PER_ITER} ms QPU/iter")
+    print(f"Iters/run    : {FIXED['iterations']} (zephyr)  {GIBBS_ITERATIONS} (gibbs)  @ ~{QPU_MS_PER_ITER} ms QPU/iter")
     print(f"Output dir   : {FIXED['output_dir']}/lr_tfim_1d/")
 
     grid = build_grid(["zephyr"])
 
     if cli.dry_run:
-        pending  = sum(1 for r in grid if cli.force or not is_done(r))
         max_runs = int(budget_ms / (FIXED["iterations"] * QPU_MS_PER_ITER))
-        print(f"\n{'N':>6}  {'h':>6}  {'LR':>8}  {'Seed':>4}  {'Done':>4}")
-        print("-" * 38)
+        print(f"\n{'N':>6}  {'h':>6}  {'LR':>8}  {'Seed':>4}  {'Zephyr':>8}  {'Gibbs':>6}")
+        print("-" * 52)
         for r in grid:
-            done_flag = is_done(r)
-            done_str  = "yes" if done_flag else "no"
-            if done_flag and cli.force:
-                done_str += " (force)"
-            print(f"{r.size:>6}  {r.h:>6}  {r.lr:>8.4g}  {r.seed:>4}  {done_str}")
+            dw_str  = ("yes" if is_done(r) else "no") + (" (force)" if is_done(r) and cli.force else "")
+            gb_str  = ("yes" if is_gibbs_done(r) else "no") + (" (force)" if is_gibbs_done(r) and cli.force else "")
+            print(f"{r.size:>6}  {r.h:>6}  {r.lr:>8.4g}  {r.seed:>4}  {dw_str:>8}  {gb_str:>6}")
+        n_dw_pending  = sum(1 for r in grid if cli.force or not is_done(r))
+        n_gb_pending  = sum(1 for r in grid if cli.force or not is_gibbs_done(r))
         print(
-            f"\nTotal: {len(grid)}  pending: {pending}  done: {len(grid)-pending}"
-            f"\nBudget allows ~{max_runs} full runs at {QPU_MS_PER_ITER} ms QPU/iter"
+            f"\nTotal: {len(grid)}  zephyr pending: {n_dw_pending}  gibbs pending: {n_gb_pending}"
+            f"\nBudget allows ~{max_runs} full zephyr runs at {QPU_MS_PER_ITER} ms QPU/iter"
         )
         return
 
-    pending = [r for r in grid if cli.force or not is_done(r)]
-    n_skip  = len(grid) - len(pending)
+    # Pre-compute done status for all runs
+    run_status = [
+        (r, is_done(r) and not cli.force, is_gibbs_done(r) and not cli.force)
+        for r in grid
+    ]
+    # Items that need at least one of D-Wave or Gibbs
+    pending_items = [(r, dw_done, gb_done) for r, dw_done, gb_done in run_status
+                     if not dw_done or not gb_done]
+    n_fully_done = len(grid) - len(pending_items)
 
     qpu_start_ms = read_qpu_time_ms(TIME_PATH)
 
     print(
         f"\n[{datetime.now():%H:%M:%S}]  {len(grid)} total  "
-        f"({len(pending)} pending, {n_skip} already done)\n"
+        f"({len(pending_items)} needing work, {n_fully_done} fully done)\n"
         f"  Fixed: reg={FIXED['reg']}  ns={FIXED['n_samples']}  "
-        f"iter={FIXED['iterations']}  cem=off\n"
+        f"iter={FIXED['iterations']} (zephyr)  {GIBBS_ITERATIONS} (gibbs)  cem=off\n"
         f"  RBM: FullyConnectedRBM → DWaveTopologyRBM on embedding failure\n"
         f"  QPU time at start: {qpu_start_ms/60000:.2f} min\n"
     )
 
-    n_done = 0
-    t_wall = time.perf_counter()
+    n_dw_done   = 0
+    n_gb_done   = 0
+    t_wall      = time.perf_counter()
+    budget_exhausted = False
 
-    for i, run in enumerate(pending, 1):
-        # ── Budget check before every experiment ─────────────────────
-        try:
-            qpu_used_ms = read_qpu_time_ms(TIME_PATH) - qpu_start_ms
-        except (OSError, json.JSONDecodeError, KeyError) as exc:
-            print(f"\n[{datetime.now():%H:%M:%S}]  Cannot read QPU time: {exc} — aborting.")
-            break
-
-        remaining_ms = budget_ms - qpu_used_ms
-        max_iters    = min(FIXED["iterations"], int(remaining_ms / QPU_MS_PER_ITER))
-
-        if max_iters < MIN_ITERATIONS:
-            print(
-                f"\n[{datetime.now():%H:%M:%S}]  QPU budget exhausted  "
-                f"({qpu_used_ms/60000:.1f}/{budget_ms/60000:.1f} min used, "
-                f"only {max_iters} iters would fit — need {MIN_ITERATIONS}). "
-                f"Stopping after {n_done} runs."
-            )
-            break
-
-        # ── Progress line ─────────────────────────────────────────────
+    for i, (run, dwave_already_done, gibbs_already_done) in enumerate(pending_items, 1):
         elapsed_s = time.perf_counter() - t_wall
-        if n_done > 0:
-            avg_s  = elapsed_s / n_done
-            left_s = avg_s * (len(pending) - i + 1)
+        eta = ""
+        if i > 1:
+            avg_s  = elapsed_s / (i - 1)
+            left_s = avg_s * (len(pending_items) - i + 1)
             eta    = f"  ETA ~{left_s/3600:.1f}h"
-        else:
-            eta = ""
 
-        budget_note = (
-            f"  [{remaining_ms/60000:.1f} min QPU left"
-            + (f", capped to {max_iters} iters" if max_iters < FIXED["iterations"] else "")
-            + "]"
-        )
+        # ── D-Wave part ───────────────────────────────────────────────
+        if not dwave_already_done:
+            qpu_used_ms  = 0
+            remaining_ms = 0
+            max_iters    = 0
+            if not budget_exhausted:
+                try:
+                    qpu_used_ms = read_qpu_time_ms(TIME_PATH) - qpu_start_ms
+                except (OSError, json.JSONDecodeError, KeyError) as exc:
+                    print(
+                        f"\n[{datetime.now():%H:%M:%S}]  Cannot read QPU time: {exc}"
+                        f" — stopping D-Wave runs."
+                    )
+                    budget_exhausted = True
 
-        print(
-            f"[{i}/{len(pending)}] "
-            f"lr1d N={run.size:>4}  h={run.h}  α={ALPHA}  {run.method}  "
-            f"lr={run.lr:.4g}  seed={run.seed}"
-            f"{budget_note}{eta}"
-        )
+            if not budget_exhausted:
+                remaining_ms = budget_ms - qpu_used_ms
+                max_iters    = min(FIXED["iterations"], int(remaining_ms / QPU_MS_PER_ITER))
 
-        try:
-            summary = execute_run(run, max_iters)
-            n_done += 1
+                if max_iters < MIN_ITERATIONS:
+                    print(
+                        f"\n[{datetime.now():%H:%M:%S}]  QPU budget exhausted  "
+                        f"({qpu_used_ms/60000:.1f}/{budget_ms/60000:.1f} min used, "
+                        f"only {max_iters} iters would fit — need {MIN_ITERATIONS}). "
+                        f"Stopping D-Wave runs (Gibbs companions will continue)."
+                    )
+                    budget_exhausted = True
+
+            if not budget_exhausted:
+                budget_note = (
+                    f"  [{remaining_ms/60000:.1f} min QPU left"
+                    + (f", capped to {max_iters} iters" if max_iters < FIXED["iterations"] else "")
+                    + "]"
+                )
+                print(
+                    f"[{i}/{len(pending_items)}] zephyr "
+                    f"lr1d N={run.size:>4}  h={run.h}  α={ALPHA}  "
+                    f"lr={run.lr:.4g}  seed={run.seed}"
+                    f"{budget_note}{eta}"
+                )
+                try:
+                    summary = execute_run(run, max_iters)
+                    n_dw_done += 1
+                    print(
+                        f"  {summary['elapsed_s']:6.1f}s  "
+                        f"rbm={summary['rbm_type']}  "
+                        f"iters={summary['n_iters']}  "
+                        f"rel_err={summary['rel_error']:.4f}"
+                    )
+                except KeyboardInterrupt:
+                    print("\n[interrupted]")
+                    raise
+                except Exception as exc:
+                    print(f"  ERROR  {type(exc).__name__}: {exc}")
+                    sys.exit(1)
+
+        # ── Gibbs companion ───────────────────────────────────────────
+        if not gibbs_already_done:
             print(
-                f"  {summary['elapsed_s']:6.1f}s  "
-                f"rbm={summary['rbm_type']}  "
-                f"iters={summary['n_iters']}  "
-                f"rel_err={summary['rel_error']:.4f}"
+                f"[{i}/{len(pending_items)}] gibbs  "
+                f"lr1d N={run.size:>4}  h={run.h}  α={ALPHA}  "
+                f"lr={run.lr:.4g}  seed={run.seed}  iter={GIBBS_ITERATIONS}{eta}"
             )
-        except KeyboardInterrupt:
-            print("\n[interrupted]")
-            raise
-        except Exception as exc:
-            print(f"  ERROR  {type(exc).__name__}: {exc}")
-            sys.exit(1)
+            try:
+                g_summary = execute_gibbs_run(run)
+                n_gb_done += 1
+                print(
+                    f"  {g_summary['elapsed_s']:6.1f}s  "
+                    f"rbm=full  "
+                    f"iters={g_summary['n_iters']}  "
+                    f"rel_err={g_summary['rel_error']:.4f}"
+                )
+            except KeyboardInterrupt:
+                print("\n[interrupted]")
+                raise
+            except Exception as exc:
+                print(f"  ERROR  {type(exc).__name__}: {exc}")
+                sys.exit(1)
 
     total_s      = time.perf_counter() - t_wall
     qpu_total_ms = read_qpu_time_ms(TIME_PATH) - qpu_start_ms
     print(f"\n[{datetime.now():%H:%M:%S}]  Finished in {total_s/3600:.2f}h  "
           f"(QPU time this session: {qpu_total_ms/60000:.2f} min)")
-    print(f"  Completed : {n_done}")
-    print(f"  Skipped   : {n_skip}  (already existed)")
+    print(f"  Zephyr completed : {n_dw_done}")
+    print(f"  Gibbs  completed : {n_gb_done}")
+    print(f"  Fully skipped    : {n_fully_done}  (both already existed)")
 
 
 if __name__ == "__main__":
