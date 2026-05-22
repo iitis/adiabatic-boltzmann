@@ -22,6 +22,8 @@ from types import SimpleNamespace
 
 import jax
 
+jax.config.update("jax_enable_x64", True)
+
 _SRC = Path(__file__).resolve().parent.parent.parent / "src"
 sys.path.insert(0, str(_SRC))
 from encoder import Trainer
@@ -129,7 +131,7 @@ def build_args(run: Run) -> SimpleNamespace:
 
 
 def make_sampler() -> FPGASampler:
-    return FPGASampler(transport="jtag")
+    return FPGASampler(transport="auto")
 
 
 def execute_run(run: Run) -> dict:
