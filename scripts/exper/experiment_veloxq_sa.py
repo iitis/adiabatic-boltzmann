@@ -1,14 +1,14 @@
 """
-FPGA sampler sweep.
+VeloxQstandard SimulatedAnnealing sampler sweep.
 
-Sweeps: N=24, h ∈ {0.5, 1.0, 2.0}, lr over LEARNING_RATES, 1 seeds.
-Sampler: fpga / fpga  (FPGASampler via VeloxQFPGA JTAG).
+Sweeps: N=24, h ∈ {0.5, 1.0, 2.0}, lr over LEARNING_RATES, 1 seed.
+Sampler: veloxq / sa  (VeloxQStandardSASampler via VeloxQstandard.SimulatedAnnealing).
 
 Usage
 -----
     cd <repo-root>
-    python scripts/experiment_fpga.py             # run everything
-    python scripts/experiment_fpga.py --dry-run   # print grid, no execution
+    python scripts/exper/experiment_veloxq_sa.py             # run everything
+    python scripts/exper/experiment_veloxq_sa.py --dry-run   # print grid, no execution
 """
 
 import argparse
@@ -31,7 +31,7 @@ from encoder import Trainer
 from helpers import find_latest_checkpoint, restore_rbm_from_checkpoint, save_results
 from ising import TransverseFieldIsing1D
 from model import FullyConnectedRBM
-from sampler import FPGASampler
+from sampler import VeloxQStandardSASampler
 
 # ---------------------------------------------------------------------------
 # Fixed hyperparameters
@@ -52,9 +52,8 @@ H_VALUES = [0.5, 1.0, 2.0]
 LEARNING_RATES = [1e-4, 3e-4, 1e-3, 3e-3, 1e-2]
 SEEDS = [1]
 
-SAMPLERS = {
-    "fpga": ("fpga", "fpga"),
-}
+SAMPLER_TAG = "veloxq"
+METHOD_TAG = "sa"
 
 # ---------------------------------------------------------------------------
 # Experiment grid
@@ -86,7 +85,7 @@ def build_grid() -> list[Run]:
 
 def result_path(run: Run) -> Path:
     n_hidden = run.size
-    output_dir = Path(f"{FIXED['output_dir']}/tfim_1d/{run.size}/fpga/fpga")
+    output_dir = Path(f"{FIXED['output_dir']}/tfim_1d/{run.size}/{SAMPLER_TAG}/{METHOD_TAG}")
     fname = (
         f"result_1d"
         f"_h{run.h}"
@@ -116,8 +115,8 @@ def build_args(run: Run) -> SimpleNamespace:
         h=run.h,
         rbm=FIXED["rbm"],
         n_hidden=run.size,
-        sampler="fpga",
-        sampling_method="fpga",
+        sampler=SAMPLER_TAG,
+        sampling_method=METHOD_TAG,
         n_samples=FIXED["n_samples"],
         iterations=FIXED["iterations"],
         learning_rate=run.lr,
@@ -131,8 +130,8 @@ def build_args(run: Run) -> SimpleNamespace:
     )
 
 
-def make_sampler() -> FPGASampler:
-    return FPGASampler(transport="auto")
+def make_sampler() -> VeloxQStandardSASampler:
+    return VeloxQStandardSASampler()
 
 
 def execute_run(run: Run) -> dict:
@@ -232,7 +231,7 @@ def main():
     parser.add_argument(
         "--serial",
         action="store_true",
-        help="Run in-process (no multiprocessing). Recommended for FPGA/JTAG debugging.",
+        help="Run in-process (no multiprocessing). Recommended for debugging.",
     )
     cli = parser.parse_args()
     FIXED["iterations"] = cli.iterations
@@ -254,11 +253,11 @@ def main():
     pending = [r for r in grid if not result_path(r).exists()]
     n_skip = len(grid) - len(pending)
 
-    print(f"[{datetime.now():%H:%M:%S}] FPGA sweep — {len(grid)} total runs")
+    print(f"[{datetime.now():%H:%M:%S}] VeloxQ SA sweep — {len(grid)} total runs")
     print(f"  N={SIZES}  h={H_VALUES}  lr={LEARNING_RATES}")
     print(f"  Pending: {len(pending)}  skipped: {n_skip}  workers: {cli.workers}\n")
 
-    log_path = Path(__file__).resolve().parent / "experiment_fpga_failures.jsonl"
+    log_path = Path(__file__).resolve().parent / "experiment_veloxq_sa_failures.jsonl"
     n_done = n_fail = 0
 
     if cli.serial:
