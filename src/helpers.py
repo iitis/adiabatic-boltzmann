@@ -321,21 +321,24 @@ def save_results(args, history, ising, rbm=None):
             print("Matplotlib not available, skipping visualization")
 
 
-def save_dwave_samples(V: np.ndarray, args, iteration: int) -> Path:
+def save_dwave_samples(V: np.ndarray, args, iteration: int, sampleset=None) -> Path:
     """
-    Save raw D-Wave visible-unit samples for one training iteration.
+    Save raw D-Wave samples for one training iteration.
 
     Stored as gzip-compressed pickle under:
         dwave_samples/{n_hidden}/{sampler}/{method}/
-            samples_{model}_h{h}_rbm{rbm}_nh{n_hidden}_lr{lr}
+            samples_{model}{model_params}_rbm{rbm}_nh{n_hidden}_lr{lr}
             _reg{reg}_ns{ns}_seed{seed}_iter{IIII}.pkl.gz
 
-    Content: {"v": ndarray(ns, N), "iteration": int, "config": dict}
+    Content always includes:
+        "v"         : ndarray(ns, N)  visible-unit spin configs ±1
+        "iteration" : int
+        "config"    : dict
 
-    The .pkl.gz is intentionally small: only visible-unit spin configs are
-    stored.  Hidden units and RBM weights can be reconstructed from the
-    config and checkpoint files.  The goal is to avoid re-querying the QPU
-    when new metrics need to be computed post-hoc.
+    When sampleset is provided (dimod SampleSet from a QPU call):
+        "energies"         : ndarray(n_reads,)  Ising energies per sample
+        "num_occurrences"  : ndarray(n_reads,)  read counts (usually all 1 for raw mode)
+        "timing"           : dict from sampleset.info["timing"]
     """
     out_dir = Path(
         f"dwave_samples/{args.n_hidden}/{args.sampler}/{args.sampling_method}"
@@ -344,7 +347,7 @@ def save_dwave_samples(V: np.ndarray, args, iteration: int) -> Path:
 
     fname = (
         f"samples_{args.model}"
-        f"_h{args.h}"
+        f"{_model_params_str(args)}"
         f"_rbm{args.rbm}"
         f"_nh{args.n_hidden}"
         f"_lr{args.learning_rate}"
@@ -355,10 +358,15 @@ def save_dwave_samples(V: np.ndarray, args, iteration: int) -> Path:
         f".pkl.gz"
     )
     path = out_dir / fname
+
+    payload = {"v": V, "iteration": iteration, "config": vars(args)}
+    if sampleset is not None:
+        payload["energies"]        = sampleset.record.energy.copy()
+        payload["num_occurrences"] = sampleset.record.num_occurrences.copy()
+        payload["timing"]          = dict(sampleset.info.get("timing", {}))
+
     with gzip.open(path, "wb") as f:
-        pickle.dump(
-            {"v": V, "iteration": iteration, "config": vars(args)}, f, protocol=5
-        )
+        pickle.dump(payload, f, protocol=5)
     return path
 
 

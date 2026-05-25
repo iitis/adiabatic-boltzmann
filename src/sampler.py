@@ -1029,6 +1029,7 @@ class DimodSampler(Sampler):
             with self.time_path.open("w") as f:
                 json.dump({"time_ms": 0}, f)
         self._embedding_cache: dict = {}
+        self.last_sampleset = None  # set after every QPU call; holds the raw dimod SampleSet
 
     def sample(
         self, rbm, n_samples: int, config: dict = {}, return_hidden: bool = False
@@ -1166,11 +1167,12 @@ class DimodSampler(Sampler):
 
         composite, is_trivial, cache_key = self._get_composite(bqm, solver_name, rbm)
 
+        auto_scale = bool(config.get("auto_scale", True))
         sample_kwargs = dict(
             num_reads=num_reads,
             annealing_time=annealing_time,
             answer_mode="raw",
-            auto_scale=True,
+            auto_scale=auto_scale,
         )
         if not is_trivial and chain_strength is not None:
             sample_kwargs["chain_strength"] = chain_strength
@@ -1182,6 +1184,7 @@ class DimodSampler(Sampler):
                 access_time_us = sampleset.info["timing"]["qpu_access_time"]
                 self._log_access_time(access_time_us)
                 self.last_sampling_time_s = access_time_us * 1e-6
+                self.last_sampleset = sampleset
                 break
             except Exception as e:
                 print(
@@ -1248,6 +1251,7 @@ class DimodSampler(Sampler):
                 access_time_us = sampleset.info["timing"]["qpu_access_time"]
                 self._log_access_time(access_time_us)
                 self.last_sampling_time_s = access_time_us * 1e-6
+                self.last_sampleset = sampleset
                 break
             except Exception as e:
                 print(
@@ -1295,12 +1299,13 @@ class DimodSampler(Sampler):
 
         composite, is_trivial, cache_key = self._get_composite(bqm_no_h, solver_name, rbm)
 
+        auto_scale = bool(config.get("auto_scale", True))
         sample_kwargs = dict(
             num_reads=num_reads,
             fast_anneal=True,
             annealing_time=anneal_time_ns,
             answer_mode="raw",
-            auto_scale=True,
+            auto_scale=auto_scale,
         )
         if not is_trivial and chain_strength is not None:
             sample_kwargs["chain_strength"] = chain_strength
@@ -1312,6 +1317,7 @@ class DimodSampler(Sampler):
                 access_time_us = sampleset.info["timing"]["qpu_access_time"]
                 self._log_access_time(access_time_us)
                 self.last_sampling_time_s = access_time_us * 1e-6
+                self.last_sampleset = sampleset
                 break
             except Exception as e:
                 print(

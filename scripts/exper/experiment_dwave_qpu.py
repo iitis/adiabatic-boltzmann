@@ -55,8 +55,15 @@ _SRC = Path(__file__).resolve().parent.parent.parent / "src"
 sys.path.insert(0, str(_SRC))
 
 from encoder import Trainer
-from helpers import save_results, read_qpu_time_ms
-from ising import LongRangeTFIM1D
+from helpers import save_results, read_qpu_time_ms, _model_subdir
+from ising import (
+    LongRangeTFIM1D,
+    TransverseFieldIsing1D,
+    TransverseFieldIsing2D,
+    J1J2Ising1D,
+    HeisenbergXXZ1D,
+    HeisenbergXY1D,
+)
 from model import FullyConnectedRBM, DWaveTopologyRBM
 from sampler import ClassicalSampler, DimodSampler
 
@@ -93,15 +100,27 @@ GIBBS_ITERS     = 150
 GIBBS_N_SWEEPS  = 10
 SEED            = 42
 SAMPLER_BACKEND = "dimod"
-ALPHA           = 2.0   # LR-TFIM power-law exponent
+
+# Model — overridden by --model at runtime
+MODEL = "lr1d"
+ALPHA = 2.0    # LR-TFIM power-law exponent (lr1d only)
+J1    = 1.0    # NN coupling  (j1j2_1d only)
+J2    = 0.5    # NNN coupling (j1j2_1d only)
+J     = 1.0    # coupling     (heisenberg_* only)
+DELTA = 1.0    # XXZ anisotropy (heisenberg_xxz only)
+USE_CEM = False  # overridden by --cem at runtime
 
 H_VALUES  = [0.5, 1.0]
-CEM_FLAGS = [True, False]
 
 # 10 sizes equally spaced from N=16 to N=200 (rounded to nearest integer)
 SIZES_1D: list[int] = sorted(
     set(int(round(x)) for x in np.linspace(16, 200, 10))
 )
+
+_VALID_MODELS = [
+    "1d", "lr1d", "j1j2_1d",
+    "heisenberg_xxz_1d", "heisenberg_xy_1d", "2d",
+]
 
 _EMBED_FAIL_MSG = "minorminer failed to find an embedding"
 
@@ -118,15 +137,44 @@ class Run:
     method: str   # "pegasus_fast" | "zephyr_fast"
 
 
-def build_grid(method: str) -> list[Run]:
+def build_grid(method: str, cem: bool) -> list[Run]:
     grid = [
         Run(size, h, cem, method)
         for size in SIZES_1D
         for h in H_VALUES
-        for cem in CEM_FLAGS
     ]
-    grid.sort(key=lambda r: (r.size, r.h, r.cem))
+    grid.sort(key=lambda r: (r.size, r.h))
     return grid
+
+
+def _make_ising(size: int, h: float):
+    """Instantiate the right IsingModel for the current MODULE-level MODEL."""
+    if MODEL == "lr1d":
+        return LongRangeTFIM1D(size, h, alpha=ALPHA)
+    if MODEL == "1d":
+        return TransverseFieldIsing1D(size, h)
+    if MODEL == "2d":
+        return TransverseFieldIsing2D(size, h)
+    if MODEL == "j1j2_1d":
+        return J1J2Ising1D(size, J1=J1, J2=J2, h=h)
+    if MODEL == "heisenberg_xxz_1d":
+        return HeisenbergXXZ1D(size, J=J, delta=DELTA)
+    if MODEL == "heisenberg_xy_1d":
+        return HeisenbergXY1D(size, J=J)
+    raise ValueError(f"Unknown model: {MODEL!r}")
+
+
+def _model_params_label(h: float) -> str:
+    """Return the model-parameter segment used in result filenames (mirrors helpers._model_params_str)."""
+    if MODEL == "lr1d":
+        return f"_h{h}_alpha{ALPHA}"
+    if MODEL == "j1j2_1d":
+        return f"_J1{J1}_J2{J2}_h{h}"
+    if MODEL == "heisenberg_xxz_1d":
+        return f"_J{J}_delta{DELTA}"
+    if MODEL == "heisenberg_xy_1d":
+        return f"_J{J}"
+    return f"_h{h}"
 
 
 # ---------------------------------------------------------------------------
@@ -140,7 +188,7 @@ def _cem_tag(cem: bool) -> str:
 def _result_dir(run: Run) -> Path:
     return (
         Path(FIXED["output_dir"])
-        / "lr_tfim_1d"
+        / _model_subdir(MODEL)
         / str(run.size)
         / SAMPLER_BACKEND
         / run.method
@@ -153,9 +201,10 @@ def is_done(run: Run) -> bool:
     if not d.exists():
         return False
     topology = run.method.replace("_fast", "")
+    params   = _model_params_label(run.h)
     for rbm_type in ("full", topology):
         pattern = (
-            f"result_lr1d_h{run.h}_alpha{ALPHA}_rbm{rbm_type}_nh{run.size}"
+            f"result_{MODEL}{params}_rbm{rbm_type}_nh{run.size}"
             f"_lr{QPU_LR}_reg{FIXED['reg']}_ns{FIXED['n_samples']}"
             f"_seed{SEED}_iter*_{_cem_tag(run.cem)}_sigma*.json"
         )
@@ -167,7 +216,7 @@ def is_done(run: Run) -> bool:
 def _gibbs_result_dir(run: Run) -> Path:
     return (
         Path(FIXED["output_dir"])
-        / "lr_tfim_1d"
+        / _model_subdir(MODEL)
         / str(run.size)
         / "custom"
         / "gibbs"
@@ -178,8 +227,9 @@ def is_gibbs_done(run: Run) -> bool:
     d = _gibbs_result_dir(run)
     if not d.exists():
         return False
+    params  = _model_params_label(run.h)
     pattern = (
-        f"result_lr1d_h{run.h}_alpha{ALPHA}_rbmfull_nh{run.size}"
+        f"result_{MODEL}{params}_rbmfull_nh{run.size}"
         f"_lr{GIBBS_LR}_reg{FIXED['reg']}_ns{FIXED['n_samples']}"
         f"_seed{SEED}_iter*_cem0_sigma*.json"
     )
@@ -190,24 +240,31 @@ def is_gibbs_done(run: Run) -> bool:
 # Gibbs companion
 # ---------------------------------------------------------------------------
 
-def _gibbs_args(run: Run) -> SimpleNamespace:
+def _common_args(run: Run, n_iterations: int, lr: float, rbm_type: str,
+                 sampler: str, sampling_method: str, cem: bool) -> SimpleNamespace:
+    """Build the args namespace with all model-specific fields set from module-level vars."""
     return SimpleNamespace(
-        model="lr1d", size=run.size, h=run.h,
-        J=1.0, J1=1.0, J2=0.5, delta=1.0, alpha=ALPHA,
+        model=MODEL, size=run.size, h=run.h,
+        J=J, J1=J1, J2=J2, delta=DELTA, alpha=ALPHA,
         ansatz="rbm", dbm_hidden="8", n_mf_steps=10,
-        rbm="full", n_hidden=run.size,
+        rbm=rbm_type, n_hidden=run.size,
         d_model=32, n_layers=2, n_heads=4, patch_size=2,
-        sampler="custom", sampling_method="gibbs",
+        sampler=sampler, sampling_method=sampling_method,
         mh_warmup=0, mh_sweeps=1,
         ra_s_target=0.45, ra_pause_time=10, ra_anneal_time=10,
         n_samples=FIXED["n_samples"],
-        iterations=GIBBS_ITERS,
-        learning_rate=GIBBS_LR,
+        iterations=n_iterations,
+        learning_rate=lr,
         regularization=FIXED["reg"],
-        cem=False, cem_interval=FIXED["cem_interval"],
+        cem=cem, cem_interval=FIXED["cem_interval"],
         seed=SEED, visualize=FIXED["visualize"],
         output_dir=FIXED["output_dir"], sigma=FIXED["sigma"],
     )
+
+
+def _gibbs_args(run: Run) -> SimpleNamespace:
+    return _common_args(run, GIBBS_ITERS, GIBBS_LR, "full",
+                        "custom", "gibbs", cem=False)
 
 
 def execute_gibbs_run(run: Run) -> dict:
@@ -216,7 +273,7 @@ def execute_gibbs_run(run: Run) -> dict:
     key = jax.random.PRNGKey(SEED)
     key, rbm_key = jax.random.split(key)
 
-    ising   = LongRangeTFIM1D(run.size, run.h, alpha=ALPHA)
+    ising   = _make_ising(run.size, run.h)
     rbm     = FullyConnectedRBM(run.size, run.size, rbm_key)
     sampler = ClassicalSampler(method="gibbs", n_sweeps=GIBBS_N_SWEEPS)
     args    = _gibbs_args(run)
@@ -256,30 +313,15 @@ def execute_gibbs_run(run: Run) -> dict:
 # ---------------------------------------------------------------------------
 
 def _qpu_args(run: Run, n_iterations: int, rbm_type: str) -> SimpleNamespace:
-    return SimpleNamespace(
-        model="lr1d", size=run.size, h=run.h,
-        J=1.0, J1=1.0, J2=0.5, delta=1.0, alpha=ALPHA,
-        ansatz="rbm", dbm_hidden="8", n_mf_steps=10,
-        rbm=rbm_type, n_hidden=run.size,
-        d_model=32, n_layers=2, n_heads=4, patch_size=2,
-        sampler=SAMPLER_BACKEND, sampling_method=run.method,
-        mh_warmup=0, mh_sweeps=1,
-        ra_s_target=0.45, ra_pause_time=10, ra_anneal_time=10,
-        n_samples=FIXED["n_samples"],
-        iterations=n_iterations,
-        learning_rate=QPU_LR,
-        regularization=FIXED["reg"],
-        cem=run.cem, cem_interval=FIXED["cem_interval"],
-        seed=SEED, visualize=FIXED["visualize"],
-        output_dir=FIXED["output_dir"], sigma=FIXED["sigma"],
-    )
+    return _common_args(run, n_iterations, QPU_LR, rbm_type,
+                        SAMPLER_BACKEND, run.method, cem=run.cem)
 
 
 def _train_once(run: Run, n_iterations: int, rbm_type: str) -> tuple:
     key = jax.random.PRNGKey(SEED)
     key, rbm_key = jax.random.split(key)
 
-    ising = LongRangeTFIM1D(run.size, run.h, alpha=ALPHA)
+    ising = _make_ising(run.size, run.h)
 
     if rbm_type == "full":
         rbm = FullyConnectedRBM(run.size, run.size, rbm_key)
@@ -349,6 +391,7 @@ def execute_run(run: Run, n_iterations: int) -> dict:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
+    global MODEL, USE_CEM
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -365,23 +408,35 @@ def main() -> None:
         choices=["pegasus_fast", "zephyr_fast"],
         help="D-Wave fast-anneal solver (default: pegasus_fast)",
     )
+    parser.add_argument(
+        "--model", default=MODEL, choices=_VALID_MODELS,
+        help=f"Physical model (default: {MODEL})",
+    )
+    parser.add_argument(
+        "--cem", action="store_true",
+        help="Enable CEM β-scheduling (default: off)",
+    )
     cli = parser.parse_args()
 
+    # Propagate CLI choices to module-level vars so all functions see them
+    MODEL   = cli.model
+    USE_CEM = cli.cem
+
     budget_ms = cli.budget_ms
-    grid      = build_grid(cli.method)
+    grid      = build_grid(cli.method, USE_CEM)
 
     print(f"JAX devices  : {jax.devices()}")
     print(f"JAX version  : {jax.__version__}")
-    print(f"Model        : lr1d  α={ALPHA}")
+    print(f"Model        : {MODEL}")
     print(f"h values     : {H_VALUES}")
     print(f"Sizes ({len(SIZES_1D):2d}) : {SIZES_1D}")
-    print(f"CEM variants : {CEM_FLAGS}  (interval={FIXED['cem_interval']})")
+    print(f"CEM          : {'on' if USE_CEM else 'off'}  (interval={FIXED['cem_interval']})")
     print(f"Method       : {cli.method}  (fast_anneal=True, 7 ns, h-biases dropped)")
     print(f"QPU  LR      : {QPU_LR}      Gibbs LR: {GIBBS_LR}")
     print(f"Iters/run    : {FIXED['iterations']} (QPU)  {GIBBS_ITERS} (Gibbs)")
     print(f"Total runs   : {len(grid)} QPU + {len(grid)} Gibbs")
     print(f"QPU budget   : {budget_ms/60000:.1f} min  ({budget_ms:.0f} ms, this session)")
-    print(f"Output dir   : {FIXED['output_dir']}/lr_tfim_1d/")
+    print(f"Output dir   : {FIXED['output_dir']}/{_model_subdir(MODEL)}/")
 
     if cli.dry_run:
         max_runs = int(budget_ms / (FIXED["iterations"] * QPU_MS_PER_ITER))
@@ -475,7 +530,7 @@ def main() -> None:
                 )
                 print(
                     f"[{i}/{len(pending_items)}] {run.method}"
-                    f"  lr1d N={run.size:>4}  h={run.h}  α={ALPHA}"
+                    f"  {MODEL} N={run.size:>4}  h={run.h}"
                     f"  lr={QPU_LR}  {cem_str}"
                     f"{budget_note}{eta}"
                 )
@@ -499,8 +554,8 @@ def main() -> None:
         if not gibbs_already_done:
             print(
                 f"[{i}/{len(pending_items)}] gibbs"
-                f"  lr1d N={run.size:>4}  h={run.h}  α={ALPHA}"
-                f"  lr={GIBBS_LR}  {cem_str}  iter={GIBBS_ITERS}{eta}"
+                f"  {MODEL} N={run.size:>4}  h={run.h}"
+                f"  lr={GIBBS_LR}  cem=off  iter={GIBBS_ITERS}{eta}"
             )
             try:
                 g_summary = execute_gibbs_run(run)

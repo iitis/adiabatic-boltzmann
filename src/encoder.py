@@ -611,8 +611,11 @@ class Trainer:
                 "zephyr_mh",
                 "pegasus_ra",
                 "zephyr_ra",
+                "pegasus_fast",
+                "zephyr_fast",
             ):
-                save_dwave_samples(np.asarray(V), self.args, iteration)
+                _ss = getattr(self.sampler, "last_sampleset", None)
+                save_dwave_samples(np.asarray(V), self.args, iteration, sampleset=_ss)
 
             # ── 3b. CEM β estimate (before weight update) ─────────────────
             _cem_beta_raw = None
