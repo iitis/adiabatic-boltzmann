@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Time-to-Energy (TTE) scaling plot.
+Time-to-Convergence (TTC) scaling plot.
 
 For each solver/sampler, plots how long it takes to reach a convergence
 criterion as a function of instance size N, alongside the relative energy
@@ -11,6 +11,8 @@ Two convergence modes (--convergence):
       Declare convergence at the first iteration t where
       std(energy[t-W+1 : t+1]) < tol * |E_exact|.
       W = --window (default 10), tol = --tol (default 0.01).
+      Runs that never meet the criterion are excluded from the TTC panel
+      and counted as non-converged in the data table.
 
   fixed
       Read energy/time at iteration --fixed-iter (default: last available).
@@ -22,11 +24,10 @@ iteration (per-iteration wall-clock time recorded in the result JSON).
 Error metric: |E_achieved - E_exact| / |E_exact|
 
 Multiple seeds at the same (method, N) are aggregated: median + IQR (p25–p75).
-Runs that never reach the rolling threshold are reported as "did not converge"
-and excluded from that panel.
+Before plotting, a table is printed showing converged/total runs per sampler and N.
 
 Saved to:
-    plots/tte/{model}_tte_{convergence}.png
+    plots/ttc/{model}_ttc_{convergence}.png
 
 Usage:
     python scripts/viz/plot_tte.py
@@ -47,7 +48,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 RESULTS_DIR = ROOT / "results"
-PLOTS_DIR = ROOT / "plots" / "tte"
+PLOTS_DIR = ROOT / "plots" / "ttc"
 
 KNOWN_MODELS = ["tfim_1d", "tfim_2d", "heisenberg_xxz_1d", "lr_tfim_1d"]
 
@@ -217,35 +218,64 @@ def aggregate(values: list[float]):
 # Plotting
 # ---------------------------------------------------------------------------
 
-def plot_tte(model: str, runs: list[dict], mode: str, window: int, tol: float,
+def print_convergence_table(bucket: dict, mode: str):
+    """
+    Print a table of converged/total datapoints per (sampler, N).
+
+    In rolling mode a None TTC means the run never converged.
+    In fixed mode all runs produce a value, so converged == total.
+    """
+    all_methods = sorted(bucket.keys())
+    all_sizes = sorted({N for mk in bucket for N in bucket[mk]})
+
+    col_w = max(len(mk) for mk in all_methods) + 2
+    size_w = max(7, *(len(str(N)) + 4 for N in all_sizes))
+
+    header = f"{'Sampler':<{col_w}}" + "".join(f"  N={N:<{size_w - 4}}" for N in all_sizes)
+    print("\n" + "=" * len(header))
+    print("Convergence table  (converged / total runs)")
+    print("=" * len(header))
+    print(header)
+    print("-" * len(header))
+
+    for mk in all_methods:
+        row = f"{mk:<{col_w}}"
+        for N in all_sizes:
+            vals = bucket[mk].get(N, {}).get("ttc", [])
+            total = len(vals)
+            converged = sum(1 for v in vals if v is not None)
+            if total == 0:
+                cell = "-"
+            elif mode == "fixed":
+                cell = str(total)
+            else:
+                cell = f"{converged}/{total}"
+            row += f"  {cell:<{size_w - 2}}"
+        print(row)
+
+    print("=" * len(header) + "\n")
+
+
+def plot_ttc(model: str, runs: list[dict], mode: str, window: int, tol: float,
              fixed_iter: int, out_dir: Path):
 
     # Bucket by (method_key, N)
-    bucket: dict = defaultdict(lambda: defaultdict(lambda: {"tte": [], "err": []}))
+    bucket: dict = defaultdict(lambda: defaultdict(lambda: {"ttc": [], "err": []}))
     for run in runs:
-        tte, err = compute_tte_and_error(run, mode, window, tol, fixed_iter)
+        ttc, err = compute_tte_and_error(run, mode, window, tol, fixed_iter)
         mk = run["method_key"]
         N = run["N"]
-        bucket[mk][N]["tte"].append(tte)
+        bucket[mk][N]["ttc"].append(ttc)
         bucket[mk][N]["err"].append(err)
 
     if not bucket:
         print(f"No data for model={model}")
         return
 
-    # Warn about non-converging runs
-    for mk, size_data in bucket.items():
-        for N, vals in size_data.items():
-            n_none = sum(1 for v in vals["tte"] if v is None)
-            n_total = len(vals["tte"])
-            if n_none:
-                print(
-                    f"  [warn] {mk} N={N}: {n_none}/{n_total} seeds did not converge"
-                    " — excluded from TTE panel"
-                )
+    print_convergence_table(bucket, mode)
 
     fig, axes = plt.subplots(2, 1, figsize=(10, 9), sharex=False)
-    ax_tte, ax_err = axes
+    ax_ttc, ax_err = axes
 
     mode_label = (
         f"rolling std < {tol:.0%}·|E_exact|, window={window}"
@@ -253,7 +283,7 @@ def plot_tte(model: str, runs: list[dict], mode: str, window: int, tol: float,
         else f"fixed iter={fixed_iter}"
     )
     fig.suptitle(
-        f"Time-to-Energy  —  model={model}\n({mode_label})",
+        f"Time-to-Convergence  —  model={model}\n({mode_label})",
         fontsize=13, fontweight="bold",
     )
 
@@ -261,13 +291,13 @@ def plot_tte(model: str, runs: list[dict], mode: str, window: int, tol: float,
         size_data = bucket[mk]
         sizes = sorted(size_data.keys())
 
-        tte_med, tte_lo, tte_hi = [], [], []
+        ttc_med, ttc_lo, ttc_hi = [], [], []
         err_med, err_lo, err_hi = [], [], []
 
         for N in sizes:
-            tm, tl, th = aggregate(size_data[N]["tte"])
+            tm, tl, th = aggregate(size_data[N]["ttc"])
             em, el, eh = aggregate(size_data[N]["err"])
-            tte_med.append(tm); tte_lo.append(tl); tte_hi.append(th)
+            ttc_med.append(tm); ttc_lo.append(tl); ttc_hi.append(th)
             err_med.append(em); err_lo.append(el); err_hi.append(eh)
 
         color = METHOD_COLORS.get(mk)
@@ -275,17 +305,17 @@ def plot_tte(model: str, runs: list[dict], mode: str, window: int, tol: float,
         kw = dict(color=color, marker=marker, markersize=6,
                   linewidth=1.8, capsize=3, alpha=0.85, label=mk)
 
-        # TTE panel — skip sizes where median is NaN (never converged)
-        valid_tte = [(N, m, lo, hi)
-                     for N, m, lo, hi in zip(sizes, tte_med, tte_lo, tte_hi)
+        # TTC panel — skip sizes where median is NaN (never converged)
+        valid_ttc = [(N, m, lo, hi)
+                     for N, m, lo, hi in zip(sizes, ttc_med, ttc_lo, ttc_hi)
                      if np.isfinite(m)]
-        if valid_tte:
-            xs, ms, los, his = zip(*valid_tte)
+        if valid_ttc:
+            xs, ms, los, his = zip(*valid_ttc)
             yerr = [
                 [m - lo for m, lo in zip(ms, los)],
                 [hi - m for m, hi in zip(ms, his)],
             ]
-            ax_tte.errorbar(xs, ms, yerr=yerr, **kw)
+            ax_ttc.errorbar(xs, ms, yerr=yerr, **kw)
 
         # Error panel — skip NaN
         valid_err = [(N, m, lo, hi)
@@ -299,13 +329,13 @@ def plot_tte(model: str, runs: list[dict], mode: str, window: int, tol: float,
             ]
             ax_err.errorbar(xs, ms, yerr=yerr, **kw)
 
-    # -- TTE panel formatting
-    ax_tte.set_ylabel("TTE (s) — cumulative sampling time", fontsize=11)
-    ax_tte.set_xscale("log")
-    ax_tte.set_yscale("log")
-    ax_tte.grid(True, alpha=0.3, which="both")
-    ax_tte.legend(fontsize=8, loc="upper left")
-    ax_tte.set_title("Time to convergence", fontsize=11)
+    # -- TTC panel formatting
+    ax_ttc.set_ylabel("TTC (s) — cumulative sampling time", fontsize=11)
+    ax_ttc.set_xscale("log")
+    ax_ttc.set_yscale("log")
+    ax_ttc.grid(True, alpha=0.3, which="both")
+    ax_ttc.legend(fontsize=8, loc="upper left")
+    ax_ttc.set_title("Time to convergence", fontsize=11)
 
     # -- Error panel formatting
     ax_err.set_xlabel("Instance size N", fontsize=11)
@@ -318,7 +348,7 @@ def plot_tte(model: str, runs: list[dict], mode: str, window: int, tol: float,
 
     plt.tight_layout()
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / f"{model}_tte_{mode}.png"
+    out_path = out_dir / f"{model}_ttc_{mode}.png"
     plt.savefig(out_path, dpi=150, bbox_inches="tight")
     print(f"Saved: {out_path}")
     plt.close(fig)
@@ -330,7 +360,7 @@ def plot_tte(model: str, runs: list[dict], mode: str, window: int, tol: float,
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Plot Time-to-Energy (TTE) scaling vs instance size",
+        description="Plot Time-to-Convergence (TTC) scaling vs instance size",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("--model", choices=KNOWN_MODELS, default="tfim_1d")
@@ -379,7 +409,7 @@ def main():
     print(f"Methods: {methods}")
     print(f"Sizes  : {sizes}")
 
-    plot_tte(
+    plot_ttc(
         model=args.model,
         runs=runs,
         mode=args.convergence,

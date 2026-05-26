@@ -864,11 +864,6 @@ class FPGASampler(Sampler):
         except ValueError:
             return None
 
-<<<<<<< HEAD
-    def sample(
-        self, rbm, n_samples: int, config: dict = None, return_hidden: bool = False
-    ):
-=======
     def _ensure_server(self, env_overrides: dict):
         if self._proc is not None and self._proc.poll() is None and self._sock is not None:
             return
@@ -994,7 +989,6 @@ class FPGASampler(Sampler):
         raise RuntimeError(f"Unexpected server response: {text!r}")
 
     def sample(self, rbm, n_samples: int, config: dict = None, return_hidden: bool = False):
->>>>>>> main
         if config is None:
             config = {}
         self.last_sampling_time_s = None
@@ -1018,120 +1012,6 @@ class FPGASampler(Sampler):
         stop_temp = float(config.get("fpga_stop_temp", self.stop_temp))
         schedule_type = str(config.get("fpga_schedule", self.schedule_type))
 
-<<<<<<< HEAD
-        cmd = [
-            self.julia_cmd,
-            f"--project={self.project_path}",
-            str(self.script_path),
-            str(model_path),
-            str(out_path),
-            str(num_rep),
-            str(num_steps),
-            str(num_sweeps),
-            str(start_temp),
-            str(stop_temp),
-            schedule_type,
-            transport,
-            str(meta_path),
-        ]
-
-        env = os.environ.copy()
-        self._apply_env_overrides(env, config)
-        stream_output = bool(
-            config.get("fpga_stream_output")
-            if "fpga_stream_output" in config
-            else self._bool_from_env(env, "FPGA_STREAM_OUTPUT")
-            or self._bool_from_env(env, "FPGA_VERBOSE")
-        )
-        timeout_s = config.get("fpga_timeout_s", None)
-        if timeout_s is None:
-            timeout_s = self._timeout_from_env(env, "FPGA_TIMEOUT_S")
-
-        if stream_output:
-            stdout_lines: list[str] = []
-            stderr_lines: list[str] = []
-
-            def _reader(stream, sink, collector):
-                try:
-                    for line in iter(stream.readline, ""):
-                        if not line:
-                            break
-                        sink.write(line)
-                        sink.flush()
-                        collector.append(line)
-                finally:
-                    try:
-                        stream.close()
-                    except Exception:
-                        pass
-
-            proc = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1,
-                env=env,
-            )
-            t_out = threading.Thread(
-                target=_reader, args=(proc.stdout, _sys.stdout, stdout_lines)
-            )
-            t_err = threading.Thread(
-                target=_reader, args=(proc.stderr, _sys.stderr, stderr_lines)
-            )
-            t_out.daemon = True
-            t_err.daemon = True
-            t_out.start()
-            t_err.start()
-            try:
-                if timeout_s is None:
-                    returncode = proc.wait()
-                else:
-                    returncode = proc.wait(timeout=timeout_s)
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                returncode = proc.wait()
-                msg = f"FPGA sampler timed out after {timeout_s} seconds."
-                if stdout_lines:
-                    msg += "\nstdout:\n" + "".join(stdout_lines[-200:])
-                if stderr_lines:
-                    msg += "\nstderr:\n" + "".join(stderr_lines[-200:])
-                raise RuntimeError(msg)
-            finally:
-                t_out.join(timeout=2)
-                t_err.join(timeout=2)
-            if returncode != 0:
-                msg = f"FPGA sampler failed (exit {returncode})."
-                if stdout_lines:
-                    msg += "\nstdout:\n" + "".join(stdout_lines[-200:])
-                if stderr_lines:
-                    msg += "\nstderr:\n" + "".join(stderr_lines[-200:])
-                raise RuntimeError(msg)
-        else:
-            try:
-                result = subprocess.run(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    env=env,
-                    timeout=timeout_s,
-                )
-            except subprocess.TimeoutExpired as e:
-                msg = f"FPGA sampler timed out after {timeout_s} seconds."
-                if e.stdout:
-                    msg += f"\nstdout:\n{e.stdout}"
-                if e.stderr:
-                    msg += f"\nstderr:\n{e.stderr}"
-                raise RuntimeError(msg) from e
-            if result.returncode != 0:
-                msg = f"FPGA sampler failed (exit {result.returncode})."
-                if result.stdout:
-                    msg += f"\nstdout:\n{result.stdout}"
-                if result.stderr:
-                    msg += f"\nstderr:\n{result.stderr}"
-                raise RuntimeError(msg)
-=======
         self._ensure_server(config)
 
         self._send_request([
@@ -1141,7 +1021,6 @@ class FPGASampler(Sampler):
             str(start_temp), str(stop_temp),
             schedule_type, str(meta_path),
         ])
->>>>>>> main
 
         samples = np.loadtxt(out_path, dtype=np.int8)
         if samples.ndim == 1:
