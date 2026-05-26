@@ -19,14 +19,17 @@ Key changes vs NumPy/CuPy/Numba version
 
 import fcntl
 import functools
+import atexit
 import json
 import math as _math
 import os
+import socket as _socket
 import subprocess
 import tempfile
 import threading
 import time
 import uuid
+import weakref
 import sys as _sys
 import numpy as np
 import jax
@@ -771,16 +774,17 @@ class FPGASampler(Sampler):
         project_path=None,
         script_path=None,
         num_rep: int = 1024,
-        num_steps: int = 100,
-        num_sweeps: int = 1,
+        num_steps: int = 1000,
+        num_sweeps: int = 5,
         start_temp: float = -1.0,
         stop_temp: float = -1.0,
         schedule_type: str = "geometric",
         keep_files: bool = False,
+        server_ready_timeout_s: float = 120.0,
     ):
         repo_root = Path(__file__).resolve().parent.parent
         default_project = (repo_root.parent / "veloxQFPGA").resolve()
-        default_script = repo_root / "scripts" / "fpga_sa_bridge.jl"
+        default_script = repo_root / "scripts" / "fpga_sa_server.jl"
 
         self.transport = transport
         self.julia_cmd = julia_cmd
@@ -797,6 +801,7 @@ class FPGASampler(Sampler):
         self.stop_temp = float(stop_temp)
         self.schedule_type = str(schedule_type)
         self.keep_files = keep_files
+        self.server_ready_timeout_s = float(server_ready_timeout_s)
 
         self._tmpdir = tempfile.TemporaryDirectory(prefix="fpga_sampler_")
         self._tmp_root = Path(self._tmpdir.name)
@@ -807,9 +812,26 @@ class FPGASampler(Sampler):
             )
         if not self.script_path.exists():
             raise FileNotFoundError(
-                f"FPGA Julia bridge script not found at {self.script_path}."
+                f"FPGA Julia server script not found at {self.script_path}."
             )
         self.last_sampling_time_s = None
+
+        self._proc: subprocess.Popen | None = None
+        self._sock: _socket.socket | None = None
+        self._sock_file = None
+        self._socket_path: str | None = None
+        self._stdout_thread: threading.Thread | None = None
+        self._shutdown_lock = threading.Lock()
+
+        weak_self = weakref.ref(self)
+
+        def _atexit_shutdown():
+            obj = weak_self()
+            if obj is not None:
+                obj._shutdown_server()
+
+        self._atexit_callback = _atexit_shutdown
+        atexit.register(self._atexit_callback)
 
     def _write_ising_csv(self, path, linear, quadratic, n_vars):
         with path.open("w") as f:
@@ -842,9 +864,137 @@ class FPGASampler(Sampler):
         except ValueError:
             return None
 
+<<<<<<< HEAD
     def sample(
         self, rbm, n_samples: int, config: dict = None, return_hidden: bool = False
     ):
+=======
+    def _ensure_server(self, env_overrides: dict):
+        if self._proc is not None and self._proc.poll() is None and self._sock is not None:
+            return
+        self._socket_path = str(self._tmp_root / f"server_{uuid.uuid4().hex}.sock")
+        env = os.environ.copy()
+        self._apply_env_overrides(env, env_overrides)
+        env["FPGA_SOCKET"] = self._socket_path
+        env["FPGA_TRANSPORT"] = str(self.transport)
+        cmd = [
+            self.julia_cmd, f"--project={self.project_path}", str(self.script_path),
+        ]
+        self._proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            env=env,
+        )
+
+        deadline = time.monotonic() + self.server_ready_timeout_s
+        ready_marker = "[server] READY"
+        while True:
+            if self._proc.poll() is not None:
+                tail = self._proc.stdout.read() if self._proc.stdout else ""
+                raise RuntimeError(
+                    f"FPGA SA server exited before READY (code {self._proc.returncode}).\n{tail}"
+                )
+            if time.monotonic() > deadline:
+                self._shutdown_server()
+                raise RuntimeError(
+                    f"FPGA SA server did not become ready within {self.server_ready_timeout_s}s."
+                )
+            line = self._proc.stdout.readline() if self._proc.stdout else ""
+            if not line:
+                time.sleep(0.05)
+                continue
+            _sys.stdout.write(line)
+            _sys.stdout.flush()
+            if ready_marker in line:
+                break
+
+        def _drain():
+            try:
+                for line in iter(self._proc.stdout.readline, ""):
+                    if not line:
+                        break
+                    _sys.stdout.write(line)
+                    _sys.stdout.flush()
+            except Exception:
+                pass
+
+        self._stdout_thread = threading.Thread(target=_drain, daemon=True)
+        self._stdout_thread.start()
+
+        sock = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)
+        sock.connect(self._socket_path)
+        sock.settimeout(None)
+        self._sock = sock
+        self._sock_file = sock.makefile("rwb", buffering=0)
+
+    def _shutdown_server(self):
+        with self._shutdown_lock:
+            if self._sock is not None:
+                try:
+                    self._sock.sendall(b"shutdown\n")
+                except OSError:
+                    pass
+                try:
+                    if self._sock_file is not None:
+                        self._sock_file.close()
+                except OSError:
+                    pass
+                try:
+                    self._sock.close()
+                except OSError:
+                    pass
+                self._sock = None
+                self._sock_file = None
+            if self._proc is not None:
+                try:
+                    self._proc.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    self._proc.kill()
+                    self._proc.wait()
+                self._proc = None
+            if self._socket_path:
+                try:
+                    os.unlink(self._socket_path)
+                except FileNotFoundError:
+                    pass
+                self._socket_path = None
+
+    def close(self):
+        self._shutdown_server()
+        cb = getattr(self, "_atexit_callback", None)
+        if cb is not None:
+            try:
+                atexit.unregister(cb)
+            except Exception:
+                pass
+            self._atexit_callback = None
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass
+
+    def _send_request(self, parts: list) -> None:
+        if self._sock_file is None:
+            raise RuntimeError("FPGA SA server socket is not open.")
+        line = ("\t".join(parts) + "\n").encode()
+        self._sock_file.write(line)
+        response = self._sock_file.readline()
+        if not response:
+            raise RuntimeError("FPGA SA server closed the connection.")
+        text = response.decode().rstrip("\n")
+        if text == "ok":
+            return
+        if text.startswith("err\t"):
+            raise RuntimeError(f"FPGA SA server error: {text[4:]}")
+        raise RuntimeError(f"Unexpected server response: {text!r}")
+
+    def sample(self, rbm, n_samples: int, config: dict = None, return_hidden: bool = False):
+>>>>>>> main
         if config is None:
             config = {}
         self.last_sampling_time_s = None
@@ -867,8 +1017,8 @@ class FPGASampler(Sampler):
         start_temp = float(config.get("fpga_start_temp", self.start_temp))
         stop_temp = float(config.get("fpga_stop_temp", self.stop_temp))
         schedule_type = str(config.get("fpga_schedule", self.schedule_type))
-        transport = str(config.get("fpga_transport", self.transport))
 
+<<<<<<< HEAD
         cmd = [
             self.julia_cmd,
             f"--project={self.project_path}",
@@ -981,6 +1131,17 @@ class FPGASampler(Sampler):
                 if result.stderr:
                     msg += f"\nstderr:\n{result.stderr}"
                 raise RuntimeError(msg)
+=======
+        self._ensure_server(config)
+
+        self._send_request([
+            "sample",
+            str(model_path), str(out_path),
+            str(num_rep), str(num_steps), str(num_sweeps),
+            str(start_temp), str(stop_temp),
+            schedule_type, str(meta_path),
+        ])
+>>>>>>> main
 
         samples = np.loadtxt(out_path, dtype=np.int8)
         if samples.ndim == 1:
@@ -992,6 +1153,312 @@ class FPGASampler(Sampler):
         if samples.shape[0] < n_samples:
             raise RuntimeError(
                 f"FPGA sampler returned {samples.shape[0]} samples, expected {n_samples}."
+            )
+        if samples.shape[0] > n_samples:
+            samples = samples[:n_samples]
+
+        if meta_path.exists():
+            try:
+                self.last_sampling_time_s = float(meta_path.read_text().strip())
+            except Exception:
+                self.last_sampling_time_s = None
+
+        if not self.keep_files:
+            for p in (model_path, out_path, meta_path):
+                try:
+                    p.unlink()
+                except FileNotFoundError:
+                    pass
+
+        v = samples[:, : rbm.n_visible]
+        if return_hidden:
+            h_samples = samples[:, rbm.n_visible : rbm.n_visible + rbm.n_hidden]
+            return v, h_samples
+        return v
+
+
+# ---------------------------------------------------------------------------
+# VeloxQstandard SimulatedAnnealing sampler — subprocess + Julia bridge
+# ---------------------------------------------------------------------------
+
+
+class VeloxQStandardSASampler(Sampler):
+    """
+    Sampler that delegates sampling to VeloxQstandard.SimulatedAnnealing via a
+    Julia bridge subprocess. Mirrors FPGASampler's I/O model (CSV in, states +
+    meta out) but targets the classical SA solver instead of FPGA.
+    """
+
+    _ENV_MAP = {
+        "veloxq_timeout_s": "VELOXQ_TIMEOUT_S",
+        "veloxq_verbose": "VELOXQ_VERBOSE",
+        "veloxq_scale_model": "VELOXQ_SCALE_MODEL",
+        "veloxq_compress": "VELOXQ_COMPRESS",
+        "veloxq_th_per_block": "VELOXQ_TH_PER_BLOCK",
+    }
+
+    def __init__(
+        self,
+        julia_cmd: str = "julia",
+        project_path=None,
+        script_path=None,
+        num_rep: int = 1024,
+        num_steps: int = 1000,
+        num_sweeps: int = 5,
+        start_temp: float = -1.0,
+        stop_temp: float = -1.0,
+        schedule_type: str = "geometric",
+        keep_files: bool = False,
+        server_ready_timeout_s: float = 120.0,
+    ):
+        repo_root = Path(__file__).resolve().parent.parent
+        default_project = (repo_root / "scripts" / "julia").resolve()
+        default_script = repo_root / "scripts" / "veloxq_sa_server.jl"
+
+        self.julia_cmd = julia_cmd
+        self.project_path = (
+            Path(project_path).resolve() if project_path else default_project
+        )
+        self.script_path = (
+            Path(script_path).resolve() if script_path else default_script
+        )
+        self.num_rep = int(num_rep)
+        self.num_steps = int(num_steps)
+        self.num_sweeps = int(num_sweeps)
+        self.start_temp = float(start_temp)
+        self.stop_temp = float(stop_temp)
+        self.schedule_type = str(schedule_type)
+        self.keep_files = keep_files
+        self.server_ready_timeout_s = float(server_ready_timeout_s)
+
+        self._tmpdir = tempfile.TemporaryDirectory(prefix="veloxq_sa_sampler_")
+        self._tmp_root = Path(self._tmpdir.name)
+
+        if not self.project_path.exists():
+            raise FileNotFoundError(
+                f"VeloxQstandard project not found at {self.project_path}."
+            )
+        if not self.script_path.exists():
+            raise FileNotFoundError(
+                f"VeloxQ SA Julia server script not found at {self.script_path}."
+            )
+        self.last_sampling_time_s = None
+
+        self._proc: subprocess.Popen | None = None
+        self._sock: _socket.socket | None = None
+        self._sock_file = None
+        self._socket_path: str | None = None
+        self._stdout_thread: threading.Thread | None = None
+        self._shutdown_lock = threading.Lock()
+
+        weak_self = weakref.ref(self)
+
+        def _atexit_shutdown():
+            obj = weak_self()
+            if obj is not None:
+                obj._shutdown_server()
+
+        self._atexit_callback = _atexit_shutdown
+        atexit.register(self._atexit_callback)
+
+    def _write_ising_csv(self, path, linear, quadratic, n_vars):
+        with path.open("w") as f:
+            for i in range(n_vars):
+                val = float(linear.get(i, 0.0)) * 0.5
+                f.write(f"{i + 1},{i + 1},{val:.16g}\n")
+            for (i, j), val in sorted(quadratic.items()):
+                f.write(f"{i + 1},{j + 1},{float(val):.16g}\n")
+
+    def _apply_env_overrides(self, env, config):
+        for key, env_key in self._ENV_MAP.items():
+            if key not in config:
+                continue
+            val = config[key]
+            if isinstance(val, bool):
+                env[env_key] = "true" if val else "false"
+            else:
+                env[env_key] = str(val)
+
+    def _bool_from_env(self, env, key):
+        val = env.get(key, "")
+        return str(val).strip().lower() in ("1", "true", "yes", "on") if val else False
+
+    def _timeout_from_env(self, env, key):
+        val = env.get(key, "")
+        if not val:
+            return None
+        try:
+            return float(val)
+        except ValueError:
+            return None
+
+    def _ensure_server(self, env_overrides: dict):
+        if self._proc is not None and self._proc.poll() is None and self._sock is not None:
+            return
+        self._socket_path = str(self._tmp_root / f"server_{uuid.uuid4().hex}.sock")
+        env = os.environ.copy()
+        self._apply_env_overrides(env, env_overrides)
+        env["VELOXQ_SOCKET"] = self._socket_path
+        cmd = [
+            self.julia_cmd, f"--project={self.project_path}", str(self.script_path),
+        ]
+        self._proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            env=env,
+        )
+
+        deadline = time.monotonic() + self.server_ready_timeout_s
+        ready_marker = "[server] READY"
+        while True:
+            if self._proc.poll() is not None:
+                tail = self._proc.stdout.read() if self._proc.stdout else ""
+                raise RuntimeError(
+                    f"VeloxQ SA server exited before READY (code {self._proc.returncode}).\n{tail}"
+                )
+            if time.monotonic() > deadline:
+                self._shutdown_server()
+                raise RuntimeError(
+                    f"VeloxQ SA server did not become ready within {self.server_ready_timeout_s}s."
+                )
+            line = self._proc.stdout.readline() if self._proc.stdout else ""
+            if not line:
+                time.sleep(0.05)
+                continue
+            _sys.stdout.write(line)
+            _sys.stdout.flush()
+            if ready_marker in line:
+                break
+
+        def _drain():
+            try:
+                for line in iter(self._proc.stdout.readline, ""):
+                    if not line:
+                        break
+                    _sys.stdout.write(line)
+                    _sys.stdout.flush()
+            except Exception:
+                pass
+
+        self._stdout_thread = threading.Thread(target=_drain, daemon=True)
+        self._stdout_thread.start()
+
+        sock = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)
+        sock.connect(self._socket_path)
+        sock.settimeout(None)
+        self._sock = sock
+        self._sock_file = sock.makefile("rwb", buffering=0)
+
+    def _shutdown_server(self):
+        with self._shutdown_lock:
+            if self._sock is not None:
+                try:
+                    self._sock.sendall(b"shutdown\n")
+                except OSError:
+                    pass
+                try:
+                    if self._sock_file is not None:
+                        self._sock_file.close()
+                except OSError:
+                    pass
+                try:
+                    self._sock.close()
+                except OSError:
+                    pass
+                self._sock = None
+                self._sock_file = None
+            if self._proc is not None:
+                try:
+                    self._proc.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    self._proc.kill()
+                    self._proc.wait()
+                self._proc = None
+            if self._socket_path:
+                try:
+                    os.unlink(self._socket_path)
+                except FileNotFoundError:
+                    pass
+                self._socket_path = None
+
+    def close(self):
+        self._shutdown_server()
+        cb = getattr(self, "_atexit_callback", None)
+        if cb is not None:
+            try:
+                atexit.unregister(cb)
+            except Exception:
+                pass
+            self._atexit_callback = None
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass
+
+    def _send_request(self, parts: list) -> None:
+        if self._sock_file is None:
+            raise RuntimeError("VeloxQ SA server socket is not open.")
+        line = ("\t".join(parts) + "\n").encode()
+        self._sock_file.write(line)
+        response = self._sock_file.readline()
+        if not response:
+            raise RuntimeError("VeloxQ SA server closed the connection.")
+        text = response.decode().rstrip("\n")
+        if text == "ok":
+            return
+        if text.startswith("err\t"):
+            raise RuntimeError(f"VeloxQ SA server error: {text[4:]}")
+        raise RuntimeError(f"Unexpected server response: {text!r}")
+
+    def sample(self, rbm, n_samples: int, config: dict = None, return_hidden: bool = False):
+        if config is None:
+            config = {}
+        self.last_sampling_time_s = None
+        beta_x = config.get("beta_x", 1.0)
+        quadratic, linear = self.rbm_to_ising(rbm, beta_x)
+        n_vars = rbm.n_visible + rbm.n_hidden
+        model_path = self._tmp_root / f"ising_{uuid.uuid4().hex}.csv"
+        out_path = self._tmp_root / f"states_{uuid.uuid4().hex}.txt"
+        meta_path = self._tmp_root / f"meta_{uuid.uuid4().hex}.txt"
+        self._write_ising_csv(model_path, linear, quadratic, n_vars)
+
+        num_rep = int(config.get("veloxq_num_rep", self.num_rep))
+        if n_samples > num_rep:
+            raise ValueError(
+                f"Requested n_samples={n_samples} exceeds VeloxQ num_rep={num_rep}."
+            )
+
+        num_steps = int(config.get("veloxq_num_steps", self.num_steps))
+        num_sweeps = int(config.get("veloxq_num_sweeps", self.num_sweeps))
+        start_temp = float(config.get("veloxq_start_temp", self.start_temp))
+        stop_temp = float(config.get("veloxq_stop_temp", self.stop_temp))
+        schedule_type = str(config.get("veloxq_schedule", self.schedule_type))
+
+        self._ensure_server(config)
+
+        self._send_request([
+            "sample",
+            str(model_path), str(out_path),
+            str(num_rep), str(num_steps), str(num_sweeps),
+            str(start_temp), str(stop_temp),
+            schedule_type, str(meta_path),
+        ])
+
+        samples = np.loadtxt(out_path, dtype=np.int8)
+        if samples.ndim == 1:
+            samples = samples[None, :]
+        if samples.shape[1] != n_vars:
+            raise RuntimeError(
+                f"VeloxQ SA sampler returned {samples.shape[1]} vars, expected {n_vars}."
+            )
+        if samples.shape[0] < n_samples:
+            raise RuntimeError(
+                f"VeloxQ SA sampler returned {samples.shape[0]} samples, expected {n_samples}."
             )
         if samples.shape[0] > n_samples:
             samples = samples[:n_samples]
