@@ -30,7 +30,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-RESULTS_DIR = ROOT / "jax_results"
+RESULTS_DIR = ROOT / "results"
 PLOTS_DIR = ROOT / "plots" / "sampling_times"
 
 KNOWN_MODELS = ["tfim_1d", "tfim_2d", "heisenberg_xxz_1d", "lr_tfim_1d"]

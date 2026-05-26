@@ -46,10 +46,11 @@ FIXED = dict(
     sigma=1.0,
 )
 
-SIZES = [24]
+SIZES = [24, 48, 64, 100, 128, 200]
 H_VALUES = [0.5, 1.0, 2.0]
-LEARNING_RATES = [1e-4, 3e-4, 1e-3, 3e-3, 1e-2]
+LEARNING_RATES = [0.01, 0.1]
 SEEDS = [1]
+USE_CEM = False
 
 SAMPLERS = {
     "fpga": ("fpga", "fpga"),
@@ -96,7 +97,7 @@ def result_path(run: Run) -> Path:
         f"_ns{FIXED['n_samples']}"
         f"_seed{run.seed}"
         f"_iter{FIXED['iterations']}"
-        f"_cem1"
+        f"_cem{int(USE_CEM)}"
         f"_sigma{float(FIXED['sigma'])}"
         f".json"
     )
@@ -121,7 +122,7 @@ def build_args(run: Run) -> SimpleNamespace:
         iterations=FIXED["iterations"],
         learning_rate=run.lr,
         regularization=FIXED["reg"],
-        cem=True,
+        cem=USE_CEM,
         cem_interval=5,
         seed=run.seed,
         visualize=FIXED["visualize"],
@@ -158,7 +159,7 @@ def execute_run(run: Run) -> dict:
         regularization=FIXED["reg"],
         save_checkpoints=True,
         checkpoint_interval=10,
-        use_cem=True,
+        use_cem=USE_CEM,
         cem_interval=5,
         seed=run.seed,
     )
@@ -170,8 +171,8 @@ def execute_run(run: Run) -> dict:
     exact = ising.exact_ground_energy()
     final = history["energy"][-1]
     rel_err = abs(final - exact) / abs(exact)
-    kl = history["kl_exact"][-1]
-    gn = history["grad_norm"][-1]
+    kl = history.get("kl_exact", [None])[-1]
+    gn = history.get("grad_norm", [None])[-1]
 
     return dict(rel_error=rel_err, final_kl=kl, grad_norm=gn)
 

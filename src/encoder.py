@@ -574,6 +574,7 @@ class Trainer:
                         )
                 else:
                     sample_time_s = elapsed
+                    print("no sampling time given")
                 self.history["sampling_time_s"].append(sample_time_s)
             except Exception as e:
                 print(f"  [Trainer] Sampling failed at iteration {iteration}: {e}")

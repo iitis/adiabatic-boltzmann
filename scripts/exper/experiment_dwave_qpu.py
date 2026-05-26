@@ -49,7 +49,6 @@ from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
-import numpy as np
 
 _SRC = Path(__file__).resolve().parent.parent.parent / "src"
 sys.path.insert(0, str(_SRC))
@@ -98,11 +97,15 @@ QPU_LR          = 0.1
 GIBBS_LR        = 0.01
 GIBBS_ITERS     = 150
 GIBBS_N_SWEEPS  = 10
+LSB_LR          = 0.1
+LSB_ITERS       = 150
+LSB_STEPS       = 1000   # MCMC steps per LSB call
+LSB_DELTA       = 1.0
 SEED            = 42
 SAMPLER_BACKEND = "dimod"
 
 # Model — overridden by --model at runtime
-MODEL = "lr1d"
+MODEL = "1d"
 ALPHA = 2.0    # LR-TFIM power-law exponent (lr1d only)
 J1    = 1.0    # NN coupling  (j1j2_1d only)
 J2    = 0.5    # NNN coupling (j1j2_1d only)
@@ -111,11 +114,7 @@ DELTA = 1.0    # XXZ anisotropy (heisenberg_xxz only)
 USE_CEM = False  # overridden by --cem at runtime
 
 H_VALUES  = [0.5, 1.0]
-
-# 10 sizes equally spaced from N=16 to N=200 (rounded to nearest integer)
-SIZES_1D: list[int] = sorted(
-    set(int(round(x)) for x in np.linspace(16, 200, 10))
-)
+SIZES_1D  = [32, 100, 200, 400, 700, 1000]
 
 _VALID_MODELS = [
     "1d", "lr1d", "j1j2_1d",
@@ -309,6 +308,77 @@ def execute_gibbs_run(run: Run) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# LSB companion
+# ---------------------------------------------------------------------------
+
+def _lsb_result_dir(run: Run) -> Path:
+    return (
+        Path(FIXED["output_dir"])
+        / _model_subdir(MODEL)
+        / str(run.size)
+        / "custom"
+        / "lsb"
+    )
+
+
+def is_lsb_done(run: Run) -> bool:
+    d = _lsb_result_dir(run)
+    if not d.exists():
+        return False
+    params  = _model_params_label(run.h)
+    pattern = (
+        f"result_{MODEL}{params}_rbmfull_nh{run.size}"
+        f"_lr{LSB_LR}_reg{FIXED['reg']}_ns{FIXED['n_samples']}"
+        f"_seed{SEED}_iter*_cem0_sigma*.json"
+    )
+    return any(d.glob(pattern))
+
+
+def execute_lsb_run(run: Run) -> dict:
+    _lsb_result_dir(run).mkdir(parents=True, exist_ok=True)
+
+    key = jax.random.PRNGKey(SEED)
+    key, rbm_key = jax.random.split(key)
+
+    ising   = _make_ising(run.size, run.h)
+    rbm     = FullyConnectedRBM(run.size, run.size, rbm_key)
+    sampler = ClassicalSampler(method="lsb")
+    args    = _common_args(run, LSB_ITERS, LSB_LR, "full",
+                           "custom", "lsb", cem=False)
+
+    trainer_config = dict(
+        learning_rate=LSB_LR,
+        n_iterations=LSB_ITERS,
+        n_samples=FIXED["n_samples"],
+        regularization=FIXED["reg"],
+        save_checkpoints=False,
+        checkpoint_interval=10,
+        use_cem=False,
+        cem_interval=FIXED["cem_interval"],
+        lsb_sigma=FIXED["sigma"],
+        lsb_steps=LSB_STEPS,
+        lsb_delta=LSB_DELTA,
+        seed=SEED,
+    )
+
+    t0 = time.perf_counter()
+    trainer = Trainer(rbm, ising, sampler, trainer_config, args=args)
+    history = trainer.train()
+    elapsed = time.perf_counter() - t0
+
+    save_results(args, history, ising, rbm)
+
+    try:
+        exact   = ising.exact_ground_energy()
+        final   = history["energy"][-1]
+        rel_err = abs(final - exact) / abs(exact)
+    except NotImplementedError:
+        rel_err = float("nan")
+
+    return dict(elapsed_s=elapsed, rel_error=rel_err, n_iters=len(history["energy"]))
+
+
+# ---------------------------------------------------------------------------
 # QPU run helpers
 # ---------------------------------------------------------------------------
 
@@ -440,31 +510,36 @@ def main() -> None:
 
     if cli.dry_run:
         max_runs = int(budget_ms / (FIXED["iterations"] * QPU_MS_PER_ITER))
-        print(f"\n{'N':>6}  {'h':>5}  {'CEM':>5}  {'QPU':>6}  {'Gibbs':>6}")
-        print("-" * 38)
+        print(f"\n{'N':>6}  {'h':>5}  {'CEM':>5}  {'QPU':>6}  {'Gibbs':>6}  {'LSB':>6}")
+        print("-" * 48)
         for r in grid:
             print(
                 f"{r.size:>6}  {r.h:>5}  {'on' if r.cem else 'off':>5}"
                 f"  {'done' if is_done(r) else 'no':>6}"
                 f"  {'done' if is_gibbs_done(r) else 'no':>6}"
+                f"  {'done' if is_lsb_done(r) else 'no':>6}"
             )
         n_dw = sum(1 for r in grid if cli.force or not is_done(r))
         n_gb = sum(1 for r in grid if cli.force or not is_gibbs_done(r))
+        n_lb = sum(1 for r in grid if cli.force or not is_lsb_done(r))
         print(
-            f"\nTotal: {len(grid)}  QPU pending: {n_dw}  Gibbs pending: {n_gb}"
+            f"\nTotal: {len(grid)}  QPU pending: {n_dw}  Gibbs pending: {n_gb}  LSB pending: {n_lb}"
             f"\nBudget allows ~{max_runs} full QPU runs"
             f" ({QPU_MS_PER_ITER} ms/iter × {FIXED['iterations']} iters)"
         )
         return
 
     run_status = [
-        (r, is_done(r) and not cli.force, is_gibbs_done(r) and not cli.force)
+        (r,
+         is_done(r) and not cli.force,
+         is_gibbs_done(r) and not cli.force,
+         is_lsb_done(r) and not cli.force)
         for r in grid
     ]
     pending_items = [
-        (r, dw_done, gb_done)
-        for r, dw_done, gb_done in run_status
-        if not dw_done or not gb_done
+        (r, dw_done, gb_done, lb_done)
+        for r, dw_done, gb_done, lb_done in run_status
+        if not dw_done or not gb_done or not lb_done
     ]
     n_fully_done = len(grid) - len(pending_items)
 
@@ -480,10 +555,11 @@ def main() -> None:
 
     n_dw_done        = 0
     n_gb_done        = 0
+    n_lb_done        = 0
     t_wall           = time.perf_counter()
     budget_exhausted = False
 
-    for i, (run, dwave_already_done, gibbs_already_done) in enumerate(pending_items, 1):
+    for i, (run, dwave_already_done, gibbs_already_done, lsb_already_done) in enumerate(pending_items, 1):
         elapsed_s = time.perf_counter() - t_wall
         eta = ""
         if i > 1:
@@ -573,15 +649,39 @@ def main() -> None:
                 print(f"  ERROR  {type(exc).__name__}: {exc}")
                 sys.exit(1)
 
+        # ── LSB companion ─────────────────────────────────────────────
+        if not lsb_already_done:
+            print(
+                f"[{i}/{len(pending_items)}] lsb"
+                f"  {MODEL} N={run.size:>4}  h={run.h}"
+                f"  lr={LSB_LR}  cem=off  iter={LSB_ITERS}{eta}"
+            )
+            try:
+                l_summary = execute_lsb_run(run)
+                n_lb_done += 1
+                print(
+                    f"  {l_summary['elapsed_s']:6.1f}s"
+                    f"  rbm=full"
+                    f"  iters={l_summary['n_iters']}"
+                    f"  rel_err={l_summary['rel_error']:.4f}"
+                )
+            except KeyboardInterrupt:
+                print("\n[interrupted]")
+                raise
+            except Exception as exc:
+                print(f"  ERROR  {type(exc).__name__}: {exc}")
+                sys.exit(1)
+
     total_s      = time.perf_counter() - t_wall
     qpu_total_ms = read_qpu_time_ms(TIME_PATH) - qpu_start_ms
     print(
         f"\n[{datetime.now():%H:%M:%S}]  Finished in {total_s/3600:.2f}h"
         f"  (QPU time this session: {qpu_total_ms/60000:.2f} min)"
     )
-    print(f"  QPU runs completed : {n_dw_done}")
-    print(f"  Gibbs  completed   : {n_gb_done}")
-    print(f"  Fully skipped      : {n_fully_done}  (both already existed)")
+    print(f"  QPU   completed : {n_dw_done}")
+    print(f"  Gibbs completed : {n_gb_done}")
+    print(f"  LSB   completed : {n_lb_done}")
+    print(f"  Fully skipped   : {n_fully_done}  (all already existed)")
 
 
 if __name__ == "__main__":
