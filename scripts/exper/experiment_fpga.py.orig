@@ -12,7 +12,6 @@ Usage
 """
 
 import argparse
-import json
 import multiprocessing
 import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -170,11 +169,19 @@ def execute_run(run: Run) -> dict:
         history = trainer.train(start_iteration=start_iteration)
         save_results(args, history, ising, rbm)
 
+<<<<<<< HEAD
+    exact = ising.exact_ground_energy()
+    final = history["energy"][-1]
+    rel_err = abs(final - exact) / abs(exact)
+    kl = history.get("kl_exact", [None])[-1]
+    gn = history.get("grad_norm", [None])[-1]
+=======
         exact = ising.exact_ground_energy()
         final = history["energy"][-1]
         rel_err = abs(final - exact) / abs(exact)
         kl = history["kl_exact"][-1]
         gn = history["grad_norm"][-1]
+>>>>>>> main
 
         return dict(rel_error=rel_err, final_kl=kl, grad_norm=gn)
     finally:
@@ -194,20 +201,6 @@ def _worker(run: Run) -> tuple:
         return run, summary, None
     except Exception as exc:
         return run, None, exc
-
-
-def _write_failure(log_path: Path, run: Run, exc: Exception):
-    entry = dict(
-        timestamp=datetime.now().isoformat(),
-        size=run.size,
-        h=run.h,
-        lr=run.lr,
-        seed=run.seed,
-        error=type(exc).__name__,
-        message=str(exc),
-    )
-    with log_path.open("a") as f:
-        f.write(json.dumps(entry) + "\n")
 
 
 # ---------------------------------------------------------------------------
@@ -260,8 +253,7 @@ def main():
     print(f"  N={SIZES}  h={H_VALUES}  lr={LEARNING_RATES}")
     print(f"  Pending: {len(pending)}  skipped: {n_skip}  workers: {cli.workers}\n")
 
-    log_path = Path(__file__).resolve().parent / "experiment_fpga_failures.jsonl"
-    n_done = n_fail = 0
+    n_done = 0
 
     if cli.serial:
         completed = 0
@@ -273,10 +265,9 @@ def main():
                 f"N={run.size} h={run.h} lr={run.lr:.4g} seed={run.seed}"
             )
             if exc is not None:
-                n_fail += 1
-                print(f"  FAIL  {tag}")
+                print(f"  ERROR  {tag}")
                 print(f"         {type(exc).__name__}: {exc}")
-                _write_failure(log_path, run, exc)
+                sys.exit(1)
             else:
                 n_done += 1
                 kl_str = (
@@ -301,10 +292,9 @@ def main():
                     f"N={run.size} h={run.h} lr={run.lr:.4g} seed={run.seed}"
                 )
                 if exc is not None:
-                    n_fail += 1
-                    print(f"  FAIL  {tag}")
+                    print(f"  ERROR  {tag}")
                     print(f"         {type(exc).__name__}: {exc}")
-                    _write_failure(log_path, run, exc)
+                    sys.exit(1)
                 else:
                     n_done += 1
                     kl_str = (
@@ -320,10 +310,6 @@ def main():
     print(f"\n[{datetime.now():%H:%M:%S}] Finished.")
     print(f"  Completed : {n_done}")
     print(f"  Skipped   : {n_skip}  (already existed)")
-    print(f"  Failed    : {n_fail}" + (f"  → see {log_path}" if n_fail else ""))
-
-    if n_fail > 0:
-        sys.exit(1)
 
 
 if __name__ == "__main__":

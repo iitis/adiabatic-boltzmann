@@ -47,11 +47,10 @@ FIXED = dict(
     sigma=1.0,
 )
 
-SIZES = [24, 48, 64, 100, 128, 200]
+SIZES = [24]
 H_VALUES = [0.5, 1.0, 2.0]
-LEARNING_RATES = [0.01, 0.1]
+LEARNING_RATES = [1e-4, 3e-4, 1e-3, 3e-3, 1e-2]
 SEEDS = [1]
-USE_CEM = False
 
 SAMPLERS = {
     "fpga": ("fpga", "fpga"),
@@ -98,7 +97,7 @@ def result_path(run: Run) -> Path:
         f"_ns{FIXED['n_samples']}"
         f"_seed{run.seed}"
         f"_iter{FIXED['iterations']}"
-        f"_cem{int(USE_CEM)}"
+        f"_cem1"
         f"_sigma{float(FIXED['sigma'])}"
         f".json"
     )
@@ -123,7 +122,7 @@ def build_args(run: Run) -> SimpleNamespace:
         iterations=FIXED["iterations"],
         learning_rate=run.lr,
         regularization=FIXED["reg"],
-        cem=USE_CEM,
+        cem=True,
         cem_interval=5,
         seed=run.seed,
         visualize=FIXED["visualize"],
@@ -141,7 +140,6 @@ def execute_run(run: Run) -> dict:
     key, rbm_key = jax.random.split(key)
 
     args = build_args(run)
-    result_path(run).parent.mkdir(parents=True, exist_ok=True)
     ising = TransverseFieldIsing1D(run.size, run.h)
     rbm = FullyConnectedRBM(run.size, run.size, rbm_key)
     sampler = make_sampler()
@@ -160,7 +158,7 @@ def execute_run(run: Run) -> dict:
         regularization=FIXED["reg"],
         save_checkpoints=True,
         checkpoint_interval=10,
-        use_cem=USE_CEM,
+        use_cem=True,
         cem_interval=5,
         seed=run.seed,
     )
