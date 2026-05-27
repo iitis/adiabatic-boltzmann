@@ -14,6 +14,7 @@ _MODEL_SUBDIR: dict[str, str] = {
     "2d": "tfim_2d",
     "lr1d": "lr_tfim_1d",
     "j1j2_1d": "j1j2_1d",
+    "heisenberg_j1j2_1d": "heisenberg_j1j2_1d",
     "heisenberg_xy_1d": "heisenberg_xy_1d",
     "heisenberg_xxz_2d": "heisenberg_xxz_2d",
 }
@@ -36,6 +37,11 @@ def _model_params_str(args) -> str:
         J1 = getattr(args, "J1", 1.0)
         J2 = getattr(args, "J2", 0.5)
         return f"_J1{J1}_J2{J2}_h{args.h}"
+    if args.model == "heisenberg_j1j2_1d":
+        J1 = getattr(args, "J1", 1.0)
+        J2 = getattr(args, "J2", 0.3)
+        delta = getattr(args, "delta", 1.0)
+        return f"_J1{J1}_J2{J2}_delta{delta}"
     if args.model == "heisenberg_xy_1d":
         J = getattr(args, "J", 1.0)
         return f"_J{J}"

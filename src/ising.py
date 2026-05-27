@@ -314,6 +314,64 @@ def _local_energy_xxz_1d_jit(
 
 
 # ---------------------------------------------------------------------------
+# J1-J2 Heisenberg 1D JIT kernel
+# ---------------------------------------------------------------------------
+
+
+@functools.partial(jax.jit, static_argnums=(4, 5, 6, 7))
+def _local_energy_j1j2_heisenberg_jit(
+    V: jax.Array,
+    W: jax.Array,
+    a: jax.Array,
+    b: jax.Array,
+    J1: float,
+    J2: float,
+    delta: float,
+    N: int,
+) -> jax.Array:
+    """
+    J₁–J₂ Heisenberg local energy for all ns samples simultaneously.
+
+    V : (ns, N)   spin configs {-1, +1}
+    W : (N, M)    RBM weights
+    a : (N,)      visible biases
+    b : (M,)      hidden biases
+
+    Hamiltonian:
+        H = J₁ Σᵢ [σˣᵢσˣᵢ₊₁ + σʸᵢσʸᵢ₊₁ + Δ σᶻᵢσᶻᵢ₊₁]
+          + J₂ Σᵢ [σˣᵢσˣᵢ₊₂ + σʸᵢσʸᵢ₊₂ + Δ σᶻᵢσᶻᵢ₊₂]
+    """
+    theta = V @ W + b[None, :]                               # (ns, M)
+    blc = jnp.logaddexp(theta, -theta)                       # logcosh base (ns, M)
+
+    right1 = (jnp.arange(N) + 1) % N                        # NN neighbours
+    right2 = (jnp.arange(N) + 2) % N                        # NNN neighbours
+
+    def bond_off_diagonal(right_idx: jax.Array, J_bond: float) -> jax.Array:
+        delta_theta = -2.0 * (
+            V[:, :, None] * W[None, :, :]
+            + V[:, right_idx, None] * W[None, right_idx, :]
+        )                                                    # (ns, N, M)
+        theta_flipped = theta[:, None, :] + delta_theta     # (ns, N, M)
+        log_ratios = (
+            a[None, :] * V
+            + a[None, right_idx] * V[:, right_idx]
+            + 0.5 * jnp.sum(
+                jnp.logaddexp(theta_flipped, -theta_flipped) - blc[:, None, :], axis=2
+            )
+        )                                                    # (ns, N)
+        exchange = 1.0 - V * V[:, right_idx]               # (ns, N)
+        return J_bond * jnp.sum(exchange * jnp.exp(log_ratios), axis=1)  # (ns,)
+
+    E_off = bond_off_diagonal(right1, J1) + bond_off_diagonal(right2, J2)
+    E_diag = (
+        J1 * delta * jnp.sum(V * V[:, right1], axis=1)
+        + J2 * delta * jnp.sum(V * V[:, right2], axis=1)
+    )
+    return E_diag + E_off
+
+
+# ---------------------------------------------------------------------------
 # FBM off-diagonal kernel (shared by all single-flip Hamiltonians)
 # ---------------------------------------------------------------------------
 
@@ -1025,9 +1083,158 @@ class HeisenbergXY1D(HeisenbergXXZ1D):
 
     def exact_ground_energy(self) -> float:
         from reference_energies import get_or_compute
-        # Share cache with HeisenbergXXZ1D(delta=0) to avoid redundant computation
-        model_key = "heisenberg_xxz_1d_delta0"
-        return get_or_compute(model_key, self.size, self.J, self._compute_exact_ground_energy)
+        model_key = "heisenberg_xy_1d"
+        return get_or_compute(model_key, self.size, self.J, self._compute_exact_ground_energy_jw)
+
+    def _compute_exact_ground_energy_jw(self) -> float:
+        """
+        Jordan-Wigner free-fermion exact ground energy for the 1D XY chain.
+
+        H = J Σᵢ [σˣᵢσˣᵢ₊₁ + σʸᵢσʸᵢ₊₁]  (Δ=0 limit of XXZ)
+
+        After JW, the chain maps to free fermions with hopping 2J.  PBC on the
+        spin chain becomes either periodic or antiperiodic BC for the fermions
+        depending on the sector; the ground state is in whichever sector gives
+        the lower energy.  Exact for any even N in O(N) time.
+        """
+        import numpy as np
+        N, J = self.size, self.J
+        n_f = N // 2
+        k_ns = np.pi * (2 * np.arange(N) + 1) / N   # antiperiodic (NS sector)
+        k_r  = 2 * np.pi * np.arange(N) / N           # periodic (R sector)
+        e_ns = float(np.sort(4 * J * np.cos(k_ns))[:n_f].sum())
+        e_r  = float(np.sort(4 * J * np.cos(k_r))[:n_f].sum())
+        return min(e_ns, e_r)
+
+
+# ---------------------------------------------------------------------------
+# J1-J2 Heisenberg 1D chain
+# ---------------------------------------------------------------------------
+
+
+class J1J2HeisenbergXXZ1D(HeisenbergXXZ1D):
+    """
+    1D frustrated J₁–J₂ Heisenberg XXZ chain with periodic boundary conditions.
+
+        H = J₁ Σᵢ [σˣᵢσˣᵢ₊₁ + σʸᵢσʸᵢ₊₁ + Δ σᶻᵢσᶻᵢ₊₁]
+          + J₂ Σᵢ [σˣᵢσˣᵢ₊₂ + σʸᵢσʸᵢ₊₂ + Δ σᶻᵢσᶻᵢ₊₂]
+
+    J₁ > 0, J₂ ≥ 0 (both antiferromagnetic). J₂ = 0 reduces to HeisenbergXXZ1D.
+
+    Phase diagram (isotropic Δ=1, J₁=1):
+        J₂/J₁ < 0.241  gapless Luttinger liquid
+        J₂/J₁ > 0.241  gapped dimerized phase
+        J₂/J₁ = 0.5    Majumdar-Ghosh point (exact product-singlet ground state)
+        J₂/J₁ > 0.5    non-trivial sign structure; real RBM accuracy degrades
+    """
+
+    def __init__(self, size: int, J1: float = 1.0, J2: float = 0.3, delta: float = 1.0):
+        super().__init__(size, J=J1, delta=delta)
+        self.J1 = J1
+        self.J2 = J2
+
+    def local_energy(self, v: np.ndarray, rbm) -> float:
+        v_jax = jnp.asarray(v, dtype=jnp.float64)
+        E_diag = (
+            self.J1 * self.delta * sum(v[i] * v[(i + 1) % self.size] for i in range(self.size))
+            + self.J2 * self.delta * sum(v[i] * v[(i + 2) % self.size] for i in range(self.size))
+        )
+        E_off = 0.0
+        for bond_len, J_bond in ((1, self.J1), (2, self.J2)):
+            for i in range(self.size):
+                j = (i + bond_len) % self.size
+                if v[i] != v[j]:
+                    E_off += 2 * J_bond * float(rbm.psi_ratio_pair(v_jax, i, j))
+        return E_diag + E_off
+
+    def local_energy_batch(self, V, rbm) -> jax.Array:
+        V_jax = jnp.asarray(V, dtype=jnp.float64)
+        if hasattr(rbm, "J"):
+            return self.local_energy_batch_generic(V_jax, rbm.log_psi)
+        return _local_energy_j1j2_heisenberg_jit(
+            V_jax, rbm.W, rbm.a, rbm.b, self.J1, self.J2, self.delta, self.size
+        )
+
+    def local_energy_batch_generic(self, V: jax.Array, log_psi_fn) -> jax.Array:
+        N = self.size
+        J1, J2, delta = self.J1, self.J2, self.delta
+        log_p_V = jax.vmap(log_psi_fn)(V)
+
+        right1 = (jnp.arange(N) + 1) % N
+        right2 = (jnp.arange(N) + 2) % N
+
+        E_diag = (
+            J1 * delta * jnp.sum(V * V[:, right1], axis=1)
+            + J2 * delta * jnp.sum(V * V[:, right2], axis=1)
+        )
+
+        def ratios_for_right(right_idx):
+            def ratio_for_bond(i):
+                mask = (
+                    jax.nn.one_hot(i, N, dtype=jnp.float64)
+                    + jax.nn.one_hot(right_idx[i], N, dtype=jnp.float64)
+                )
+                V_flip = V * (1.0 - 2.0 * mask[None, :])
+                return jnp.exp(jax.vmap(log_psi_fn)(V_flip) - log_p_V)
+            return jax.vmap(ratio_for_bond)(jnp.arange(N))  # (N, ns)
+
+        nn_ratios = ratios_for_right(right1)    # (N, ns)
+        nnn_ratios = ratios_for_right(right2)   # (N, ns)
+
+        nn_exchange = (1.0 - V * V[:, right1]).T    # (N, ns)
+        nnn_exchange = (1.0 - V * V[:, right2]).T   # (N, ns)
+
+        E_off = (
+            J1 * jnp.sum(nn_exchange * nn_ratios, axis=0)
+            + J2 * jnp.sum(nnn_exchange * nnn_ratios, axis=0)
+        )
+        return E_diag + E_off
+
+    def exact_ground_energy(self) -> float:
+        from reference_energies import get_or_compute
+        if self.size > 20:
+            raise NotImplementedError(
+                f"Exact diagonalization not feasible for J1J2 Heisenberg N={self.size}. "
+                "Only N ≤ 20 is supported (2^20 = 1 048 576 states)."
+            )
+        model_key = f"heisenberg_j1j2_1d_J1{self.J1:.10g}_J2{self.J2:.10g}_delta{self.delta:.10g}"
+        return get_or_compute(model_key, self.size, self.J1, self._compute_exact_ground_energy)
+
+    def _compute_exact_ground_energy(self) -> float:
+        import scipy.sparse as sp
+        from scipy.sparse.linalg import eigsh
+
+        N, J1, J2, delta = self.size, self.J1, self.J2, self.delta
+        dim = 2 ** N
+
+        def spin(s: int, i: int) -> int:
+            return 1 - 2 * ((s >> (N - 1 - i)) & 1)
+
+        rows: list[int] = []
+        cols: list[int] = []
+        vals: list[float] = []
+
+        for s in range(dim):
+            diag = 0.0
+            for i in range(N):
+                diag += J1 * delta * spin(s, i) * spin(s, (i + 1) % N)
+                diag += J2 * delta * spin(s, i) * spin(s, (i + 2) % N)
+            rows.append(s); cols.append(s); vals.append(diag)
+
+            for bond_len, J_bond in ((1, J1), (2, J2)):
+                for i in range(N):
+                    j = (i + bond_len) % N
+                    if spin(s, i) != spin(s, j):
+                        s_flip = s ^ (1 << (N - 1 - i)) ^ (1 << (N - 1 - j))
+                        rows.append(s_flip); cols.append(s); vals.append(2 * J_bond)
+
+        H = sp.csr_matrix((vals, (rows, cols)), shape=(dim, dim), dtype=float)
+        eigenvalues, _ = eigsh(H, k=1, which="SA")
+        return float(eigenvalues[0])
+
+    def get_neighbors(self, idx: int) -> list[int]:
+        N = self.size
+        return [(idx - 2) % N, (idx - 1) % N, (idx + 1) % N, (idx + 2) % N]
 
 
 # ---------------------------------------------------------------------------

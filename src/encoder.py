@@ -597,6 +597,11 @@ class Trainer:
             # ── 2. Batch local energies (JIT-compiled, runs on GPU) ────────
             local_energies = self.ising.local_energy_batch(V, self.rbm)  # (ns,)
 
+            if not bool(jnp.all(jnp.isfinite(local_energies))):
+                print(f"  [Trainer] NaN/inf energy at iteration {iteration} — aborting.")
+                self.history["energy"].append(float("nan"))
+                break
+
             # ── 3. Batch gradients ─────────────────────────────────────────
             Theta = V @ self.rbm.W + self.rbm.b[None, :]  # (ns, M)
             TanH = jnp.tanh(Theta)  # (ns, M)

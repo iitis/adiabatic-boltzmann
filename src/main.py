@@ -19,6 +19,7 @@ from ising import (
     J1J2Ising1D,
     HeisenbergXY1D,
     HeisenbergXXZ2D,
+    J1J2HeisenbergXXZ1D,
 )
 
 
@@ -36,7 +37,7 @@ def parse_arguments():
     # Model parameters
     parser.add_argument(
         "--model",
-        choices=["1d", "2d", "heisenberg_xxz_1d", "lr1d", "j1j2_1d", "heisenberg_xy_1d", "heisenberg_xxz_2d"],
+        choices=["1d", "2d", "heisenberg_xxz_1d", "lr1d", "j1j2_1d", "heisenberg_xy_1d", "heisenberg_xxz_2d", "heisenberg_j1j2_1d"],
         default="1d",
         help="Physical model",
     )
@@ -238,6 +239,8 @@ def main():
 
     if args.model == "heisenberg_xxz_1d":
         _model_desc = f"{args.model} with J={args.J}, Δ={args.delta}"
+    elif args.model == "heisenberg_j1j2_1d":
+        _model_desc = f"{args.model} with J1={args.J1}, J2={args.J2}, Δ={args.delta}"
     elif args.model == "lr1d":
         _model_desc = f"{args.model} with h={args.h}, α={args.alpha}"
     elif args.model == "j1j2_1d":
@@ -279,7 +282,7 @@ def main():
         )
     print(f"  JAX devices: {jax.devices()}")
 
-    _1d_models = ("1d", "heisenberg_xxz_1d", "lr1d", "j1j2_1d", "heisenberg_xy_1d")
+    _1d_models = ("1d", "heisenberg_xxz_1d", "lr1d", "j1j2_1d", "heisenberg_xy_1d", "heisenberg_j1j2_1d")
     _2d_models = ("2d", "heisenberg_xxz_2d")
 
     # 1. Instantiate model
@@ -295,6 +298,8 @@ def main():
         ising = J1J2Ising1D(args.size, J1=args.J1, J2=args.J2, h=args.h)
     elif args.model == "heisenberg_xy_1d":
         ising = HeisenbergXY1D(args.size, J=args.J)
+    elif args.model == "heisenberg_j1j2_1d":
+        ising = J1J2HeisenbergXXZ1D(args.size, J1=args.J1, J2=args.J2, delta=args.delta)
     elif args.model == "heisenberg_xxz_2d":
         ising = HeisenbergXXZ2D(args.size, J=args.J, delta=args.delta)
     else:
