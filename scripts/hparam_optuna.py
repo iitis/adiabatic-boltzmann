@@ -64,7 +64,7 @@ from ising import (
     TransverseFieldIsing1D,
 )
 from model import FullBoltzmannMachine, FullyConnectedRBM
-from sampler import ClassicalSampler
+from sampler import ClassicalSampler, DimodSampler
 
 
 # ---------------------------------------------------------------------------
@@ -174,6 +174,8 @@ HAMILTONIAN_REGISTRY: dict[str, dict] = {
 _SZ_CONSERVING = {"exchange"}
 # Methods for which beta is treated as fixed (no CEM beta adaptation)
 _BETA_FIXED_METHODS = {"metropolis", "gibbs"}
+# Methods that require DimodSampler (D-Wave QPU backend)
+_QPU_METHODS = {"pegasus", "zephyr", "pegasus_fast", "zephyr_fast", "pegasus_ra", "zephyr_ra"}
 
 
 # ---------------------------------------------------------------------------
@@ -220,7 +222,7 @@ def _build_args(
         n_heads=4,
         patch_size=2,
         # Sampler
-        sampler="custom",
+        sampler="dimod" if sampling_method in _QPU_METHODS else "custom",
         sampling_method=sampling_method,
         n_samples=n_samples,
         # Training
@@ -287,15 +289,17 @@ def run_trial(
     else:
         wave_fn = FullyConnectedRBM(N, n_hidden, model_key)
 
-    # Sampler — pass SA schedule via constructor so it also applies for warmup
-    sampler = ClassicalSampler(
-        method=sampling_method,
-        n_warmup=n_warmup,
-        n_sweeps=1,
-        T_initial=T_initial,
-        T_final=T_final,
-    )
-    sampler._key = sampler_key
+    if sampling_method in _QPU_METHODS:
+        sampler = DimodSampler(method=sampling_method)
+    else:
+        sampler = ClassicalSampler(
+            method=sampling_method,
+            n_warmup=n_warmup,
+            n_sweeps=1,
+            T_initial=T_initial,
+            T_final=T_final,
+        )
+        sampler._key = sampler_key
 
     trainer_config = {
         "learning_rate": lr,
@@ -425,8 +429,8 @@ def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_
             "sampling_method", cli.sampling_methods
         )
 
-        # Warmup sweeps (applies to all methods)
-        n_warmup = trial.suggest_int("n_warmup", 50, 500, step=50)
+        # Warmup sweeps (classical only — QPU methods have no warmup)
+        n_warmup = 0 if sampling_method in _QPU_METHODS else trial.suggest_int("n_warmup", 50, 500, step=50)
 
         # Sampler-specific hyperparameters
         if sampling_method == "simulated_annealing":
@@ -454,8 +458,9 @@ def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_
             T_initial, T_final = 5.0, 1.0
 
         else:
-            # metropolis, exchange, gibbs — no schedule, no CEM
+            # metropolis, exchange, gibbs, QPU methods — no schedule, no CEM
             # (gibbs: beta_fixed=True in Trainer so CEM is silently skipped anyway)
+            # (QPU: DimodSampler ignores T_initial/T_final entirely)
             T_initial, T_final = 5.0, 1.0
             use_cem = False
             cem_ema_alpha, cem_interval = 0.3, 5

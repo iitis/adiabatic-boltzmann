@@ -372,8 +372,8 @@ def fig_best_convergence(records: list[dict], histories: list[dict],
 
                 # Mark converged energy
                 conv = _converged_energy(sm, window=20)
-                ax.plot(len(sm) - 1, conv, "o", color=col,
-                        markersize=3.5, zorder=4)
+                #ax.plot(len(sm) - 1, conv, "o", color=col,
+                        #markersize=3.5, zorder=4)
 
             if exact is not None and N:
                 ax.axhline(exact / N, color="#333", linestyle="--",

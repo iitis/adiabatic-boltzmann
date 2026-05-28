@@ -190,7 +190,7 @@ def _local_energy_j1j2_1d_jit(
     return E_diag + E_off
 
 
-@functools.partial(jax.jit, static_argnums=(4, 5, 6, 7))
+@functools.partial(jax.jit, static_argnums=(4, 5, 6, 7, 8))
 def _local_energy_xxz_2d_jit(
     V: jax.Array,
     W: jax.Array,
@@ -200,6 +200,7 @@ def _local_energy_xxz_2d_jit(
     delta: float,
     N: int,
     L: int,
+    off_sign: int = 1,
 ) -> jax.Array:
     """
     2D XXZ Heisenberg local energy on L×L square lattice (periodic BC).
@@ -240,8 +241,8 @@ def _local_energy_xxz_2d_jit(
             )
         )                                                    # (ns, N)
         exchange = 1.0 - V * V[:, partner_idx]              # (ns, N)
-        e_off  = J * jnp.sum(exchange * jnp.exp(log_r), axis=1)          # (ns,)
-        e_diag = J * delta * jnp.sum(V * V[:, partner_idx], axis=1)      # (ns,)
+        e_off  = off_sign * J * jnp.sum(exchange * jnp.exp(log_r), axis=1)  # (ns,)
+        e_diag = J * delta * jnp.sum(V * V[:, partner_idx], axis=1)         # (ns,)
         return e_diag, e_off
 
     e_diag_r, e_off_r = _bond(right_idx)
@@ -249,7 +250,7 @@ def _local_energy_xxz_2d_jit(
     return e_diag_r + e_diag_d + e_off_r + e_off_d
 
 
-@functools.partial(jax.jit, static_argnums=(4, 5, 6))
+@functools.partial(jax.jit, static_argnums=(4, 5, 6, 7))
 def _local_energy_xxz_1d_jit(
     V: jax.Array,
     W: jax.Array,
@@ -258,6 +259,7 @@ def _local_energy_xxz_1d_jit(
     J: float,
     delta: float,
     N: int,
+    off_sign: int = 1,
 ) -> jax.Array:
     """
     XXZ local energy for all ns samples simultaneously.
@@ -306,9 +308,9 @@ def _local_energy_xxz_1d_jit(
     )                                             # (ns, N)
 
     # (1 - vᵢ·v_right) = 2 for antiparallel, 0 for parallel — already encodes the 2J factor
-    exchange = 1.0 - V * V[:, right]                                   # (ns, N)
-    E_off = J * jnp.sum(exchange * jnp.exp(log_ratios), axis=1)        # (ns,)
-    E_diag = J * delta * jnp.sum(V * V[:, right], axis=1)             # (ns,)
+    exchange = 1.0 - V * V[:, right]                                        # (ns, N)
+    E_off = off_sign * J * jnp.sum(exchange * jnp.exp(log_ratios), axis=1)  # (ns,)
+    E_diag = J * delta * jnp.sum(V * V[:, right], axis=1)                   # (ns,)
 
     return E_diag + E_off
 
@@ -318,7 +320,7 @@ def _local_energy_xxz_1d_jit(
 # ---------------------------------------------------------------------------
 
 
-@functools.partial(jax.jit, static_argnums=(4, 5, 6, 7))
+@functools.partial(jax.jit, static_argnums=(4, 5, 6, 7, 8))
 def _local_energy_j1j2_heisenberg_jit(
     V: jax.Array,
     W: jax.Array,
@@ -328,6 +330,7 @@ def _local_energy_j1j2_heisenberg_jit(
     J2: float,
     delta: float,
     N: int,
+    nn_off_sign: int = 1,
 ) -> jax.Array:
     """
     J₁–J₂ Heisenberg local energy for all ns samples simultaneously.
@@ -363,7 +366,7 @@ def _local_energy_j1j2_heisenberg_jit(
         exchange = 1.0 - V * V[:, right_idx]               # (ns, N)
         return J_bond * jnp.sum(exchange * jnp.exp(log_ratios), axis=1)  # (ns,)
 
-    E_off = bond_off_diagonal(right1, J1) + bond_off_diagonal(right2, J2)
+    E_off = bond_off_diagonal(right1, nn_off_sign * J1) + bond_off_diagonal(right2, J2)
     E_diag = (
         J1 * delta * jnp.sum(V * V[:, right1], axis=1)
         + J2 * delta * jnp.sum(V * V[:, right2], axis=1)
@@ -711,6 +714,11 @@ class HeisenbergXXZ1D(IsingModel):
         super().__init__(size, h=0.0)  # h unused
         self.J = J
         self.delta = delta
+        # Marshall sign for antiferromagnetic (J>0) bipartite 1D chains (even N):
+        # the exact ground state has ψ = s(v)·A(v) where s(v) = (-1)^{N_{↓,B}(v)}.
+        # Every NN exchange on a bipartite chain gives s(v')/s(v) = -1, so the
+        # off-diagonal local-energy coefficient flips sign relative to the FM case.
+        self.off_sign: int = -1 if (J > 0 and size % 2 == 0) else 1
 
     def local_energy(self, v: np.ndarray, rbm) -> float:
         """Scalar local energy for a single configuration.
@@ -727,7 +735,7 @@ class HeisenbergXXZ1D(IsingModel):
         for i in range(self.size):
             j = (i + 1) % self.size
             if v[i] != v[j]:  # only antiparallel bonds contribute; matrix element = 2J
-                E_off += 2 * self.J * float(rbm.psi_ratio_pair(v_jax, i, j))
+                E_off += 2 * self.J * self.off_sign * float(rbm.psi_ratio_pair(v_jax, i, j))
         return E_diag + E_off
 
     def local_energy_batch(self, V, rbm) -> jax.Array:
@@ -736,7 +744,7 @@ class HeisenbergXXZ1D(IsingModel):
             # XXZ uses pair flips; no single-flip JIT kernel for FBM — use generic
             return self.local_energy_batch_generic(V_jax, rbm.log_psi)
         return _local_energy_xxz_1d_jit(
-            V_jax, rbm.W, rbm.a, rbm.b, self.J, self.delta, self.size
+            V_jax, rbm.W, rbm.a, rbm.b, self.J, self.delta, self.size, self.off_sign
         )
 
     def local_energy_batch_generic(self, V: jax.Array, log_psi_fn) -> jax.Array:
@@ -760,8 +768,8 @@ class HeisenbergXXZ1D(IsingModel):
             return jnp.exp(jax.vmap(log_psi_fn)(V_flip) - log_p_V)  # (ns,)
 
         all_ratios = jax.vmap(exchange_ratio_for_bond)(jnp.arange(N))  # (N, ns)
-        exchange = (1.0 - V * V[:, right]).T                  # (N, ns)
-        E_off = J * jnp.sum(exchange * all_ratios, axis=0)    # (ns,)
+        exchange = (1.0 - V * V[:, right]).T                         # (N, ns)
+        E_off = J * self.off_sign * jnp.sum(exchange * all_ratios, axis=0)  # (ns,)
         return E_diag + E_off
 
     def exact_ground_energy(self) -> float:
@@ -1132,6 +1140,14 @@ class J1J2HeisenbergXXZ1D(HeisenbergXXZ1D):
         super().__init__(size, J=J1, delta=delta)
         self.J1 = J1
         self.J2 = J2
+        if J1 > 0 and J2 > 0 and J2 / J1 > 0.241:
+            import warnings
+            warnings.warn(
+                f"J2/J1={J2/J1:.3f} > 0.241 is in the frustrated regime. "
+                "The positive real RBM ansatz is biased and will not converge to the "
+                "true ground state without a phase network.",
+                stacklevel=2,
+            )
 
     def local_energy(self, v: np.ndarray, rbm) -> float:
         v_jax = jnp.asarray(v, dtype=jnp.float64)
@@ -1140,11 +1156,14 @@ class J1J2HeisenbergXXZ1D(HeisenbergXXZ1D):
             + self.J2 * self.delta * sum(v[i] * v[(i + 2) % self.size] for i in range(self.size))
         )
         E_off = 0.0
-        for bond_len, J_bond in ((1, self.J1), (2, self.J2)):
+        for bond_len, J_bond, sign in (
+            (1, self.J1, self.off_sign),   # NN: Marshall sign for AF bipartite
+            (2, self.J2, 1),               # NNN: same sublattice, sign = +1
+        ):
             for i in range(self.size):
                 j = (i + bond_len) % self.size
                 if v[i] != v[j]:
-                    E_off += 2 * J_bond * float(rbm.psi_ratio_pair(v_jax, i, j))
+                    E_off += 2 * J_bond * sign * float(rbm.psi_ratio_pair(v_jax, i, j))
         return E_diag + E_off
 
     def local_energy_batch(self, V, rbm) -> jax.Array:
@@ -1152,7 +1171,8 @@ class J1J2HeisenbergXXZ1D(HeisenbergXXZ1D):
         if hasattr(rbm, "J"):
             return self.local_energy_batch_generic(V_jax, rbm.log_psi)
         return _local_energy_j1j2_heisenberg_jit(
-            V_jax, rbm.W, rbm.a, rbm.b, self.J1, self.J2, self.delta, self.size
+            V_jax, rbm.W, rbm.a, rbm.b, self.J1, self.J2, self.delta, self.size,
+            self.off_sign,
         )
 
     def local_energy_batch_generic(self, V: jax.Array, log_psi_fn) -> jax.Array:
@@ -1185,7 +1205,7 @@ class J1J2HeisenbergXXZ1D(HeisenbergXXZ1D):
         nnn_exchange = (1.0 - V * V[:, right2]).T   # (N, ns)
 
         E_off = (
-            J1 * jnp.sum(nn_exchange * nn_ratios, axis=0)
+            J1 * self.off_sign * jnp.sum(nn_exchange * nn_ratios, axis=0)
             + J2 * jnp.sum(nnn_exchange * nnn_ratios, axis=0)
         )
         return E_diag + E_off
@@ -1267,6 +1287,9 @@ class HeisenbergXXZ2D(IsingModel):
         self.linear_size = size
         self.J = J
         self.delta = delta
+        # Marshall sign for AF (J>0) on bipartite square lattice (even L):
+        # η_i = (-1)^{x_i+y_i}, so η_i η_j = -1 for every NN bond.
+        self.off_sign: int = -1 if (J > 0 and size % 2 == 0) else 1
 
     def local_energy(self, v: np.ndarray, rbm) -> float:
         v_jax = jnp.asarray(v, dtype=jnp.float64)
@@ -1279,7 +1302,7 @@ class HeisenbergXXZ2D(IsingModel):
             for j in [right, down]:
                 E_diag += self.J * self.delta * v[i] * v[j]
                 if v[i] != v[j]:
-                    E_off += 2 * self.J * float(rbm.psi_ratio_pair(v_jax, i, j))
+                    E_off += 2 * self.J * self.off_sign * float(rbm.psi_ratio_pair(v_jax, i, j))
         return E_diag + E_off
 
     def local_energy_batch(self, V, rbm) -> jax.Array:
@@ -1287,7 +1310,8 @@ class HeisenbergXXZ2D(IsingModel):
         if hasattr(rbm, "J"):
             return self.local_energy_batch_generic(V_jax, rbm.log_psi)
         return _local_energy_xxz_2d_jit(
-            V_jax, rbm.W, rbm.a, rbm.b, self.J, self.delta, self.size, self.linear_size
+            V_jax, rbm.W, rbm.a, rbm.b, self.J, self.delta, self.size, self.linear_size,
+            self.off_sign,
         )
 
     def local_energy_batch_generic(self, V: jax.Array, log_psi_fn) -> jax.Array:
@@ -1325,7 +1349,7 @@ class HeisenbergXXZ2D(IsingModel):
         down_exchange  = (1.0 - V * V[:, down_idx]).T    # (N, ns)
         all_exchange = jnp.concatenate([right_exchange, down_exchange], axis=0)  # (2N, ns)
 
-        E_off = J * jnp.sum(all_exchange * all_ratios, axis=0)  # (ns,)
+        E_off = J * self.off_sign * jnp.sum(all_exchange * all_ratios, axis=0)  # (ns,)
         return E_diag + E_off
 
     def exact_ground_energy(self) -> float:
