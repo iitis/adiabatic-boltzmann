@@ -11,4 +11,5 @@ simulated-bifurcation
 streamlit
 plotly
 flax
+optuna
 

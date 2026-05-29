@@ -98,7 +98,12 @@ def _load_histories(combo_dir: Path) -> list[dict]:
 def _smooth(arr, w=15):
     if len(arr) < 2 * w:
         w = max(1, len(arr) // 4)
-    return np.convolve(arr, np.ones(w) / w, mode="same")
+    # Edge-replicate before convolving to avoid zero-padding artifacts at boundaries.
+    # mode="same" with zero-padding pulls negative energy toward 0 at the tail,
+    # producing a spurious upward peak.
+    padded = np.pad(arr, (w // 2, w // 2), mode="edge")
+    smoothed = np.convolve(padded, np.ones(w) / w, mode="valid")
+    return smoothed[: len(arr)]
 
 
 def _converged_energy(arr: np.ndarray, window: int = 20,
@@ -195,7 +200,7 @@ def fig_optim_history(records: list[dict], combo_label: str,
         ax.yaxis.set_major_formatter(ticker.LogFormatterSciNotation())
 
     fig.tight_layout()
-    stem = f"fig_optim_history_{_slug(combo_label)}"
+    stem = "fig_optim_history"
     _save(fig, out, stem, dpi)
 
 
@@ -258,23 +263,26 @@ def fig_param_scatter(records: list[dict], combo_label: str,
                fontsize=8, frameon=False, bbox_to_anchor=(0.5, -0.02))
 
     fig.tight_layout()
-    stem = f"fig_param_scatter_{_slug(combo_label)}"
+    stem = "fig_param_scatter"
     _save(fig, out, stem, dpi)
 
 
-# ── Figure 3: best / mid / worst convergence curves ───────────────────────────
+# ── Figure 3: best convergence curves ─────────────────────────────────────────
 
 def fig_best_convergence(records: list[dict], histories: list[dict],
                          combo_label: str, out: Path, dpi: int,
-                         top_k: int = 8):
+                         top_k: int = 8,
+                         energy_clip: float | None = None):
     """
-    Top-k, middle-k and bottom-k trials by objective, per sampler.
+    Top-k trials by objective, one panel per sampler.
     Shows E/N convergence curves with exact E₀/N dashed line.
     Lines are coloured by learning rate.
+
+    energy_clip: if set, skip any run where |E/N| exceeds this value at any
+                 iteration (removes diverged/exploded runs before selecting top-k).
     """
     methods = sorted({r["params"].get("sampling_method", "?") for r in records})
 
-    # Build a lookup: (method, lr_round, n_samples, seed) → history dict
     _hist_lookup: dict[tuple, dict] = {}
     for h in histories:
         c = h["config"]
@@ -298,118 +306,246 @@ def fig_best_convergence(records: list[dict], histories: list[dict],
         )
         return _hist_lookup.get(key)
 
-    tiers = [(0, "top"), (1, "mid"), (2, "bottom")]
-    nrows = len(methods)
-    ncols = len(tiers)
+    def _load_eng(rec: dict) -> tuple[np.ndarray, int] | None:
+        """Return (energy_array, N) for a trial, or None if missing/bad."""
+        h = _find_history(rec)
+        if h is None:
+            return None
+        N = h["config"].get("size", rec.get("N", 8))
+        eng = np.array(
+            [e for e in h["history"]["energy"] if e is not None],
+            dtype=float)
+        if eng.size == 0 or not np.all(np.isfinite(eng)):
+            return None
+        if energy_clip is not None and np.any(np.abs(eng / N) > energy_clip):
+            return None
+        return eng, N
 
-    fig, axes = plt.subplots(nrows, ncols,
-                              figsize=(ncols * 3.6, nrows * 2.6),
+    clip_suffix = f"  (|E/N| ≤ {energy_clip})" if energy_clip is not None else ""
+    nrows = len(methods)
+    fig, axes = plt.subplots(nrows, 1,
+                              figsize=(5.0, nrows * 2.8),
                               squeeze=False)
     fig.suptitle(
-        f"Convergence: top / mid / bottom {top_k} trials — {combo_label}\n"
+        f"Best {top_k} convergence curves — {combo_label}{clip_suffix}\n"
         "Colour = learning rate",
         fontsize=10, y=1.01)
 
+    all_lrs = [float(r["params"]["learning_rate"]) for r in records
+               if "learning_rate" in r.get("params", {})]
+    lr_min = min(all_lrs) if all_lrs else 1e-4
+    lr_max = max(all_lrs) if all_lrs else 1e-1
+    cmap = plt.cm.plasma
+
+    def lr_color(lr):
+        if lr_max == lr_min:
+            return cmap(0.5)
+        return cmap((math.log10(lr) - math.log10(lr_min)) /
+                    (math.log10(lr_max) - math.log10(lr_min)))
+
     for ri, method in enumerate(methods):
+        ax = axes[ri, 0]
         recs_m = [r for r in records
                   if r["params"].get("sampling_method") == method
                   and r["objective"] is not None
                   and math.isfinite(r["objective"])]
+
+        # When clipping, further restrict to trials whose history passes the filter
+        if energy_clip is not None:
+            recs_m = [r for r in recs_m if _load_eng(r) is not None]
+
         if not recs_m:
-            for ci in range(ncols):
-                axes[ri, ci].text(0.5, 0.5, "no data", ha="center", va="center",
-                                  transform=axes[ri, ci].transAxes, color="#bbb")
+            ax.text(0.5, 0.5, "no data", ha="center", va="center",
+                    transform=ax.transAxes, color="#bbb")
+            ax.set_title(method, fontsize=8)
             continue
 
-        recs_sorted = sorted(recs_m, key=lambda r: r["objective"])
-        n = len(recs_sorted)
-        mid_start = max(top_k, n // 2 - top_k // 2)
+        top_recs = sorted(recs_m, key=lambda r: r["objective"])[:top_k]
+        n_clipped = (len([r for r in records
+                          if r["params"].get("sampling_method") == method
+                          and r["objective"] is not None
+                          and math.isfinite(r["objective"])]) - len(recs_m)
+                     if energy_clip is not None else 0)
+        title = f"{method} — top {top_k}"
+        if n_clipped:
+            title += f"  ({n_clipped} runs clipped)"
+        ax.set_title(title, fontsize=8)
 
-        tier_recs = {
-            0: recs_sorted[:top_k],
-            1: recs_sorted[mid_start : mid_start + top_k],
-            2: recs_sorted[max(0, n - top_k):],
-        }
-        tier_labels = {0: f"top {top_k}", 1: f"mid {top_k}", 2: f"worst {top_k}"}
-
-        # Colour by lr (log-normalised across all trials)
-        all_lrs = [float(r["params"]["learning_rate"]) for r in recs_m]
-        lr_min, lr_max = min(all_lrs), max(all_lrs)
-        cmap = plt.cm.plasma
-
-        def lr_color(lr):
-            if lr_max == lr_min:
-                return cmap(0.5)
-            return cmap((math.log10(lr) - math.log10(lr_min)) /
-                        (math.log10(lr_max) - math.log10(lr_min)))
-
-        for ci, (tier_key, tier_lbl) in enumerate(tiers):
-            ax = axes[ri, ci]
-            tier_list = tier_recs[tier_key]
-            ax.set_title(f"{method} — {tier_lbl}", fontsize=8)
-
-            exact = None
-            N_cell = recs_m[0].get("N") or recs_m[0]["phys_params"].get("J1") and 8
-
-            for rec in tier_list:
+        exact = None
+        N = 8
+        for rec in top_recs:
+            result = _load_eng(rec)
+            if result is None:
+                continue
+            eng, N = result
+            if exact is None:
                 h = _find_history(rec)
-                if h is None:
-                    continue
-                N = h["config"].get("size", rec.get("N", 8))
-                if exact is None:
+                if h is not None:
                     exact = h.get("exact_energy") or rec.get("exact_energy")
 
-                eng = np.array(
-                    [e for e in h["history"]["energy"] if e is not None],
-                    dtype=float)
-                if eng.size == 0 or not np.all(np.isfinite(eng)):
-                    continue
+            sm = _smooth(eng / N)
+            col = lr_color(float(rec["params"]["learning_rate"]))
+            ax.plot(sm, color=col, linewidth=1.0, alpha=0.75)
 
-                sm = _smooth(eng / N)
-                lr = float(rec["params"]["learning_rate"])
-                col = lr_color(lr)
-                ax.plot(sm, color=col, linewidth=1.0, alpha=0.75)
+        if exact is not None:
+            ax.axhline(exact / N, color="#333", linestyle="--",
+                       linewidth=0.85, zorder=0, label="exact E₀/N")
 
-                # Mark converged energy
-                conv = _converged_energy(sm, window=20)
-                #ax.plot(len(sm) - 1, conv, "o", color=col,
-                        #markersize=3.5, zorder=4)
+        if top_recs:
+            best_obj = top_recs[0]["objective"]
+            col_badge = ("#2ca02c" if best_obj < 0.01
+                         else "#ff7f0e" if best_obj < 0.05 else "#d62728")
+            ax.annotate(f"best ε={best_obj:.2e}",
+                        xy=(0.97, 0.06), xycoords="axes fraction",
+                        ha="right", fontsize=6.5, color=col_badge,
+                        bbox=dict(boxstyle="round,pad=0.15", fc="white",
+                                  alpha=0.8, ec="none"))
 
-            if exact is not None and N:
-                ax.axhline(exact / N, color="#333", linestyle="--",
-                           linewidth=0.85, zorder=0, label="exact E₀/N")
+        ax.xaxis.set_major_locator(ticker.MaxNLocator(4, integer=True))
+        ax.yaxis.set_major_locator(ticker.MaxNLocator(4))
+        if method == "simulated_annealing":
+            ax.set_ylim(-2, 2)
+        ax.set_ylabel(f"{method}\n⟨E⟩/N", fontsize=8)
+        if ri == nrows - 1:
+            ax.set_xlabel("iteration")
+        ax.legend(frameon=False, fontsize=7)
 
-            # Best objective badge
-            if tier_list:
-                best_obj = min(r["objective"] for r in tier_list)
-                col_badge = ("#2ca02c" if best_obj < 0.01
-                             else "#ff7f0e" if best_obj < 0.05 else "#d62728")
-                ax.annotate(f"best ε={best_obj:.2e}",
-                            xy=(0.97, 0.06), xycoords="axes fraction",
-                            ha="right", fontsize=6.5, color=col_badge,
-                            bbox=dict(boxstyle="round,pad=0.15", fc="white",
-                                      alpha=0.8, ec="none"))
-
-            ax.xaxis.set_major_locator(ticker.MaxNLocator(4, integer=True))
-            ax.yaxis.set_major_locator(ticker.MaxNLocator(4))
-            if ri == nrows - 1:
-                ax.set_xlabel("iteration")
-            if ci == 0:
-                ax.set_ylabel(f"{method}\n⟨E⟩/N", fontsize=8)
-
-    # Colorbar for lr
     sm_cb = plt.cm.ScalarMappable(
         cmap=plt.cm.plasma,
-        norm=matplotlib.colors.LogNorm(
-            vmin=min(float(r["params"]["learning_rate"]) for r in records),
-            vmax=max(float(r["params"]["learning_rate"]) for r in records)))
+        norm=matplotlib.colors.LogNorm(vmin=lr_min, vmax=lr_max))
     sm_cb.set_array([])
     cbar = fig.colorbar(sm_cb, ax=axes, orientation="vertical",
-                        fraction=0.015, pad=0.02, shrink=0.6)
+                        fraction=0.02, pad=0.02, shrink=0.6)
     cbar.set_label("learning rate", fontsize=8)
 
     fig.tight_layout()
-    stem = f"fig_best_convergence_{_slug(combo_label)}"
+    stem = ("fig_best_convergence_clipped"
+            if energy_clip is not None
+            else "fig_best_convergence")
+    _save(fig, out, stem, dpi)
+
+
+# ── Figure 4: per-J₂ convergence (one row per J₂, one line per trial) ────────
+
+def fig_j2_convergence(j2_data: dict, study_label: str, out: Path, dpi: int):
+    """
+    One row per J₂ value; each line = one trial's smoothed E/N convergence.
+
+    j2_data: {j2_float -> {"records": list[dict], "histories": list[dict], "N": int}}
+    Lines are coloured by learning rate (plasma, log scale).
+    """
+    j2_vals = sorted(j2_data.keys())
+    if not j2_vals:
+        return
+
+    # Global lr range for a shared colorbar
+    all_lrs = [
+        float(r["params"]["learning_rate"])
+        for group in j2_data.values()
+        for r in group["records"]
+        if "learning_rate" in r.get("params", {})
+    ]
+    if not all_lrs:
+        return
+    lr_min, lr_max = min(all_lrs), max(all_lrs)
+    cmap = plt.cm.plasma
+
+    def _lr_color(lr):
+        if lr_max == lr_min:
+            return cmap(0.5)
+        t = (math.log10(lr) - math.log10(lr_min)) / (math.log10(lr_max) - math.log10(lr_min))
+        return cmap(t)
+
+    nrows = len(j2_vals)
+    fig, axes = plt.subplots(nrows, 1,
+                              figsize=(6.0, nrows * 2.2),
+                              squeeze=False)
+    fig.suptitle(
+        f"Convergence per J₂ — {study_label}\n"
+        "Each line = one trial · colour = learning rate",
+        fontsize=10, y=1.01,
+    )
+
+    for ri, j2 in enumerate(j2_vals):
+        ax = axes[ri, 0]
+        group  = j2_data[j2]
+        recs   = group["records"]
+        hists  = group["histories"]
+        N      = group["N"]
+
+        # Build lookup: same key as in fig_best_convergence
+        hist_lookup: dict[tuple, dict] = {}
+        for h in hists:
+            c = h["config"]
+            key = (
+                c.get("sampling_method"),
+                round(float(c.get("learning_rate", 0)), 8),
+                int(c.get("n_samples", 0)),
+                int(c.get("seed", 0)),
+                int(c.get("n_hidden", 0)),
+            )
+            hist_lookup[key] = h
+
+        exact = None
+        n_plotted = 0
+        for rec in recs:
+            p = rec["params"]
+            key = (
+                p.get("sampling_method"),
+                round(float(p.get("learning_rate", 0)), 8),
+                int(p.get("n_samples", 0)),
+                int(p.get("seed", 0)),
+                int(rec.get("n_hidden", 0)),
+            )
+            h = hist_lookup.get(key)
+            if h is None:
+                continue
+            if exact is None:
+                exact = h.get("exact_energy") or rec.get("exact_energy")
+
+            eng = np.array(
+                [e for e in h["history"]["energy"] if e is not None],
+                dtype=float,
+            )
+            if eng.size == 0 or not np.all(np.isfinite(eng)):
+                continue
+
+            sm  = _smooth(eng / N)
+            lr  = float(p["learning_rate"])
+            obj = rec.get("objective")
+            # dim failed/diverged trials
+            alpha = 0.25 if (obj is None or not math.isfinite(obj)) else 0.65
+            ax.plot(sm, color=_lr_color(lr), linewidth=0.85, alpha=alpha)
+            n_plotted += 1
+
+        if exact is not None:
+            ax.axhline(exact / N, color="#333", linestyle="--",
+                       linewidth=0.9, zorder=0, label="E₀/N")
+            ax.legend(frameon=False, fontsize=7, loc="upper right")
+
+        ax.set_ylim(-2, 2)
+        ax.set_ylabel(f"J₂={j2:.3g}\n⟨E⟩/N", fontsize=8)
+        ax.xaxis.set_major_locator(ticker.MaxNLocator(4, integer=True))
+        ax.yaxis.set_major_locator(ticker.MaxNLocator(4))
+        if n_plotted:
+            ax.annotate(f"n={n_plotted}", xy=(0.97, 0.97),
+                        xycoords="axes fraction", ha="right", va="top",
+                        fontsize=6.5, color="#555")
+        if ri == nrows - 1:
+            ax.set_xlabel("iteration")
+
+    # Shared colorbar
+    sm_cb = plt.cm.ScalarMappable(
+        cmap=plt.cm.plasma,
+        norm=matplotlib.colors.LogNorm(vmin=lr_min, vmax=lr_max),
+    )
+    sm_cb.set_array([])
+    cbar = fig.colorbar(sm_cb, ax=axes, orientation="vertical",
+                        fraction=0.02, pad=0.02, shrink=0.6)
+    cbar.set_label("learning rate", fontsize=8)
+
+    fig.tight_layout()
+    stem = f"fig_j2_convergence_N{_n_from_label(study_label)}"
     _save(fig, out, stem, dpi)
 
 
@@ -417,6 +553,12 @@ def fig_best_convergence(records: list[dict], histories: list[dict],
 
 def _slug(s: str) -> str:
     return s.replace("/", "_").replace(" ", "_").replace(".", "p")
+
+
+def _n_from_label(label: str) -> str:
+    """Extract the trailing /N{n} from a study label like 'study/N8'."""
+    part = label.rsplit("/", 1)[-1]  # e.g. "N8"
+    return part[1:] if part.startswith("N") else part
 
 
 def _save(fig, out: Path, stem: str, dpi: int):
@@ -452,7 +594,9 @@ def main():
         help="Where to save figures (default: plots/hparam_search/)")
     parser.add_argument("--dpi",   type=int, default=150)
     parser.add_argument("--top-k", type=int, default=8,
-                        help="Number of top/mid/bottom trials to show (default: 8)")
+                        help="Number of top trials to show (default: 8)")
+    parser.add_argument("--energy-clip", type=float, default=10.0,
+                        help="Max |E/N| allowed in the clipped convergence plot (default: 10)")
     args = parser.parse_args()
 
     search_root = Path(args.search_dir)
@@ -486,6 +630,53 @@ def main():
         fig_param_scatter(records, combo_label, out_dir, args.dpi)
         fig_best_convergence(records, histories, combo_label, out_dir,
                              args.dpi, top_k=args.top_k)
+        fig_best_convergence(records, histories, combo_label, out_dir,
+                             args.dpi, top_k=args.top_k,
+                             energy_clip=args.energy_clip)
+        print()
+
+    # ── Figure 4: per-J₂ convergence ─────────────────────────────────────────
+    # Group combo_dirs that share the same study+N but differ in J₂.
+    # Directory names follow the pattern  N{size}_J2{val}  (e.g. N8_J20.3).
+    study_n_j2: dict[tuple, dict[float, Path]] = defaultdict(dict)
+    for combo_dir in combo_dirs:
+        name = combo_dir.name
+        if "_J2" not in name:
+            continue
+        n_part, j2_str = name.split("_J2", 1)
+        if not n_part.startswith("N"):
+            continue
+        try:
+            N_val  = int(n_part[1:])
+            j2_val = float(j2_str)
+        except ValueError:
+            continue
+        study_n_j2[(combo_dir.parent, N_val)][j2_val] = combo_dir
+
+    for (study_dir, N_val), j2_dirs in sorted(study_n_j2.items()):
+        if len(j2_dirs) < 2:
+            continue  # nothing interesting with a single J₂
+
+        j2_data: dict[float, dict] = {}
+        for j2_val, cdir in sorted(j2_dirs.items()):
+            recs  = _load_index(cdir / "index.jsonl")
+            if not recs:
+                continue
+            hists = _load_histories(cdir)
+            N     = recs[0].get("N", N_val)
+            j2_data[j2_val] = {"records": recs, "histories": hists, "N": N}
+
+        if len(j2_data) < 2:
+            continue
+
+        rel         = study_dir.relative_to(search_root)
+        study_label = f"{rel}/N{N_val}"
+        out_dir     = out_root / rel
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        j2_list = sorted(j2_data.keys())
+        print(f"[{study_label}]  J₂ sweep: {j2_list}")
+        fig_j2_convergence(j2_data, study_label, out_dir, args.dpi)
         print()
 
     print(f"All plots saved under  {out_root}/")
