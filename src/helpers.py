@@ -425,6 +425,6 @@ def read_qpu_time_ms(time_path: Path = Path("time.json"), key: str = "time_ms") 
 
 def get_solver_name(architecture="pegasus"):
     if architecture == "pegasus":
-        return "Advantage_system6.4"
+        return "Advantage_system6"
     elif architecture == "zephyr":
         return "Advantage2_system1"
