@@ -1,35 +1,24 @@
 """
-tts_run.py — Time-To-Solution benchmark using best hyperparameters from hparam search.
+tts_run.py — Time-To-Solution benchmark using globally best hyperparameters.
 
-For each (hamiltonian, study, N, sweep_val, sampling_method):
-  1. Reads index.jsonl → selects best trial per sampling_method (lowest rel_error)
-  2. Re-runs that exact config across --n-seeds random seeds (seed is the only variation)
-  3. Saves full result JSON per seed via save_results() (same format as all other runs)
-  4. Computes TTS(ε): first iteration where rolling-mean rel_error < ε
-  5. Writes tts_summary.json with per-method TTS statistics
+For each (hamiltonian, N, sweep_val, sampling_method), all trials from ALL
+hparam studies are pooled and the single best config (lowest rel_error) is
+selected — regardless of which study it came from.
+
+That config is then re-run across --n-seeds random seeds.  Full result JSONs
+are saved via save_results() (same format and location as all other runs).
+A tts_summary.json is written per (N, sweep_val) combo with TTS statistics.
 
 Output layout:
-    results/tts/{hamiltonian}/{study_name}/{combo_key}/
-        tts_summary.json                           TTS stats per sampling_method
-        {model}/{N}/{sampler}/{method}/            per-seed result JSONs (via save_results)
+    results/{model}/{N}/{sampler}/{method}/result_...json   (normal per-seed results)
+    results/tts/{hamiltonian}/{combo_key}/tts_summary.json  (TTS stats)
 
 Usage:
-    # specific study:
+    python scripts/tts_run.py --hamiltonian j1j2_1d
+    python scripts/tts_run.py --hamiltonian heisenberg_j1j2_1d --N 8 12
     python scripts/tts_run.py --hamiltonian j1j2_1d \\
-        --study-name j1j2_1d_20260527_170753
-
-    # filter to specific N values and/or samplers:
-    python scripts/tts_run.py --hamiltonian j1j2_1d \\
-        --study-name j1j2_1d_20260527_170753 \\
-        --N 8 12 --sampling-methods exchange metropolis
-
-    # all studies for a hamiltonian:
-    python scripts/tts_run.py --hamiltonian heisenberg_j1j2_1d
-
-    # all hamiltonians and studies:
+        --sampling-methods exchange metropolis --epsilon 0.01 0.001 0.0001
     python scripts/tts_run.py --all
-
-    # dry run to see what would be processed:
     python scripts/tts_run.py --hamiltonian j1j2_1d --dry-run
 """
 
@@ -63,29 +52,75 @@ from sampler import ClassicalSampler, DimodSampler
 
 
 # ---------------------------------------------------------------------------
-# Best-config extraction
+# Global best extraction
 # ---------------------------------------------------------------------------
 
 
-def load_best_per_sampler(
-    index_path: Path,
+def load_all_trials(hamiltonian: str, hparam_base: Path) -> pd.DataFrame:
+    """Pool every index.jsonl under results/hparam_search/{hamiltonian}/ into one DataFrame."""
+    ham_dir = hparam_base / hamiltonian
+    if not ham_dir.exists():
+        return pd.DataFrame()
+    frames = []
+    for index_path in sorted(ham_dir.rglob("index.jsonl")):
+        try:
+            df = pd.read_json(index_path, lines=True)
+            if not df.empty:
+                frames.append(df)
+        except Exception as exc:
+            print(f"  Warning: could not read {index_path}: {exc}")
+    if not frames:
+        return pd.DataFrame()
+    return pd.concat(frames, ignore_index=True)
+
+
+def global_best_per_combo_sampler(
+    all_trials: pd.DataFrame,
     methods_filter: list[str] | None = None,
-) -> dict[str, dict]:
+    N_filter: list[int] | None = None,
+) -> dict[tuple, dict]:
     """
-    Read index.jsonl, return {sampling_method: best_row_dict} per method.
-    Only considers trials with finite objectives. Optionally restrict to methods_filter.
+    Return {(N, phys_key, sampling_method): best_row} — one entry per
+    (N, physical params, sampler) combination, globally optimal across all studies.
+    phys_key is a JSON string of the phys_params dict (sorted keys).
     """
-    df = pd.read_json(index_path, lines=True)
-    df = df[df["objective"].apply(math.isfinite)].copy()
+    df = all_trials[all_trials["objective"].apply(math.isfinite)].copy()
     if df.empty:
         return {}
     df["_method"] = df["params"].apply(lambda p: p["sampling_method"])
+    def _clean_phys_key(p: dict) -> str:
+        cleaned = {k: round(v, 10) if isinstance(v, float) else v for k, v in dict(p).items()}
+        return json.dumps(cleaned, sort_keys=True)
+
+    df["_phys_key"] = df["phys_params"].apply(_clean_phys_key)
     if methods_filter:
         df = df[df["_method"].isin(methods_filter)]
-    best: dict[str, dict] = {}
-    for method, group in df.groupby("_method"):
-        best[method] = group.nsmallest(1, "objective").iloc[0].to_dict()
+    if N_filter:
+        df = df[df["N"].isin(N_filter)]
+
+    best: dict[tuple, dict] = {}
+    for (N, phys_key, method), group in df.groupby(["N", "_phys_key", "_method"]):
+        best[(int(N), phys_key, method)] = (
+            group.nsmallest(1, "objective").iloc[0].to_dict()
+        )
     return best
+
+
+def _fmt_float(v) -> str:
+    """Format a float without floating-point noise (0.3 not 0.30000000000000004)."""
+    if isinstance(v, float):
+        return f"{round(v, 10):g}"
+    return str(v)
+
+
+def _combo_key(hamiltonian: str, N: int, phys_params: dict) -> str:
+    """Build a human-readable combo key, e.g. 'N8_J20.5', matching hparam convention."""
+    entry = HAMILTONIAN_REGISTRY.get(hamiltonian, {})
+    sweep_keys = list(entry.get("sweep_params", {}).keys())
+    if sweep_keys:
+        k = sweep_keys[0]
+        return f"N{N}_{k}{_fmt_float(phys_params.get(k, '?'))}"
+    return f"N{N}"
 
 
 # ---------------------------------------------------------------------------
@@ -100,9 +135,9 @@ def compute_tts(
     window: int,
 ) -> int | None:
     """
-    Return first iteration t (1-indexed) where the causal rolling-mean
-    relative error drops below epsilon. Returns None if never reached.
-    The window grows naturally from the start (no padding).
+    First iteration t (1-indexed) where the causal rolling-mean relative error
+    drops below epsilon. Window grows naturally from iteration 0. Returns None
+    if never reached within the recorded curve.
     """
     for t in range(len(energies)):
         w_start = max(0, t - window + 1)
@@ -113,17 +148,14 @@ def compute_tts(
 
 
 def _tts_stats(tts_vals: list[int | None], n_iterations: int) -> dict:
-    """Compute TTS summary statistics from a list of per-seed TTS values."""
     n_total = len(tts_vals)
     reached = [v for v in tts_vals if v is not None]
-    # Treat "never reached" as n_iterations + 1 for percentile computation
     all_tts = sorted(v if v is not None else n_iterations + 1 for v in tts_vals)
 
     def _pct(p: float) -> int | None:
         if not all_tts:
             return None
-        idx = min(int(math.ceil(p * len(all_tts))) - 1, len(all_tts) - 1)
-        return all_tts[max(0, idx)]
+        return all_tts[min(int(math.ceil(p * len(all_tts))) - 1, len(all_tts) - 1)]
 
     return {
         "n_seeds_reached": len(reached),
@@ -138,7 +170,7 @@ def _tts_stats(tts_vals: list[int | None], n_iterations: int) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Single TTS trial
+# Single trial runner
 # ---------------------------------------------------------------------------
 
 
@@ -152,10 +184,7 @@ def run_tts_trial(
     n_iterations: int,
     output_dir: Path,
 ) -> tuple[dict, list[float]]:
-    """
-    Run one TTS trial with fixed hyperparameters and a given seed.
-    Saves the full result JSON via save_results(). Returns (metrics, energies).
-    """
+    """Run one seed with the fixed best hyperparameters. Returns (metrics, energies)."""
     entry = HAMILTONIAN_REGISTRY[hamiltonian]
     ising = entry["build"](N, phys_params)
 
@@ -169,7 +198,6 @@ def run_tts_trial(
     cg_maxiter = p["cg_maxiter"]
     sampling_method = p["sampling_method"]
 
-    # Method-specific params — with safe defaults for methods that don't use them
     T_initial = p.get("T_initial", 5.0)
     T_final = p.get("T_final", 1.0)
     n_warmup = int(p.get("n_warmup", 0))
@@ -263,7 +291,7 @@ def run_tts_trial(
     if not diverged:
         save_results(args, history, ising, rbm=wave_fn)
 
-    metrics = {
+    return {
         "seed": seed,
         "exact_energy": exact,
         "final_energy": energies[-1] if energies else None,
@@ -272,36 +300,28 @@ def run_tts_trial(
         "abs_error": abs_error,
         "wall_time_s": elapsed,
         "diverged": diverged,
-    }
-    return metrics, energies
+    }, energies
 
 
 # ---------------------------------------------------------------------------
-# One combo
+# One (N, phys_params) combo — all methods
 # ---------------------------------------------------------------------------
 
 
 def run_combo(
     *,
-    index_path: Path,
     hamiltonian: str,
     N: int,
     phys_params: dict,
     combo_key: str,
-    study_name: str,
+    best_per_sampler: dict[str, dict],
     n_seeds: int,
     n_iterations: int,
     epsilon: list[float],
     window: int,
-    methods_filter: list[str] | None,
     output_base: Path,
 ) -> None:
-    best_per_sampler = load_best_per_sampler(index_path, methods_filter)
-    if not best_per_sampler:
-        print(f"  [{combo_key}] no completed trials — skipping")
-        return
-
-    tts_out = output_base / "tts" / hamiltonian / study_name / combo_key
+    tts_out = output_base / "tts" / hamiltonian / combo_key
     tts_out.mkdir(parents=True, exist_ok=True)
 
     summary: dict = {
@@ -309,7 +329,6 @@ def run_combo(
         "N": N,
         "phys_params": phys_params,
         "combo_key": combo_key,
-        "study_name": study_name,
         "n_seeds": n_seeds,
         "n_iterations": n_iterations,
         "epsilon": epsilon,
@@ -337,7 +356,7 @@ def run_combo(
                     best_row=best_row,
                     seed=seed,
                     n_iterations=n_iterations,
-                    output_dir=tts_out,
+                    output_dir=output_base,
                 )
                 seed_metrics.append(metrics)
                 seed_energies.append(energies)
@@ -355,12 +374,10 @@ def run_combo(
         tts_by_eps: dict = {}
         if exact is not None:
             for eps in epsilon:
-                tts_vals: list[int | None] = []
-                for m, energies in zip(seed_metrics, seed_energies):
-                    if m["diverged"]:
-                        tts_vals.append(None)
-                        continue
-                    tts_vals.append(compute_tts(energies, exact, eps, window))
+                tts_vals: list[int | None] = [
+                    None if m["diverged"] else compute_tts(e, exact, eps, window)
+                    for m, e in zip(seed_metrics, seed_energies)
+                ]
                 tts_by_eps[str(eps)] = {
                     "epsilon": eps,
                     "window": window,
@@ -393,66 +410,25 @@ def run_combo(
 
 
 # ---------------------------------------------------------------------------
-# Discovery
-# ---------------------------------------------------------------------------
-
-
-def discover_index_files(
-    hamiltonian: str | None,
-    study_name: str | None,
-    hparam_base: Path,
-) -> list[tuple[str, str, Path]]:
-    """Return (hamiltonian, study_name, index_path) tuples to process."""
-    found: list[tuple[str, str, Path]] = []
-
-    if hamiltonian:
-        ham_dirs = [hparam_base / hamiltonian]
-    else:
-        ham_dirs = sorted(d for d in hparam_base.iterdir() if d.is_dir())
-
-    for ham_dir in ham_dirs:
-        if not ham_dir.exists():
-            continue
-        ham = ham_dir.name
-
-        if study_name:
-            study_dirs = [ham_dir / study_name]
-        else:
-            study_dirs = sorted(d for d in ham_dir.iterdir() if d.is_dir())
-
-        for study_dir in study_dirs:
-            if not study_dir.exists():
-                continue
-            for index_path in sorted(study_dir.rglob("index.jsonl")):
-                found.append((ham, study_dir.name, index_path))
-
-    return found
-
-
-# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
 
 def _build_cli() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="TTS benchmark using best hyperparameters from hparam search",
+        description="TTS benchmark using globally best hparam configs",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
     parser.add_argument(
         "--hamiltonian",
         choices=list(HAMILTONIAN_REGISTRY.keys()),
-        help="Hamiltonian to process (omit with --all for every hamiltonian)",
-    )
-    parser.add_argument(
-        "--study-name",
-        help="Specific study name under the hamiltonian dir (omit to use all studies)",
+        help="Hamiltonian to process (use --all for every hamiltonian)",
     )
     parser.add_argument(
         "--all",
         action="store_true",
-        help="Process all hamiltonians and all studies (ignores --hamiltonian / --study-name)",
+        help="Process all hamiltonians",
     )
     parser.add_argument(
         "--N",
@@ -465,32 +441,32 @@ def _build_cli() -> argparse.ArgumentParser:
         "--sampling-methods",
         nargs="+",
         metavar="METHOD",
-        help="Filter to specific sampling methods (e.g. --sampling-methods exchange metropolis)",
+        help="Filter to specific sampling methods",
     )
     parser.add_argument(
         "--n-seeds",
         type=int,
         default=10,
-        help="Number of random seeds per config (default: 10)",
+        help="Random seeds per config (default: 10)",
     )
     parser.add_argument(
         "--iterations",
         type=int,
         default=300,
-        help="SR training iterations per run (default: 300)",
+        help="SR iterations per run (default: 300)",
     )
     parser.add_argument(
         "--epsilon",
         type=float,
         nargs="+",
         default=[0.01, 0.001],
-        help="Relative-error threshold(s) for TTS computation (default: 0.01 0.001)",
+        help="Rel-error threshold(s) for TTS (default: 0.01 0.001)",
     )
     parser.add_argument(
         "--window",
         type=int,
         default=10,
-        help="Rolling-mean window size for TTS computation (default: 10)",
+        help="Rolling-mean window for TTS computation (default: 10)",
     )
     parser.add_argument(
         "--output-dir",
@@ -510,64 +486,61 @@ def main():
     output_base = Path(cli.output_dir)
     hparam_base = output_base / "hparam_search"
 
-    hamiltonian = None if cli.all else cli.hamiltonian
-    study_name = None if cli.all else cli.study_name
-
-    index_files = discover_index_files(hamiltonian, study_name, hparam_base)
-    if not index_files:
-        print("No index.jsonl files found — check --hamiltonian / --study-name / --all")
+    if cli.all:
+        hamiltonians = [d.name for d in sorted(hparam_base.iterdir()) if d.is_dir()]
+    elif cli.hamiltonian:
+        hamiltonians = [cli.hamiltonian]
+    else:
+        print("Specify --hamiltonian <name> or --all")
         return
 
-    print("TTS benchmark")
-    print(f"  Seeds      : {cli.n_seeds}")
-    print(f"  Iterations : {cli.iterations}")
-    print(f"  Epsilon(s) : {cli.epsilon}")
-    print(f"  Window     : {cli.window}")
-    print(f"  Combos     : {len(index_files)}")
-    if cli.sampling_methods:
-        print(f"  Methods    : {cli.sampling_methods}")
-    if cli.N:
-        print(f"  N filter   : {cli.N}")
-    print()
-
-    if cli.dry_run:
-        for ham, study, idx in index_files:
-            print(f"  {ham}/{study}/{idx.parent.name}")
-        return
-
-    for ham, study, index_path in index_files:
-        combo_key = index_path.parent.name  # e.g. "N8_J20.5"
-
-        try:
-            df = pd.read_json(index_path, lines=True)
-            if df.empty:
-                print(f"[{ham}/{study}/{combo_key}] empty index — skipping")
-                continue
-            row0 = df.iloc[0]
-            N = int(row0["N"])
-            phys_params = dict(row0["phys_params"])
-        except Exception as exc:
-            print(f"[{ham}/{study}/{combo_key}] failed to parse index: {exc} — skipping")
+    for hamiltonian in hamiltonians:
+        print(f"\n=== {hamiltonian} ===")
+        all_trials = load_all_trials(hamiltonian, hparam_base)
+        if all_trials.empty:
+            print("  No trials found — skipping")
             continue
 
-        if cli.N and N not in cli.N:
-            continue
-
-        print(f"[{ham}/{study}/{combo_key}]")
-        run_combo(
-            index_path=index_path,
-            hamiltonian=ham,
-            N=N,
-            phys_params=phys_params,
-            combo_key=combo_key,
-            study_name=study,
-            n_seeds=cli.n_seeds,
-            n_iterations=cli.iterations,
-            epsilon=cli.epsilon,
-            window=cli.window,
+        best_map = global_best_per_combo_sampler(
+            all_trials,
             methods_filter=cli.sampling_methods,
-            output_base=output_base,
+            N_filter=cli.N,
         )
+        if not best_map:
+            print("  No completed trials after filtering — skipping")
+            continue
+
+        # Group by (N, phys_key) so each combo is processed together
+        combos: dict[tuple, dict[str, dict]] = {}
+        for (N, phys_key, method), best_row in best_map.items():
+            combos.setdefault((N, phys_key), {})[method] = best_row
+
+        print(f"  {len(all_trials)} total trials  |  {len(combos)} (N, phys) combos  |  {len(best_map)} (combo, method) entries")
+        print(f"  Seeds={cli.n_seeds}  Iterations={cli.iterations}  Epsilon={cli.epsilon}  Window={cli.window}")
+
+        if cli.dry_run:
+            for (N, phys_key), methods in sorted(combos.items()):
+                phys_params = json.loads(phys_key)
+                key = _combo_key(hamiltonian, N, phys_params)
+                print(f"  {key}: {sorted(methods)}")
+            continue
+
+        for (N, phys_key), best_per_sampler in sorted(combos.items()):
+            phys_params = json.loads(phys_key)
+            key = _combo_key(hamiltonian, N, phys_params)
+            print(f"\n[{key}]")
+            run_combo(
+                hamiltonian=hamiltonian,
+                N=N,
+                phys_params=phys_params,
+                combo_key=key,
+                best_per_sampler=best_per_sampler,
+                n_seeds=cli.n_seeds,
+                n_iterations=cli.iterations,
+                epsilon=cli.epsilon,
+                window=cli.window,
+                output_base=output_base,
+            )
 
 
 if __name__ == "__main__":
