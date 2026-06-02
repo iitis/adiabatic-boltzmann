@@ -1,47 +1,61 @@
 #!/usr/bin/env python3
 """
-Hyperparameter search for the SA-sampler VMC using Optuna.
+Hyperparameter search for the VeloxQstandard SA-sampler VMC using Optuna.
+
+This variant drives the *VeloxQstandard* ``SimulatedAnnealing`` solver
+(``../veloxQstandard``) as the VMC sampler and tunes it to draw samples from a
+fixed-temperature Gibbs distribution of |Ψ(v)|², rather than running a true
+annealing schedule.
+
+To sample from a Gibbs distribution we pin the annealing setup:
+
+    * ``num_steps = 1``            → a single schedule point (no cooling)
+    * ``schedule_type = geometric``→ that single point equals ``start_temp``
+    * ``stop_temp < start_temp``   → only there to satisfy the solver's strict
+                                     ``T_min < T_max`` assertion; with one step
+                                     it does not affect the temperature
+    * ``num_sweeps_per_step``      → the only knob controlling equilibration
+
+Optuna therefore searches over:
+
+    * ``start_temp``          (the Gibbs temperature; free continuous range)
+    * ``num_sweeps_per_step`` (categorical, from a fixed ladder)
+    * ``learning_rate`` / ``regularization`` / ``n_hidden``  (VMC ansatz)
 
 By default sweeps over N=16 and N=24.  Run without any arguments:
 
+    cd src
     python optuna_sa_sweep.py
 
-Searched parameters: T_initial, T_final, n_sweeps, n_warmup,
-                     learning_rate, regularization, n_hidden.
-
 Saves one JSON per size to <output-dir>/best_<model>_N<size>_h<h>.json.
-These files are read by run_fpga_best.py.
 
 ──────────────────────────────────────────────────────────────────────────────
-CUSTOM SA SAMPLER — how to plug in your own implementation
+SA SAMPLER — VeloxQstandard SimulatedAnnealing
 ──────────────────────────────────────────────────────────────────────────────
-Find the function _build_sampler() below.  Replace the body with your own
-sampler construction.  Your sampler must satisfy this contract:
+The sampler is ``VeloxQStandardSASampler`` (see ``sampler.py``), which talks to
+a long-lived Julia server (``scripts/veloxq_sa_server.jl``) over a unix socket.
+One server is started per Optuna study (per size) and reused across all trials;
+each trial only changes the SA config keys forwarded through ``trainer_config``:
 
-    class MySASampler:
-        def sample(self, rbm, n_samples: int, config: dict, **_) -> np.ndarray:
-            # Read the annealing schedule from config:
-            T_initial = config.get("T_initial", 5.0)   # start temperature
-            T_final   = config.get("T_final",   0.5)   # end temperature
-            n_sweeps  = config.get("n_sweeps",  20)    # cooling sweep count
-            n_warmup  = config.get("n_warmup",  5)     # warmup sweeps at T_initial
+    veloxq_num_steps   = 1                 (fixed)
+    veloxq_num_sweeps  = num_sweeps_per_step
+    veloxq_start_temp  = start_temp
+    veloxq_stop_temp   = 0.5 * start_temp  (irrelevant with one step)
+    veloxq_schedule    = geometric         (single point == start_temp)
 
-            # ... run your SA here ...
+The Julia server maps ``veloxq_num_sweeps`` → ``num_sweeps_per_step`` and
+``veloxq_start_temp`` / ``veloxq_stop_temp`` → ``start_temp`` / ``stop_temp`` on
+the ``SimulatedAnnealing`` struct.
 
-            # Return spin configurations: shape (n_samples, n_visible), values ±1
-            return samples  # np.ndarray, dtype float or int
-
-Optuna will vary T_initial / T_final / n_sweeps / n_warmup across trials and
-pass them through config so your sampler picks them up automatically.
-
-If your sampler uses different parameter names, add a thin adapter in
-_build_sampler() that translates config keys before forwarding.
+The ``--julia-project`` defaults to ``scripts/julia_local``, an environment that
+``dev``-depends on the local ``../veloxQstandard`` checkout.
 ──────────────────────────────────────────────────────────────────────────────
 """
 
 import argparse
 import json
 import math
+import os
 from pathlib import Path
 
 import jax
@@ -51,52 +65,49 @@ import optuna
 from encoder import Trainer
 from ising import TransverseFieldIsing1D, TransverseFieldIsing2D
 from model import FullyConnectedRBM
-from sampler import ClassicalSampler
+from sampler import VeloxQStandardSASampler
 
 # ── default sweep targets ─────────────────────────────────────────────────────
 DEFAULT_SIZES = [16, 24]
 DEFAULT_MODEL = "1d"
 DEFAULT_H     = 0.5
 
+# Fixed SA setup for Gibbs sampling (no annealing).
+NUM_STEPS = 1
 
-# ── CUSTOM SAMPLER PLUG-IN ────────────────────────────────────────────────────
-def _build_sampler(T_initial, T_final, n_sweeps, n_warmup, seed, trial_number):
+# Ladder of sweep counts Optuna chooses from for num_sweeps_per_step.
+NUM_SWEEPS_CHOICES = [10, 100, 500, 1000, 2000, 5000, 10000, 50000]
+
+# Default Julia environment that dev-depends on ../veloxQstandard.
+DEFAULT_JULIA_PROJECT = str(Path(__file__).parent.parent / "scripts" / "julia_local")
+
+
+# ── SAMPLER CONSTRUCTION ──────────────────────────────────────────────────────
+def _build_sampler(args, n_samples):
     """
-    Build and return the SA sampler for one Optuna trial.
+    Build the shared VeloxQstandard SA sampler for one Optuna study.
 
-    TO USE YOUR OWN SAMPLER: replace the body of this function.
-    The only requirement is that the returned object has a .sample() method
-    matching the contract described in the module docstring above.
-
-    Example with a custom sampler:
-
-        from my_sa_module import MySASampler
-        sampler = MySASampler(
-            start_temp=T_initial,
-            end_temp=T_final,
-            sweeps=n_sweeps,
-        )
-        return sampler
-
-    The built-in ClassicalSampler reads T_initial / T_final / n_sweeps /
-    n_warmup from the config dict at sample time, so those values are
-    forwarded automatically through trainer_config in _objective().
+    The sampler launches a persistent Julia server on first use and reuses it
+    across every trial in the study. Per-trial SA parameters (start_temp,
+    num_sweeps_per_step) are forwarded later via the trainer config, not here.
     """
-    sampler = ClassicalSampler(
-        method="simulated_annealing",
-        T_initial=T_initial,
-        T_final=T_final,
-        n_sweeps=n_sweeps,
-        n_warmup=n_warmup,
+    sampler = VeloxQStandardSASampler(
+        project_path=args.julia_project,
+        num_rep=max(args.num_rep, n_samples),
+        num_steps=NUM_STEPS,
+        num_sweeps=NUM_SWEEPS_CHOICES[0],
+        start_temp=1.0,
+        stop_temp=0.5,
+        schedule_type="geometric",
+        server_ready_timeout_s=args.server_timeout,
     )
-    sampler._key = jax.random.PRNGKey(seed + trial_number + 100_000)
     return sampler
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 def _parse_args():
     p = argparse.ArgumentParser(
-        description="Optuna SA hyperparameter sweep for VMC",
+        description="Optuna VeloxQstandard-SA Gibbs sweep for VMC",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p.add_argument("--model", default=DEFAULT_MODEL, choices=["1d", "2d"])
@@ -110,6 +121,30 @@ def _parse_args():
     p.add_argument("--iterations", type=int, default=30, help="VMC iterations per trial")
     p.add_argument("--n-samples", type=int, default=200, help="Samples per VMC iteration")
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument(
+        "--temp-low", type=float, default=0.05,
+        help="Lower bound for the Gibbs temperature search (log-uniform)",
+    )
+    p.add_argument(
+        "--temp-high", type=float, default=50.0,
+        help="Upper bound for the Gibbs temperature search (log-uniform)",
+    )
+    p.add_argument(
+        "--num-rep", type=int, default=1024,
+        help="VeloxQ SA replica count (must be >= n-samples)",
+    )
+    p.add_argument(
+        "--backend", default="cuda", choices=["cuda", "gpu", "cpu"],
+        help="VeloxQstandard simulation backend",
+    )
+    p.add_argument(
+        "--julia-project", default=DEFAULT_JULIA_PROJECT,
+        help="Julia project that dev-depends on ../veloxQstandard",
+    )
+    p.add_argument(
+        "--server-timeout", type=float, default=600.0,
+        help="Seconds to wait for the Julia SA server to become ready",
+    )
     p.add_argument(
         "--output-dir",
         default=str(Path(__file__).parent.parent / "optuna_results"),
@@ -140,7 +175,7 @@ def _make_trainer_ns(model, size, h, n_hidden, learning_rate, regularization,
         size=size,
         h=h,
         rbm="full",
-        sampler="custom",
+        sampler="velox",
         sampling_method="simulated_annealing",
         ansatz="rbm",
         n_hidden=n_hidden,
@@ -163,11 +198,14 @@ def _make_trainer_ns(model, size, h, n_hidden, learning_rate, regularization,
     )
 
 
-def _objective(trial, args, size, ising, exact_energy):
-    T_initial      = trial.suggest_float("T_initial",      1.0,  20.0,  log=True)
-    T_final        = trial.suggest_float("T_final",        0.01,  2.0,  log=True)
-    n_sweeps       = trial.suggest_int(  "n_sweeps",       5,    100)
-    n_warmup       = trial.suggest_int(  "n_warmup",       1,     20)
+def _objective(trial, args, size, ising, exact_energy, sampler):
+    # ── SA sampling params (the Gibbs knobs) ─────────────────────────────────
+    start_temp          = trial.suggest_float("start_temp", args.temp_low,
+                                              args.temp_high, log=True)
+    num_sweeps_per_step = trial.suggest_categorical("num_sweeps_per_step",
+                                                    NUM_SWEEPS_CHOICES)
+
+    # ── VMC ansatz params ────────────────────────────────────────────────────
     learning_rate  = trial.suggest_float("learning_rate",  1e-3,  0.3,  log=True)
     regularization = trial.suggest_float("regularization", 1e-6,  1e-2, log=True)
     n_hidden       = trial.suggest_int(  "n_hidden",       size,  4 * size)
@@ -177,21 +215,30 @@ def _objective(trial, args, size, ising, exact_energy):
     _, model_key = jax.random.split(key)
     rbm = FullyConnectedRBM(n_visible, n_hidden, model_key)
 
-    # ── sampler: swap your implementation here via _build_sampler() ──────────
-    sampler = _build_sampler(T_initial, T_final, n_sweeps, n_warmup,
-                             args.seed, trial.number)
-
     trainer_config = {
         "learning_rate":  learning_rate,
         "n_iterations":   args.iterations,
         "n_samples":      args.n_samples,
         "regularization": regularization,
-        # These keys are forwarded to sampler.sample(config=...) each iteration.
-        # Built-in ClassicalSampler reads them; your custom sampler should too.
-        "T_initial": T_initial,
-        "T_final":   T_final,
-        "n_sweeps":  n_sweeps,
-        "n_warmup":  n_warmup,
+        # ── Gibbs SA setup forwarded to sampler.sample(config=...) ───────────
+        # num_steps=1 + geometric schedule ⇒ a single, fixed-temperature pass
+        # at `start_temp`, i.e. sampling the Gibbs distribution at start_temp.
+        "veloxq_num_steps":  NUM_STEPS,
+        "veloxq_num_sweeps": num_sweeps_per_step,
+        "veloxq_start_temp": start_temp,
+        # With num_steps=1 the geometric schedule has a single point equal to
+        # start_temp (x**0 == 1), so stop_temp never affects the sampling
+        # temperature — it only has to satisfy make_schedule's strict
+        # `T_min < T_max` assertion. Hence a value just below start_temp.
+        "veloxq_stop_temp":  0.5 * start_temp,
+        "veloxq_schedule":   "geometric",
+        "veloxq_num_rep":    max(args.num_rep, args.n_samples),
+        # ── pin beta_x so the Gibbs temperature is controlled solely by
+        #    start_temp (no adaptive coupling rescaling confounding it) ───────
+        "beta_x_init": 1.0,
+        "beta_min":    1.0,
+        "beta_max":    1.0,
+        "use_cem":     False,
     }
     ns = _make_trainer_ns(
         args.model, size, args.h,
@@ -221,12 +268,16 @@ def _run_for_size(args, size, output_dir):
     exact_energy = ising.exact_ground_energy()
     print(f"Exact ground energy: {exact_energy:.6f}")
 
-    study_name = (args.study_name or "sa") + f"_{args.model}_N{size}_h{args.h}"
+    sampler = _build_sampler(args, args.n_samples)
+    study_name = (args.study_name or "veloxsa") + f"_{args.model}_N{size}_h{args.h}"
     study = optuna.create_study(direction="minimize", study_name=study_name)
-    study.optimize(
-        lambda trial: _objective(trial, args, size, ising, exact_energy),
-        n_trials=args.n_trials,
-    )
+    try:
+        study.optimize(
+            lambda trial: _objective(trial, args, size, ising, exact_energy, sampler),
+            n_trials=args.n_trials,
+        )
+    finally:
+        sampler.close()
 
     top_trials = sorted(study.trials, key=lambda t: t.value if t.value is not None else float("inf"))[:5]
     h_str = str(args.h).replace(".", "p")
@@ -238,16 +289,20 @@ def _run_for_size(args, size, output_dir):
         "h":     args.h,
         "exact_energy": exact_energy,
         "n_trials":     args.n_trials,
+        "sa_setup": {
+            "num_steps": NUM_STEPS,
+            "schedule": "geometric, single point == start_temp → Gibbs sampling",
+            "num_sweeps_choices": NUM_SWEEPS_CHOICES,
+        },
         "top_trials": [
             {
                 "rank":              rank + 1,
                 "trial_number":      t.number,
                 "variational_error": t.value,
                 "sa": {
-                    "T_initial": t.params["T_initial"],
-                    "T_final":   t.params["T_final"],
-                    "n_sweeps":  t.params["n_sweeps"],
-                    "n_warmup":  t.params["n_warmup"],
+                    "num_steps":           NUM_STEPS,
+                    "start_temp":          t.params["start_temp"],
+                    "num_sweeps_per_step": t.params["num_sweeps_per_step"],
                 },
                 "vmc": {
                     "learning_rate":  t.params["learning_rate"],
@@ -263,13 +318,23 @@ def _run_for_size(args, size, output_dir):
     with open(output_path, "w") as f:
         json.dump(result, f, indent=2)
 
-    print(f"Top 5 trials saved (best: #{top_trials[0].number}  error={top_trials[0].value:.6f})")
+    best = top_trials[0]
+    best_err = best.value if best.value is not None else float("inf")
+    print(f"Top 5 trials saved (best: #{best.number}  error={best_err:.6f})")
     print(f"Saved:  {output_path}")
     return output_path
 
 
 def main():
     args = _parse_args()
+
+    if args.num_rep < args.n_samples:
+        raise ValueError(
+            f"--num-rep ({args.num_rep}) must be >= --n-samples ({args.n_samples})."
+        )
+
+    # The Julia server reads VELOXQ_BACKEND from its environment at startup.
+    os.environ["VELOXQ_BACKEND"] = args.backend
 
     optuna.logging.set_verbosity(getattr(optuna.logging, args.verbosity))
 
