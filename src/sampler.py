@@ -1794,6 +1794,199 @@ class DimodSampler(Sampler):
         )
         return composite, is_trivial, cache_key
 
+    def _get_parallel_composite(self, source_bqm, solver_name, rbms, n_parallel):
+        """Build or return a cached ParallelEmbeddingComposite for n_parallel independent runs.
+
+        Cache key is separate from _get_composite to avoid collisions.
+        Raises on any inconsistency rather than falling back silently.
+        """
+        from dwave.system import DWaveSampler, ParallelEmbeddingComposite
+        from model import DWaveTopologyRBM
+
+        cache_key = ("parallel", self.n_visible, self.n_hidden, solver_name, n_parallel)
+        if cache_key in self._embedding_cache:
+            return self._embedding_cache[cache_key]
+
+        dwave_sampler = DWaveSampler(solver=solver_name)
+
+        if all(isinstance(r, DWaveTopologyRBM) for r in rbms):
+            # Identity embeddings: each RBM supplies its own disjoint qubit mapping.
+            embeddings = []
+            seen_phys: set = set()
+            for k, rbm in enumerate(rbms):
+                if rbm._qubit_mapping is None:
+                    raise RuntimeError(
+                        f"RBM {k} has no qubit mapping. "
+                        "DWaveTopologyRBM must be constructed with a live solver."
+                    )
+                phys_set = set(rbm._qubit_mapping.keys())
+                overlap = seen_phys & phys_set
+                if overlap:
+                    raise RuntimeError(
+                        f"RBM {k} shares physical qubits {overlap} with a previous RBM. "
+                        "All RBMs in a parallel call must use disjoint qubit subsets."
+                    )
+                seen_phys |= phys_set
+                embeddings.append(
+                    {logical: [phys] for phys, logical in rbm._qubit_mapping.items()}
+                )
+            composite = ParallelEmbeddingComposite(dwave_sampler, embeddings=embeddings)
+            print(
+                f"  [parallel] Identity embeddings cached for {n_parallel} runs "
+                f"({cache_key})."
+            )
+        else:
+            # FullyConnectedRBM: auto-find n_parallel disjoint embeddings.
+            import networkx as nx
+
+            source_graph = nx.Graph()
+            source_graph.add_nodes_from(source_bqm.variables)
+            source_graph.add_edges_from(source_bqm.quadratic.keys())
+            composite = ParallelEmbeddingComposite(
+                dwave_sampler,
+                source=source_graph,
+                embedder_kwargs={"max_num_emb": n_parallel},
+            )
+            found = composite.num_embeddings
+            if found < n_parallel:
+                raise RuntimeError(
+                    f"find_multiple_embeddings found only {found} disjoint embeddings "
+                    f"but {n_parallel} were requested. Reduce n_parallel or use a "
+                    f"smaller problem."
+                )
+            print(
+                f"  [parallel] Found {found} embeddings for {n_parallel} runs "
+                f"({cache_key})."
+            )
+
+        self._embedding_cache[cache_key] = composite
+        return composite
+
+    def dwave_parallel(self, bqms, n_samples, config, rbms, n_parallel):
+        """Single QPU call sampling n_parallel independent BQMs via sample_multiple.
+
+        QPU access time is divided by n_parallel for per-run budget attribution.
+        Returns list[np.ndarray] of shape (n_samples, n_visible), one per run.
+        """
+        solver_name = config.get("solver")
+        annealing_time = config.get("annealing_time", 20)
+        num_reads = config.get("num_reads", n_samples)
+        chain_strength = config.get("chain_strength", None)
+        auto_scale = bool(config.get("auto_scale", True))
+
+        cache_key = ("parallel", self.n_visible, self.n_hidden, solver_name, n_parallel)
+        composite = self._get_parallel_composite(bqms[0], solver_name, rbms, n_parallel)
+
+        chain_strengths = [chain_strength] * n_parallel
+        sample_kwargs = dict(
+            num_reads=num_reads,
+            annealing_time=annealing_time,
+            answer_mode="raw",
+            auto_scale=auto_scale,
+        )
+
+        MAX_DWAVE_RETRIES = 3
+        for tries in range(1, MAX_DWAVE_RETRIES + 1):
+            try:
+                samplesets, info = composite.sample_multiple(
+                    bqms, chain_strengths=chain_strengths, **sample_kwargs
+                )
+                access_time_us = info["timing"]["qpu_access_time"]
+                # Divide QPU time equally across parallel runs for budget attribution.
+                self._log_access_time(access_time_us / n_parallel)
+                self.last_sampling_time_s = access_time_us * 1e-6 / n_parallel
+                self.last_n_parallel = n_parallel
+                break
+            except Exception as e:
+                print(
+                    f"  D-Wave parallel attempt {tries}/{MAX_DWAVE_RETRIES} failed: {e}"
+                )
+                if tries == MAX_DWAVE_RETRIES:
+                    raise RuntimeError(
+                        f"D-Wave parallel sampling failed after {MAX_DWAVE_RETRIES} "
+                        f"attempts."
+                    )
+                self._embedding_cache.pop(cache_key, None)
+                composite = self._get_parallel_composite(
+                    bqms[0], solver_name, rbms, n_parallel
+                )
+
+        results = []
+        for ss in samplesets:
+            df = ss.to_pandas_dataframe()
+            df = df.loc[df.index.repeat(df["num_occurrences"])].reset_index(drop=True)
+            v = df.loc[:, list(range(self.n_visible))].to_numpy()
+            results.append(v)
+        return results
+
+    def sample_parallel(self, rbms, n_samples, config={}, n_parallel=None):
+        """Sample from n_parallel independent RBMs in a single QPU call.
+
+        All RBMs must share the same n_visible and n_hidden. For DWaveTopologyRBM,
+        each must carry a disjoint qubit mapping (built from different subgraphs).
+
+        n_parallel defaults to len(rbms) and must equal len(rbms).
+        Only supported for QPU methods ('pegasus', 'zephyr'). Raises for all others.
+
+        Returns list[np.ndarray] of shape (n_samples, n_visible), one per RBM,
+        in the same order as the input list.
+        """
+        from model_dbm import DeepBoltzmannMachine
+
+        if n_parallel is None:
+            n_parallel = len(rbms)
+        if n_parallel != len(rbms):
+            raise ValueError(
+                f"n_parallel={n_parallel} must equal len(rbms)={len(rbms)}."
+            )
+        if n_parallel < 1:
+            raise ValueError(f"n_parallel must be >= 1, got {n_parallel}.")
+
+        if self.method not in ("pegasus", "zephyr"):
+            raise ValueError(
+                f"sample_parallel requires a QPU method ('pegasus' or 'zephyr'), "
+                f"got '{self.method}'. Use sample() for classical methods."
+            )
+
+        # Validate uniform architecture.
+        n_vis_0 = rbms[0].n_visible
+        n_hid_0 = (
+            sum(rbms[0].hidden_sizes)
+            if isinstance(rbms[0], DeepBoltzmannMachine)
+            else rbms[0].n_hidden
+        )
+        for k, rbm in enumerate(rbms[1:], 1):
+            n_hid_k = (
+                sum(rbm.hidden_sizes)
+                if isinstance(rbm, DeepBoltzmannMachine)
+                else rbm.n_hidden
+            )
+            if rbm.n_visible != n_vis_0 or n_hid_k != n_hid_0:
+                raise ValueError(
+                    f"RBM {k} has architecture (n_visible={rbm.n_visible}, "
+                    f"n_hidden={n_hid_k}) but RBM 0 has ({n_vis_0}, {n_hid_0}). "
+                    "All RBMs must share the same architecture."
+                )
+
+        self.__dict__.pop("last_sampling_time_s", None)
+        self.__dict__.pop("last_n_parallel", None)
+
+        beta_x = config.get("beta_x", 1.0)
+        bqms = []
+        for rbm in rbms:
+            if isinstance(rbm, DeepBoltzmannMachine):
+                J, h = self.dbm_to_ising(rbm, beta_x)
+            else:
+                J, h = self.rbm_to_ising(rbm, beta_x)
+            bqms.append(dimod.BinaryQuadraticModel.from_ising(h, J, 0.0))
+
+        self.n_visible = n_vis_0
+        self.n_hidden = n_hid_0
+
+        config = dict(config)
+        config["solver"] = get_solver_name(self.method)
+        return self.dwave_parallel(bqms, n_samples, config, rbms, n_parallel)
+
     def dwave(self, bqm, n_samples, config={}, rbm=None, return_hidden=False):
         solver_name = config.get("solver", None)
         annealing_time = config.get("annealing_time", 20)

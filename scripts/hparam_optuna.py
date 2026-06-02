@@ -15,6 +15,12 @@ Usage (from project root):
     python scripts/hparam_optuna.py --resume --study-name my_study \\
         --hamiltonian heisenberg_j1j2_1d
 
+    # pegasus_fast: ~0.3 s per SR iteration → budget ≈ n_trials × iterations × 0.3 s
+    # 10 trials × 60 iters = 180 s ≈ 3 min per (N, sweep_val) combo
+    python scripts/hparam_optuna.py --hamiltonian heisenberg_j1j2_1d \\
+        --N 8 12 --sampling-methods pegasus_fast --ansatz-types rbm \\
+        --n-trials 10 --iterations 60
+
 Adding a new Hamiltonian:
     Add an entry to HAMILTONIAN_REGISTRY below — no other changes needed.
 
@@ -202,6 +208,7 @@ def _build_args(
     cem_ema_alpha: float,
     seed: int,
     output_dir: Path,
+    fast_anneal_time_ns: float = 7.0,
 ) -> Namespace:
     """Build the args Namespace consumed by save_results, Trainer, and helpers."""
     entry = HAMILTONIAN_REGISTRY[hamiltonian]
@@ -234,7 +241,8 @@ def _build_args(
         cem=use_cem,
         cem_interval=cem_interval,
         # sigma encodes lsb_sigma for LSB runs (used in result filename)
-        sigma=1.0,
+        # for pegasus_fast it encodes fast_anneal_time_ns
+        sigma=fast_anneal_time_ns if sampling_method == "pegasus_fast" else 1.0,
         visualize=False,
         output_dir=str(output_dir),
     )
@@ -270,6 +278,7 @@ def run_trial(
     lsb_delta: float,
     seed: int,
     output_dir: Path,
+    fast_anneal_time_ns: float = 7.0,
 ) -> dict:
     """
     Build the model, run training, save the full result JSON, return metrics.
@@ -318,6 +327,8 @@ def run_trial(
         "lsb_steps": lsb_steps,
         "lsb_sigma": lsb_sigma,
         "lsb_delta": lsb_delta,
+        # fast anneal param — ignored by non-fast-anneal samplers
+        "fast_anneal_time_ns": fast_anneal_time_ns,
         "seed": seed,
         "stop_at_convergence": False,
         "save_checkpoints": False,
@@ -341,6 +352,7 @@ def run_trial(
         cem_ema_alpha=cem_ema_alpha,
         seed=seed,
         output_dir=output_dir,
+        fast_anneal_time_ns=fast_anneal_time_ns,
     )
 
     t0 = time.perf_counter()
@@ -415,19 +427,22 @@ def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_
         if ansatz_type == "fbm" and N > 16:
             raise optuna.exceptions.TrialPruned()
 
+        # ── Sampler (must come before n_samples — range depends on method) ──
+        sampling_method = trial.suggest_categorical(
+            "sampling_method", cli.sampling_methods
+        )
+
         # ── Optimizer ─────────────────────────────────────────────────────
         lr = trial.suggest_float("learning_rate", 5e-4, 5e-1, log=True)
         reg = trial.suggest_float("regularization", 1e-7, 1e-1, log=True)
-        n_samples = trial.suggest_int("n_samples", 200, 2000, step=200)
+        if sampling_method == "pegasus_fast":
+            n_samples = 1000
+        else:
+            n_samples = trial.suggest_int("n_samples", 200, 2000, step=200)
 
         # ── CG solver ─────────────────────────────────────────────────────
         cg_tol = trial.suggest_float("cg_tol", 1e-10, 1e-5, log=True)
         cg_maxiter = trial.suggest_int("cg_maxiter", 50, 300)
-
-        # ── Sampler ───────────────────────────────────────────────────────
-        sampling_method = trial.suggest_categorical(
-            "sampling_method", cli.sampling_methods
-        )
 
         # Warmup sweeps (classical only — QPU methods have no warmup)
         n_warmup = 0 if sampling_method in _QPU_METHODS else trial.suggest_int("n_warmup", 50, 500, step=50)
@@ -443,6 +458,7 @@ def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_
             else:
                 cem_ema_alpha = 0.3
                 cem_interval = 5
+            fast_anneal_time_ns = 7.0
             lsb_steps, lsb_sigma, lsb_delta = 1000, 1.0, 1.0
 
         elif sampling_method == "lsb":
@@ -455,12 +471,24 @@ def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_
             use_cem = True
             cem_ema_alpha = trial.suggest_float("cem_ema_alpha", 0.05, 0.5)
             cem_interval = trial.suggest_int("cem_interval", 1, 10)
+            fast_anneal_time_ns = 7.0
             T_initial, T_final = 5.0, 1.0
 
+        elif sampling_method == "pegasus_fast":
+            # Fast anneal in the coherent regime — only anneal time is QPU-specific.
+            # n_samples upper bound is kept low: QPU latency is dominated by cloud
+            # overhead, not anneal time, so diminishing returns beyond ~400 reads.
+            fast_anneal_time_ns = trial.suggest_float("fast_anneal_time_ns", 0.5, 20.0, log=True)
+            T_initial, T_final = 5.0, 1.0
+            use_cem = False
+            cem_ema_alpha, cem_interval = 0.3, 5
+            lsb_steps, lsb_sigma, lsb_delta = 1000, 1.0, 1.0
+
         else:
-            # metropolis, exchange, gibbs, QPU methods — no schedule, no CEM
+            # metropolis, exchange, gibbs, remaining QPU methods — no schedule, no CEM
             # (gibbs: beta_fixed=True in Trainer so CEM is silently skipped anyway)
             # (QPU: DimodSampler ignores T_initial/T_final entirely)
+            fast_anneal_time_ns = 7.0
             T_initial, T_final = 5.0, 1.0
             use_cem = False
             cem_ema_alpha, cem_interval = 0.3, 5
@@ -492,6 +520,7 @@ def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_
             lsb_steps=lsb_steps,
             lsb_sigma=lsb_sigma,
             lsb_delta=lsb_delta,
+            fast_anneal_time_ns=fast_anneal_time_ns,
             seed=seed,
             output_dir=study_dir,
         )

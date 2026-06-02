@@ -261,6 +261,7 @@ def save_results(args, history, ising, rbm=None):
             x is not None for x in history["mh_acceptance_rate"]
         )
         else None,
+        "n_parallel": getattr(args, "n_parallel", None),
     }
 
     # Filename encodes every axis that varies in the sweep

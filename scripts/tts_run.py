@@ -207,6 +207,7 @@ def run_tts_trial(
     lsb_steps = int(p.get("lsb_steps", 1000))
     lsb_sigma = float(p.get("lsb_sigma", 1.0))
     lsb_delta = float(p.get("lsb_delta", 1.0))
+    fast_anneal_time_ns = float(p.get("fast_anneal_time_ns", 7.0))
 
     key = jax.random.PRNGKey(seed)
     key, model_key, sampler_key = jax.random.split(key, 3)
@@ -243,6 +244,7 @@ def run_tts_trial(
         "lsb_steps": lsb_steps,
         "lsb_sigma": lsb_sigma,
         "lsb_delta": lsb_delta,
+        "fast_anneal_time_ns": fast_anneal_time_ns,
         "seed": seed,
         "stop_at_convergence": False,
         "save_checkpoints": False,
@@ -266,6 +268,7 @@ def run_tts_trial(
         cem_ema_alpha=cem_ema_alpha,
         seed=seed,
         output_dir=output_dir,
+        fast_anneal_time_ns=fast_anneal_time_ns,
     )
 
     t0 = time.perf_counter()
