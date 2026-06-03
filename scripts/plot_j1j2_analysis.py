@@ -5,7 +5,7 @@ plot_j1j2_analysis.py — Analysis plots for J1-J2 benchmark results.
 Supports two distinct datasets that must NOT be mixed:
 
   heisenberg_j1j2_1d — Heisenberg J1-J2 chain (results/heisenberg_j1j2_1d/)
-                        N ∈ {8, 12}, methods: exchange / gibbs / lsb / SA / pegasus_fast
+                        N ∈ {8, 12}, methods: exchange / gibbs / lsb / SA
   j1j2_1d            — J1-J2 model (results/j1j2_1d/)
                         N ∈ {8, 16, 32}, methods: metropolis / zephyr
 
@@ -88,19 +88,26 @@ METHOD_MARKER = {
     "pegasus_fast":        "P",
     "zephyr_fast":         "X",
 }
+# Methods hidden by default (use --show-pegasus-fast to re-enable)
+_HIDDEN_BY_DEFAULT = {"pegasus_fast"}
+
 # Colour cycle fallback for unknown methods
 _PALETTE = ["#17becf", "#bcbd22", "#8c564b", "#e377c2"]
 
 
 # ── Data loading ──────────────────────────────────────────────────────────────
 
-def load_runs(results_dir: Path) -> list[dict]:
+def load_runs(results_dir: Path, expected_model: str | None = None) -> list[dict]:
     """
     Scan results_dir/**/*.json and return list of run dicts:
-        {N, J2, method, energies, times_per_iter, exact_energy, seed}
+        {N, J2, method, energies, times, exact, seed}
+
+    If expected_model is given, files whose config["model"] does not match
+    are rejected with a printed warning rather than silently included.
     Files without exact_energy or timing data are skipped.
     """
     runs = []
+    n_wrong_model = 0
     for p in sorted(results_dir.rglob("result_*.json")):
         try:
             d = json.load(open(p))
@@ -110,6 +117,13 @@ def load_runs(results_dir: Path) -> list[dict]:
 
         cfg     = d.get("config", {})
         history = d.get("history", {})
+
+        if expected_model is not None:
+            file_model = cfg.get("model")
+            if file_model != expected_model:
+                n_wrong_model += 1
+                print(f"  [skip] {p.name}: model={file_model!r}, expected {expected_model!r}")
+                continue
 
         N      = cfg.get("size")
         J2     = cfg.get("J2")
@@ -132,7 +146,10 @@ def load_runs(results_dir: Path) -> list[dict]:
             method=method, seed=int(seed),
             energies=list(energies), times=list(times),
             exact=float(exact),
+            delta=float(cfg.get("delta", 1.0)),
         ))
+    if n_wrong_model:
+        print(f"  [warn] {n_wrong_model} file(s) skipped due to model mismatch")
     return runs
 
 
@@ -153,9 +170,13 @@ def compute_metrics(run: dict, window: int, tol: float) -> tuple:
     """
     Returns (tte_s, rel_error, e_per_spin) or (None, None, None) if not converged.
 
-    tte_s       — cumulative sampling time at convergence
-    rel_error   — |E_mean_tail - E_exact| / |E_exact|
-    e_per_spin  — E_mean_tail / N
+    tte_s      — cumulative sampling time at the FIRST convergence point.
+    rel_error  — |E_median - E_exact| / |E_exact|.
+    e_per_spin — E_median / N.
+
+    Energy is taken from the FINAL window if it is still converged (std still
+    below threshold), otherwise falls back to the first-convergence window.
+    Median is used instead of mean to be robust to one-off numerical spikes.
     """
     energies = run["energies"]
     times    = run["times"]
@@ -167,10 +188,17 @@ def compute_metrics(run: dict, window: int, tol: float) -> tuple:
         return None, None, None
 
     cum_t = float(np.cumsum(times)[t])
-    tail  = np.array(energies[max(0, t - window + 1) : t + 1], dtype=float)
-    e_mean = float(tail.mean())
-    rel_err = abs(e_mean - exact) / abs(exact) if abs(exact) > 1e-12 else float("nan")
-    return cum_t, rel_err, e_mean / N
+
+    # Prefer final window; fall back to convergence window if final diverged
+    final_tail = np.array(energies[-window:], dtype=float)
+    if np.std(final_tail) < tol * abs(exact):
+        tail = final_tail
+    else:
+        tail = np.array(energies[max(0, t - window + 1) : t + 1], dtype=float)
+
+    e_val   = float(np.median(tail))
+    rel_err = abs(e_val - exact) / abs(exact) if abs(exact) > 1e-12 else float("nan")
+    return cum_t, rel_err, e_val / N
 
 
 # ── Aggregation ───────────────────────────────────────────────────────────────
@@ -184,13 +212,17 @@ def _agg(values: list) -> tuple:
 
 
 def bucket_runs(runs: list[dict], window: int, tol: float,
-                exclude_j2_zero: bool = True) -> dict:
+                exclude_j2_zero: bool = True,
+                hidden_methods: set | None = None) -> dict:
     """
     Returns nested dict:
         bucket[N][method][J2] = {"tte": [...], "err": [...], "eps": [...],
                                   "total": int}
     J2=0 runs are excluded by default (pure Heisenberg, no frustration).
+    Methods in hidden_methods are skipped entirely.
     """
+    if hidden_methods is None:
+        hidden_methods = _HIDDEN_BY_DEFAULT
     bucket: dict = defaultdict(
         lambda: defaultdict(
             lambda: defaultdict(lambda: {"tte": [], "err": [], "eps": [], "total": 0})
@@ -198,6 +230,8 @@ def bucket_runs(runs: list[dict], window: int, tol: float,
     )
     for run in runs:
         if exclude_j2_zero and run["J2"] == 0.0:
+            continue
+        if run["method"] in hidden_methods:
             continue
         tte, err, eps = compute_metrics(run, window, tol)
         entry = bucket[run["N"]][run["method"]][run["J2"]]
@@ -374,8 +408,6 @@ def fig_error_vs_j2(bucket: dict, out: Path, dpi: int, tol: float, window: int,
                    alpha=0.12 * min(frac) if frac else 0.12)
 
         ax.axvline(0.5, color="#999", linestyle=":", linewidth=0.9, zorder=0)
-        ax.axhline(0.01, color="#bbb", linestyle="--", linewidth=0.75, zorder=0,
-                   label="1% target")
 
         ax.set_yscale("log")
         ax.set_ylabel(f"N={N}\n|ΔE|/|E_exact|", fontsize=8)
@@ -393,14 +425,17 @@ def fig_error_vs_j2(bucket: dict, out: Path, dpi: int, tol: float, window: int,
 # ── Figure 3: Converged E/N per spin vs J₂ ───────────────────────────────────
 
 def fig_energy_vs_j2(runs: list[dict], bucket: dict, out: Path, dpi: int,
-                     window: int, tol: float, model_label: str = ""):
+                     window: int, tol: float, model_label: str = "",
+                     hidden_methods: set | None = None):
     """
     Converged ⟨E⟩/N vs J₂, one panel per N.
     Median over seeds + IQR shading, exact E₀/N as dashed reference.
     Also shows all individual seed values as small dots.
     J2=0 runs are excluded (consistent with bucket_runs filtering).
     """
-    runs    = [r for r in runs if r["J2"] != 0.0]
+    if hidden_methods is None:
+        hidden_methods = _HIDDEN_BY_DEFAULT
+    runs    = [r for r in runs if r["J2"] != 0.0 and r["method"] not in hidden_methods]
     sizes   = sorted(bucket.keys())
     methods = sorted({m for n in bucket.values() for m in n})
     nrows   = len(sizes)
@@ -477,13 +512,16 @@ def fig_energy_vs_j2(runs: list[dict], bucket: dict, out: Path, dpi: int,
 # ── Figure 4: Convergence curves per J₂ (one row per J₂, per N) ──────────────
 
 def fig_convergence_curves(runs: list[dict], out: Path, dpi: int,
-                           model_label: str = ""):
+                           model_label: str = "",
+                           hidden_methods: set | None = None):
     """
     One figure per N.  One row per J₂.  All seed curves shown, coloured by method.
     Exact E₀/N dashed.  Y-axis = E/N per spin.
     J2=0 runs are excluded.
     """
-    runs  = [r for r in runs if r["J2"] != 0.0]
+    if hidden_methods is None:
+        hidden_methods = _HIDDEN_BY_DEFAULT
+    runs  = [r for r in runs if r["J2"] != 0.0 and r["method"] not in hidden_methods]
     sizes = sorted({r["N"] for r in runs})
 
     for N in sizes:
@@ -574,6 +612,8 @@ def main():
                         help="Convergence threshold as fraction of |E_exact|")
     parser.add_argument("--include-j2-zero", action="store_true", default=False,
                         help="Include J₂=0 points (excluded by default)")
+    parser.add_argument("--show-pegasus-fast", action="store_true", default=False,
+                        help="Include pegasus_fast in plots (hidden by default)")
     args = parser.parse_args()
 
     results_dir = args.results or (ROOT / "results" / args.model)
@@ -582,7 +622,7 @@ def main():
 
     print(f"Model   : {model_label}")
     print(f"Loading : {results_dir}")
-    runs = load_runs(results_dir)
+    runs = load_runs(results_dir, expected_model=model_label)
     if not runs:
         print("No runs found. Check --results path and --model.")
         return
@@ -590,11 +630,21 @@ def main():
     sizes   = sorted({r["N"] for r in runs})
     j2s     = sorted({r["J2"] for r in runs})
     methods = sorted({r["method"] for r in runs})
-    print(f"  {len(runs)} runs  |  N={sizes}  |  J₂={j2s}  |  methods={methods}")
+    deltas  = sorted({r["delta"] for r in runs})
+    print(f"  {len(runs)} runs  |  N={sizes}  |  J₂={j2s}  |  methods={methods}  |  Δ={deltas}")
+
+    # Build a human-readable label reflecting the actual anisotropy
+    delta_str = f"Δ={deltas[0]}" if len(deltas) == 1 else f"Δ∈{deltas}"
+    if len(deltas) == 1 and deltas[0] == 1.0:
+        model_label = f"{args.model}  (isotropic Heisenberg)"
+    else:
+        model_label = f"{args.model}  (XXZ, {delta_str})"
 
     exclude_j2_zero = not args.include_j2_zero
+    hidden_methods  = set() if args.show_pegasus_fast else _HIDDEN_BY_DEFAULT
     bucket = bucket_runs(runs, args.window, args.tol,
-                         exclude_j2_zero=exclude_j2_zero)
+                         exclude_j2_zero=exclude_j2_zero,
+                         hidden_methods=hidden_methods)
 
     # Print convergence summary table
     print(f"\nConvergence summary (window={args.window}, tol={args.tol}):")
@@ -615,8 +665,9 @@ def main():
     fig_error_vs_j2(bucket, out_dir, args.dpi, args.tol, args.window,
                     model_label=model_label)
     fig_energy_vs_j2(runs, bucket, out_dir, args.dpi, args.window, args.tol,
-                     model_label=model_label)
-    fig_convergence_curves(runs, out_dir, args.dpi, model_label=model_label)
+                     model_label=model_label, hidden_methods=hidden_methods)
+    fig_convergence_curves(runs, out_dir, args.dpi, model_label=model_label,
+                           hidden_methods=hidden_methods)
 
     print("\nDone.")
 
