@@ -1,0 +1,103 @@
+{
+  "model": "1d",
+  "size": 16,
+  "h": 0.5,
+  "exact_energy": -17.016712496347395,
+  "n_trials": 50,
+  "sa_setup": {
+    "num_steps": 1,
+    "schedule": "geometric, single point == start_temp \u2192 Gibbs sampling",
+    "num_sweeps_choices": [
+      10,
+      100,
+      500,
+      1000,
+      2000,
+      5000,
+      10000,
+      50000
+    ]
+  },
+  "top_trials": [
+    {
+      "rank": 1,
+      "trial_number": 34,
+      "variational_error": -0.634007821643344,
+      "sa": {
+        "num_steps": 1,
+        "start_temp": 1.0,
+        "num_sweeps_per_step": 1000
+      },
+      "vmc": {
+        "learning_rate": 0.07053408977270423,
+        "regularization": 0.0012516276716447914,
+        "n_hidden": 18,
+        "n_samples": 200
+      }
+    },
+    {
+      "rank": 2,
+      "trial_number": 12,
+      "variational_error": -0.5925348125253365,
+      "sa": {
+        "num_steps": 1,
+        "start_temp": 1.0,
+        "num_sweeps_per_step": 10
+      },
+      "vmc": {
+        "learning_rate": 0.04469712149736263,
+        "regularization": 8.976011309746719e-05,
+        "n_hidden": 17,
+        "n_samples": 200
+      }
+    },
+    {
+      "rank": 3,
+      "trial_number": 42,
+      "variational_error": -0.5610453904468322,
+      "sa": {
+        "num_steps": 1,
+        "start_temp": 1.0,
+        "num_sweeps_per_step": 2000
+      },
+      "vmc": {
+        "learning_rate": 0.039496051437841455,
+        "regularization": 0.0006065600354047084,
+        "n_hidden": 24,
+        "n_samples": 200
+      }
+    },
+    {
+      "rank": 4,
+      "trial_number": 43,
+      "variational_error": -0.511874120465933,
+      "sa": {
+        "num_steps": 1,
+        "start_temp": 1.0,
+        "num_sweeps_per_step": 2000
+      },
+      "vmc": {
+        "learning_rate": 0.04024159909898458,
+        "regularization": 0.00019866712452716075,
+        "n_hidden": 26,
+        "n_samples": 200
+      }
+    },
+    {
+      "rank": 5,
+      "trial_number": 14,
+      "variational_error": -0.5075719761631277,
+      "sa": {
+        "num_steps": 1,
+        "start_temp": 1.0,
+        "num_sweeps_per_step": 10
+      },
+      "vmc": {
+        "learning_rate": 0.04536415080293287,
+        "regularization": 0.0006690214840391112,
+        "n_hidden": 25,
+        "n_samples": 200
+      }
+    }
+  ]
+}

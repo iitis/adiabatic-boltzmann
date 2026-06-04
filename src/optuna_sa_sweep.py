@@ -18,9 +18,15 @@ To sample from a Gibbs distribution we pin the annealing setup:
 
 Optuna therefore searches over:
 
-    * ``start_temp``          (the Gibbs temperature; free continuous range)
+    * ``start_temp``          (the Gibbs temperature; free continuous range —
+                              currently PINNED to ``FIXED_START_TEMP`` for the
+                              quick experiment, set it to ``None`` to search)
     * ``num_sweeps_per_step`` (categorical, from a fixed ladder)
     * ``learning_rate`` / ``regularization`` / ``n_hidden``  (VMC ansatz)
+
+The VeloxQstandard ``ComputationModel`` is built with ``scale_model`` and
+``compress`` taken from the ``SCALE_ISING`` / ``COMPRESS`` module constants
+(both ``False`` here ⇒ the SA solver sees the raw, unscaled Ising model).
 
 By default sweeps over N=16 and N=24.  Run without any arguments:
 
@@ -37,11 +43,13 @@ a long-lived Julia server (``scripts/veloxq_sa_server.jl``) over a unix socket.
 One server is started per Optuna study (per size) and reused across all trials;
 each trial only changes the SA config keys forwarded through ``trainer_config``:
 
-    veloxq_num_steps   = 1                 (fixed)
-    veloxq_num_sweeps  = num_sweeps_per_step
-    veloxq_start_temp  = start_temp
-    veloxq_stop_temp   = 0.5 * start_temp  (irrelevant with one step)
-    veloxq_schedule    = geometric         (single point == start_temp)
+    veloxq_num_steps    = 1                 (fixed)
+    veloxq_num_sweeps   = num_sweeps_per_step
+    veloxq_start_temp   = start_temp        (pinned to FIXED_START_TEMP)
+    veloxq_stop_temp    = 0.5 * start_temp  (irrelevant with one step)
+    veloxq_schedule     = geometric         (single point == start_temp)
+    veloxq_scale_model  = SCALE_ISING       (→ VELOXQ_SCALE_MODEL)
+    veloxq_compress     = COMPRESS          (→ VELOXQ_COMPRESS)
 
 The Julia server maps ``veloxq_num_sweeps`` → ``num_sweeps_per_step`` and
 ``veloxq_start_temp`` / ``veloxq_stop_temp`` → ``start_temp`` / ``stop_temp`` on
@@ -59,6 +67,8 @@ import os
 from pathlib import Path
 
 import jax
+jax.config.update("jax_enable_x64", True)  # match main.py/test_e2e.py: SR/CG run in float64
+
 import numpy as np
 import optuna
 
@@ -77,6 +87,17 @@ NUM_STEPS = 1
 
 # Ladder of sweep counts Optuna chooses from for num_sweeps_per_step.
 NUM_SWEEPS_CHOICES = [10, 100, 500, 1000, 2000, 5000, 10000, 50000]
+
+# ── QUICK-EXPERIMENT KNOBS ─────────────────────────────────────────────────────
+# Pin the Gibbs temperature instead of letting Optuna search it.
+# Set to None to restore the log-uniform search over [--temp-low, --temp-high].
+FIXED_START_TEMP = 1.0
+
+# VeloxQstandard ComputationModel build flags, forwarded to the Julia server via
+# VELOXQ_SCALE_MODEL / VELOXQ_COMPRESS so the SA solver sees the raw Ising model.
+SCALE_ISING = False   # ComputationModel(scale_model=...)
+COMPRESS    = False   # ComputationModel(compress=...)
+# ────────────────────────────────────────────────────────────────────────────────
 
 # Default Julia environment that dev-depends on ../veloxQstandard.
 DEFAULT_JULIA_PROJECT = str(Path(__file__).parent.parent / "scripts" / "julia_local")
@@ -152,6 +173,12 @@ def _parse_args():
     )
     p.add_argument("--study-name", default=None, help="Optuna study name prefix")
     p.add_argument(
+        "--storage", default=None,
+        help="Optuna storage URL (default: sqlite:///<output-dir>/optuna_sa_studies.db). "
+             "Trials are persisted as they complete and the study is resumable — "
+             "relaunching with the same study tops up to --n-trials.",
+    )
+    p.add_argument(
         "--verbosity",
         default="WARNING",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
@@ -200,8 +227,15 @@ def _make_trainer_ns(model, size, h, n_hidden, learning_rate, regularization,
 
 def _objective(trial, args, size, ising, exact_energy, sampler):
     # ── SA sampling params (the Gibbs knobs) ─────────────────────────────────
-    start_temp          = trial.suggest_float("start_temp", args.temp_low,
-                                              args.temp_high, log=True)
+    if FIXED_START_TEMP is None:
+        start_temp = trial.suggest_float("start_temp", args.temp_low,
+                                         args.temp_high, log=True)
+    else:
+        # Pinned for the quick experiment. Still registered as a trial param
+        # (degenerate single-point range) so the results JSON, which reads
+        # t.params["start_temp"], stays consistent across trials.
+        start_temp = trial.suggest_float("start_temp",
+                                         FIXED_START_TEMP, FIXED_START_TEMP)
     num_sweeps_per_step = trial.suggest_categorical("num_sweeps_per_step",
                                                     NUM_SWEEPS_CHOICES)
 
@@ -233,6 +267,15 @@ def _objective(trial, args, size, ising, exact_energy, sampler):
         "veloxq_stop_temp":  0.5 * start_temp,
         "veloxq_schedule":   "geometric",
         "veloxq_num_rep":    max(args.num_rep, args.n_samples),
+        # ── VeloxQstandard ComputationModel build flags ──────────────────────
+        # These bind when the Julia server launches (first sample() call) and
+        # stay fixed for the whole study. False ⇒ the SA solver sees the raw
+        # Ising model (no scaling, no compression).
+        "veloxq_scale_model": SCALE_ISING,
+        "veloxq_compress":    COMPRESS,
+        # Unbiased random subsample of the energy-sorted SA replicas (seeded for
+        # reproducibility); see VeloxQStandardSASampler.sample.
+        "veloxq_subsample_seed": args.seed,
         # ── pin beta_x so the Gibbs temperature is controlled solely by
         #    start_temp (no adaptive coupling rescaling confounding it) ───────
         "beta_x_init": 1.0,
@@ -255,8 +298,22 @@ def _objective(trial, args, size, ising, exact_energy, sampler):
     if not tail or not all(math.isfinite(e) for e in tail):
         return float("inf")
 
-    # Minimize the variational energy gap above the exact ground state.
-    return float(np.mean(tail)) - exact_energy
+    mean_energy = float(np.mean(tail))
+    signed_gap  = mean_energy - exact_energy
+    # Store the *signed* quantities so the variational bound (⟨E⟩ ≥ E_exact) can
+    # be checked directly from the study/JSON — the objective below drops the
+    # sign. (Recovering these from stdout is unreliable: the per-iteration prints,
+    # the Julia server's drained output, and Optuna's logging interleave racily.)
+    trial.set_user_attr("mean_energy", mean_energy)
+    trial.set_user_attr("signed_gap", signed_gap)
+
+    # Minimize the DISTANCE to the exact ground energy. With a faithful |Ψ|²
+    # sampler the variational principle gives ⟨E⟩ ≥ E_exact, so this is just the
+    # variational gap; the abs() also guards against any residual sub-variational
+    # (sampling-bias) excursion being *rewarded*. Previously this returned the
+    # signed gap, which rewarded the SA sort-and-skim bias now fixed in
+    # sampler.py (VeloxQStandardSASampler unbiased subsampling).
+    return abs(signed_gap)
 
 
 def _run_for_size(args, size, output_dir):
@@ -270,12 +327,23 @@ def _run_for_size(args, size, output_dir):
 
     sampler = _build_sampler(args, args.n_samples)
     study_name = (args.study_name or "veloxsa") + f"_{args.model}_N{size}_h{args.h}"
-    study = optuna.create_study(direction="minimize", study_name=study_name)
+    # Persist trials to disk so an interrupted run is not lost and can be resumed.
+    storage = args.storage or f"sqlite:///{output_dir / 'optuna_sa_studies.db'}"
+    study = optuna.create_study(
+        direction="minimize", study_name=study_name,
+        storage=storage, load_if_exists=True,
+    )
+    n_done = sum(t.state == optuna.trial.TrialState.COMPLETE for t in study.trials)
+    remaining = max(0, args.n_trials - n_done)
+    if n_done:
+        print(f"Resuming {study_name!r}: {n_done} completed trial(s) found in "
+              f"{storage}; running {remaining} more (target {args.n_trials}).")
     try:
-        study.optimize(
-            lambda trial: _objective(trial, args, size, ising, exact_energy, sampler),
-            n_trials=args.n_trials,
-        )
+        if remaining:
+            study.optimize(
+                lambda trial: _objective(trial, args, size, ising, exact_energy, sampler),
+                n_trials=remaining,
+            )
     finally:
         sampler.close()
 
@@ -298,7 +366,9 @@ def _run_for_size(args, size, output_dir):
             {
                 "rank":              rank + 1,
                 "trial_number":      t.number,
-                "variational_error": t.value,
+                "variational_error": t.value,              # |⟨E⟩ − E_exact|
+                "mean_energy":       t.user_attrs.get("mean_energy"),
+                "signed_gap":        t.user_attrs.get("signed_gap"),  # ⟨E⟩ − E_exact
                 "sa": {
                     "num_steps":           NUM_STEPS,
                     "start_temp":          t.params["start_temp"],

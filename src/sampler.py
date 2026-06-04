@@ -1066,6 +1066,21 @@ class VeloxQStandardSASampler(Sampler):
     Sampler that delegates sampling to VeloxQstandard.SimulatedAnnealing via a
     Julia bridge subprocess. Mirrors FPGASampler's I/O model (CSV in, states +
     meta out) but targets the classical SA solver instead of FPGA.
+
+    Unbiased subsampling
+    --------------------
+    VeloxQstandard.SimulatedAnnealing is a *spectrum optimizer*: it returns the
+    ``num_rep`` replica states **sorted by energy, lowest first** (see
+    VeloxQtoolbox ``sort_spectrum``). When ``num_rep > n_samples`` we therefore
+    must NOT keep the head ``states[:n_samples]`` — that would skim the
+    lowest-energy tail of the replicas, over-weight the modes of |Ψ(v)|², and
+    bias ⟨E_loc⟩ *below* the true thermal average (violating the variational
+    bound). Because each replica is an independent β-Gibbs Metropolis chain, we
+    instead draw a uniform random subset of the returned states, which restores
+    an unbiased |Ψ(v)|² (β-Gibbs) ensemble. Seed via the ``veloxq_subsample_seed``
+    config key for reproducibility. (FPGASampler has the same sort-and-skim
+    behaviour and would need the same fix if used for sampling rather than
+    optimisation.)
     """
 
     _ENV_MAP = {
@@ -1340,7 +1355,19 @@ class VeloxQStandardSASampler(Sampler):
                 f"VeloxQ SA sampler returned {samples.shape[0]} samples, expected {n_samples}."
             )
         if samples.shape[0] > n_samples:
-            samples = samples[:n_samples]
+            # `samples` is energy-sorted (lowest first) by the SA solver's
+            # sort_spectrum. Taking the head would skim the lowest-energy
+            # replicas and bias the |Ψ|² estimate (see class docstring). Draw a
+            # uniform random subset instead so the kept states are an unbiased
+            # β-Gibbs ensemble. Seedable via config["veloxq_subsample_seed"].
+            if not hasattr(self, "_subsample_rng"):
+                self._subsample_rng = np.random.default_rng(
+                    config.get("veloxq_subsample_seed")
+                )
+            idx = self._subsample_rng.choice(
+                samples.shape[0], size=n_samples, replace=False
+            )
+            samples = samples[idx]
 
         if meta_path.exists():
             try:
