@@ -360,7 +360,7 @@ def _run_one(params_path, args):
             sampler_name = "velox"
             sampling_method = "simulated_annealing"
         else:
-            sampler_obj = FPGASampler(num_rep=num_rep)
+            sampler_obj = FPGASampler(num_rep=num_rep, transport="pcie")
             sampler_name = "fpga"
             sampling_method = "fpga"
 
