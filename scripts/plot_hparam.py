@@ -46,6 +46,7 @@ _METHOD_COLOR = {
     "metropolis": "#1f77b4",
     "simulated_annealing": "#ff7f0e",
     "exchange": "#2ca02c",
+    "veloxq_sa": "#17becf",
 }
 _PALETTE = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
             "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
@@ -64,6 +65,10 @@ _LSB_PARAMS = [
     ("lsb_steps", False, "lsb steps"),
     ("lsb_delta", False, "lsb δ"),
     ("cem_ema_alpha", False, "CEM α"),
+]
+_SA_PARAMS = [
+    ("num_sweeps_per_step", True,  "sweeps / step"),
+    ("start_temp",          False, "start temp (β⁻¹)"),
 ]
 
 
@@ -220,7 +225,8 @@ def fig_param_scatter(records: list[dict], combo_label: str,
 
     params_to_plot = [p for p in _CORE_PARAMS if p[0] in all_keys]
     lsb_present    = [p for p in _LSB_PARAMS  if p[0] in all_keys]
-    params_to_plot += lsb_present
+    sa_present     = [p for p in _SA_PARAMS   if p[0] in all_keys]
+    params_to_plot += lsb_present + sa_present
 
     ncols = 3
     nrows = math.ceil(len(params_to_plot) / ncols)
@@ -549,6 +555,76 @@ def fig_j2_convergence(j2_data: dict, study_label: str, out: Path, dpi: int):
     _save(fig, out, stem, dpi)
 
 
+# ── Figure 5: VeloxQ SA signed-gap vs sweeps ─────────────────────────────────
+
+def fig_sa_signed_gap(records: list[dict], combo_label: str,
+                      out: Path, dpi: int):
+    """Signed gap (⟨E⟩ − E_exact) vs num_sweeps_per_step for veloxq_sa trials.
+
+    Each point is one trial.  Points below y=0 violate the variational bound.
+    Colour encodes learning rate (plasma log scale).
+    """
+    sa_recs = [r for r in records
+               if r["params"].get("sampling_method") == "veloxq_sa"
+               and r.get("signed_gap") is not None
+               and r["params"].get("num_sweeps_per_step") is not None]
+    if not sa_recs:
+        return
+
+    all_lrs = [float(r["params"]["learning_rate"]) for r in sa_recs
+               if "learning_rate" in r.get("params", {})]
+    lr_min = min(all_lrs) if all_lrs else 1e-3
+    lr_max = max(all_lrs) if all_lrs else 0.3
+    cmap = plt.cm.plasma
+
+    def _lr_color(lr):
+        if lr_max == lr_min:
+            return cmap(0.5)
+        t = (math.log10(lr) - math.log10(lr_min)) / (math.log10(lr_max) - math.log10(lr_min))
+        return cmap(t)
+
+    fig, ax = plt.subplots(figsize=(5.5, 3.5))
+    fig.suptitle(f"VeloxQ SA — signed gap vs sweeps  [{combo_label}]",
+                 fontsize=10, y=1.01)
+
+    n_subvar = 0
+    for r in sa_recs:
+        x = r["params"]["num_sweeps_per_step"]
+        y = r["signed_gap"]
+        lr = float(r["params"].get("learning_rate", lr_min))
+        color = _lr_color(lr)
+        marker = "v" if y < 0 else "o"
+        ax.scatter(x, y, color=color, marker=marker, s=28, alpha=0.7,
+                   zorder=3 if y < 0 else 2)
+        if y < 0:
+            n_subvar += 1
+
+    ax.axhline(0, color="#333", linestyle="--", linewidth=1.0, zorder=1,
+               label="variational bound (⟨E⟩ = E_exact)")
+
+    ax.set_xscale("log")
+    ax.set_xlabel("num_sweeps_per_step")
+    ax.set_ylabel("⟨E⟩ − E_exact  (signed gap)")
+    note = (f"{n_subvar}/{len(sa_recs)} sub-variational (v)"
+            if n_subvar else f"0/{len(sa_recs)} sub-variational (ok)")
+    ax.annotate(note, xy=(0.98, 0.97), xycoords="axes fraction",
+                ha="right", va="top", fontsize=7.5,
+                color="#d62728" if n_subvar else "#2ca02c",
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="none"))
+    ax.legend(frameon=False, fontsize=7.5)
+
+    sm_cb = plt.cm.ScalarMappable(
+        cmap=plt.cm.plasma,
+        norm=matplotlib.colors.LogNorm(vmin=lr_min, vmax=lr_max))
+    sm_cb.set_array([])
+    cbar = fig.colorbar(sm_cb, ax=ax, orientation="vertical",
+                        fraction=0.03, pad=0.02)
+    cbar.set_label("learning rate", fontsize=8)
+
+    fig.tight_layout()
+    _save(fig, out, "fig_sa_signed_gap", dpi)
+
+
 # ── Utilities ─────────────────────────────────────────────────────────────────
 
 def _slug(s: str) -> str:
@@ -633,6 +709,7 @@ def main():
         fig_best_convergence(records, histories, combo_label, out_dir,
                              args.dpi, top_k=args.top_k,
                              energy_clip=args.energy_clip)
+        fig_sa_signed_gap(records, combo_label, out_dir, args.dpi)
         print()
 
     # ── Figure 4: per-J₂ convergence ─────────────────────────────────────────

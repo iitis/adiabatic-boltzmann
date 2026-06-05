@@ -65,6 +65,7 @@ import json
 import math
 import os
 from pathlib import Path
+from datetime import datetime
 
 import jax
 jax.config.update("jax_enable_x64", True)  # match main.py/test_e2e.py: SR/CG run in float64
@@ -392,7 +393,65 @@ def _run_for_size(args, size, output_dir):
     best_err = best.value if best.value is not None else float("inf")
     print(f"Top 5 trials saved (best: #{best.number}  error={best_err:.6f})")
     print(f"Saved:  {output_path}")
+
+    _write_index_jsonl(study, size, args, exact_energy, output_dir)
+
     return output_path
+
+
+def _write_index_jsonl(study, size, args, exact_energy, output_dir):
+    """Export all completed trials to index.jsonl for plot_hparam.py compatibility.
+
+    Written to <output_dir>/N<size>_h<h>/index.jsonl.  The format mirrors
+    hparam_optuna.py so that plot_hparam.py can read SA results from optuna_results/
+    with --search-dir pointing there.
+    """
+    h_str = str(args.h).replace(".", "p")
+    combo_dir = output_dir / f"N{size}_h{h_str}"
+    combo_dir.mkdir(parents=True, exist_ok=True)
+    index_path = combo_dir / "index.jsonl"
+
+    completed = [t for t in study.trials
+                 if t.state == optuna.trial.TrialState.COMPLETE
+                 and t.value is not None and math.isfinite(t.value)]
+
+    with open(index_path, "w") as f:
+        for t in completed:
+            n_hidden = t.params["n_hidden"]
+            mean_energy = t.user_attrs.get("mean_energy")
+            signed_gap = t.user_attrs.get("signed_gap")
+            abs_error = t.value  # |⟨E⟩ − E_exact|
+            rel_error = abs_error / abs(exact_energy) if exact_energy else None
+            dt = (t.datetime_start.isoformat()
+                  if t.datetime_start is not None else datetime.now().isoformat())
+            record = {
+                "trial": t.number,
+                "datetime": dt,
+                "hamiltonian": "tfim_1d",
+                "N": size,
+                "phys_params": {"h": args.h},
+                "params": {
+                    "sampling_method": "veloxq_sa",
+                    "num_sweeps_per_step": t.params["num_sweeps_per_step"],
+                    "start_temp": t.params["start_temp"],
+                    "learning_rate": t.params["learning_rate"],
+                    "regularization": t.params["regularization"],
+                    "n_hidden": n_hidden,
+                    "n_hidden_alpha": n_hidden / size,
+                    "n_samples": args.n_samples,
+                },
+                "n_hidden": n_hidden,
+                "objective": rel_error,
+                "rel_error": rel_error,
+                "abs_error": abs_error,
+                "final_energy": mean_energy,
+                "exact_energy": exact_energy,
+                "signed_gap": signed_gap,
+                "wall_time_s": None,
+            }
+            f.write(json.dumps(record) + "\n")
+
+    print(f"index.jsonl: {len(completed)} trial(s) → {index_path}")
 
 
 def main():

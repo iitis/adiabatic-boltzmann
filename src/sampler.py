@@ -1033,8 +1033,12 @@ class FPGASampler(Sampler):
             raise RuntimeError(
                 f"FPGA sampler returned {samples.shape[0]} samples, expected {n_samples}."
             )
-        if samples.shape[0] > n_samples:
-            samples = samples[:n_samples]
+        if not hasattr(self, "_subsample_rng"):
+            self._subsample_rng = np.random.default_rng(
+                config.get("fpga_subsample_seed")
+            )
+        idx = self._subsample_rng.choice(samples.shape[0], size=n_samples, replace=False)
+        samples = samples[idx]
 
         if meta_path.exists():
             try:
@@ -1655,8 +1659,12 @@ class LangevinSampler(Sampler):
             raise RuntimeError(
                 f"Langevin sampler returned {samples.shape[0]} samples, expected {n_samples}."
             )
-        if samples.shape[0] > n_samples:
-            samples = samples[:n_samples]
+        if not hasattr(self, "_subsample_rng"):
+            self._subsample_rng = np.random.default_rng(
+                config.get("langevin_subsample_seed")
+            )
+        idx = self._subsample_rng.choice(samples.shape[0], size=n_samples, replace=False)
+        samples = samples[idx]
 
         if meta_path.exists():
             try:
