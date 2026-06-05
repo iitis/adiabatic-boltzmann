@@ -1,8 +1,8 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.12.5"
+julia_version = "1.12.3"
 manifest_format = "2.0"
-project_hash = "5f749d3cdd89a501c66de5defdd8386b1fb0afe7"
+project_hash = "6428dab003321be9f38ff6ee37247c00721b8450"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "bbc22a9a08a0ef6460041086d8a7b27940ed4ffd"
@@ -291,9 +291,9 @@ version = "1.16.0"
 
 [[deps.DataStructures]]
 deps = ["OrderedCollections"]
-git-tree-sha1 = "6fb53a69613a0b2b68a0d12671717d307ab8b24e"
+git-tree-sha1 = "e86f4a2805f7f19bec5129bc9150c38208e5dc23"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.19.5"
+version = "0.19.4"
 
 [[deps.DataValueInterfaces]]
 git-tree-sha1 = "bfc1187b79289637fa0ef6d4436ebdfe6905cbd6"
@@ -504,9 +504,9 @@ version = "0.2.0"
 
 [[deps.GPUCompiler]]
 deps = ["ExprTools", "InteractiveUtils", "LLVM", "Libdl", "Logging", "PrecompileTools", "Preferences", "Scratch", "Serialization", "TOML", "Tracy", "UUIDs"]
-git-tree-sha1 = "73d2a66824ee4efd1904771476a7c2ec1486059f"
+git-tree-sha1 = "21f06bc7874e98849ee7d8b382990903bd7661df"
 uuid = "61eb1bfa-7361-4325-ad38-22787b887f55"
-version = "1.15.1"
+version = "1.13.3"
 
 [[deps.GPUToolbox]]
 deps = ["LLVM"]
@@ -904,7 +904,7 @@ version = "2.2.6"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
-version = "2025.11.4"
+version = "2025.5.20"
 
 [[deps.Multisets]]
 git-tree-sha1 = "f4205a002e2e0c4a10971ea313084ee212f761a4"
@@ -1001,9 +1001,9 @@ weakdeps = ["MathOptInterface"]
     OptimMOIExt = "MathOptInterface"
 
 [[deps.OrderedCollections]]
-git-tree-sha1 = "94ba93778373a53bfd5a0caaf7d809c445292ff4"
+git-tree-sha1 = "05868e21324cede2207c6f0f466b4bfef6d5e7ee"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
-version = "1.8.2"
+version = "1.8.1"
 
 [[deps.PDMats]]
 deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse"]
@@ -1272,7 +1272,7 @@ version = "1.12.0"
 
 [[deps.SparseMultiDimArrays]]
 deps = ["LinearAlgebra", "SparseArrays"]
-path = "../../../SparseMultiDimArrays"
+git-tree-sha1 = "6c2966bef2b302ca256b96ce946d1f973973d857"
 uuid = "87c04281-989f-4c28-bdc5-be68413666bf"
 version = "1.0.2"
 weakdeps = ["CUDA", "HDF5"]
@@ -1448,13 +1448,13 @@ weakdeps = ["LLVM"]
 
 [[deps.VeloxQIO]]
 deps = ["AWS", "AWSS3", "CSV", "Combinatorics", "HDF5", "InteractiveUtils", "JSON", "LinearAlgebra", "MAT", "SparseArrays", "SparseMultiDimArrays", "VeloxQtoolbox"]
-path = "../../../veloxQIO"
+git-tree-sha1 = "5b3f4c24e574ef8b019662a54d725a42ebc677db"
 uuid = "468689c0-ba0c-4dfc-8cdc-299b503212c3"
 version = "3.1.0"
 
 [[deps.VeloxQstandard]]
 deps = ["Atomix", "KernelAbstractions", "LinearAlgebra", "Logging", "MKL", "ProgressMeter", "Random", "SparseArrays", "SparseMultiDimArrays", "StatsBase", "StructTypes", "VeloxQtoolbox"]
-path = "../../../veloxQstandard"
+git-tree-sha1 = "1013b7c3643ef889d89eebb1b81904f07470c713"
 uuid = "b336e6d0-f40c-4f4b-affc-bec69abff78f"
 version = "3.5.0"
 
@@ -1468,7 +1468,7 @@ version = "3.5.0"
 
 [[deps.VeloxQtoolbox]]
 deps = ["JSON", "KernelAbstractions", "LinearAlgebra", "Logging", "Random", "SimpleGraphAlgorithms", "SimpleGraphs", "SparseArrays", "SparseMultiDimArrays", "Statistics", "StructTypes"]
-path = "../../../veloxQtoolbox"
+git-tree-sha1 = "81e8ef8b9fa036544e9a98cc06d1f66988caf331"
 uuid = "91c8515d-36a8-474c-936b-b351acb2875d"
 version = "3.5.1"
 
