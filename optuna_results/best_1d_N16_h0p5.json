@@ -1,0 +1,113 @@
+{
+  "model": "1d",
+  "size": 16,
+  "h": 0.5,
+  "exact_energy": -17.016712496347395,
+  "n_trials": 50,
+  "sa_setup": {
+    "num_steps": 1,
+    "schedule": "geometric, single point == start_temp \u2192 Gibbs sampling",
+    "num_sweeps_choices": [
+      10,
+      100,
+      500,
+      1000,
+      2000,
+      5000,
+      10000,
+      50000
+    ]
+  },
+  "top_trials": [
+    {
+      "rank": 1,
+      "trial_number": 32,
+      "variational_error": 0.0001567044858994393,
+      "mean_energy": -17.016869200833295,
+      "signed_gap": -0.0001567044858994393,
+      "sa": {
+        "num_steps": 1,
+        "start_temp": 1.0,
+        "num_sweeps_per_step": 50000
+      },
+      "vmc": {
+        "learning_rate": 0.12943407796826903,
+        "regularization": 0.004647920537206986,
+        "n_hidden": 25,
+        "n_samples": 200
+      }
+    },
+    {
+      "rank": 2,
+      "trial_number": 18,
+      "variational_error": 0.006958900877691576,
+      "mean_energy": -17.009753595469704,
+      "signed_gap": 0.006958900877691576,
+      "sa": {
+        "num_steps": 1,
+        "start_temp": 1.0,
+        "num_sweeps_per_step": 50000
+      },
+      "vmc": {
+        "learning_rate": 0.22201624584287072,
+        "regularization": 0.006341126176285146,
+        "n_hidden": 47,
+        "n_samples": 200
+      }
+    },
+    {
+      "rank": 3,
+      "trial_number": 22,
+      "variational_error": 0.007556736755709892,
+      "mean_energy": -17.009155759591685,
+      "signed_gap": 0.007556736755709892,
+      "sa": {
+        "num_steps": 1,
+        "start_temp": 1.0,
+        "num_sweeps_per_step": 50000
+      },
+      "vmc": {
+        "learning_rate": 0.17357530723518994,
+        "regularization": 0.003910475130934816,
+        "n_hidden": 34,
+        "n_samples": 200
+      }
+    },
+    {
+      "rank": 4,
+      "trial_number": 47,
+      "variational_error": 0.011566269865845413,
+      "mean_energy": -17.00514622648155,
+      "signed_gap": 0.011566269865845413,
+      "sa": {
+        "num_steps": 1,
+        "start_temp": 1.0,
+        "num_sweeps_per_step": 2000
+      },
+      "vmc": {
+        "learning_rate": 0.13974940430063412,
+        "regularization": 0.0062833068825572085,
+        "n_hidden": 19,
+        "n_samples": 200
+      }
+    },
+    {
+      "rank": 5,
+      "trial_number": 34,
+      "variational_error": 0.0123627336004688,
+      "mean_energy": -17.004349762746926,
+      "signed_gap": 0.0123627336004688,
+      "sa": {
+        "num_steps": 1,
+        "start_temp": 1.0,
+        "num_sweeps_per_step": 2000
+      },
+      "vmc": {
+        "learning_rate": 0.07023352897994886,
+        "regularization": 0.0019967483164048502,
+        "n_hidden": 25,
+        "n_samples": 200
+      }
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+[deps]
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
+Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
+VeloxQIO = "468689c0-ba0c-4dfc-8cdc-299b503212c3"
+VeloxQstandard = "b336e6d0-f40c-4f4b-affc-bec69abff78f"
+VeloxQtoolbox = "91c8515d-36a8-474c-936b-b351acb2875d"
