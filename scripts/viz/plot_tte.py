@@ -50,7 +50,9 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 RESULTS_DIR = ROOT / "results"
 PLOTS_DIR = ROOT / "plots" / "ttc"
 
-KNOWN_MODELS = ["tfim_1d", "tfim_2d", "heisenberg_xxz_1d", "lr_tfim_1d"]
+KNOWN_MODELS = ["tfim_1d", "tfim_2d", "heisenberg_xxz_1d", "lr_tfim_1d", "heisenberg_j1j2_1d"]
+
+_HEISENBERG_MODELS = {"heisenberg_j1j2_1d", "heisenberg_xxz_1d"}
 
 METHOD_COLORS = {
     "custom/metropolis":          "#1f77b4",
@@ -58,6 +60,7 @@ METHOD_COLORS = {
     "custom/gibbs":               "#ffbb78",
     "custom/sbm":                 "#e377c2",
     "custom/lsb":                 "#17becf",
+    "custom/exchange":            "#2ca02c",
     "dimod/pegasus":              "#ff7f0e",
     "dimod/pegasus_fast":         "#ffa040",
     "dimod/pegasus_mh":           "#c05000",
@@ -74,6 +77,7 @@ METHOD_MARKERS = {
     "custom/gibbs":               "^",
     "custom/sbm":                 "D",
     "custom/lsb":                 "v",
+    "custom/exchange":            "D",
     "dimod/pegasus":              "P",
     "dimod/pegasus_fast":         "p",
     "dimod/pegasus_mh":           "X",
@@ -92,17 +96,18 @@ METHOD_MARKERS = {
 def _rolling_convergence_iter(energies: list[float], exact: float,
                                window: int, tol: float) -> int | None:
     """
-    Return first iteration index t (0-based) where
+    Return last iteration index t (0-based) where
     std(energy[t-W+1 : t+1]) < tol * |E_exact|.
 
     Returns None if the criterion is never met.
     """
     threshold = tol * abs(exact)
     arr = np.array(energies)
+    last_t = None
     for t in range(window - 1, len(arr)):
         if np.std(arr[t - window + 1: t + 1]) < threshold:
-            return t
-    return None
+            last_t = t
+    return last_t
 
 
 def _fixed_convergence_iter(energies: list[float], fixed_iter: int) -> int:
@@ -114,13 +119,17 @@ def _fixed_convergence_iter(energies: list[float], fixed_iter: int) -> int:
 # Data loading
 # ---------------------------------------------------------------------------
 
-def load_runs(results_dir: Path, model_filter: str, h_filter: float | None):
+def load_runs(results_dir: Path, model_filter: str,
+              h_filter: float | None, j2_filter: float | None = None):
     """
     Scan results_dir/model_filter/**/*.json and return a list of run dicts:
-        {method_key, N, h, energies, times_per_iter, exact_energy, seed}
+        {method_key, N, h, j2, energies, times_per_iter, exact_energy, seed}
 
-    Skips files where exact_energy is absent or times are missing/empty.
+    For TFIM models: filters by h (transverse field); requires exact_energy.
+    For Heisenberg models: filters by J2 (frustration); skips runs without
+    exact_energy (e.g. large N where exact diagonalisation is unavailable).
     """
+    is_heisenberg = model_filter in _HEISENBERG_MODELS
     runs = []
     search_root = results_dir / model_filter
     if not search_root.exists():
@@ -138,16 +147,30 @@ def load_runs(results_dir: Path, model_filter: str, h_filter: float | None):
         history = data.get("history", {})
 
         N = cfg.get("size")
-        h = cfg.get("h")
         sampler = cfg.get("sampler")
         method = cfg.get("sampling_method")
         seed = cfg.get("seed", 0)
         exact = data.get("exact_energy")
 
-        if None in (N, h, sampler, method, exact):
+        if None in (N, sampler, method):
             continue
-        if h_filter is not None and abs(h - h_filter) > 1e-6:
+        if exact is None:
             continue
+
+        if is_heisenberg:
+            j2 = cfg.get("J2")
+            if j2 is None:
+                continue
+            if j2_filter is not None and abs(j2 - j2_filter) > 1e-6:
+                continue
+            h = float(cfg.get("h", 0.0))
+        else:
+            h = cfg.get("h")
+            j2 = float(cfg.get("J2", 0.0))
+            if h is None:
+                continue
+            if h_filter is not None and abs(h - h_filter) > 1e-6:
+                continue
 
         energies = history.get("energy")
         times = history.get("total_sampling_time_s")
@@ -159,6 +182,7 @@ def load_runs(results_dir: Path, model_filter: str, h_filter: float | None):
                 method_key=f"{sampler}/{method}",
                 N=int(N),
                 h=float(h),
+                j2=float(j2),
                 energies=energies,
                 times_per_iter=times,
                 exact_energy=float(exact),
@@ -384,8 +408,13 @@ def main():
     )
     parser.add_argument(
         "--h", type=float, default=None,
-        help="Filter runs to a specific transverse field value (e.g. 0.5). "
+        help="[TFIM] Filter runs to a specific transverse field value (e.g. 0.5). "
              "Default: aggregate over all h values.",
+    )
+    parser.add_argument(
+        "--j2", type=float, default=None,
+        help="[Heisenberg] Filter runs to a specific J2 value (e.g. 0.5). "
+             "Default: aggregate over all J2 values.",
     )
     parser.add_argument(
         "--results", type=Path, default=RESULTS_DIR,
@@ -394,14 +423,18 @@ def main():
     args = parser.parse_args()
 
     print(f"Loading results from: {args.results / args.model}")
-    runs = load_runs(args.results, args.model, args.h)
+    runs = load_runs(args.results, args.model, args.h, args.j2)
     if not runs:
         print("No runs found. Check --results path and --model.")
         return
 
-    h_str = f" h={args.h}" if args.h is not None else ""
+    param_str = ""
+    if args.h is not None:
+        param_str = f" h={args.h}"
+    if args.j2 is not None:
+        param_str += f" J2={args.j2}"
     print(
-        f"Found {len(runs)} runs for model={args.model}{h_str}. "
+        f"Found {len(runs)} runs for model={args.model}{param_str}. "
         f"Convergence mode: {args.convergence}."
     )
     methods = sorted({r["method_key"] for r in runs})
