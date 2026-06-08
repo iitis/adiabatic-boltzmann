@@ -29,7 +29,7 @@ function build_comp_model()
         compress = _env_bool("VELOXQ_COMPRESS", true),
         simulation_backend = sim_backend,
         energy_backend = sim_backend,
-        th_per_block = _env_int("VELOXQ_TH_PER_BLOCK", 1024),
+        th_per_block = _env_int("VELOXQ_TH_PER_BLOCK", 128),
         energy_precision = Float32,
     )
 end
