@@ -176,7 +176,9 @@ def load_runs(results_dir: Path, model_filter: str,
         times = history.get("total_sampling_time_s")
         if not energies or not times or len(energies) != len(times):
             continue
-
+        if method =='fpga':
+            print(method)
+            print(times[0])
         runs.append(
             dict(
                 method_key=f"{sampler}/{method}",
@@ -242,6 +244,53 @@ def aggregate(values: list[float]):
 # Plotting
 # ---------------------------------------------------------------------------
 
+def print_timing_overview(runs: list[dict]):
+    """
+    Print per-solver timing statistics across all runs.
+
+    Columns: solver | N | runs | median iter time (ms) | median total time (s) | min–max total (s)
+    """
+    # Bucket: method_key -> N -> list of (per_iter_median_ms, total_s)
+    timing: dict = defaultdict(lambda: defaultdict(list))
+    for run in runs:
+        times = run["times_per_iter"]
+        per_iter_ms = float(np.median(times)) * 1e3
+        total_s = float(np.sum(times))
+        timing[run["method_key"]][run["N"]].append((per_iter_ms, total_s))
+
+    all_methods = sorted(timing.keys())
+    col_w = max(len(mk) for mk in all_methods) + 2
+
+    header = (
+        f"{'Solver':<{col_w}}  {'N':>5}  {'runs':>5}  "
+        f"{'med iter (ms)':>14}  {'med total (s)':>14}  {'min–max total (s)':>20}"
+    )
+    sep = "=" * len(header)
+    print("\n" + sep)
+    print("Timing overview  (per-iteration and total sampling time)")
+    print(sep)
+    print(header)
+    print("-" * len(header))
+
+    for mk in all_methods:
+        n_sizes = sorted(timing[mk].keys())
+        for i, N in enumerate(n_sizes):
+            entries = timing[mk][N]
+            iter_meds = [e[0] for e in entries]
+            totals    = [e[1] for e in entries]
+            label = mk if i == 0 else ""
+            print(
+                f"{label:<{col_w}}  {N:>5}  {len(entries):>5}  "
+                f"{np.median(iter_meds):>14.3f}  "
+                f"{np.median(totals):>14.3f}  "
+                f"{np.min(totals):>9.3f}–{np.max(totals):<9.3f}"
+            )
+        if len(n_sizes) > 1:
+            print("-" * len(header))
+
+    print(sep + "\n")
+
+
 def print_convergence_table(bucket: dict, mode: str):
     """
     Print a table of converged/total datapoints per (sampler, N).
@@ -297,6 +346,7 @@ def plot_ttc(model: str, runs: list[dict], mode: str, window: int, tol: float,
         return
 
     print_convergence_table(bucket, mode)
+    print_timing_overview(runs)
 
     fig, axes = plt.subplots(2, 1, figsize=(10, 9), sharex=False)
     ax_ttc, ax_err = axes

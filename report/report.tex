@@ -5,9 +5,16 @@
 \usepackage{amsfonts}
 \usepackage{amssymb}
 \usepackage{graphicx}
+
+\usepackage{glossaries}
+
+\makeglossaries
+\newacronym{vqe}{VQE}{Variational Quantum Eigensolver}
+
 \usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
 \author{Philipp Hanussek}
 \title{Quantum Variational Algorithms}
+
 \begin{document}
 \maketitle
 
@@ -21,4 +28,7 @@ In this section we briefly outline the main computational and algorithmic result
  We use classical and quantum state-of-the-art methods to sample from the target distribution.
  \paragraph{Quantum Annealing}
  Quantum Annealing is inspired by 
+\section{Variational Algorithms}
+Variational algorithms are a class of hybrid quantum-classical optimization methods. We focus on the \acrfull{vqe} which is designed to find the ground state of a given Hamiltonian. It consists of three parts: the \textit{cost function} to be minimized, the \textit{ansatz}, which in our case is a Boltzman machine, and a \textit{sampler}, which draws configurations from the distribution defined by the current ansatz.
+ 
 \end{document}	
