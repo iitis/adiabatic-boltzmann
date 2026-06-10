@@ -5,6 +5,7 @@
 \usepackage{amsfonts}
 \usepackage{amssymb}
 \usepackage{graphicx}
+\usepackage{physics}
 
 \usepackage{glossaries}
 
@@ -13,7 +14,7 @@
 
 \usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
 \author{Philipp Hanussek}
-\title{Quantum Variational Algorithms}
+\title{Quantum Variational Eigensolvers on Adiabatic Quantum Computing Devices}
 
 \begin{document}
 \maketitle
@@ -29,6 +30,12 @@ In this section we briefly outline the main computational and algorithmic result
  \paragraph{Quantum Annealing}
  Quantum Annealing is inspired by 
 \section{Variational Algorithms}
-Variational algorithms are a class of hybrid quantum-classical optimization methods. We focus on the \acrfull{vqe} which is designed to find the ground state of a given Hamiltonian. It consists of three parts: the \textit{cost function} to be minimized, the \textit{ansatz}, which in our case is a Boltzman machine, and a \textit{sampler}, which draws configurations from the distribution defined by the current ansatz.
- 
+Variational algorithms are a class of hybrid quantum-classical optimization methods. We focus on the \acrfull{vqe} which is designed to find the ground state of a given Hamiltonian. It consists of three parts: the \textit{cost function} to be minimized, the \textit{ansatz}, which in our case is a Boltzman machine, and an \textit{expectation value estimation}. Additionally, a classical optimizer is needed to improve the ansatz at each iteration. Depending on the quantum architecture, two approaches for estimating the expectation value are possible:
+\begin{itemize}
+	\item On gate-based quantum computers, measuring can be used to gather expectation values of the modified ansatz and improve it further
+	\item In adiabatic quantum computing, the quantum device is used to generate representative samples of the modified ansatz. These samples are then used to approximate the expectation value. 
+\end{itemize}
+Mathematically, the problem can be described as follows:
+The goal is to approximate the ground state, that is, the eigenstate corresponding to the lowest eigenvalue of a Hamiltonian $H$. In physics, a Hamiltonian is defined to be an operator that describes the energy of a system.  Efficient methods exist to encode many classical problems, such as scheduling or integer factoring, into Hamiltonians. The ground state of this Hamiltonian is often used to represent the problem's solution. Calculating this solution analytically using for example exact diagonalisation is computationally difficult, as the Hilbert space grows exponentially with the size of the quantum state.
+In both adiabatic and gate-based models, the ansatz can be represented as a unitary $U_{var}(\sigma)$, where $\sigma$ describes some parametrization of this unitary. In the case where the quantum computer is initialized in the $
 \end{document}	
