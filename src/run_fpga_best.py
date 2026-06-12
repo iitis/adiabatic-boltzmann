@@ -28,6 +28,12 @@ Override a single file:
 
 Run only one backend, more seeds, more iterations:
     python run_fpga_best.py --backends veloxq_sa --n-seeds 30 --iterations 200
+
+Generalization sweep (fixed params across TFIM sizes + J1J2 Heisenberg):
+
+    python run_fpga_best.py --generalize
+    python run_fpga_best.py --generalize --tfim-sizes 8 12 16 24 32 \\
+        --j1j2-sizes 8 12 16 --j2 0.1 0.3 0.5 --backends fpga
 """
 
 import argparse
@@ -39,8 +45,13 @@ from pathlib import Path
 import jax
 
 from encoder import Trainer
-from helpers import save_results
-from ising import TransverseFieldIsing1D, TransverseFieldIsing2D
+from helpers import (
+    _ansatz_str,
+    _model_params_str,
+    _model_subdir,
+    save_results,
+)
+from ising import J1J2HeisenbergXXZ1D, TransverseFieldIsing1D, TransverseFieldIsing2D
 from model import FullyConnectedRBM
 from sampler import FPGASampler, VeloxQStandardSASampler
 
@@ -48,6 +59,37 @@ from sampler import FPGASampler, VeloxQStandardSASampler
 DEFAULT_SIZES = [16, 24]
 DEFAULT_MODEL = "1d"
 DEFAULT_H = 0.5
+
+# Fixed hyperparameters for the generalization sweep (from TFIM Optuna optima).
+_GEN_LR = 0.13
+_GEN_REG = 0.005
+_GEN_N_SAMPLES = 200
+_GEN_START_TEMP = 1.0
+_GEN_NH_ALPHA = 3.0   # n_hidden = round(NH_ALPHA * N)
+
+
+def _result_exists(args_ns) -> bool:
+    """Return True if save_results would find an existing file for this run."""
+    output_dir = Path(
+        f"{args_ns.output_dir}/{_model_subdir(args_ns.model)}"
+        f"/{args_ns.size}/{args_ns.sampler}/{args_ns.sampling_method}"
+    )
+    use_cem = getattr(args_ns, "cem", False)
+    fname = (
+        f"result"
+        f"_{args_ns.model}"
+        f"{_model_params_str(args_ns)}"
+        f"{_ansatz_str(args_ns)}"
+        f"_lr{args_ns.learning_rate}"
+        f"_reg{args_ns.regularization}"
+        f"_ns{args_ns.n_samples}"
+        f"_seed{args_ns.seed}"
+        f"_iter{args_ns.iterations}"
+        f"_cem{int(use_cem)}"
+        f"_sigma{float(getattr(args_ns, 'sigma', 1.0))}"
+        f".json"
+    )
+    return (output_dir / fname).exists()
 
 # num_steps=1 + geometric schedule = single temperature point = Gibbs sampling.
 # Hard-coded as NUM_STEPS=1 in optuna_sa_sweep.py; must match here.
@@ -139,14 +181,62 @@ def _parse_args():
         action="store_true",
         help="Print the run grid without executing.",
     )
+    # ── Generalization sweep ──────────────────────────────────────────────
+    p.add_argument(
+        "--generalize",
+        action="store_true",
+        default=True,
+        help="Run the generalization sweep (default). "
+             "Uses fixed VMC params (lr=0.13, reg=0.005, ns=200, nh=round(3*N)).",
+    )
+    p.add_argument(
+        "--no-generalize",
+        dest="generalize",
+        action="store_false",
+        help="Use the original optuna JSON loading mode instead of the generalization sweep.",
+    )
+    p.add_argument(
+        "--tfim-sizes",
+        type=int,
+        nargs="+",
+        default=[8, 12, 16, 24, 32],
+        metavar="N",
+        help="TFIM system sizes for --generalize.",
+    )
+    p.add_argument(
+        "--j1j2-sizes",
+        type=int,
+        nargs="+",
+        default=[8, 12, 16],
+        metavar="N",
+        help="J1J2 Heisenberg system sizes for --generalize.",
+    )
+    p.add_argument(
+        "--j2",
+        type=float,
+        nargs="+",
+        default=[0.1, 0.3, 0.5],
+        metavar="J2",
+        help="J2/J1 values for J1J2 Heisenberg in --generalize.",
+    )
+    p.add_argument(
+        "--num-sweeps",
+        type=int,
+        nargs="+",
+        default=[100, 2000],
+        metavar="S",
+        help="FPGA sweeps per step to test in --generalize. Multiple values sweep the axis.",
+    )
     return p.parse_args()
 
 
-def _build_ising(model, size, h):
+def _build_ising(model, size, h, J1=1.0, J2=0.0, delta=1.0):
     if model == "1d":
         return TransverseFieldIsing1D(size, h)
     if model == "2d":
         return TransverseFieldIsing2D(size, h)
+    if model == "heisenberg_j1j2_1d":
+        return J1J2HeisenbergXXZ1D(size, J1=J1, J2=J2, delta=delta)
     raise ValueError(f"Unknown model: {model!r}")
 
 
@@ -164,11 +254,18 @@ def _make_args_ns(
     sampler_name,
     sampling_method,
     output_dir,
+    J1=1.0,
+    J2=0.0,
+    delta=1.0,
 ):
     return argparse.Namespace(
         model=model,
         size=size,
         h=h,
+        J1=J1,
+        J2=J2,
+        J=J1,
+        delta=delta,
         rbm="full",
         sampler=sampler_name,
         sampling_method=sampling_method,
@@ -207,6 +304,9 @@ def _run_seed(
     sampling_method,
     num_rep,
     output_dir,
+    J1=1.0,
+    J2=0.0,
+    delta=1.0,
 ):
     sa = trial_entry["sa"]
     vmc = trial_entry["vmc"]
@@ -275,6 +375,9 @@ def _run_seed(
         sampler_name=sampler_name,
         sampling_method=sampling_method,
         output_dir=output_dir,
+        J1=J1,
+        J2=J2,
+        delta=delta,
     )
 
     trainer = Trainer(rbm, ising, sampler_obj, trainer_config, args=args_ns)
@@ -420,9 +523,151 @@ def _run_one(params_path, args):
                 sampler_obj.close()
 
 
+def _run_generalize(args):
+    """Generalization sweep: fixed VMC params across TFIM sizes + J1J2 Heisenberg."""
+    configs = []
+    for N in args.tfim_sizes:
+        configs.append({"model": "1d", "size": N, "h": args.h, "J1": 1.0, "J2": 0.0, "delta": 1.0,
+                        "label": f"TFIM N={N} h={args.h}"})
+    for N in args.j1j2_sizes:
+        for J2 in args.j2:
+            configs.append({"model": "heisenberg_j1j2_1d", "size": N, "h": 0.0,
+                            "J1": 1.0, "J2": J2, "delta": 1.0,
+                            "label": f"J1J2 N={N} J2={J2}"})
+
+    print(f"\n{'=' * 60}")
+    print(f"Generalization sweep — {len(configs)} configs  ×  {args.n_seeds} seeds  ×  {args.backends}")
+    print(f"lr={_GEN_LR}  reg={_GEN_REG}  ns={_GEN_N_SAMPLES}  T={_GEN_START_TEMP}  nh=round({_GEN_NH_ALPHA}*N)")
+    print(f"{'=' * 60}")
+
+    if args.dry_run:
+        print(f"\n{'Label':<35}  {'nh':>4}  {'sweeps':>8}  backend  seeds")
+        print(f"  {'-' * 63}")
+        for cfg in configs:
+            nh = max(1, round(_GEN_NH_ALPHA * cfg["size"]))
+            for num_sweeps in args.num_sweeps:
+                for backend in args.backends:
+                    print(f"  {cfg['label']:<33}  {nh:>4}  {num_sweeps:>8}  {backend:<10}  {args.n_seeds}")
+        total = len(configs) * len(args.num_sweeps) * len(args.backends) * args.n_seeds
+        print(f"\n  Total: {total} runs")
+        return
+
+    output_dir = Path(args.output_dir)
+    num_rep = max(args.num_rep, _GEN_N_SAMPLES)
+
+    for backend in args.backends:
+        print(f"\n--- Backend: {backend} ---")
+
+        if backend == "veloxq_sa":
+            os.environ["VELOXQ_BACKEND"] = args.veloxq_backend
+            sampler_obj = VeloxQStandardSASampler(
+                project_path=args.julia_project,
+                num_rep=num_rep,
+                num_steps=_GIBBS_NUM_STEPS,
+                num_sweeps=configs[0]["size"],  # will be overridden via trainer_config
+                start_temp=_GEN_START_TEMP,
+                stop_temp=0.5 * _GEN_START_TEMP,
+                schedule_type="geometric",
+                server_ready_timeout_s=args.server_timeout,
+            )
+            sampler_name = "velox"
+            sampling_method = "simulated_annealing"
+        else:
+            sampler_obj = FPGASampler(num_rep=num_rep, transport="pcie")
+            sampler_name = "fpga"
+            sampling_method = "fpga"
+
+        try:
+            for num_sweeps in args.num_sweeps:
+                for cfg in configs:
+                    N = cfg["size"]
+                    n_hidden = max(1, round(_GEN_NH_ALPHA * N))
+                    ising = _build_ising(cfg["model"], N, cfg["h"],
+                                         J1=cfg["J1"], J2=cfg["J2"], delta=cfg["delta"])
+
+                    try:
+                        exact_e = ising.exact_ground_energy()
+                        exact_str = f"{exact_e:.6f}"
+                    except NotImplementedError:
+                        exact_str = "N/A"
+
+                    print(f"\n  {cfg['label']}  nh={n_hidden}  sweeps={num_sweeps}  exact={exact_str}")
+
+                    trial_entry = {
+                        "sa": {
+                            "num_steps": _GIBBS_NUM_STEPS,
+                            "start_temp": _GEN_START_TEMP,
+                            "num_sweeps_per_step": num_sweeps,
+                        },
+                        "vmc": {
+                            "n_hidden": n_hidden,
+                            "learning_rate": _GEN_LR,
+                            "regularization": _GEN_REG,
+                            "n_samples": _GEN_N_SAMPLES,
+                        },
+                    }
+
+                    results = []
+                    skipped = 0
+                    for seed in range(args.n_seeds):
+                        probe = _make_args_ns(
+                            model=cfg["model"], size=N, h=cfg["h"],
+                            n_hidden=n_hidden,
+                            learning_rate=_GEN_LR, regularization=_GEN_REG,
+                            n_samples=_GEN_N_SAMPLES, iterations=args.iterations,
+                            seed=seed, sampler_name=sampler_name,
+                            sampling_method=sampling_method, output_dir=output_dir,
+                            J1=cfg["J1"], J2=cfg["J2"], delta=cfg["delta"],
+                        )
+                        if _result_exists(probe):
+                            skipped += 1
+                            continue
+                        print(f"    seed {seed + 1}/{args.n_seeds} ...", end="\r", flush=True)
+                        try:
+                            m = _run_seed(
+                                model=cfg["model"],
+                                size=N,
+                                h=cfg["h"],
+                                ising=ising,
+                                trial_entry=trial_entry,
+                                seed=seed,
+                                iterations=args.iterations,
+                                sampler_obj=sampler_obj,
+                                sampler_name=sampler_name,
+                                sampling_method=sampling_method,
+                                num_rep=num_rep,
+                                output_dir=output_dir,
+                                J1=cfg["J1"],
+                                J2=cfg["J2"],
+                                delta=cfg["delta"],
+                            )
+                            results.append(m)
+                        except Exception as exc:
+                            print(f"\n    seed {seed} FAILED: {exc}")
+
+                    n_ok = sum(1 for m in results if not m["diverged"])
+                    errors = [m["rel_error"] for m in results
+                              if not m["diverged"] and math.isfinite(m["rel_error"])]
+                    mean_err = sum(errors) / len(errors) if errors else float("nan")
+                    skip_str = f"  ({skipped} skipped)" if skipped else ""
+                    print(
+                        f"    {n_ok}/{len(results)} converged"
+                        f"  mean_rel_err={mean_err:.6f}"
+                        f"{skip_str}"
+                        f"                    "
+                    )
+        finally:
+            if hasattr(sampler_obj, "close"):
+                sampler_obj.close()
+
+
 def main():
     args = _parse_args()
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+
+    if args.generalize:
+        _run_generalize(args)
+        return
 
     if args.params is not None:
         _run_one(args.params, args)

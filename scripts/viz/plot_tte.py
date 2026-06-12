@@ -54,6 +54,8 @@ KNOWN_MODELS = ["tfim_1d", "tfim_2d", "heisenberg_xxz_1d", "lr_tfim_1d", "heisen
 
 _HEISENBERG_MODELS = {"heisenberg_j1j2_1d", "heisenberg_xxz_1d"}
 
+EXCLUDED_METHODS = {"dimod/zephyr_ra", "dimod/pegasus_mh"}
+
 METHOD_COLORS = {
     "custom/metropolis":          "#1f77b4",
     "custom/simulated_annealing": "#aec7e8",
@@ -63,7 +65,6 @@ METHOD_COLORS = {
     "custom/exchange":            "#2ca02c",
     "dimod/pegasus":              "#ff7f0e",
     "dimod/pegasus_fast":         "#ffa040",
-    "dimod/pegasus_mh":           "#c05000",
     "dimod/simulated_annealing":  "#2ca02c",
     "dimod/zephyr":               "#d62728",
     "dimod/tabu":                 "#8c564b",
@@ -80,7 +81,6 @@ METHOD_MARKERS = {
     "custom/exchange":            "D",
     "dimod/pegasus":              "P",
     "dimod/pegasus_fast":         "p",
-    "dimod/pegasus_mh":           "X",
     "dimod/simulated_annealing":  "X",
     "dimod/zephyr":               "*",
     "dimod/tabu":                 "h",
@@ -96,18 +96,17 @@ METHOD_MARKERS = {
 def _rolling_convergence_iter(energies: list[float], exact: float,
                                window: int, tol: float) -> int | None:
     """
-    Return last iteration index t (0-based) where
+    Return first iteration index t (0-based) where
     std(energy[t-W+1 : t+1]) < tol * |E_exact|.
 
     Returns None if the criterion is never met.
     """
     threshold = tol * abs(exact)
     arr = np.array(energies)
-    last_t = None
     for t in range(window - 1, len(arr)):
         if np.std(arr[t - window + 1: t + 1]) < threshold:
-            last_t = t
-    return last_t
+            return t
+    return None
 
 
 def _fixed_convergence_iter(energies: list[float], fixed_iter: int) -> int:
@@ -155,6 +154,8 @@ def load_runs(results_dir: Path, model_filter: str,
         if None in (N, sampler, method):
             continue
         if exact is None:
+            continue
+        if f"{sampler}/{method}" in EXCLUDED_METHODS:
             continue
 
         if is_heisenberg:
