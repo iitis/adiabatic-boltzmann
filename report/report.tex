@@ -8,9 +8,10 @@
 \usepackage{physics}
 \usepackage{bm}
 \usepackage{glossaries}
-
+\usepackage{hyperref}
 \makeglossaries
 \newacronym{vqe}{VQE}{Variational Quantum Eigensolver}
+\newacronym{mcmc}{MCMC}{Markov chain Monte Carlo}
 
 \usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
 \author{Philipp Hanussek}
@@ -47,9 +48,17 @@ H(s) = A(s)H_D + B(s)H_P
 \end{equation}
 where $s \in [0,1]$ is the normalized time. $A(s)$ decreases the driving terms in $H_D$ as $s$ increases,
 and $B(s)$ activates the terms of the problem Hamiltonian $H_P$. At the end of the evolution, if the process happens slow enough, and assuming a noiseless environment, the system will be in the ground state of the problem Hamiltonian according to the adiabatic theorem.
-\subsection{Simulated Annealing}
+\subsection{Markov chain Monte Carlo Methods}
+We use several \gls{mcmc} methods to generate samples from probability distribution from which direct sampling would be difficult.
+\subsubsection{Simulated Annealing}
 Simulated Annealing is the classical analogue and predecessor of quantum annealing. It works by exploring the neighborhood of a given configuration, accepting the neighborhood with a temperature dependent probability, or if the new configuration has a lower energy than the current one. 
-\subsection{Metropolis Algorithm}
+\subsubsection{Metropolis-Hastings Algorithm}
+The Metropolis-Hastings Algorithm is a \gls{mcmc} method used to obtain samples from a (multivariate) probability distribution $P(x)$ from which sampling is difficult. The goal of the algorithm is to define a Markov chain whose stationary distribution is $P(x)$. Suppose we can evaluate an unnormalized target density \( f(x) \), where \( f(x) \propto P(x) \), and the normalization constant is unknown. In the \textbf{proposal} step, a \textit{candidate} $x^*$ from a proposal distribution $q(x^*| x_n)$ is generated, $x_n$ being the current state of the Markov chain. In the \textbf{accept-reject} step, the acceptance probability $A(x_n\rightarrow x^*)$ is calculated\cite{djnavarroMetropolisHastingsAlgorithm}:
+\begin{equation}
+A(x_n\rightarrow x^*) =\min\left(1, \frac{f(x^*)}{f(x^n)}\times\frac{q(x_n|x*)}{q(x^*|x_n)}\right).
+\end{equation}
+For the evaluation of $\frac{f(x^*)}{f(x^n)}$, knowledge of the normalization constant is not necessary. The candidate $x^*$ is accepted with probability $A(x_n\rightarrow x^*)$.
+\subsection{•}
 
  
 \section{Variational Algorithms}
@@ -65,6 +74,7 @@ In the adiabatic case, the ansatz can be written as
 \ket\Phi =\sum_v\Phi(v)\ket v, \text{ with } \Phi (v)= \sum e^{-\Phi(v,h)}
 \end{equation}
 The network is specified by the weights $\bm a, \bm b, \bm W$, which are respectively applied to the vector of visible units $\bm v=(v_1, \ldots, v_N)$ and hidden units $\bm h=(h_1, \ldots, h_N)$. 
-
+\bibliography{bib}{}
+\bibliographystyle{plain}
 
 \end{document}	
