@@ -145,7 +145,7 @@ def _parse_args():
     p.add_argument(
         "--backends",
         nargs="+",
-        default=["veloxq_sa", "fpga"],
+        default=["fpga", "veloxq_sa"],
         choices=["veloxq_sa", "fpga"],
         help="Backends to run.",
     )
@@ -318,7 +318,8 @@ def _run_seed(
     stop_temp = 0.5 * start_temp  # T_min < T_max; irrelevant with num_steps=1
     num_sweeps = sa["num_sweeps_per_step"]
 
-    n_visible = size if model == "1d" else size**2
+    # 2D models use size² spins; 1D models (TFIM and J1J2 Heisenberg) use size.
+    n_visible = size**2 if model == "2d" else size
     key = jax.random.PRNGKey(seed)
     _, model_key = jax.random.split(key)
     rbm = FullyConnectedRBM(n_visible, n_hidden, model_key)
@@ -579,6 +580,10 @@ def _run_generalize(args):
 
         try:
             for num_sweeps in args.num_sweeps:
+                # Per-sweep subtree: save_results' filename does not include
+                # num_sweeps, so we must namespace by directory to avoid
+                # overwriting num_sweeps=100 results with num_sweeps=2000.
+                sweep_output_dir = output_dir / f"sweeps{num_sweeps}"
                 for cfg in configs:
                     N = cfg["size"]
                     n_hidden = max(1, round(_GEN_NH_ALPHA * N))
@@ -616,7 +621,7 @@ def _run_generalize(args):
                             learning_rate=_GEN_LR, regularization=_GEN_REG,
                             n_samples=_GEN_N_SAMPLES, iterations=args.iterations,
                             seed=seed, sampler_name=sampler_name,
-                            sampling_method=sampling_method, output_dir=output_dir,
+                            sampling_method=sampling_method, output_dir=sweep_output_dir,
                             J1=cfg["J1"], J2=cfg["J2"], delta=cfg["delta"],
                         )
                         if _result_exists(probe):
@@ -636,7 +641,7 @@ def _run_generalize(args):
                                 sampler_name=sampler_name,
                                 sampling_method=sampling_method,
                                 num_rep=num_rep,
-                                output_dir=output_dir,
+                                output_dir=sweep_output_dir,
                                 J1=cfg["J1"],
                                 J2=cfg["J2"],
                                 delta=cfg["delta"],
