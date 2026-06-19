@@ -1758,12 +1758,13 @@ class DimodSampler(Sampler):
     def simulated_annealing(self, bqm, n_samples, config={}, return_hidden=False):
         import neal
 
+        num_sweeps = config.get("num_sweeps", 1000)
         sampler = neal.SimulatedAnnealingSampler()
         sampleset = sampler.sample(
             bqm,
             num_reads=n_samples,
             beta_range=(0.01, 10.0),
-            num_sweeps=1000,
+            num_sweeps=num_sweeps,
             beta_schedule_type="geometric",
         )
         sort_idx = np.argsort(list(sampleset.variables))
