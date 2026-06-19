@@ -12,14 +12,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 from collections import defaultdict
+from itertools import chain
 import subprocess
 import sys
 
+from plot_style import setup_style, load_json
+
 ROOT = Path(__file__).resolve().parent.parent.parent
-RESULTS_DIR = ROOT / "jax_results"
+RESULTS_DIR = ROOT / "results"
 PLOTS_DIR = ROOT / "plots" / "energy_convergence"
 
-KNOWN_MODELS = ["tfim_1d", "tfim_2d", "heisenberg_xxz_1d", "lr_tfim_1d"]
+KNOWN_MODELS = [
+    "tfim_1d", "tfim_2d", "lr_tfim_1d",
+    "j1j2_1d", "heisenberg_j1j2_1d", "heisenberg_xxz_1d",
+    "heisenberg_xxz_2d", "heisenberg_xy_1d",
+]
 
 METHOD_COLORS = {
     "custom/metropolis":        "#1f77b4",
@@ -126,6 +133,21 @@ def compute_exact_energy(model, N, h):
         print(f"Failed to compute exact energy for N={N}, h={h}: {e}")
         return None
 
+
+def _exact_per_spin(model, N, h, methods_data):
+    """compute_exact_energy with fallback to exact_energy stored in the result JSON."""
+    e = compute_exact_energy(model, N, h)
+    if e is not None:
+        return e
+    n_vis = N * N if "2d" in model else N
+    for runs in methods_data.values():
+        for r in runs:
+            total = r.get("exact_energy")
+            if total is not None:
+                return total / n_vis
+    return None
+
+
 def load_results(results_dir=RESULTS_DIR, model_filter=None):
     """Load all result files organized by (model, N, h, RBM) and method.
 
@@ -141,10 +163,9 @@ def load_results(results_dir=RESULTS_DIR, model_filter=None):
 
     search_root = results_dir / model_filter if model_filter else results_dir
 
-    for json_file in search_root.rglob("*.json"):
+    for json_file in chain(search_root.rglob("*.json"), search_root.rglob("*.json.gz")):
         try:
-            with open(json_file) as f:
-                data = json.load(f)
+            data = load_json(json_file)
 
             config = data["config"]
             # Derive model from directory structure (robust against legacy config values)
@@ -164,7 +185,7 @@ def load_results(results_dir=RESULTS_DIR, model_filter=None):
 
             if not is_fpga and lr != 0.1:
                 continue
-            if n_hidden != n_visible:
+            if n_hidden is not None and n_hidden != n_visible:
                 continue
             if config.get("cem", False):
                 continue
@@ -178,6 +199,7 @@ def load_results(results_dir=RESULTS_DIR, model_filter=None):
                 "config": config,
                 "seed": seed,
                 "n_visible": n_visible,
+                "exact_energy": data.get("exact_energy"),
             })
         except Exception as e:
             print(f"Error loading {json_file}: {e}")
@@ -197,17 +219,14 @@ def plot_convergence_to_exact(results):
     figs = []
 
     for model, N, h, rbm in combos:
-        # Compute exact energy per spin
-        print(f"Computing exact ground state energy for model={model}, N={N}, h={h}...")
-        exact_E_per_spin = compute_exact_energy(model, N, h)
+        methods_data = results[(model, N, h, rbm)]
+        exact_E_per_spin = _exact_per_spin(model, N, h, methods_data)
 
         if exact_E_per_spin is None:
             print(f"  Skipping model={model}, N={N}, h={h}, RBM={rbm} - could not compute exact energy")
             continue
 
         print(f"  Exact energy per spin: {exact_E_per_spin:.6f} [model={model}, RBM={rbm}]")
-
-        methods_data = results[(model, N, h, rbm)]
         
         # Create figure with 2 subplots: energy and delta
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
@@ -293,7 +312,8 @@ def plot_rbm_comparison(results):
         if len(rbm_list) < 2:
             continue  # Skip if only one RBM type
 
-        exact_E_per_spin = compute_exact_energy(model, N, h)
+        sample_methods = results[(model, N, h, rbm_list[0])]
+        exact_E_per_spin = _exact_per_spin(model, N, h, sample_methods)
         if exact_E_per_spin is None:
             continue
 
@@ -410,7 +430,8 @@ def plot_summary_pages(results):
             subfig.patch.set_edgecolor('#aaaaaa')
             subfig.patch.set_linewidth(1.2)
 
-            exact_E_per_spin = compute_exact_energy(model, N, h)
+            methods_data = results[(model, N, h, rbm)]
+            exact_E_per_spin = _exact_per_spin(model, N, h, methods_data)
             if exact_E_per_spin is None:
                 subfig.patch.set_visible(False)
                 continue
@@ -588,7 +609,7 @@ def print_summary(results):
     for model, N, h, rbm in sorted(results.keys()):
         print(f"\n(model={model}, N={N}, h={h}, RBM={rbm}):")
 
-        exact_E_per_spin = compute_exact_energy(model, N, h)
+        exact_E_per_spin = _exact_per_spin(model, N, h, results[(model, N, h, rbm)])
         if exact_E_per_spin:
             print(f"  Exact ground state energy per spin: {exact_E_per_spin:.6f}")
 
@@ -606,12 +627,13 @@ def print_summary(results):
 if __name__ == "__main__":
     import argparse
 
+    setup_style()
+
     parser = argparse.ArgumentParser(description="Plot VMC convergence results")
     parser.add_argument(
         "--model",
-        choices=KNOWN_MODELS,
         default="tfim_1d",
-        help="Model to plot (default: tfim_1d)",
+        help=f"Model to plot. Known: {', '.join(KNOWN_MODELS)}. (default: tfim_1d)",
     )
     parser.add_argument(
         "--rbm",

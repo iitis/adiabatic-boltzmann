@@ -1,37 +1,33 @@
 #!/usr/bin/env python3
 """
-Run VMC seed sweeps using best hyperparameters found by optuna_sa_sweep.py.
+Run VMC seed sweeps using best hyperparameters found by hparam_optuna.py.
 
-Loads best_<model>_N<size>_h<h>.json from optuna_results/ and re-runs the
-top-K trials across --n-seeds random seeds for one or both backends:
+Two modes:
 
-  veloxq_sa : VeloxQStandardSASampler — the SA solver used during the Optuna search
-  fpga      : FPGASampler             — VeloxQFPGA FPGA annealer
+  --generalize (default)
+      Fixed VMC params (lr=0.13, reg=0.005, ns=200, nh=round(3*N)) across TFIM
+      sizes and J1J2 Heisenberg.  Does not require any prior hparam search.
 
-Both backends run in Gibbs mode (num_steps=1, geometric schedule) matching the
-optuna sweep.  SA config is forwarded to the sampler via trainer_config so the
-same parameters are used on both backends.
+  --no-generalize
+      Loads the top-K trials from results/hparam_search/tfim_1d/ (written by
+      scripts/hparam_optuna.py --hamiltonian tfim_1d) and re-runs them across
+      --n-seeds random seeds for one or both backends:
 
-SA → FPGA parameter mapping:
-  sa.start_temp          →  fpga_start_temp
-  0.5 * sa.start_temp    →  fpga_stop_temp   (only needs T_min < T_max)
-  sa.num_steps = 1       →  fpga_num_steps   (single point = Gibbs mode)
-  sa.num_sweeps_per_step →  fpga_num_sweeps
+        veloxq_sa : VeloxQStandardSASampler
+        fpga      : FPGASampler
 
-By default picks up both N=16 and N=24 results.  Run without any arguments:
+      SA → FPGA parameter mapping:
+        T_initial              →  fpga_start_temp
+        0.5 * T_initial        →  fpga_stop_temp
+        num_steps=1 (Gibbs)    →  fpga_num_steps
+        --num-sweeps[0]        →  fpga_num_sweeps
+
+Usage:
 
     cd src
-    python run_fpga_best.py
-
-Override a single file:
-    python run_fpga_best.py --params ../optuna_results/best_1d_N16_h0p5.json
-
-Run only one backend, more seeds, more iterations:
+    python run_fpga_best.py                          # generalization sweep
+    python run_fpga_best.py --no-generalize          # best hparam trials for N=16,24
     python run_fpga_best.py --backends veloxq_sa --n-seeds 30 --iterations 200
-
-Generalization sweep (fixed params across TFIM sizes + J1J2 Heisenberg):
-
-    python run_fpga_best.py --generalize
     python run_fpga_best.py --generalize --tfim-sizes 8 12 16 24 32 \\
         --j1j2-sizes 8 12 16 --j2 0.1 0.3 0.5 --backends fpga
 """
@@ -55,7 +51,6 @@ from ising import J1J2HeisenbergXXZ1D, TransverseFieldIsing1D, TransverseFieldIs
 from model import FullyConnectedRBM
 from sampler import FPGASampler, VeloxQStandardSASampler
 
-# Must match optuna_sa_sweep.py defaults so paths resolve without arguments.
 DEFAULT_SIZES = [16, 24]
 DEFAULT_MODEL = "1d"
 DEFAULT_H = 0.5
@@ -92,7 +87,6 @@ def _result_exists(args_ns) -> bool:
     return (output_dir / fname).exists()
 
 # num_steps=1 + geometric schedule = single temperature point = Gibbs sampling.
-# Hard-coded as NUM_STEPS=1 in optuna_sa_sweep.py; must match here.
 _GIBBS_NUM_STEPS = 1
 
 DEFAULT_JULIA_PROJECT = str(Path(__file__).parent.parent / "scripts" / "julia_local")
@@ -100,14 +94,8 @@ DEFAULT_JULIA_PROJECT = str(Path(__file__).parent.parent / "scripts" / "julia_lo
 
 def _parse_args():
     p = argparse.ArgumentParser(
-        description="FPGA/VeloxQ SA seed sweep using best optuna_sa_sweep.py params",
+        description="FPGA/VeloxQ SA seed sweep using best params from hparam_optuna.py",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    p.add_argument(
-        "--params",
-        default=None,
-        help="Explicit JSON file from optuna_sa_sweep.py. "
-        "If given, --sizes / --model / --h are ignored.",
     )
     p.add_argument(
         "--sizes",
@@ -115,14 +103,14 @@ def _parse_args():
         nargs="+",
         default=DEFAULT_SIZES,
         metavar="N",
-        help="Run for each size, loading its params JSON automatically.",
+        help="Run for each size (--no-generalize mode only).",
     )
     p.add_argument("--model", default=DEFAULT_MODEL, choices=["1d", "2d"])
     p.add_argument("--h", type=float, default=DEFAULT_H)
     p.add_argument(
-        "--optuna-dir",
-        default=str(Path(__file__).parent.parent / "optuna_results"),
-        help="Directory written by optuna_sa_sweep.py.",
+        "--hparam-dir",
+        default=str(Path(__file__).parent.parent / "results" / "hparam_search"),
+        help="Directory written by scripts/hparam_optuna.py (contains tfim_1d/ subdirectory).",
     )
     p.add_argument(
         "--top-k",
@@ -193,7 +181,7 @@ def _parse_args():
         "--no-generalize",
         dest="generalize",
         action="store_false",
-        help="Use the original optuna JSON loading mode instead of the generalization sweep.",
+        help="Load best trials from results/hparam_search/tfim_1d/ instead of using fixed params.",
     )
     p.add_argument(
         "--tfim-sizes",
@@ -396,28 +384,85 @@ def _run_seed(
     return {"tail_mean": tail_mean, "rel_error": rel_error, "diverged": diverged}
 
 
-def _run_one(params_path, args):
-    params_path = Path(params_path)
-    if not params_path.exists():
+def _load_best_trials(hparam_dir, model, size, h, top_k, num_sweeps_per_step):
+    """Return top-K trial_entry dicts from index.jsonl files matching (model, size, h).
+
+    Reads from hparam_dir/tfim_1d/**/index.jsonl, filters to simulated_annealing
+    entries for the given system size and transverse field, and maps the recorded
+    params to the trial_entry format expected by _run_seed.
+    """
+    hamiltonian = "tfim_1d" if model == "1d" else f"tfim_{model}"
+    search_root = Path(hparam_dir) / hamiltonian
+    if not search_root.exists():
         raise FileNotFoundError(
-            f"Params file not found: {params_path}\n"
-            "Run optuna_sa_sweep.py first to generate it."
+            f"No hparam data for {hamiltonian!r}: {search_root}\n"
+            "Run: python scripts/hparam_optuna.py --hamiltonian tfim_1d"
         )
 
-    with open(params_path) as f:
-        params = json.load(f)
+    records = []
+    for index_file in search_root.rglob("index.jsonl"):
+        with open(index_file) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if rec.get("N") != size:
+                    continue
+                if abs(rec.get("phys_params", {}).get("h", float("nan")) - h) > 1e-9:
+                    continue
+                if rec.get("params", {}).get("sampling_method") != "simulated_annealing":
+                    continue
+                if not math.isfinite(rec.get("rel_error", float("nan"))):
+                    continue
+                records.append(rec)
 
-    model = params["model"]
-    size = params["size"]
-    h = params["h"]
-    top_trials = params["top_trials"][: args.top_k]
+    if not records:
+        raise ValueError(
+            f"No simulated_annealing trials found for N={size}, h={h} in {search_root}"
+        )
+
+    records.sort(key=lambda r: r.get("rel_error", float("inf")))
+    return [
+        {
+            "rank": rank,
+            "variational_error": rec["rel_error"],
+            "sa": {
+                "num_steps": _GIBBS_NUM_STEPS,
+                "start_temp": rec["params"].get("T_initial", 1.0),
+                "num_sweeps_per_step": num_sweeps_per_step,
+            },
+            "vmc": {
+                "n_hidden": rec["n_hidden"],
+                "learning_rate": rec["params"]["learning_rate"],
+                "regularization": rec["params"]["regularization"],
+                "n_samples": rec["params"]["n_samples"],
+            },
+        }
+        for rank, rec in enumerate(records[:top_k], start=1)
+    ]
+
+
+def _run_one(hparam_dir, model, size, h, args):
+    num_sweeps_per_step = args.num_sweeps[0] if args.num_sweeps else 2000
+    top_trials = _load_best_trials(
+        hparam_dir, model, size, h, args.top_k, num_sweeps_per_step
+    )
 
     ising = _build_ising(model, size, h)
     output_dir = Path(args.output_dir)
     num_rep = max(args.num_rep, max(e["vmc"]["n_samples"] for e in top_trials))
 
+    try:
+        exact_str = f"{float(ising.exact_ground_energy()):.6f}"
+    except NotImplementedError:
+        exact_str = "N/A"
+
     print(f"\n{'=' * 60}")
-    print(f"N={size}  model={model}  h={h}  exact={params['exact_energy']:.6f}")
+    print(f"N={size}  model={model}  h={h}  exact={exact_str}")
     print(
         f"Top-{len(top_trials)} trial(s)  ×  {args.n_seeds} seeds  ×  {args.backends}"
     )
@@ -674,15 +719,8 @@ def main():
         _run_generalize(args)
         return
 
-    if args.params is not None:
-        _run_one(args.params, args)
-        return
-
-    optuna_dir = Path(args.optuna_dir)
-    h_str = str(args.h).replace(".", "p")
     for size in args.sizes:
-        params_path = optuna_dir / f"best_{args.model}_N{size}_h{h_str}.json"
-        _run_one(str(params_path), args)
+        _run_one(args.hparam_dir, args.model, size, args.h, args)
 
 
 if __name__ == "__main__":

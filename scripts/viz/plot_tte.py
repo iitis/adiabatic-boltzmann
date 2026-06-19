@@ -41,18 +41,28 @@ import argparse
 import json
 import warnings
 from collections import defaultdict
+from itertools import chain
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 
+from plot_style import setup_style, load_json
+
 ROOT = Path(__file__).resolve().parent.parent.parent
 RESULTS_DIR = ROOT / "results"
 PLOTS_DIR = ROOT / "plots" / "ttc"
 
-KNOWN_MODELS = ["tfim_1d", "tfim_2d", "heisenberg_xxz_1d", "lr_tfim_1d", "heisenberg_j1j2_1d"]
+KNOWN_MODELS = [
+    "tfim_1d", "tfim_2d", "lr_tfim_1d",
+    "j1j2_1d", "heisenberg_j1j2_1d", "heisenberg_xxz_1d",
+    "heisenberg_xxz_2d", "heisenberg_xy_1d",
+]
 
-_HEISENBERG_MODELS = {"heisenberg_j1j2_1d", "heisenberg_xxz_1d"}
+_HEISENBERG_MODELS = {
+    "j1j2_1d", "heisenberg_j1j2_1d", "heisenberg_xxz_1d",
+    "heisenberg_xxz_2d", "heisenberg_xy_1d",
+}
 
 EXCLUDED_METHODS = {"dimod/zephyr_ra", "dimod/pegasus_mh"}
 
@@ -134,10 +144,9 @@ def load_runs(results_dir: Path, model_filter: str,
     if not search_root.exists():
         return runs
 
-    for json_file in sorted(search_root.rglob("*.json")):
+    for json_file in sorted(chain(search_root.rglob("*.json"), search_root.rglob("*.json.gz"))):
         try:
-            with open(json_file) as f:
-                data = json.load(f)
+            data = load_json(json_file)
         except Exception as e:
             print(f"  [skip] {json_file.name}: {e}")
             continue
@@ -434,6 +443,8 @@ def plot_ttc(model: str, runs: list[dict], mode: str, window: int, tol: float,
 # ---------------------------------------------------------------------------
 
 def main():
+    setup_style()
+
     parser = argparse.ArgumentParser(
         description="Plot Time-to-Convergence (TTC) scaling vs instance size",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,

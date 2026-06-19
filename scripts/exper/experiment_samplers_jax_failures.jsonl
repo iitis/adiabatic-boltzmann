@@ -1,2 +1,0 @@
-{"timestamp": "2026-04-28T14:30:47.438809", "model": "heisenberg_xxz_1d", "size": 16, "h": 0.0, "J": 1.0, "delta": 0.0, "lr": 0.01, "seed": 1, "method": "gibbs", "error": "TypeError", "message": "'__inverse_cache' is a field but has no type annotation"}
-{"timestamp": "2026-04-28T14:31:52.365909", "model": "heisenberg_xxz_1d", "size": 16, "h": 0.0, "J": 1.0, "delta": 0.5, "lr": 0.01, "seed": 1, "method": "gibbs", "error": "TypeError", "message": "'__inverse_cache' is a field but has no type annotation"}
