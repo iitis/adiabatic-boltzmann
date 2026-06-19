@@ -10,6 +10,7 @@ Usage:
 import argparse
 import json
 from pathlib import Path
+from helpers import load_result_json
 from collections import defaultdict
 
 import numpy as np
@@ -22,9 +23,9 @@ RESULTS_DIR = Path(__file__).parent.parent / "results"
 def load_matching(size: int, h: float, nh: int, method: str):
     """Return all result dicts for a given sampling method matching (size, h, n_hidden)."""
     records = []
-    for path in RESULTS_DIR.rglob("*.json"):
+    for path in RESULTS_DIR.rglob("*.json*"):
         try:
-            d = json.loads(path.read_text())
+            d = load_result_json(path)
         except Exception:
             continue
         cfg = d.get("config", {})

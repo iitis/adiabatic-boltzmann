@@ -17,6 +17,7 @@ Usage (from src/):
 import argparse
 import json
 import numpy as np
+from helpers import load_result_json
 import matplotlib.pyplot as plt
 import subprocess
 import sys
@@ -71,10 +72,9 @@ def load_results(results_dir: Path) -> dict:
     """
     results = defaultdict(lambda: defaultdict(list))
 
-    for json_file in results_dir.rglob("*.json"):
+    for json_file in results_dir.rglob("*.json*"):
         try:
-            with open(json_file) as f:
-                data = json.load(f)
+            data = load_result_json(json_file)
         except Exception:
             continue
 

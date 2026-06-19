@@ -17,6 +17,7 @@ HOW TO EXTEND
 
 import json
 from pathlib import Path
+from helpers import load_result_json
 
 import reference_energies
 
@@ -136,11 +137,10 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
     records: list[dict] = []
     histories: dict[str, dict] = {}
 
-    paths = sorted(p for d in results_dirs for p in d.rglob("*.json"))
+    paths = sorted(p for d in results_dirs for p in d.rglob("*.json*"))
     for path in paths:
         try:
-            with open(path) as f:
-                d = json.load(f)
+            d = load_result_json(path)
         except Exception:
             continue
 

@@ -24,6 +24,7 @@ import argparse
 import json
 import subprocess
 import sys
+from helpers import load_result_json
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -91,10 +92,9 @@ def load_results(results_dir: Path, size_filter=None, h_filter=None, model_filte
     """
     groups = defaultdict(lambda: {"cem": [], "no_cem": []})
 
-    for json_file in results_dir.rglob("*.json"):
+    for json_file in results_dir.rglob("*.json*"):
         try:
-            with open(json_file) as f:
-                data = json.load(f)
+            data = load_result_json(json_file)
 
             cfg = data["config"]
             model = cfg["model"]

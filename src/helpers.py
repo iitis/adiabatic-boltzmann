@@ -24,6 +24,16 @@ def _model_subdir(model: str) -> str:
     return _MODEL_SUBDIR.get(model, model)
 
 
+def load_result_json(path) -> dict:
+    """Load a result file that is either .json or .json.gz."""
+    path = Path(path)
+    if path.suffix == ".gz":
+        with gzip.open(path, "rt") as f:
+            return json.load(f)
+    with open(path) as f:
+        return json.load(f)
+
+
 def _model_params_str(args) -> str:
     """Return the model-parameter component for result filenames."""
     if args.model == "heisenberg_xxz_1d":
@@ -277,10 +287,10 @@ def save_results(args, history, ising, rbm=None):
         f"_iter{args.iterations}"
         f"_cem{int(use_cem)}"
         f"_sigma{float(getattr(args, 'sigma', 1.0))}"
-        f".json"
+        f".json.gz"
     )
 
-    with open(output_file, "w") as f:
+    with gzip.open(output_file, "wt") as f:
         json.dump(results, f, indent=2)
 
     def _fmt(v):

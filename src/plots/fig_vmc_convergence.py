@@ -21,6 +21,7 @@ Usage
 import argparse
 import json
 from pathlib import Path
+from helpers import load_result_json
 
 import matplotlib
 import matplotlib.lines as mlines
@@ -83,9 +84,9 @@ def load_runs(results_root: Path) -> list[dict]:
         energy_hist, kl_hist, grad_norm_hist, n_iter
     """
     runs = []
-    for f in sorted(results_root.rglob("result_*_cem0.json")):
+    for f in sorted(results_root.rglob("result_*_cem0.json*")):
         try:
-            d = json.loads(f.read_text())
+            d = load_result_json(f)
         except Exception:
             continue
 
