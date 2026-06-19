@@ -220,6 +220,37 @@ def _parse_args():
         metavar="S",
         help="FPGA sweeps per step to test in --generalize. Multiple values sweep the axis.",
     )
+    # ── Training hyperparameter overrides (for --generalize) ──────────────
+    p.add_argument(
+        "--lr",
+        type=float,
+        default=None,
+        help="Override learning rate (default _GEN_LR=0.13).",
+    )
+    p.add_argument(
+        "--damping",
+        type=float,
+        default=None,
+        help="Override SR damping / regularization (default _GEN_REG=0.005).",
+    )
+    p.add_argument(
+        "--momentum",
+        type=float,
+        default=0.0,
+        help="Heavy-ball momentum on the SR update direction (0 = vanilla SR).",
+    )
+    p.add_argument(
+        "--nh-alpha",
+        type=float,
+        default=None,
+        help="Override n_hidden = round(NH_ALPHA · N). Default _GEN_NH_ALPHA=3.0; "
+             "set to 1.0 for n_hidden=N.",
+    )
+    p.add_argument(
+        "--tfim-only",
+        action="store_true",
+        help="Skip J1J2 Heisenberg configs in --generalize.",
+    )
     return p.parse_args()
 
 
@@ -307,6 +338,7 @@ def _run_seed(
     learning_rate = vmc["learning_rate"]
     regularization = vmc["regularization"]
     n_samples = vmc["n_samples"]
+    momentum = vmc.get("momentum", 0.0)
     start_temp = sa["start_temp"]
     stop_temp = 0.5 * start_temp  # T_min < T_max; irrelevant with num_steps=1
     num_sweeps = sa["num_sweeps_per_step"]
@@ -323,6 +355,7 @@ def _run_seed(
             "n_iterations": iterations,
             "n_samples": n_samples,
             "regularization": regularization,
+            "momentum": momentum,
             "veloxq_num_steps": _GIBBS_NUM_STEPS,
             "veloxq_num_sweeps": num_sweeps,
             "veloxq_start_temp": start_temp,
@@ -343,6 +376,7 @@ def _run_seed(
             "n_iterations": iterations,
             "n_samples": n_samples,
             "regularization": regularization,
+            "momentum": momentum,
             "fpga_num_steps": _GIBBS_NUM_STEPS,
             "fpga_num_sweeps": num_sweeps,
             "fpga_start_temp": start_temp,
@@ -576,26 +610,33 @@ def _run_one(hparam_dir, model, size, h, args):
 
 def _run_generalize(args):
     """Generalization sweep: fixed VMC params across TFIM sizes + J1J2 Heisenberg."""
+    # Resolve hyperparameter overrides (None ⇒ module default).
+    lr        = args.lr        if args.lr        is not None else _GEN_LR
+    reg       = args.damping   if args.damping   is not None else _GEN_REG
+    nh_alpha  = args.nh_alpha  if args.nh_alpha  is not None else _GEN_NH_ALPHA
+    momentum  = args.momentum
+
     configs = []
     for N in args.tfim_sizes:
         configs.append({"model": "1d", "size": N, "h": args.h, "J1": 1.0, "J2": 0.0, "delta": 1.0,
                         "label": f"TFIM N={N} h={args.h}"})
-    for N in args.j1j2_sizes:
-        for J2 in args.j2:
-            configs.append({"model": "heisenberg_j1j2_1d", "size": N, "h": 0.0,
-                            "J1": 1.0, "J2": J2, "delta": 1.0,
-                            "label": f"J1J2 N={N} J2={J2}"})
+    if not args.tfim_only:
+        for N in args.j1j2_sizes:
+            for J2 in args.j2:
+                configs.append({"model": "heisenberg_j1j2_1d", "size": N, "h": 0.0,
+                                "J1": 1.0, "J2": J2, "delta": 1.0,
+                                "label": f"J1J2 N={N} J2={J2}"})
 
     print(f"\n{'=' * 60}")
     print(f"Generalization sweep — {len(configs)} configs  ×  {args.n_seeds} seeds  ×  {args.backends}")
-    print(f"lr={_GEN_LR}  reg={_GEN_REG}  ns={_GEN_N_SAMPLES}  T={_GEN_START_TEMP}  nh=round({_GEN_NH_ALPHA}*N)")
+    print(f"lr={lr}  reg={reg}  momentum={momentum}  ns={_GEN_N_SAMPLES}  T={_GEN_START_TEMP}  nh=round({nh_alpha}*N)")
     print(f"{'=' * 60}")
 
     if args.dry_run:
         print(f"\n{'Label':<35}  {'nh':>4}  {'sweeps':>8}  backend  seeds")
         print(f"  {'-' * 63}")
         for cfg in configs:
-            nh = max(1, round(_GEN_NH_ALPHA * cfg["size"]))
+            nh = max(1, round(nh_alpha * cfg["size"]))
             for num_sweeps in args.num_sweeps:
                 for backend in args.backends:
                     print(f"  {cfg['label']:<33}  {nh:>4}  {num_sweeps:>8}  {backend:<10}  {args.n_seeds}")
@@ -636,7 +677,7 @@ def _run_generalize(args):
                 sweep_output_dir = output_dir / f"sweeps{num_sweeps}"
                 for cfg in configs:
                     N = cfg["size"]
-                    n_hidden = max(1, round(_GEN_NH_ALPHA * N))
+                    n_hidden = max(1, round(nh_alpha * N))
                     ising = _build_ising(cfg["model"], N, cfg["h"],
                                          J1=cfg["J1"], J2=cfg["J2"], delta=cfg["delta"])
 
@@ -656,9 +697,10 @@ def _run_generalize(args):
                         },
                         "vmc": {
                             "n_hidden": n_hidden,
-                            "learning_rate": _GEN_LR,
-                            "regularization": _GEN_REG,
+                            "learning_rate": lr,
+                            "regularization": reg,
                             "n_samples": _GEN_N_SAMPLES,
+                            "momentum": momentum,
                         },
                     }
 
@@ -668,7 +710,7 @@ def _run_generalize(args):
                         probe = _make_args_ns(
                             model=cfg["model"], size=N, h=cfg["h"],
                             n_hidden=n_hidden,
-                            learning_rate=_GEN_LR, regularization=_GEN_REG,
+                            learning_rate=lr, regularization=reg,
                             n_samples=_GEN_N_SAMPLES, iterations=args.iterations,
                             seed=seed, sampler_name=sampler_name,
                             sampling_method=sampling_method, output_dir=sweep_output_dir,

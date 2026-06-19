@@ -373,6 +373,10 @@ class Trainer:
         self.regularization = config.get("regularization", 1e-3)
         self.cg_tol = config.get("cg_tol", 1e-8)
         self.cg_maxiter = config.get("cg_maxiter", 200)
+        # Heavy-ball momentum on the SR update direction (v_t = m·v_{t-1} + update;
+        # w -= lr · v_t). 0.0 reproduces vanilla SR.
+        self.momentum = float(config.get("momentum", 0.0))
+        self._velocity = None
 
         _method = (
             getattr(sampler, "method", "")
@@ -670,7 +674,13 @@ class Trainer:
                 xa, xb, xW = sr.unpack(x)
                 # xW is (M, N) — transpose to (N, M) to match rbm.W layout
                 update = jnp.concatenate([xa.ravel(), xb.ravel(), xW.T.ravel()])
-            w_new = w - self.learning_rate * update
+            if self.momentum > 0.0:
+                if self._velocity is None or self._velocity.shape != update.shape:
+                    self._velocity = jnp.zeros_like(update)
+                self._velocity = self.momentum * self._velocity + update
+                w_new = w - self.learning_rate * self._velocity
+            else:
+                w_new = w - self.learning_rate * update
 
             if self.param_clip is not None:
                 w_new = jnp.clip(w_new, -self.param_clip, self.param_clip)
