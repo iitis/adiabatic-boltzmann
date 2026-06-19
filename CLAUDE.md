@@ -6,33 +6,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Implementation of Variational Monte Carlo (VMC) with Restricted Boltzmann Machines (RBM) to find ground states of the Transverse Field Ising Model (TFIM). Based on [Gardas et al. (arXiv:1805.05462)](https://arxiv.org/pdf/1805.05462). The key idea is to use an RBM as a variational wave function ansatz and optimize it using Stochastic Reconfiguration (SR).
 
+## Layout
+
+- **`src/`** — library modules only: `model.py`, `ising.py`, `sampler.py`, `encoder.py`, `helpers.py`, tests. Not a Python package; imported via `sys.path.insert`.
+- **`scripts/`** — runner scripts (entry points). Each inserts `src/` on `sys.path` at the top.
+- **`scripts/viz/`** — plotting and dashboard scripts.
+- **`scripts/exper/`** — experiment comparison runners.
+
 ## Commands
 
-All scripts must be run from the `src/` directory (imports are local, not packaged):
-
 ```bash
-cd src
-
-# Install dependencies
-pip install -r ../requirements.txt
+# Install dependencies (from repo root)
+pip install -r requirements.txt
 
 # Run training (main entry point)
-python main.py --model 1d --size 8 --h 0.5 --rbm full --sampler custom --sampling-method metropolis
+python scripts/main.py --model 1d --size 8 --h 0.5 --rbm full --sampler custom --sampling-method metropolis
 
-# Run tests
-python -m pytest test_e2e.py -v
+# Run tests (must cd into src/ for local imports)
+cd src && python -m pytest test_e2e.py -v
 
 # Run a single test
-python -m pytest test_e2e.py::test_psi_ratio_consistent_with_log_psi -v
+cd src && python -m pytest test_e2e.py::test_psi_ratio_consistent_with_log_psi -v
 
-# Run batch hyperparameter sweep
-python performance_run.py
+# Run batch hyperparameter sweep (from src/)
+cd src && python performance_run.py
 
 # Run end-to-end diagnostic (no pytest)
-python test_e2e.py
+cd src && python test_e2e.py
 ```
 
-### Key `main.py` arguments
+### Key `scripts/main.py` arguments
 
 | Argument | Choices | Default |
 |---|---|---|
@@ -47,7 +50,7 @@ python test_e2e.py
 
 ## Architecture
 
-### Core algorithm flow (`src/main.py`)
+### Core algorithm flow (`scripts/main.py`)
 
 1. Instantiate Ising model → `ising.py`
 2. Instantiate RBM → `model.py`

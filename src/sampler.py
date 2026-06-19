@@ -1805,20 +1805,25 @@ class DimodSampler(Sampler):
                     f"  [embedding] Trivial identity embedding cached for {cache_key}."
                 )
             else:
-                print(f"  [embedding] Running minorminer for {cache_key}...")
-                import minorminer
+                print(f"  [embedding] Running busclique biclique for {cache_key}...")
+                import minorminer.busclique as bc
+                import dwave_networkx as dnx
 
-                embedding = minorminer.find_embedding(
-                    list(bqm.quadratic.keys()),
-                    dwave_sampler.edgelist,
-                )
+                hw_graph = dwave_sampler.to_networkx_graph()
+                cache_bc = bc.busgraph_cache(hw_graph)
+                embedding = cache_bc.find_biclique_embedding(self.n_visible, self.n_hidden)
                 if not embedding:
                     raise RuntimeError(
-                        f"minorminer failed to find an embedding for "
-                        f"n_visible={self.n_visible} on solver '{solver_name}'."
+                        f"busclique failed to find a biclique embedding for "
+                        f"K_{{{self.n_visible},{self.n_hidden}}} on solver '{solver_name}'."
                     )
                 composite = FixedEmbeddingComposite(dwave_sampler, embedding)
-                print(f"  [embedding] Embedding found and cached for {cache_key}.")
+                chains = [len(v) for v in embedding.values()]
+                print(
+                    f"  [embedding] Biclique K_{{{self.n_visible},{self.n_hidden}}} embedded: "
+                    f"max_chain={max(chains)}, mean_chain={sum(chains)/len(chains):.1f}, "
+                    f"qubits={sum(chains)}."
+                )
             self._embedding_cache[cache_key] = composite
         else:
             composite = self._embedding_cache[cache_key]
@@ -1872,26 +1877,31 @@ class DimodSampler(Sampler):
                 f"({cache_key})."
             )
         else:
-            # FullyConnectedRBM: auto-find n_parallel disjoint embeddings.
-            import networkx as nx
+            # FullyConnectedRBM: find n_parallel disjoint biclique embeddings.
+            import minorminer.busclique as bc
 
-            source_graph = nx.Graph()
-            source_graph.add_nodes_from(source_bqm.variables)
-            source_graph.add_edges_from(source_bqm.quadratic.keys())
-            composite = ParallelEmbeddingComposite(
-                dwave_sampler,
-                source=source_graph,
-                embedder_kwargs={"max_num_emb": n_parallel},
-            )
-            found = composite.num_embeddings
-            if found < n_parallel:
-                raise RuntimeError(
-                    f"find_multiple_embeddings found only {found} disjoint embeddings "
-                    f"but {n_parallel} were requested. Reduce n_parallel or use a "
-                    f"smaller problem."
-                )
+            hw_graph = dwave_sampler.to_networkx_graph()
+            embeddings = []
+            remaining = hw_graph.copy()
+            for k in range(n_parallel):
+                cache_bc = bc.busgraph_cache(remaining)
+                emb = cache_bc.find_biclique_embedding(self.n_visible, self.n_hidden)
+                if not emb:
+                    raise RuntimeError(
+                        f"busclique found only {k} disjoint biclique embeddings for "
+                        f"K_{{{self.n_visible},{self.n_hidden}}} but {n_parallel} were "
+                        f"requested. Reduce n_parallel or use a smaller problem."
+                    )
+                embeddings.append(emb)
+                used = {q for chain in emb.values() for q in chain}
+                remaining = remaining.copy()
+                remaining.remove_nodes_from(used)
+            composite = ParallelEmbeddingComposite(dwave_sampler, embeddings=embeddings)
+            chains_all = [len(v) for emb in embeddings for v in emb.values()]
             print(
-                f"  [parallel] Found {found} embeddings for {n_parallel} runs "
+                f"  [parallel] {n_parallel} disjoint biclique K_{{{self.n_visible},{self.n_hidden}}} "
+                f"embeddings found: max_chain={max(chains_all)}, "
+                f"qubits_each={sum(len(v) for v in embeddings[0].values())} "
                 f"({cache_key})."
             )
 

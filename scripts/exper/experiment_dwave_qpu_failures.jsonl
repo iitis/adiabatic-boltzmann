@@ -1,1 +1,0 @@
-{"timestamp": "2026-05-04T12:45:49.563309", "size": 16, "h": 1.0, "lr": 0.01, "seed": 1, "method": "zephyr", "error": "RuntimeError", "message": "D-Wave sampling failed after 3 attempts."}

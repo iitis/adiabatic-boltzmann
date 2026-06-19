@@ -1,0 +1,10 @@
+DWaveTopologyRBM omitted connections  (N=24, Nv=24, Nh=24)
+Full K_{Nv,Nh} connections: 576
+
+Pegasus (pegasus_graph(16), seed=42):
+  kept:    204 / 576  (35.4%)
+  omitted: 372 / 576  (64.6%)
+
+Zephyr (zephyr_graph(4), seed=42):
+  kept:    268 / 576  (46.5%)
+  omitted: 308 / 576  (53.5%)
