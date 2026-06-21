@@ -1,6 +1,13 @@
 using VeloxQFPGA, VeloxQIO, VeloxQtoolbox
 using Sockets
 
+# Internal FPGASA helpers used to inline the body of (solver::FPGASA)(model, comp_model)
+# minus its surrounding fpga_connect!/fpga_disconnect!. Keeping the connection open
+# across VMC iterations saves ~0.05–0.2 s of PCIe bring-up per call.
+using VeloxQFPGA: _model_to_csr, _load_graph!, _run_fpga_sa!, _read_spins_matrix,
+                  _read_simd_width, _read_core_clock_hz, _fpga_time_seconds,
+                  _compute_beta_range, fpga_connect!, fpga_disconnect!, is_connected
+
 function _env_bool(key::String, default::Bool)
     val = get(ENV, key, "")
     isempty(val) && return default
@@ -68,7 +75,62 @@ function write_states(out_path::AbstractString, states)
     end
 end
 
-function handle_sample(parts::Vector{<:AbstractString}, static_kwargs::Dict{Symbol,Any})
+"""
+    run_one_sample!(solver, comp_model, model, simd_width) -> (states::Matrix{Int8}, fpga_time::Float64)
+
+Inline of the FPGASA call operator's body, minus connect/disconnect. The solver must
+already be connected (the daemon does that once at startup). All schedule fields
+(`num_rep`, `num_steps`, `num_sweeps_per_step`, `start_temp`, `stop_temp`,
+`schedule_type`) must be set on `solver` before calling.
+"""
+function run_one_sample!(solver::FPGASA, comp_model::ComputationModel, model, simd_width::Int)
+    N, h, row_ptr, col_val, weights = _model_to_csr(model)
+    _load_graph!(solver, N, h, row_ptr, col_val, weights)
+
+    beta_start, beta_stop = _compute_beta_range(solver, model)
+
+    num_rep_v = solver.num_rep
+    num_batches = cld(num_rep_v, simd_width)
+
+    all_states = Matrix{Int8}(undef, N, num_rep_v)
+    total_cycles = UInt64(0)
+    clock_hz = _read_core_clock_hz(solver._transport, solver.core_clock_hz;
+                                   verbose = solver.verbose)
+
+    for batch = 1:num_batches
+        rep_offset = (batch - 1) * simd_width
+        batch_reps = min(simd_width, num_rep_v - rep_offset)
+        cycles = _run_fpga_sa!(
+            solver, N;
+            beta_start = beta_start,
+            beta_stop = beta_stop,
+            steps = solver.num_steps,
+            schedule_type = solver.schedule_type,
+            sweeps = solver.num_sweeps_per_step,
+        )
+        total_cycles += cycles
+        batch_states = _read_spins_matrix(solver._transport, N, batch_reps;
+                                          verbose = solver.verbose)
+        all_states[:, (rep_offset+1):(rep_offset+batch_reps)] .= batch_states
+    end
+
+    # Energy sort so the returned states matrix matches the FPGASA call operator's
+    # sortperm-by-energy convention. The Python sampler then randomly subsamples.
+    full_states = Float32.(all_states)
+    en, σ = get_spectrum(
+        full_states, similar(full_states), similar(full_states), model, 1.0f0;
+        energy_precision = comp_model.energy_precision,
+        energy_backend   = comp_model.energy_backend,
+    )
+    perm = sortperm(en)
+    σ_sorted = Matrix{Int8}(σ[:, perm])
+
+    fpga_time = _fpga_time_seconds(total_cycles, clock_hz)
+    return σ_sorted, fpga_time
+end
+
+function handle_sample(parts::Vector{<:AbstractString}, solver::FPGASA,
+                      comp_model::ComputationModel, simd_width::Int)
     length(parts) >= 10 || error("sample needs 9 args, got $(length(parts) - 1)")
     model_path = String(parts[2])
     out_path = String(parts[3])
@@ -80,26 +142,33 @@ function handle_sample(parts::Vector{<:AbstractString}, static_kwargs::Dict{Symb
     schedule_type = String(parts[9])
     meta_path = String(parts[10])
 
-    model = load_model(model_path)
-    kwargs = copy(static_kwargs)
-    kwargs[:num_rep] = num_rep
-    kwargs[:num_steps] = num_steps
-    kwargs[:num_sweeps_per_step] = num_sweeps
-    kwargs[:schedule_type] = schedule_type
-    kwargs[:start_temp] = start_temp
-    kwargs[:stop_temp] = stop_temp
+    # Mutate the persistent solver's schedule fields.
+    solver.num_rep = num_rep
+    solver.num_steps = num_steps
+    solver.num_sweeps_per_step = num_sweeps
+    solver.start_temp = start_temp
+    solver.stop_temp = stop_temp
+    solver.schedule_type = schedule_type
 
-    solver = FPGASA{Float32}(; kwargs...)
-    sp = solver(model, ComputationModel())
-    write_states(out_path, sp.states)
+    model = load_model(model_path)
+    states, fpga_time = run_one_sample!(solver, comp_model, model, simd_width)
+    write_states(out_path, states)
 
     if !isempty(meta_path)
-        fpga_time = get(sp.metadata, :fpga_time, NaN)
         open(meta_path, "w") do io
             print(io, fpga_time)
         end
     end
     return nothing
+end
+
+function try_reconnect!(solver::FPGASA)
+    try
+        fpga_disconnect!(solver)
+    catch
+    end
+    fpga_connect!(solver)
+    return _read_simd_width(solver._transport)
 end
 
 function main()
@@ -108,6 +177,28 @@ function main()
     println("[server] preloading packages and reading FPGA env")
     flush(stdout)
     static_kwargs = build_static_kwargs()
+
+    # Build solver once. Provide placeholder schedule fields — overwritten per call.
+    placeholder_schedule = Dict{Symbol,Any}(
+        :num_rep => 1024,
+        :num_steps => 100,
+        :num_sweeps_per_step => 1,
+        :schedule_type => "geometric",
+        :start_temp => 1.0,
+        :stop_temp => 0.1,
+    )
+    solver_kwargs = merge(placeholder_schedule, static_kwargs)
+    solver = FPGASA{Float32}(; solver_kwargs...)
+
+    # Persistent connection: one connect at startup, one disconnect at shutdown.
+    println("[server] connecting to FPGA")
+    flush(stdout)
+    fpga_connect!(solver)
+    simd_width = _read_simd_width(solver._transport)
+    println("[server] FPGA connected, simd_width=$simd_width")
+    flush(stdout)
+
+    comp_model = ComputationModel()
 
     ispath(socket_path) && rm(socket_path; force = true)
     server = listen(socket_path)
@@ -132,12 +223,20 @@ function main()
                         return
                     elseif cmd == "sample"
                         try
-                            handle_sample(parts, static_kwargs)
+                            handle_sample(parts, solver, comp_model, simd_width)
                             write(conn, "ok\n")
                         catch err
                             msg = sprint(showerror, err)
                             msg = replace(msg, '\n' => " | ", '\t' => " ")
                             write(conn, "err\t", msg, "\n")
+                            # PCIe MMIO may be in an undefined state after a failed sample.
+                            # Try to recover the connection so subsequent samples don't all fail.
+                            try
+                                simd_width = try_reconnect!(solver)
+                                @warn "[server] reconnected after sample error"
+                            catch reconnect_err
+                                @warn "[server] reconnect failed" reconnect_err
+                            end
                         end
                         flush(conn)
                     else
@@ -153,6 +252,10 @@ function main()
         close(server)
         try
             rm(socket_path; force = true)
+        catch
+        end
+        try
+            fpga_disconnect!(solver)
         catch
         end
         println("[server] shutdown")
