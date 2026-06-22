@@ -89,7 +89,9 @@ def _result_exists(args_ns) -> bool:
         f"_sigma{float(getattr(args_ns, 'sigma', 1.0))}"
         f".json"
     )
-    return (output_dir / fname).exists()
+    # save_results may write either .json or .json.gz (the latter became the
+    # upstream default at some point); accept both as evidence of completion.
+    return (output_dir / fname).exists() or (output_dir / (fname + ".gz")).exists()
 
 # num_steps=1 + geometric schedule = single temperature point = Gibbs sampling.
 # Hard-coded as NUM_STEPS=1 in optuna_sa_sweep.py; must match here.
