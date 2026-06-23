@@ -353,7 +353,7 @@ def main():
     repo_root = Path(__file__).resolve().parent.parent
     ckpt_dir = repo_root / "checkpoints" / "dtv_experiment" / f"N{N}_M{M}"
     ckpt_dir.mkdir(parents=True, exist_ok=True)
-    out_dir = Path(args.output_dir) if args.output_dir else repo_root / "scripts" / "output"
+    out_dir = Path(args.output_dir) if args.output_dir else repo_root / "scripts" / "output" / "dtv_vs_annealing"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if args.retrain:

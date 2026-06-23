@@ -16,6 +16,7 @@ HOW TO EXTEND
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -33,7 +34,7 @@ import streamlit as st
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
-_ROOT = Path(__file__).parent.parent
+_ROOT = Path(__file__).resolve().parent.parent.parent
 RESULTS_DIRS = [_ROOT / "results"]
 
 # ── Extension points ───────────────────────────────────────────────────────────
@@ -66,6 +67,8 @@ FILTER_AXES = [
     {"col": "cem", "label": "CEM"},
     {"col": "mh_warmup", "label": "MH warmup rounds"},
     {"col": "mh_sweeps", "label": "MH sweep rounds"},
+    {"col": "num_sweeps", "label": "FPGA/SA sweep count"},
+    {"col": "nh_ratio", "label": "Hidden/visible ratio (nh/N)"},
     {"col": "seed", "label": "Seed"},
 ]
 
@@ -153,6 +156,13 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
         run_id = str(path.relative_to(base))
         cfg = d.get("config", {})
 
+        # Extract num_sweeps from sweepsNNN/ directory component in the path.
+        sw_match = next(
+            filter(None, (re.fullmatch(r"sweeps(\d+)", part) for part in path.parts)),
+            None,
+        )
+        _path_num_sweeps = int(sw_match.group(1)) if sw_match else None
+
         row: dict = {"run_id": run_id}
 
         # Config columns — one per FILTER_AXES entry; missing keys → None
@@ -162,6 +172,15 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
         # Runs without an explicit ansatz field are RBM runs
         if row.get("ansatz") is None:
             row["ansatz"] = "rbm"
+
+        # num_sweeps: prefer config field, fall back to path-derived value.
+        if row.get("num_sweeps") is None:
+            row["num_sweeps"] = _path_num_sweeps
+
+        # nh_ratio: n_hidden / n_visible (rounded to 1 dp); None if either missing.
+        _nh = cfg.get("n_hidden")
+        _nv = cfg.get("size")
+        row["nh_ratio"] = round(_nh / _nv, 1) if (_nh and _nv) else None
 
         # Scalar outputs — exact_energy and error come from the master cache,
         # not from the JSON file (those values may be stale or inaccurate).
@@ -204,6 +223,9 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
             elif model_str == "j1j2_1d" and J1_val is not None and J2_val is not None and h_val is not None:
                 j1j2_key = f"j1j2_1d_J1{float(J1_val):.10g}_J2{float(J2_val):.10g}"
                 exact_energy = reference_energies.lookup(j1j2_key, int(size_val), float(h_val))
+            elif model_str == "heisenberg_j1j2_1d" and J1_val is not None and J2_val is not None and delta_val is not None:
+                heis_j1j2_key = f"heisenberg_j1j2_1d_J1{float(J1_val):.10g}_J2{float(J2_val):.10g}_delta{float(delta_val):.10g}"
+                exact_energy = reference_energies.lookup(heis_j1j2_key, int(size_val), float(J1_val))
             elif h_val is not None:
                 exact_energy = reference_energies.lookup(
                     str(model_str), int(size_val), float(h_val)
@@ -268,6 +290,8 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
         "regularization",
         "n_samples",
         "iterations",
+        "num_sweeps",
+        "nh_ratio",
         "seed",
     ):
         if col in df.columns:

@@ -207,13 +207,14 @@ def _exchange_mh_sweep_jit(
     return v, theta
 
 
-@functools.partial(jax.jit, static_argnums=(5, 6, 7))
+@functools.partial(jax.jit, static_argnums=(6, 7, 8))
 def _lsb_jit(
     key: jax.Array,
     M: jax.Array,
     f: jax.Array,
     sigma: float,
     delta: float,
+    gamma: float,
     n_samples: int,
     steps: int,
     N_total: int,
@@ -222,7 +223,7 @@ def _lsb_jit(
     Langevin Simulated Bifurcation (Kubo & Goto 2025, Sec. II B 1).
 
     Symplectic Euler integration (lax.scan over `steps` iterations):
-        y[k+1] = y[k] + δ·(M·x[k] + f) + σ·ξ    ξ ~ N(0,1)
+        y[k+1] = (1−γ)·y[k] + δ·(M·x[k] + f) + σ·ξ    ξ ~ N(0,1)
         x[k+1] = x[k] + δ·y[k+1]
         x      ← clip(x, −1, +1)
 
@@ -238,7 +239,7 @@ def _lsb_jit(
         key, noise_key = jax.random.split(key)
         force = x @ M.T + f
         noise = sigma * jax.random.normal(noise_key, y.shape, dtype=jnp.float64)
-        y = y + delta * force + noise
+        y = (1.0 - gamma) * y + delta * force + noise
         x = x + delta * y
         x = jnp.clip(x, -1.0, 1.0)
         return (x, y, key), None
@@ -415,7 +416,12 @@ class ClassicalSampler(Sampler):
         return subkey
 
     def sample(
-        self, rbm: RBM, n_samples: int, config: dict = None, return_hidden: bool = False
+        self,
+        rbm: RBM,
+        n_samples: int,
+        config: dict = None,
+        return_hidden: bool = False,
+        return_jax: bool = False,
     ):
         if config is None:
             config = {}
@@ -423,10 +429,14 @@ class ClassicalSampler(Sampler):
 
         if self.method == "lsb":
             v, h = self._lsb_sample(rbm, n_samples, config)
+            if not return_jax:
+                v, h = np.asarray(v), np.asarray(h)
             return (v, h) if return_hidden else v
 
         if self.method == "gibbs":
             v, h = self._gibbs_sample(rbm, n_samples, config)
+            if not return_jax:
+                v, h = np.asarray(v), np.asarray(h)
             return (v, h) if return_hidden else v
 
         if self.method == "metropolis":
@@ -437,6 +447,9 @@ class ClassicalSampler(Sampler):
             v = self._exchange_metropolis(rbm, n_samples, config)
         else:
             raise ValueError(f"Unknown method: {self.method}")
+
+        if not return_jax:
+            v = np.asarray(v)
 
         if return_hidden:
             return v, self._sample_hidden(rbm, v)
@@ -450,7 +463,8 @@ class ClassicalSampler(Sampler):
         """
         beta_x = config.get("beta_x", 1.0)
         steps = config.get("lsb_steps", 1000)
-        delta = config.get("lsb_delta", 1.0)
+        delta = config.get("lsb_delta", 0.1)
+        gamma = config.get("lsb_gamma", 0.1)
         sigma_inv2 = config.get("lsb_sigma", 1.0)
         sigma = float(1.0 / np.sqrt(sigma_inv2))
 
@@ -464,15 +478,14 @@ class ClassicalSampler(Sampler):
         f = jnp.concatenate([rbm.a / beta_x, rbm.b / beta_x])
 
         key = self._next_key()
-        s = _lsb_jit(key, M, f, sigma, delta, n_samples, steps, N_total)
+        s = _lsb_jit(key, M, f, sigma, delta, gamma, n_samples, steps, N_total)
 
-        s_np = np.asarray(s)
-        v = s_np[:, :Nv]
-        h = s_np[:, Nv:]
+        v = s[:, :Nv]
+        h = s[:, Nv:]
 
-        unique = len(set(map(tuple, v.tolist())))
+        unique = len(np.unique(np.asarray(v), axis=0))
         print(
-            f"  [LSB] steps={steps} delta={delta} sigma={sigma:.4f}"
+            f"  [LSB] steps={steps} delta={delta} gamma={gamma} sigma={sigma:.4f}"
             f" unique={unique}/{n_samples}"
         )
         return v, h
@@ -532,10 +545,8 @@ class ClassicalSampler(Sampler):
         # Sample hidden once from final V
         key = self._next_key()
         H = h_given_v(V, key)
-        h_np = np.asarray(H)
 
-        v_np = np.asarray(V)
-        unique = len(set(map(tuple, v_np.tolist())))
+        unique = len(np.unique(np.asarray(V), axis=0))
         print(f"  [Gibbs] k={n_sweeps}  unique={unique}/{n_samples}")
 
         quadratic, linear = self.rbm_to_ising(rbm)
@@ -550,7 +561,7 @@ class ClassicalSampler(Sampler):
             self._qubo_J_max = max(self._qubo_J_max, float(Js.max()))
             self._qubo_tracked = True
 
-        return v_np, h_np
+        return V, H
 
     def _sample_hidden(self, rbm: RBM, v_samples) -> np.ndarray:
         """Sample h ~ p(h|v) at β=1 for each visible sample."""
@@ -589,10 +600,9 @@ class ClassicalSampler(Sampler):
         total_steps = N * (n_warmup + n_sweeps)
         v, _ = _mh_sweep_jit(v, theta, W, a, k2, C, N, total_steps)
 
-        v_np = np.asarray(v)
-        unique = len(set(map(tuple, v_np.tolist())))
+        unique = len(np.unique(np.asarray(v), axis=0))
         print(f"  [MH]    unique={unique}/{n_samples}")
-        return v_np
+        return v
 
     # ── Simulated Annealing ───────────────────────────────────────────────
 
@@ -628,12 +638,9 @@ class ClassicalSampler(Sampler):
         cool_steps = N * n_sweeps
         v, _ = _sa_sweep_jit(v, theta, W, a, k3, C, N, cool_steps, T_initial, T_final)
 
-        v_np = np.asarray(v)
-        unique = len(set(map(tuple, v_np.tolist())))
-        print(
-            f"  [SA]    T: {T_initial:.2f}→{T_final:.2f}  unique={unique}/{n_samples}"
-        )
-        return v_np
+        unique = len(np.unique(np.asarray(v), axis=0))
+        print(f"  [SA]    T: {T_initial:.2f}→{T_final:.2f}  unique={unique}/{n_samples}")
+        return v
 
     # ── Spin-exchange Metropolis ──────────────────────────────────────────
 
@@ -674,10 +681,9 @@ class ClassicalSampler(Sampler):
         total_steps = N * (n_warmup + n_sweeps)
         v, _ = _exchange_mh_sweep_jit(v, theta, W, a, k2, C, N, total_steps)
 
-        v_np = np.asarray(v)
-        unique = len(set(map(tuple, v_np.tolist())))
+        unique = len(np.unique(np.asarray(v), axis=0))
         print(f"  [Exchange MH] unique={unique}/{n_samples}")
-        return v_np
+        return v
 
 
 # ---------------------------------------------------------------------------

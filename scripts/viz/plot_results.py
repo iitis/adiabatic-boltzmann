@@ -20,6 +20,7 @@ Usage (from project root):
 import argparse
 import json
 import math
+import re
 from collections import defaultdict
 from itertools import chain
 from pathlib import Path
@@ -535,6 +536,120 @@ def fig_error_vs_N(records: list[dict], out: Path, dpi: int):
     print(f"  → {path}")
 
 
+def fig_fpga_error_vs_N(records: list[dict], out: Path, dpi: int):
+    """Relative error vs N for the FPGA generalization sweep.
+
+    Two panels side-by-side:
+      Left  — TFIM 1D, lines grouped by (num_sweeps, nh_ratio)
+      Right — Heisenberg J1J2 1D, lines grouped by (num_sweeps, J2)
+
+    Only records whose path contains a sweepsNNN/ component are included so
+    that the older no-prefix Optuna runs (different nh scaling) don't mix in.
+    """
+    _SWEEP_COLORS = {"100": "#1f77b4", "2000": "#ff7f0e"}
+    _NH_STYLE     = {1: "-", 3: "--"}   # solid=nh=N, dashed=nh=3N
+    _J2_MARKERS   = {0.1: "o", 0.3: "s", 0.5: "^"}
+
+    tfim_data  = defaultdict(lambda: defaultdict(list))   # (sw, nh_ratio) -> N -> errs
+    heis_data  = defaultdict(lambda: defaultdict(list))   # (sw, J2)       -> N -> errs
+
+    for r in records:
+        c = r["config"]
+        if c.get("sampler") != "fpga":
+            continue
+        exact = r.get("exact_energy")
+        if exact is None or exact == 0 or not math.isfinite(exact):
+            continue
+
+        # extract sweeps count from path (only include sweepsNNN/ runs)
+        sw_match = next(
+            filter(None, (re.fullmatch(r"sweeps(\d+)", part) for part in r["path"].parts)),
+            None,
+        )
+        if sw_match is None:
+            continue
+        sweeps = sw_match.group(1)
+
+        hist = r["history"]["energy"]
+        tail = [e for e in hist[int(0.8 * len(hist)):] if e is not None]
+        if not tail:
+            continue
+        tail_mean = float(np.mean(tail))
+        rel = _rel_err(tail_mean, exact)
+        if rel is None or not math.isfinite(rel):
+            continue
+
+        N = int(c.get("size", -1))
+        model = c.get("model", "")
+
+        if model == "1d":
+            nh_ratio = round(int(c.get("n_hidden", N)) / N)
+            tfim_data[(sweeps, nh_ratio)][N].append(rel)
+
+        elif model == "heisenberg_j1j2_1d":
+            J2 = float(c.get("J2", -1))
+            heis_data[(sweeps, J2)][N].append(rel)
+
+    if not tfim_data and not heis_data:
+        print("  [fig_fpga_error_vs_N] no FPGA records found — skipping")
+        return
+
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+
+    # ── left panel: TFIM ──────────────────────────────────────────────────────
+    ax = axes[0]
+    for (sweeps, nh_ratio) in sorted(tfim_data, key=lambda k: (k[0], k[1])):
+        group  = tfim_data[(sweeps, nh_ratio)]
+        ns     = sorted(group)
+        median = [np.median(group[n]) for n in ns]
+        lo     = [np.percentile(group[n], 25) for n in ns]
+        hi     = [np.percentile(group[n], 75) for n in ns]
+        yerr   = [np.array(median) - np.array(lo), np.array(hi) - np.array(median)]
+        color  = _SWEEP_COLORS.get(sweeps, "#7f7f7f")
+        ls     = _NH_STYLE.get(nh_ratio, ":")
+        label  = f"sw={sweeps}  nh={nh_ratio}·N"
+        ax.errorbar(ns, median, yerr=yerr, fmt=f"o{ls}", color=color,
+                    label=label, capsize=3, markersize=4, linewidth=1.2)
+
+    ax.set_xscale("log", base=2)
+    ax.set_yscale("log")
+    ax.set_xlabel("system size  N")
+    ax.set_ylabel(r"relative error  $|\langle E\rangle - E_0| / |E_0|$")
+    ax.set_title("TFIM 1D --- FPGA SA\n(median $\\pm$ IQR, 20 seeds)")
+    ax.xaxis.set_major_formatter(ticker.ScalarFormatter())
+    ax.yaxis.set_major_formatter(ticker.LogFormatterSciNotation())
+    ax.legend(frameon=False, ncol=1, fontsize=7)
+
+    # ── right panel: Heisenberg J1J2 ─────────────────────────────────────────
+    ax = axes[1]
+    for (sweeps, J2) in sorted(heis_data, key=lambda k: (k[0], k[1])):
+        group  = heis_data[(sweeps, J2)]
+        ns     = sorted(group)
+        median = [np.median(group[n]) for n in ns]
+        lo     = [np.percentile(group[n], 25) for n in ns]
+        hi     = [np.percentile(group[n], 75) for n in ns]
+        yerr   = [np.array(median) - np.array(lo), np.array(hi) - np.array(median)]
+        color  = _SWEEP_COLORS.get(sweeps, "#7f7f7f")
+        marker = _J2_MARKERS.get(J2, "D")
+        ls     = "-" if sweeps == "100" else "--"
+        label  = f"sw={sweeps}  J2={J2}"
+        ax.errorbar(ns, median, yerr=yerr, fmt=f"{marker}{ls}", color=color,
+                    label=label, capsize=3, markersize=4, linewidth=1.2)
+
+    ax.set_xlabel("system size  N")
+    ax.set_ylabel(r"relative error  $|\langle E\rangle - E_0| / |E_0|$")
+    ax.set_title("Heisenberg J1J2 1D --- FPGA SA\n(median $\\pm$ IQR, 20 seeds)")
+    ax.xaxis.set_major_formatter(ticker.ScalarFormatter())
+    ax.legend(frameon=False, ncol=2, fontsize=7)
+
+    fig.tight_layout()
+    path = out / "fig_fpga_error_vs_N.pdf"
+    fig.savefig(path, bbox_inches="tight", dpi=dpi)
+    fig.savefig(path.with_suffix(".png"), bbox_inches="tight", dpi=dpi)
+    plt.close(fig)
+    print(f"  → {path}")
+
+
 # ── Per-solver convergence grids (j1j2_1d, includes Optuna runs) ─────────────
 
 def _solver_grid(records: list[dict], method: str,
@@ -912,6 +1027,7 @@ def main():
     fig_method_comparison(records, out_dir, args.dpi)
     fig_sample_quality(records, out_dir, args.dpi)
     fig_error_vs_N(records, out_dir, args.dpi)
+    fig_fpga_error_vs_N(records, out_dir, args.dpi)
     print("\nGenerating per-solver hyperparam grids ...")
     fig_solver_grids(records, out_dir, args.dpi)
     print(f"\nAll plots saved to  {out_dir}/")

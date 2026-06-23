@@ -48,6 +48,11 @@ _FPGA_LR_COLORS = [
 ]
 
 
+def _safe_delta(delta):
+    """Mask non-positive, non-finite, and diverged values so semilogy never overflows."""
+    return np.where(np.isfinite(delta) & (delta > 0) & (delta < 1e100), delta, np.nan)
+
+
 def _method_color(method_name: str):
     """Return a colour for a method name, with special handling for FPGA LR variants."""
     if method_name in METHOD_COLORS:
@@ -156,7 +161,6 @@ def load_results(results_dir=RESULTS_DIR, model_filter=None):
 
     Filters:
     - learning_rate == 0.1  (non-FPGA only; FPGA includes all LRs)
-    - n_hidden == n_visible  (n_visible = N for 1d models, N*N for 2d models)
     - cem == False
     """
     results = defaultdict(lambda: defaultdict(list))
@@ -177,15 +181,11 @@ def load_results(results_dir=RESULTS_DIR, model_filter=None):
             sampling_method = config["sampling_method"]
             seed = config["seed"]
             lr = config["learning_rate"]
-            n_hidden = config["n_hidden"]
-
             n_visible = N * N if "2d" in model else N
 
             is_fpga = sampler == "fpga"
 
             if not is_fpga and lr != 0.1:
-                continue
-            if n_hidden is not None and n_hidden != n_visible:
                 continue
             if config.get("cem", False):
                 continue
@@ -246,7 +246,7 @@ def plot_convergence_to_exact(results):
                 # Truncate to common length
                 all_energies = [e[:min_len] for e in all_energies]
                 mean_energy = np.mean(all_energies, axis=0)
-                iterations = np.arange(len(mean_energy))
+                iterations = np.arange(1, len(mean_energy) + 1)
 
                 mean_energy_per_spin = mean_energy / n_visible
                 delta = np.abs(mean_energy_per_spin - exact_E_per_spin)
@@ -258,8 +258,10 @@ def plot_convergence_to_exact(results):
                          linewidth=2, alpha=0.8)
 
                 # Plot 2: Error/Delta convergence
-                ax2.semilogy(iterations, delta, label=method_name, color=color,
-                             linewidth=2, alpha=0.8)
+                delta_plot = _safe_delta(delta)
+                if np.any(np.isfinite(delta_plot)):
+                    ax2.semilogy(iterations, delta_plot, label=method_name, color=color,
+                                 linewidth=2, alpha=0.8)
         
         # Add exact ground state energy line to plot 1
         ax1.axhline(y=exact_E_per_spin, color='black', linestyle='--', linewidth=2.5, 
@@ -267,7 +269,7 @@ def plot_convergence_to_exact(results):
         
         # Configure plot 1
         ax1.set_xscale("log")
-        ax1.set_xlabel("# iterations", fontsize=12)
+        ax1.set_xlabel("Iteration", fontsize=12)
         ax1.set_ylabel("Energy per spin", fontsize=12)
         ax1.set_title(f"Convergence (model={model}, N={N}, h={h}, RBM={rbm})", fontsize=14, fontweight='bold')
         ax1.grid(True, alpha=0.3, which='both')
@@ -275,8 +277,9 @@ def plot_convergence_to_exact(results):
         
         # Configure plot 2 (delta)
         ax2.set_xscale("log")
-        ax2.set_xlabel("# iterations", fontsize=12)
-        ax2.set_ylabel("Δ E per spin = |E - E_exact|", fontsize=12)
+        ax2.set_xlim(ax1.get_xlim())  # prevent empty log axis from defaulting to [0, 1]
+        ax2.set_xlabel("Iteration", fontsize=12)
+        ax2.set_ylabel(r"$\Delta E$ per spin $= |E - E_\mathrm{exact}|$", fontsize=12)
         ax2.set_title(f"Error to Ground State (model={model}, N={N}, h={h}, RBM={rbm})", fontsize=14, fontweight='bold')
         ax2.grid(True, alpha=0.3, which='both')
         ax2.legend(fontsize=10, loc='best')
@@ -347,7 +350,7 @@ def plot_rbm_comparison(results):
                 if all_energies and min_len > 0:
                     all_energies = [e[:min_len] for e in all_energies]
                     mean_energy = np.mean(all_energies, axis=0)
-                    iterations = np.arange(len(mean_energy))
+                    iterations = np.arange(1, len(mean_energy) + 1)
 
                     mean_energy_per_spin = mean_energy / n_visible
                     delta = np.abs(mean_energy_per_spin - exact_E_per_spin)
@@ -359,8 +362,10 @@ def plot_rbm_comparison(results):
                              color=color, linewidth=2, alpha=0.8)
 
                     # Right: Delta
-                    ax2.semilogy(iterations, delta, label=method_name,
-                                 color=color, linewidth=2, alpha=0.8)
+                    delta_plot = _safe_delta(delta)
+                    if np.any(np.isfinite(delta_plot)):
+                        ax2.semilogy(iterations, delta_plot, label=method_name,
+                                     color=color, linewidth=2, alpha=0.8)
             
             # Add exact energy line
             ax1.axhline(y=exact_E_per_spin, color='black', linestyle='--', 
@@ -368,15 +373,16 @@ def plot_rbm_comparison(results):
             
             # Configure subplots
             ax1.set_xscale("log")
-            ax1.set_xlabel("# iterations", fontsize=11)
+            ax1.set_xlabel("Iteration", fontsize=11)
             ax1.set_ylabel("Energy per spin", fontsize=11)
             ax1.set_title(f"model={model}, RBM={rbm} - Convergence", fontsize=12, fontweight='bold')
             ax1.grid(True, alpha=0.3, which='both')
             ax1.legend(fontsize=9, loc='best')
             
             ax2.set_xscale("log")
-            ax2.set_xlabel("# iterations", fontsize=11)
-            ax2.set_ylabel("Δ E per spin", fontsize=11)
+            ax2.set_xlim(ax1.get_xlim())
+            ax2.set_xlabel("Iteration", fontsize=11)
+            ax2.set_ylabel(r"$\Delta E$ per spin", fontsize=11)
             ax2.set_title(f"model={model}, RBM={rbm} - Error", fontsize=12, fontweight='bold')
             ax2.grid(True, alpha=0.3, which='both')
             ax2.legend(fontsize=9, loc='best')
@@ -456,7 +462,7 @@ def plot_summary_pages(results):
 
                 all_energies = [e[:min_len] for e in all_energies]
                 mean_energy = np.mean(all_energies, axis=0)
-                iterations = np.arange(len(mean_energy))
+                iterations = np.arange(1, len(mean_energy) + 1)
 
                 mean_energy_per_spin = mean_energy / n_visible
                 delta = np.abs(mean_energy_per_spin - exact_E_per_spin)
@@ -464,8 +470,10 @@ def plot_summary_pages(results):
                 color = _method_color(method_name)
                 ax1.plot(iterations, mean_energy_per_spin, label=method_name,
                          color=color, linewidth=1.5, alpha=0.8)
-                ax2.semilogy(iterations, delta, label=method_name,
-                             color=color, linewidth=1.5, alpha=0.8)
+                delta_plot = _safe_delta(delta)
+                if np.any(np.isfinite(delta_plot)):
+                    ax2.semilogy(iterations, delta_plot, label=method_name,
+                                 color=color, linewidth=1.5, alpha=0.8)
 
             ax1.axhline(y=exact_E_per_spin, color='black', linestyle='--',
                         linewidth=1.5, label=f'Exact: {exact_E_per_spin:.4f}', zorder=10)
@@ -474,14 +482,15 @@ def plot_summary_pages(results):
 
             for ax, ylabel, title_suffix in [
                 (ax1, "Energy per spin", "Convergence"),
-                (ax2, "Δ E per spin", "Error"),
+                (ax2, r"$\Delta E$ per spin", "Error"),
             ]:
                 ax.set_xscale("log")
-                ax.set_xlabel("# iterations", fontsize=9)
+                ax.set_xlabel("Iteration", fontsize=9)
                 ax.set_ylabel(ylabel, fontsize=9)
                 ax.set_title(title_suffix, fontsize=9)
                 ax.grid(True, alpha=0.3, which='both')
                 ax.legend(fontsize=7, loc='best')
+            ax2.set_xlim(ax1.get_xlim())
 
         # Hide unused subfigures in the last row
         for idx in range(n, nrows * ncombos_per_row):
@@ -524,7 +533,7 @@ def plot_beta_overview(results):
 
         fig = plt.figure(figsize=(7 * ncols, 4 * nrows))
         fig.suptitle(
-            f"β_x Dynamics — model={model}, RBM={rbm}",
+            f"$\\beta_x$ Dynamics --- model={model}, RBM={rbm}",
             fontsize=14, fontweight="bold",
         )
 
@@ -580,7 +589,7 @@ def plot_beta_overview(results):
             ax.axhline(1.0, color="grey", lw=1.2, ls="--", alpha=0.6)
             subfig.suptitle(f"N={N}, h={h}", fontsize=10, fontweight="bold")
             ax.set_xlabel("Iteration", fontsize=8)
-            ax.set_ylabel("β_x", fontsize=8)
+            ax.set_ylabel(r"$\beta_x$", fontsize=8)
             ax.legend(fontsize=6, loc="best")
             ax.grid(True, alpha=0.3)
 
