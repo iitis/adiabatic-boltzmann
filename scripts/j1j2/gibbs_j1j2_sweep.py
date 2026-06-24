@@ -189,7 +189,7 @@ def aggregate(results: dict):
 
 def load_sign_imp(N: int):
     """Load sign_imp vs J2/J1 for the given N from the cached ED sweep."""
-    path = _ROOT / "plots" / "j1j2_sign_problem.json"
+    path = _ROOT / "plots" / "j1j2" / "j1j2_sign_problem.json"
     if not path.exists():
         return None, None
     with open(path) as f:

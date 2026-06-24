@@ -235,7 +235,7 @@ def main():
 
     plt.tight_layout()
 
-    out = os.path.join(os.path.dirname(__file__), "..", "..", "plots")
+    out = os.path.join(os.path.dirname(__file__), "..", "..", "plots", "j1j2")
     os.makedirs(out, exist_ok=True)
 
     for ext in ("pdf", "png"):
