@@ -21,7 +21,7 @@ import sys
 import warnings
 from pathlib import Path
 
-_ROOT = Path(__file__).resolve().parent.parent
+_ROOT = Path(__file__).resolve().parent.parent.parent
 _SRC  = _ROOT / "src"
 _VIZ  = _ROOT / "scripts" / "viz"
 sys.path.insert(0, str(_SRC))

@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 import jax
 import jax.numpy as jnp
 
-_ROOT = Path(__file__).resolve().parent.parent
+_ROOT = Path(__file__).resolve().parent.parent.parent
 _SRC = _ROOT / "src"
 sys.path.insert(0, str(_SRC))
 sys.path.insert(0, str(_ROOT / "scripts" / "viz"))

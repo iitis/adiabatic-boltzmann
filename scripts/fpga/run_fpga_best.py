@@ -39,7 +39,7 @@ import os
 import sys
 from pathlib import Path
 
-_REPO = Path(__file__).resolve().parent.parent
+_REPO = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_REPO / "src"))
 sys.path.insert(0, str(_REPO / "scripts"))
 
@@ -94,7 +94,7 @@ def _result_exists(args_ns) -> bool:
 # num_steps=1 + geometric schedule = single temperature point = Gibbs sampling.
 _GIBBS_NUM_STEPS = 1
 
-DEFAULT_JULIA_PROJECT = str(Path(__file__).parent.parent / "scripts" / "julia_local")
+DEFAULT_JULIA_PROJECT = str(Path(__file__).parent / "julia_local")
 
 
 def _parse_args():
@@ -114,7 +114,7 @@ def _parse_args():
     p.add_argument("--h", type=float, default=DEFAULT_H)
     p.add_argument(
         "--hparam-dir",
-        default=str(Path(__file__).parent.parent / "results" / "hparam_search"),
+        default=str(Path(__file__).parent.parent.parent / "results" / "hparam_search"),
         help="Directory written by scripts/hparam_optuna.py (contains tfim_1d/ subdirectory).",
     )
     p.add_argument(
@@ -167,7 +167,7 @@ def _parse_args():
     )
     p.add_argument(
         "--output-dir",
-        default=str(Path(__file__).parent.parent / "results"),
+        default=str(Path(__file__).parent.parent.parent / "results"),
     )
     p.add_argument(
         "--dry-run",

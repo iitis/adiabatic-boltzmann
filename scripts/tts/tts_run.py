@@ -31,7 +31,7 @@ from pathlib import Path
 
 import pandas as pd
 
-_REPO = Path(__file__).resolve().parent.parent
+_REPO = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_REPO / "src"))
 sys.path.insert(0, str(_REPO / "scripts"))
 

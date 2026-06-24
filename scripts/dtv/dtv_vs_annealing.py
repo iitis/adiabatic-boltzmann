@@ -28,7 +28,7 @@ import jax
 import jax.numpy as jnp
 
 # ── src imports ──────────────────────────────────────────────────────────────
-_SRC = Path(__file__).resolve().parent.parent / "src"
+_SRC = Path(__file__).resolve().parent.parent.parent / "src"
 sys.path.insert(0, str(_SRC))
 
 from model import FullyConnectedRBM

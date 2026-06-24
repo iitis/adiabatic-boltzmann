@@ -13,7 +13,7 @@ import sys
 from itertools import product
 from pathlib import Path
 
-_SRC = Path(__file__).resolve().parent.parent / "src"
+_SRC = Path(__file__).resolve().parent.parent.parent / "src"
 sys.path.insert(0, str(_SRC))
 
 from ising import TransverseFieldIsing1D, TransverseFieldIsing2D
