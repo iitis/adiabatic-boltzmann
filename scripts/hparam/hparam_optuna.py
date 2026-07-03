@@ -12,14 +12,28 @@ Usage (from project root):
     python scripts/hparam_optuna.py --hamiltonian heisenberg_j1j2_1d \\
         --N 8 12 16 --J2 0.1 0.3 0.5 0.7 --n-trials 200 --iterations 150
     python scripts/hparam_optuna.py --hamiltonian j1j2_1d --N 8 --n-trials 50
-    python scripts/hparam_optuna.py --resume --study-name my_study \\
-        --hamiltonian heisenberg_j1j2_1d
+
+    # Resuming is automatic and keyed only by --study-name: rerunning the
+    # exact same command (crash, Ctrl-C, or just wanting more trials later)
+    # loads each combo's existing study and tops it up to --n-trials
+    # *completed* trials, skipping any combo that already has enough.
+    python scripts/hparam_optuna.py --study-name my_study \\
+        --hamiltonian heisenberg_j1j2_1d --n-trials 200
 
     # pegasus_fast: ~0.3 s per SR iteration → budget ≈ n_trials × iterations × 0.3 s
     # 10 trials × 60 iters = 180 s ≈ 3 min per (N, sweep_val) combo
     python scripts/hparam_optuna.py --hamiltonian heisenberg_j1j2_1d \\
         --N 8 12 --sampling-methods pegasus_fast --ansatz-types rbm \\
         --n-trials 10 --iterations 60
+
+    # velox_sa: VeloxQ SA backend (requires Julia + VeloxQstandard installed).
+    # One Julia server is started for the whole run and shared across every
+    # trial/combo — see --julia-project / --server-timeout below. For a
+    # ready-to-run TFIM N=32/64 preset, use hparam_veloxq_tfim.py instead.
+    python scripts/hparam_optuna.py --hamiltonian tfim_1d --N 32 64 \\
+        --sampling-methods velox_sa --ansatz-types rbm \\
+        --n-trials 60 --iterations 150 --n-samples-max 4000 \\
+        --julia-project scripts/fpga/julia_local
 
 Adding a new Hamiltonian:
     Add an entry to HAMILTONIAN_REGISTRY below — no other changes needed.
@@ -70,7 +84,7 @@ from ising import (
     TransverseFieldIsing1D,
 )
 from model import FullBoltzmannMachine, FullyConnectedRBM
-from sampler import ClassicalSampler, DimodSampler
+from sampler import ClassicalSampler, DimodSampler, VeloxQStandardSASampler
 
 
 # ---------------------------------------------------------------------------
@@ -182,6 +196,13 @@ _SZ_CONSERVING = {"exchange"}
 _BETA_FIXED_METHODS = {"metropolis", "gibbs"}
 # Methods that require DimodSampler (D-Wave QPU backend)
 _QPU_METHODS = {"pegasus", "zephyr", "pegasus_fast", "zephyr_fast", "pegasus_ra", "zephyr_ra"}
+# Methods that require the shared VeloxQStandardSASampler (Julia server)
+_VELOX_METHODS = {"velox_sa"}
+# On-disk sampler/method labels used for saved results — kept aligned with
+# run_fpga_best.py so velox_sa trials land in the same results/.../velox/
+# simulated_annealing/ layout as the production FPGA/VeloxQ sweeps.
+_VELOX_SAMPLER_LABEL = "velox"
+_VELOX_METHOD_LABEL = "simulated_annealing"
 
 
 # ---------------------------------------------------------------------------
@@ -228,9 +249,17 @@ def _build_args(
         n_layers=2,
         n_heads=4,
         patch_size=2,
-        # Sampler
-        sampler="dimod" if sampling_method in _QPU_METHODS else "custom",
-        sampling_method=sampling_method,
+        # Sampler — velox_sa trials are saved under the same sampler/method
+        # labels as the production FPGA/VeloxQ sweeps (see _VELOX_*_LABEL).
+        sampler=(
+            _VELOX_SAMPLER_LABEL if sampling_method in _VELOX_METHODS
+            else "dimod" if sampling_method in _QPU_METHODS
+            else "custom"
+        ),
+        sampling_method=(
+            _VELOX_METHOD_LABEL if sampling_method in _VELOX_METHODS
+            else sampling_method
+        ),
         n_samples=n_samples,
         # Training
         iterations=n_iterations,
@@ -279,6 +308,8 @@ def run_trial(
     seed: int,
     output_dir: Path,
     fast_anneal_time_ns: float = 7.0,
+    num_sweeps: int = 5,
+    velox_sampler: "VeloxQStandardSASampler | None" = None,
 ) -> dict:
     """
     Build the model, run training, save the full result JSON, return metrics.
@@ -298,7 +329,11 @@ def run_trial(
     else:
         wave_fn = FullyConnectedRBM(N, n_hidden, model_key)
 
-    if sampling_method in _QPU_METHODS:
+    if sampling_method in _VELOX_METHODS:
+        if velox_sampler is None:
+            raise ValueError("velox_sa trial requires a shared velox_sampler instance")
+        sampler = velox_sampler
+    elif sampling_method in _QPU_METHODS:
         sampler = DimodSampler(method=sampling_method)
     else:
         sampler = ClassicalSampler(
@@ -333,6 +368,25 @@ def run_trial(
         "stop_at_convergence": False,
         "save_checkpoints": False,
     }
+
+    if sampling_method in _VELOX_METHODS:
+        # num_steps=1 + geometric schedule = single temperature point = Gibbs
+        # sampling, matching the convention used in run_fpga_best.py. Stop
+        # temp is therefore unused but kept at the same 0.5x ratio for parity.
+        trainer_config.update({
+            "veloxq_num_steps": 1,
+            "veloxq_num_sweeps": num_sweeps,
+            "veloxq_start_temp": T_initial,
+            "veloxq_stop_temp": 0.5 * T_initial,
+            "veloxq_schedule": "geometric",
+            "veloxq_num_rep": max(velox_sampler.num_rep, n_samples),
+            "veloxq_scale_model": False,
+            "veloxq_compress": False,
+            "veloxq_subsample_seed": seed,
+            "beta_x_init": 1.0,
+            "beta_min": 1.0,
+            "beta_max": 1.0,
+        })
 
     args = _build_args(
         N=N,
@@ -396,7 +450,8 @@ def run_trial(
 # ---------------------------------------------------------------------------
 
 
-def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_sweep_val: float):
+def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_sweep_val: float,
+                    velox_sampler=None):
     """
     Return an Optuna objective function for a single (N, sweep_val) combination.
 
@@ -404,6 +459,11 @@ def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_
     best hyperparameters are optimised independently per physical regime.
     The sweep parameter is determined by the registry (J2 for J1J2 models,
     delta for XXZ, etc.).
+
+    velox_sampler, if given, is a single VeloxQStandardSASampler shared by
+    every trial across every combo in this run (see main()) — trials only
+    vary its SA schedule (start_temp, num_sweeps) via trainer_config, never
+    the sampler object itself, so the Julia server is started once.
     """
     entry = HAMILTONIAN_REGISTRY[cli.hamiltonian]
     phys_defaults = entry["defaults"].copy()
@@ -438,17 +498,33 @@ def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_
         if sampling_method == "pegasus_fast":
             n_samples = 1000
         else:
-            n_samples = trial.suggest_int("n_samples", 200, 2000, step=200)
+            n_samples = trial.suggest_int("n_samples", 200, cli.n_samples_max, step=200)
 
         # ── CG solver ─────────────────────────────────────────────────────
         cg_tol = trial.suggest_float("cg_tol", 1e-10, 1e-5, log=True)
         cg_maxiter = trial.suggest_int("cg_maxiter", 50, 300)
 
-        # Warmup sweeps (classical only — QPU methods have no warmup)
-        n_warmup = 0 if sampling_method in _QPU_METHODS else trial.suggest_int("n_warmup", 50, 500, step=50)
+        # Warmup sweeps (classical only — QPU/VeloxQ methods have no warmup)
+        n_warmup = (
+            0 if sampling_method in _QPU_METHODS | _VELOX_METHODS
+            else trial.suggest_int("n_warmup", 50, 500, step=50)
+        )
 
         # Sampler-specific hyperparameters
-        if sampling_method == "simulated_annealing":
+        num_sweeps = 5  # only meaningful for velox_sa; overridden below
+        if sampling_method == "velox_sa":
+            # start_temp is the only meaningful schedule knob: num_steps=1
+            # below makes this a single-temperature Gibbs sample (matches
+            # run_fpga_best.py), so stop_temp never gets used.
+            T_initial = trial.suggest_float("T_initial", 1.0, 20.0)
+            T_final = 0.5 * T_initial
+            num_sweeps = trial.suggest_int("num_sweeps", 50, 2000, log=True)
+            use_cem = False
+            cem_ema_alpha, cem_interval = 0.3, 5
+            fast_anneal_time_ns = 7.0
+            lsb_steps, lsb_sigma, lsb_delta = 1000, 1.0, 1.0
+
+        elif sampling_method == "simulated_annealing":
             T_initial = trial.suggest_float("T_initial", 1.0, 20.0)
             T_final = trial.suggest_float("T_final", 0.1, 2.0)
             use_cem = trial.suggest_categorical("use_cem", [True, False])
@@ -523,6 +599,8 @@ def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_
             fast_anneal_time_ns=fast_anneal_time_ns,
             seed=seed,
             output_dir=study_dir,
+            num_sweeps=num_sweeps,
+            velox_sampler=velox_sampler,
         )
 
         # Diverged trials (NaN/inf energy) are pruned so TPE still learns from them
@@ -589,15 +667,18 @@ def _build_cli() -> argparse.ArgumentParser:
     parser.add_argument(
         "--study-name",
         default=None,
-        help="Study name; auto-generated from datetime if omitted",
+        help="Study name; auto-generated from datetime if omitted. Reusing a name "
+             "always resumes that study (see --n-trials) — there is no separate "
+             "--resume flag to remember.",
     )
     parser.add_argument(
-        "--resume",
-        action="store_true",
-        help="Load an existing study by name instead of creating a new one",
-    )
-    parser.add_argument(
-        "--n-trials", type=int, default=200, help="Number of Optuna trials (default: 200)"
+        "--n-trials",
+        type=int,
+        default=200,
+        help="Target number of *completed* trials per combo (default: 200). "
+             "Rerunning with the same --study-name tops each combo up to this "
+             "many completed trials and skips combos that already have enough — "
+             "safe to rerun after a crash or Ctrl-C with no other changes.",
     )
     parser.add_argument(
         "--iterations",
@@ -630,7 +711,36 @@ def _build_cli() -> argparse.ArgumentParser:
         "--sampling-methods",
         nargs="+",
         default=["metropolis", "simulated_annealing", "exchange"],
-        help="Sampler methods to include (default: metropolis simulated_annealing exchange)",
+        help="Sampler methods to include (default: metropolis simulated_annealing exchange). "
+             "Include 'velox_sa' to search the VeloxQ SA backend (see --julia-project).",
+    )
+    parser.add_argument(
+        "--n-samples-max",
+        type=int,
+        default=2000,
+        help="Upper bound of the n_samples search range (default: 2000; step is always 200). "
+             "Raise this for larger systems where the default 200-sample gradient "
+             "estimate is suspected to be too noisy.",
+    )
+    parser.add_argument(
+        "--julia-project",
+        default=str(_REPO / "scripts" / "fpga" / "julia_local"),
+        help="VeloxQstandard Julia project used by velox_sa trials "
+             "(default: scripts/fpga/julia_local). Ignored unless "
+             "'velox_sa' is in --sampling-methods.",
+    )
+    parser.add_argument(
+        "--server-timeout",
+        type=float,
+        default=600.0,
+        help="Seconds to wait for the VeloxQ SA Julia server to become ready (default: 600).",
+    )
+    parser.add_argument(
+        "--velox-num-rep",
+        type=int,
+        default=None,
+        help="VeloxQ SA replica count, must be >= the largest n_samples tried. "
+             "Defaults to max(1024, --n-samples-max).",
     )
     parser.add_argument(
         "--seeds",
@@ -654,8 +764,11 @@ def _build_cli() -> argparse.ArgumentParser:
     return parser
 
 
-def main():
-    cli = _build_cli().parse_args()
+def main(argv=None):
+    """Entry point. `argv`, if given, is parsed instead of sys.argv[1:] —
+    used by preset wrapper scripts (e.g. hparam_veloxq_tfim.py) that supply
+    their own defaults but still let the caller override any flag."""
+    cli = _build_cli().parse_args(argv)
 
     # Default sweep values from registry when not overridden on CLI.
     # The sweep parameter differs per hamiltonian (J2 for J1J2 models, delta for XXZ, etc.).
@@ -696,6 +809,10 @@ def main():
         print(f"[dry-run] samplers   : {cli.sampling_methods}")
         print(f"[dry-run] seeds      : {cli.seeds}")
         print(f"[dry-run] trials     : {cli.n_trials}  ×  {cli.iterations} iters each (per combo)")
+        if "velox_sa" in cli.sampling_methods:
+            print(f"[dry-run] velox_sa   : julia-project={cli.julia_project}  "
+                  f"server-timeout={cli.server_timeout}s  "
+                  f"num-rep={cli.velox_num_rep or max(1024, cli.n_samples_max)}")
         return
 
     print(f"\nOptuna session    : {study_name}")
@@ -712,68 +829,113 @@ def main():
 
     all_summaries = []
 
-    for N in cli.N:
-        for sweep_val in cli.J2:
-            combo_key = f"N{N}_{_sweep_key}{sweep_val}"
-            combo_dir = base_dir / combo_key
-            combo_dir.mkdir(parents=True, exist_ok=True)
+    # One VeloxQ SA Julia server for the entire run, shared across every
+    # combo and every trial (constructing/tearing down per trial would mean
+    # a fresh server startup — up to --server-timeout seconds — per trial).
+    # Sized to the largest n_samples any trial could request.
+    velox_sampler = None
+    if "velox_sa" in cli.sampling_methods:
+        velox_num_rep = cli.velox_num_rep or max(1024, cli.n_samples_max)
+        print(f"Starting shared VeloxQ SA server (project={cli.julia_project}, "
+              f"num_rep={velox_num_rep})...")
+        velox_sampler = VeloxQStandardSASampler(
+            project_path=cli.julia_project,
+            num_rep=velox_num_rep,
+            num_steps=1,
+            num_sweeps=100,   # placeholder; every trial overrides via trainer_config
+            start_temp=1.0,   # placeholder; every trial overrides via trainer_config
+            stop_temp=0.5,
+            schedule_type="geometric",
+            server_ready_timeout_s=cli.server_timeout,
+        )
 
-            combo_study_name = f"{study_name}_{combo_key}"
-            J2 = sweep_val  # keep local alias so combo_summary["J2"] stays meaningful
-            db_path = combo_dir / "study.db"
-            storage = f"sqlite:///{db_path}"
+    try:
+        for N in cli.N:
+            for sweep_val in cli.J2:
+                combo_key = f"N{N}_{_sweep_key}{sweep_val}"
+                combo_dir = base_dir / combo_key
+                combo_dir.mkdir(parents=True, exist_ok=True)
 
-            if cli.optuna_sampler == "tpe":
-                opt_sampler = optuna.samplers.TPESampler(seed=0)
-            elif cli.optuna_sampler == "cmaes":
-                opt_sampler = optuna.samplers.CmaEsSampler(seed=0)
-            else:
-                opt_sampler = optuna.samplers.RandomSampler(seed=0)
+                combo_study_name = f"{study_name}_{combo_key}"
+                J2 = sweep_val  # keep local alias so combo_summary["J2"] stays meaningful
+                db_path = combo_dir / "study.db"
+                storage = f"sqlite:///{db_path}"
 
-            study = optuna.create_study(
-                study_name=combo_study_name,
-                storage=storage,
-                direction="minimize",
-                sampler=opt_sampler,
-                load_if_exists=cli.resume,
-            )
+                if cli.optuna_sampler == "tpe":
+                    opt_sampler = optuna.samplers.TPESampler(seed=0)
+                elif cli.optuna_sampler == "cmaes":
+                    opt_sampler = optuna.samplers.CmaEsSampler(seed=0)
+                else:
+                    opt_sampler = optuna.samplers.RandomSampler(seed=0)
 
-            print(f"[{combo_key}]  study : {combo_study_name}")
-            print(f"{'':>{len(combo_key)+2}}  db    : {db_path}")
-            print(f"{'':>{len(combo_key)+2}}  index : {combo_dir / 'index.jsonl'}")
+                # load_if_exists=True unconditionally: reusing a study name
+                # (e.g. rerunning the same command after a crash) always
+                # resumes rather than erroring out or silently starting over.
+                study = optuna.create_study(
+                    study_name=combo_study_name,
+                    storage=storage,
+                    direction="minimize",
+                    sampler=opt_sampler,
+                    load_if_exists=True,
+                )
 
-            objective_fn = make_objective(
-                cli, combo_dir, cli.iterations, fixed_N=N, fixed_sweep_val=sweep_val
-            )
+                print(f"[{combo_key}]  study : {combo_study_name}")
+                print(f"{'':>{len(combo_key)+2}}  db    : {db_path}")
+                print(f"{'':>{len(combo_key)+2}}  index : {combo_dir / 'index.jsonl'}")
 
-            study.optimize(
-                objective_fn,
-                n_trials=cli.n_trials,
-                n_jobs=1,           # sequential — single GPU
-                catch=(Exception,),
-                show_progress_bar=True,
-            )
+                # --n-trials is a target *completed* count for this combo, not
+                # an increment — rerunning tops up whatever's missing and
+                # skips combos that already have enough, so restarting after
+                # a crash is just rerunning the same command.
+                n_already = sum(
+                    1 for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE
+                )
+                remaining = max(0, cli.n_trials - n_already)
 
-            completed = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
-            failed    = [t for t in study.trials if t.state == optuna.trial.TrialState.FAIL]
-            pruned    = [t for t in study.trials if t.state == optuna.trial.TrialState.PRUNED]
+                if remaining == 0:
+                    print(f"{'':>{len(combo_key)+2}}  skip  : "
+                          f"{n_already}/{cli.n_trials} trials already completed")
+                else:
+                    if n_already:
+                        print(f"{'':>{len(combo_key)+2}}  resume: "
+                              f"{n_already}/{cli.n_trials} done, running {remaining} more")
 
-            combo_summary: dict = {
-                "combo": combo_key, "N": N, "J2": J2,
-                "n_completed": len(completed), "n_failed": len(failed), "n_pruned": len(pruned),
-                "best_objective": None, "best_params": None,
-            }
+                    objective_fn = make_objective(
+                        cli, combo_dir, cli.iterations, fixed_N=N, fixed_sweep_val=sweep_val,
+                        velox_sampler=velox_sampler,
+                    )
 
-            if completed:
-                best = study.best_trial
-                combo_summary["best_objective"] = best.value
-                combo_summary["best_params"] = dict(best.params)
-                print(f"{'':>{len(combo_key)+2}}  best  : trial #{best.number}  obj={best.value:.6f}")
-            else:
-                print(f"{'':>{len(combo_key)+2}}  best  : no completed trials")
+                    study.optimize(
+                        objective_fn,
+                        n_trials=remaining,
+                        n_jobs=1,           # sequential — single GPU / one Julia server
+                        catch=(Exception,),
+                        show_progress_bar=True,
+                    )
 
-            all_summaries.append(combo_summary)
-            print()
+                completed = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
+                failed    = [t for t in study.trials if t.state == optuna.trial.TrialState.FAIL]
+                pruned    = [t for t in study.trials if t.state == optuna.trial.TrialState.PRUNED]
+
+                combo_summary: dict = {
+                    "combo": combo_key, "N": N, "J2": J2,
+                    "n_completed": len(completed), "n_failed": len(failed), "n_pruned": len(pruned),
+                    "best_objective": None, "best_params": None,
+                }
+
+                if completed:
+                    best = study.best_trial
+                    combo_summary["best_objective"] = best.value
+                    combo_summary["best_params"] = dict(best.params)
+                    print(f"{'':>{len(combo_key)+2}}  best  : trial #{best.number}  obj={best.value:.6f}")
+                else:
+                    print(f"{'':>{len(combo_key)+2}}  best  : no completed trials")
+
+                all_summaries.append(combo_summary)
+                print()
+    finally:
+        if velox_sampler is not None:
+            velox_sampler.close()
 
     # ── Final summary ──────────────────────────────────────────────────────────
     print(f"{'='*60}")
