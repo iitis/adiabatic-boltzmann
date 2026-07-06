@@ -790,7 +790,7 @@ class FPGASampler(Sampler):
     ):
         repo_root = Path(__file__).resolve().parent.parent
         default_project = (repo_root.parent / "veloxQFPGA").resolve()
-        default_script = repo_root / "scripts" / "fpga_sa_server.jl"
+        default_script = repo_root / "scripts" / "fpga" / "fpga_sa_server.jl"
 
         self.transport = transport
         self.julia_cmd = julia_cmd
@@ -1116,8 +1116,8 @@ class VeloxQStandardSASampler(Sampler):
         server_ready_timeout_s: float = 120.0,
     ):
         repo_root = Path(__file__).resolve().parent.parent
-        default_project = (repo_root / "scripts" / "julia").resolve()
-        default_script = repo_root / "scripts" / "veloxq_sa_server.jl"
+        default_project = (repo_root / "scripts" / "fpga" / "julia").resolve()
+        default_script = repo_root / "scripts" / "fpga" / "veloxq_sa_server.jl"
 
         self.julia_cmd = julia_cmd
         self.project_path = (
@@ -1429,8 +1429,8 @@ class LangevinSampler(Sampler):
         server_ready_timeout_s: float = 180.0,
     ):
         repo_root = Path(__file__).resolve().parent.parent
-        default_project = (repo_root / "scripts" / "julia_chaotic").resolve()
-        default_script = repo_root / "scripts" / "langevin_server.jl"
+        default_project = (repo_root / "scripts" / "fpga" / "julia_chaotic").resolve()
+        default_script = repo_root / "scripts" / "fpga" / "langevin_server.jl"
 
         self.julia_cmd = julia_cmd
         self.project_path = (
