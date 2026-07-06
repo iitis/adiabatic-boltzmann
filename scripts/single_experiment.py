@@ -169,7 +169,7 @@ def main():
 
     trainer = Trainer(rbm, ising, sampler, trainer_config, args=ns_args)
     history = trainer.train()
-    save_results(ns_args, history, ising, rbm)
+    save_results(ns_args, history, ising, rbm, energy_j=trainer.total_energy_j)
 
     ckpt_path = save_rbm_checkpoint(rbm, ns_args, args.iterations)
     print(f"  Checkpoint → {ckpt_path}")

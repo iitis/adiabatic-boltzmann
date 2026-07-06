@@ -434,7 +434,7 @@ def run_trial(
         rel_error = float("inf")
         abs_error = float("inf")
 
-    save_results(args, history, ising, rbm=wave_fn)
+    save_results(args, history, ising, rbm=wave_fn, energy_j=trainer.total_energy_j)
 
     return {
         "final_energy": tail_mean,

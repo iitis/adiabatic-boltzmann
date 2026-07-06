@@ -23,8 +23,20 @@ import minorminer.busclique as bc
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../src"))
 sys.path.insert(0, os.path.dirname(__file__))
-from model import _dense_subgraph
+from model import DWaveTopologyRBM
 from plot_style import setup_style
+
+
+def _shore_bipartite_selection(hw_graph, index_key, n_visible, n_hidden, seed):
+    """Pick a chain-free (Nv, Nh) identity embedding using the same
+    shore-aware, dead-unit-free construction as DWaveTopologyRBM."""
+    bip_edges = DWaveTopologyRBM._bipartite_edges(hw_graph, index_key)
+    visible, hidden = DWaveTopologyRBM._grow_shore_balanced_subgraph(
+        hw_graph, bip_edges, index_key, n_visible, n_hidden, seed
+    )
+    nodes = sorted(visible) + sorted(hidden)
+    edges = [(u, v) for u, v in bip_edges if u in visible | hidden and v in visible | hidden]
+    return nodes, edges
 
 VIS_COLOR = "#2196F3"
 HID_COLOR = "#F44336"
@@ -118,15 +130,15 @@ def main():
     plot_abstract_rbm(Nv, Nh, out("rbm_abstract"))
 
     # 2. DWaveTopologyRBM on Pegasus (identity embedding)
-    G_peg = dnx.pegasus_graph(16)
-    peg_nodes = sorted(_dense_subgraph(G_peg, Nv + Nh, 42))
+    G_peg = dnx.pegasus_graph(16, data=True)
+    peg_nodes, peg_edges = _shore_bipartite_selection(G_peg, "pegasus_index", Nv, Nh, 42)
     emb_peg_id = {i: [phys] for i, phys in enumerate(peg_nodes)}
     plot_hardware(G_peg, emb_peg_id, dnx.draw_pegasus_embedding, dnx.pegasus_layout, Nv,
                   out("embedding_topology_pegasus"))
 
     # 3. DWaveTopologyRBM on Zephyr (identity embedding)
-    G_zep = dnx.zephyr_graph(4)
-    zep_nodes = sorted(_dense_subgraph(G_zep, Nv + Nh, 42))
+    G_zep = dnx.zephyr_graph(6, data=True)
+    zep_nodes, zep_edges = _shore_bipartite_selection(G_zep, "zephyr_index", Nv, Nh, 42)
     emb_zep_id = {i: [phys] for i, phys in enumerate(zep_nodes)}
     plot_hardware(G_zep, emb_zep_id, dnx.draw_zephyr_embedding, dnx.zephyr_layout, Nv,
                   out("embedding_topology_zephyr"), figsize=(8, 8))
@@ -146,24 +158,21 @@ def main():
                   out("embedding_full_zephyr"), figsize=(8, 8))
 
     # 6. Omitted-connections summary
-    from model import DWaveTopologyRBM
-
-    def count_vis_hid_edges(hw_graph, nodes):
-        relabel = {phys: idx for idx, phys in enumerate(nodes)}
-        subgraph = nx.relabel_nodes(hw_graph.subgraph(nodes), relabel)
-        return int(DWaveTopologyRBM._mask_from_graph(subgraph, Nv, Nh).sum())
+    def count_vis_hid_edges(nodes, edges):
+        visible, hidden = sorted(nodes[:Nv]), sorted(nodes[Nv:])
+        return int(DWaveTopologyRBM._mask_from_qubit_sets(visible, hidden, edges).sum())
 
     full = Nv * Nh
-    peg_kept = count_vis_hid_edges(G_peg, peg_nodes)
-    zep_kept = count_vis_hid_edges(G_zep, zep_nodes)
+    peg_kept = count_vis_hid_edges(peg_nodes, peg_edges)
+    zep_kept = count_vis_hid_edges(zep_nodes, zep_edges)
     summary_path = os.path.join(out_dir, "topology_omissions.txt")
     with open(summary_path, "w") as f:
         f.write(f"DWaveTopologyRBM omitted connections  (N={args.N}, Nv={Nv}, Nh={Nh})\n")
         f.write(f"Full K_{{Nv,Nh}} connections: {full}\n\n")
-        f.write(f"Pegasus (pegasus_graph(16), seed=42):\n")
+        f.write(f"Pegasus (pegasus_graph(16), shore-bipartite, seed=42):\n")
         f.write(f"  kept:    {peg_kept} / {full}  ({100*peg_kept/full:.1f}%)\n")
         f.write(f"  omitted: {full - peg_kept} / {full}  ({100*(full-peg_kept)/full:.1f}%)\n\n")
-        f.write(f"Zephyr (zephyr_graph(4), seed=42):\n")
+        f.write(f"Zephyr (zephyr_graph(6), shore-bipartite, seed=42):\n")
         f.write(f"  kept:    {zep_kept} / {full}  ({100*zep_kept/full:.1f}%)\n")
         f.write(f"  omitted: {full - zep_kept} / {full}  ({100*(full-zep_kept)/full:.1f}%)\n")
     print(f"saved {summary_path}")

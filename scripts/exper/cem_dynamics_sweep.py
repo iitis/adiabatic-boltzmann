@@ -96,10 +96,11 @@ def run_one(h, seed, cem):
         use_cem=cem, cem_interval=5, lsb_sigma=SIGMA,
     )
     t0 = time.perf_counter()
-    history = Trainer(wave_fn, ising, sampler, config, args=args).train()
+    trainer = Trainer(wave_fn, ising, sampler, config, args=args)
+    history = trainer.train()
     elapsed = time.perf_counter() - t0
     print(f"  {label}  E={history['energy'][-1]:.4f}  t={elapsed:.1f}s")
-    save_results(args, history, ising, rbm=wave_fn)
+    save_results(args, history, ising, rbm=wave_fn, energy_j=trainer.total_energy_j)
 
 
 if __name__ == "__main__":

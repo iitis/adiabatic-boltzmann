@@ -21,6 +21,7 @@ import jax.numpy as jnp
 from jax.flatten_util import ravel_pytree
 
 from encoder import conjugate_gradient  # reuse existing CG solver
+from energy import GPUEnergyMeter, gpu_available
 
 
 # ---------------------------------------------------------------------------
@@ -207,6 +208,10 @@ class TrainerGeneric:
         self._kl_all_v = None
         self._kl_config_idx = None
 
+        # GPU energy metering for the watt-hours-to-solution (WHS) metric.
+        self.total_energy_j: float | None = None
+        self._gpu_energy_available = gpu_available()
+
     # ── KL cache ──────────────────────────────────────────────────────────
 
     def _build_kl_cache(self):
@@ -269,6 +274,10 @@ class TrainerGeneric:
             )
 
         consecutive_converged = 0
+
+        _energy_meter = GPUEnergyMeter() if self._gpu_energy_available else None
+        if _energy_meter is not None:
+            _energy_meter.__enter__()
 
         for iteration in range(start_iteration, self.n_iterations):
             # ── 1. Sample ─────────────────────────────────────────────────
@@ -357,5 +366,13 @@ class TrainerGeneric:
                         f"Final E = {E_mean:.6f}"
                     )
                     break
+
+        if _energy_meter is not None:
+            _energy_meter.__exit__(None, None, None)
+            try:
+                self.total_energy_j = _energy_meter.energy_j
+            except RuntimeError as exc:
+                print(f"  [TrainerGeneric] GPU energy metering unavailable: {exc}")
+                self.total_energy_j = None
 
         return self.history

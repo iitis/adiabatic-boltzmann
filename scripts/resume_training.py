@@ -132,7 +132,7 @@ def main():
     history = trainer.train()
     
     # Save results
-    save_results(args_namespace, history, ising, rbm)
+    save_results(args_namespace, history, ising, rbm, energy_j=trainer.total_energy_j)
     
     print(f"\nTraining resumed from iteration {start_iteration} to {start_iteration + args.iterations}")
     print(f"Final energy: {history['energy'][-1]:.6f}")

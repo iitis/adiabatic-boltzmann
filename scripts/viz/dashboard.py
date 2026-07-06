@@ -190,6 +190,7 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
             "mean_ess",
             "final_kl_exact",
             "sampling_time_s",
+            "gpu_energy_wh",
             "sparsity",
             "mean_mh_acceptance_rate",
         ):
@@ -1090,6 +1091,9 @@ def tab_timing(df: pd.DataFrame, histories: dict) -> None:
     import math as _math
 
     tte_valid = df[["error_per_spin", "sampling_time_s"]].dropna()
+    # Diverged runs can record a literal -inf final_energy, which survives
+    # dropna() (it isn't NaN) and breaks the epsilon slider's max_value below.
+    tte_valid = tte_valid[tte_valid["error_per_spin"].apply(_math.isfinite)]
 
     if tte_valid.empty:
         st.info("No runs with both error and timing data available.")
@@ -1266,6 +1270,113 @@ def tab_timing(df: pd.DataFrame, histories: dict) -> None:
             title=_titled(f"TTE scaling with system size  (ε = {epsilon:.5f})")
         )
         st.plotly_chart(fig6, use_container_width=True)
+
+    # ── Section 6: Watt-Hours to Solution (WHS) ─────────────────────────────
+    st.markdown("---")
+    st.subheader("Watt-Hours to Solution (WHS)")
+    st.caption(
+        "Estimated GPU energy consumption to find a solution within **ε** of the "
+        "exact ground state energy with 99% probability — the energy-consumption "
+        "analogue of Time to Epsilon above. "
+        "**WHS = Wh_f × ⌈log(0.01) / log(1 − p(ε))⌉**, where Wh_f is each group's "
+        "mean GPU energy (watt-hours) per run, measured by polling `nvidia-smi` "
+        "power draw during training. Runs without GPU energy data (CPU-only "
+        "machines, or nvidia-smi unavailable) are excluded."
+    )
+
+    if "gpu_energy_wh" not in df.columns:
+        st.info("No GPU energy data recorded for any run in this result set.")
+        return
+
+    whs_valid = df[["error_per_spin", "gpu_energy_wh"]].dropna()
+    whs_valid = whs_valid[whs_valid["error_per_spin"].apply(_math.isfinite)]
+    if whs_valid.empty:
+        st.info("No runs with both error and GPU energy data available.")
+        return
+
+    whs_c1, whs_c2 = st.columns(2)
+    with whs_c1:
+        whs_grp_col, whs_grp_label = _group_selectbox(
+            df, "whs_grp", "Group by", prefer="sampling_method"
+        )
+    log_whs = whs_c2.checkbox("Log Y", value=False, key="whs_logy")
+
+    whs_rows: list[dict] = []
+    whs_skipped: list[str] = []
+
+    for grp_val, grp_df in df.groupby(whs_grp_col):
+        valid = grp_df[["error_per_spin", "gpu_energy_wh"]].dropna()
+        if valid.empty:
+            continue
+        p_eps = float((valid["error_per_spin"] <= epsilon).mean())
+        wh_f = float(valid["gpu_energy_wh"].mean())
+        if p_eps == 0.0:
+            whs_skipped.append(str(grp_val))
+            continue
+        n_runs = (
+            1
+            if p_eps >= 1.0
+            else _math.ceil(_math.log(1 - p_star) / _math.log(1 - p_eps))
+        )
+        whs_rows.append(
+            {
+                whs_grp_col: str(grp_val),
+                "WHS (Wh)": float(wh_f * n_runs),
+                "p(ε)": p_eps,
+                "Runs needed": n_runs,
+                "Mean Wh_f": wh_f,
+                "n (runs)": len(valid),
+            }
+        )
+
+    if whs_skipped:
+        st.caption(
+            f"Groups with p(ε) = 0 at ε = {epsilon:.5f} (excluded): "
+            + ", ".join(whs_skipped)
+        )
+
+    if not whs_rows:
+        st.info(
+            f"No group achieved error ≤ {epsilon:.5f}. Increase ε to see WHS values."
+        )
+        return
+
+    whs_df = pd.DataFrame(whs_rows)
+
+    fig7 = px.bar(
+        whs_df,
+        x=whs_grp_col,
+        y="WHS (Wh)",
+        color=whs_grp_col,
+        text=whs_df["p(ε)"].map(lambda x: f"p={x:.2f}"),
+        labels={whs_grp_col: whs_grp_label, "WHS (Wh)": "WHS (Wh)"},
+        hover_data={
+            "p(ε)": True,
+            "Runs needed": True,
+            "Mean Wh_f": True,
+            "n (runs)": True,
+        },
+        height=420,
+    )
+    fig7.update_traces(textposition="outside")
+    if log_whs:
+        fig7.update_yaxes(type="log")
+    fig7.update_layout(
+        showlegend=False,
+        title=_titled(f"Watt-Hours to Solution  (ε = {epsilon:.5f},  p* = 99%)"),
+    )
+    st.plotly_chart(fig7, use_container_width=True)
+
+    st.dataframe(
+        whs_df.rename(columns={whs_grp_col: whs_grp_label}),
+        column_config={
+            "WHS (Wh)": st.column_config.NumberColumn("WHS (Wh)", format="%.4f"),
+            "p(ε)": st.column_config.NumberColumn("p(ε)", format="%.3f"),
+            "Mean Wh_f": st.column_config.NumberColumn("Mean Wh_f", format="%.4f"),
+        },
+        use_container_width=True,
+        hide_index=True,
+    )
 
 
 # ── Main ───────────────────────────────────────────────────────────────────────

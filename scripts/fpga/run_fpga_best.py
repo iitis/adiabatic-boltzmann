@@ -410,7 +410,7 @@ def _run_seed(
 
     trainer = Trainer(rbm, ising, sampler_obj, trainer_config, args=args_ns)
     history = trainer.train()
-    save_results(args_ns, history, ising, rbm=rbm)
+    save_results(args_ns, history, ising, rbm=rbm, energy_j=trainer.total_energy_j)
 
     energies = history["energy"]
     tail_mean = float(

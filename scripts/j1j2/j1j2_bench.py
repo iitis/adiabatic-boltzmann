@@ -173,7 +173,8 @@ def _run_rbm(N, J2, seed, lr, rbm_type, iterations, dry_run=False) -> dict | Non
     config = dict(learning_rate=lr, n_iterations=iterations, n_samples=N_SAMPLES,
                   regularization=REGULARIZATION, seed=seed, use_cem=True, cem_interval=5)
     t0 = time.perf_counter()
-    history = Trainer(wave_fn, ising, sampler, config, args=args).train()
+    trainer = Trainer(wave_fn, ising, sampler, config, args=args)
+    history = trainer.train()
     elapsed = time.perf_counter() - t0
 
     final_E = history["energy"][-1]
@@ -182,7 +183,7 @@ def _run_rbm(N, J2, seed, lr, rbm_type, iterations, dry_run=False) -> dict | Non
         print(f"  {label}  err={abs(final_E - exact) / abs(exact):.4f}  t={elapsed:.1f}s")
     except NotImplementedError:
         print(f"  {label}  E={final_E:.6f}  t={elapsed:.1f}s")
-    save_results(args, history, ising, rbm=wave_fn)
+    save_results(args, history, ising, rbm=wave_fn, energy_j=trainer.total_energy_j)
     return {"final_energy": final_E}
 
 
@@ -214,7 +215,8 @@ def _run_vit(N, J2, seed, lr, patch_size, iterations, dry_run=False) -> dict | N
     config = dict(learning_rate=lr, n_iterations=iterations, n_samples=N_SAMPLES,
                   regularization=REGULARIZATION, seed=seed)
     t0 = time.perf_counter()
-    history = TrainerGeneric(vit, ising, sampler, config, args=args).train()
+    trainer = TrainerGeneric(vit, ising, sampler, config, args=args)
+    history = trainer.train()
     elapsed = time.perf_counter() - t0
 
     final_E = history["energy"][-1]
@@ -223,7 +225,7 @@ def _run_vit(N, J2, seed, lr, patch_size, iterations, dry_run=False) -> dict | N
         print(f"  {label}  err={abs(final_E - exact) / abs(exact):.4f}  t={elapsed:.1f}s")
     except NotImplementedError:
         print(f"  {label}  E={final_E:.6f}  t={elapsed:.1f}s")
-    save_results(args, history, ising, rbm=None)
+    save_results(args, history, ising, rbm=None, energy_j=trainer.total_energy_j)
     return {"final_energy": final_E}
 
 
@@ -256,7 +258,8 @@ def _run_dwave(N, J2, seed, lr, method, rbm_type, iterations, dry_run=False) -> 
                    regularization=DWAVE_REGULARIZATION, seed=seed, use_cem=True, cem_interval=5)
 
     t0 = time.perf_counter()
-    history = Trainer(wave_fn, ising, sampler, config, args=args).train()
+    trainer = Trainer(wave_fn, ising, sampler, config, args=args)
+    history = trainer.train()
     elapsed = time.perf_counter() - t0
 
     final_E = history["energy"][-1]
@@ -265,7 +268,7 @@ def _run_dwave(N, J2, seed, lr, method, rbm_type, iterations, dry_run=False) -> 
         print(f"  [D-Wave] {label}  err={abs(final_E - exact) / abs(exact):.4f}  t={elapsed:.1f}s")
     except NotImplementedError:
         print(f"  [D-Wave] {label}  E={final_E:.6f}  t={elapsed:.1f}s")
-    save_results(args, history, ising, rbm=wave_fn)
+    save_results(args, history, ising, rbm=wave_fn, energy_j=trainer.total_energy_j)
     return {"final_energy": final_E}
 
 

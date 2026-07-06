@@ -224,7 +224,7 @@ def _ansatz_str(args) -> str:
     return f"_rbm{rbm}_nh{n_hidden}"
 
 
-def save_results(args, history, ising, rbm=None):
+def save_results(args, history, ising, rbm=None, energy_j=None):
     # Directory structure: results/{model}/{size}/{sampler}/{method}/
     output_dir = Path(
         f"{args.output_dir}/{_model_subdir(args.model)}/{args.size}/{args.sampler}/{args.sampling_method}"
@@ -249,6 +249,7 @@ def save_results(args, history, ising, rbm=None):
         "sampling_time_s": float(sum(history.get("sampling_time_s", []))),
         "cem_time_s": float(sum(history.get("cem_time_s", []))),
         "total_sampling_time_s": float(sum(history.get("total_sampling_time_s", []))),
+        "gpu_energy_wh": (energy_j / 3600.0) if energy_j is not None else None,
         "jax_devices": {
             "backend": _jax_backend,
             "devices": _jax_device_strs,

@@ -1803,6 +1803,13 @@ class DimodSampler(Sampler):
             dwave_sampler = DWaveSampler(solver=solver_name)
             if rbm is not None and isinstance(rbm, DWaveTopologyRBM):
                 assert rbm._qubit_mapping is not None
+                if not rbm._live:
+                    raise RuntimeError(
+                        "This DWaveTopologyRBM was built with live=False (an idealized, "
+                        "defect-free fabric graph, not this specific chip's real qubit "
+                        "yield). Its qubit mapping is not valid for real QPU sampling — "
+                        "reconstruct the RBM with live=True to submit to hardware."
+                    )
                 identity_embedding = {
                     logical: [phys] for phys, logical in rbm._qubit_mapping.items()
                 }
@@ -1865,6 +1872,12 @@ class DimodSampler(Sampler):
                     raise RuntimeError(
                         f"RBM {k} has no qubit mapping. "
                         "DWaveTopologyRBM must be constructed with a live solver."
+                    )
+                if not rbm._live:
+                    raise RuntimeError(
+                        f"RBM {k} was built with live=False (idealized fabric graph, "
+                        "not this chip's real qubit yield) and is not valid for real "
+                        "QPU sampling. Reconstruct it with live=True to submit to hardware."
                     )
                 phys_set = set(rbm._qubit_mapping.keys())
                 overlap = seen_phys & phys_set

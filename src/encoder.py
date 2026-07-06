@@ -25,6 +25,7 @@ from helpers import save_rbm_checkpoint, save_dwave_samples
 from model import FullBoltzmannMachine
 from sampler import ClassicalSampler
 from scipy.optimize import minimize_scalar
+from energy import GPUEnergyMeter, gpu_available
 
 
 # ---------------------------------------------------------------------------
@@ -417,6 +418,10 @@ class Trainer:
         self._is_ra = getattr(sampler, "method", "").endswith("_ra")
         self._ra_initial_state: dict | None = None
 
+        # GPU energy metering for the watt-hours-to-solution (WHS) metric.
+        self.total_energy_j: float | None = None
+        self._gpu_energy_available = gpu_available()
+
         self.history = {
             "energy": [],
             "error": [],
@@ -552,6 +557,10 @@ class Trainer:
 
         prev_energy = None
         consecutive_converged = 0
+
+        _energy_meter = GPUEnergyMeter() if self._gpu_energy_available else None
+        if _energy_meter is not None:
+            _energy_meter.__enter__()
 
         for iteration in range(start_iteration, self.n_iterations):
             # ── 1. Sample ──────────────────────────────────────────────────
@@ -781,5 +790,13 @@ class Trainer:
                 f"  h: min h={s._qubo_h_min:.4g}  max h={s._qubo_h_max:.4g}"
                 f"  J: min J={s._qubo_J_min:.4g}  max J={s._qubo_J_max:.4g}"
             )
+
+        if _energy_meter is not None:
+            _energy_meter.__exit__(None, None, None)
+            try:
+                self.total_energy_j = _energy_meter.energy_j
+            except RuntimeError as exc:
+                print(f"  [Trainer] GPU energy metering unavailable: {exc}")
+                self.total_energy_j = None
 
         return self.history
