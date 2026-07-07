@@ -22,8 +22,8 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 from helpers import save_rbm_checkpoint, save_dwave_samples
-from model import FullBoltzmannMachine
-from sampler import ClassicalSampler
+from model import FullBoltzmannMachine, FullyConnectedRBM
+from sampler import ClassicalSampler, DimodSampler
 from scipy.optimize import minimize_scalar
 from energy import GPUEnergyMeter, gpu_available
 
@@ -379,6 +379,35 @@ class Trainer:
         self.momentum = float(config.get("momentum", 0.0))
         self._velocity = None
 
+        self.n_parallel = int(config.get("n_parallel", 1))
+        if self.n_parallel < 1:
+            raise ValueError(f"n_parallel must be >= 1, got {self.n_parallel}.")
+        if self.n_parallel > 1:
+            _qpu_method = getattr(sampler, "method", None)
+            if not (
+                isinstance(sampler, DimodSampler)
+                and _qpu_method in ("pegasus", "zephyr")
+                and isinstance(rbm, FullyConnectedRBM)
+            ):
+                raise ValueError(
+                    f"n_parallel={self.n_parallel} requires --sampler dimod with "
+                    "--sampling-method pegasus/zephyr and --rbm full. Parallel "
+                    "embedding replicates the dense K_(n_visible,n_hidden) biclique "
+                    "across disjoint chip regions: DWaveTopologyRBM's mask is "
+                    "pinned to one specific chip subgraph chosen at construction "
+                    "(another chip region generally isn't isomorphic to it), and "
+                    "fullbm's visible-visible couplings aren't covered by a "
+                    "biclique embedding — neither can be safely replicated this "
+                    f"way. Got sampler={type(sampler).__name__}, "
+                    f"method={_qpu_method!r}, rbm={type(rbm).__name__}."
+                )
+            if self.n_samples % self.n_parallel != 0:
+                raise ValueError(
+                    f"n_samples={self.n_samples} must be divisible by "
+                    f"n_parallel={self.n_parallel} — otherwise samples would "
+                    "need to be silently padded or truncated."
+                )
+
         _method = (
             getattr(sampler, "method", "")
             if isinstance(sampler, ClassicalSampler)
@@ -570,12 +599,29 @@ class Trainer:
                 _sample_config["ra_initial_state"] = self._ra_initial_state
             try:
                 _t0 = time.perf_counter()
-                _result = self.sampler.sample(
-                    self.rbm,
-                    self.n_samples,
-                    config=_sample_config,
-                    return_hidden=_need_hidden,
-                )
+                if self.n_parallel > 1:
+                    _per_copy = self.n_samples // self.n_parallel
+                    _parallel_results = self.sampler.sample_parallel(
+                        [self.rbm] * self.n_parallel,
+                        _per_copy,
+                        config=_sample_config,
+                        n_parallel=self.n_parallel,
+                        return_hidden=_need_hidden,
+                    )
+                    if _need_hidden:
+                        _result = (
+                            np.concatenate([r[0] for r in _parallel_results], axis=0),
+                            np.concatenate([r[1] for r in _parallel_results], axis=0),
+                        )
+                    else:
+                        _result = np.concatenate(_parallel_results, axis=0)
+                else:
+                    _result = self.sampler.sample(
+                        self.rbm,
+                        self.n_samples,
+                        config=_sample_config,
+                        return_hidden=_need_hidden,
+                    )
                 elapsed = time.perf_counter() - _t0
                 _has_hw_time = hasattr(self.sampler, "last_sampling_time_s")
                 if _has_hw_time:

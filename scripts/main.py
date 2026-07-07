@@ -192,6 +192,15 @@ def parse_arguments():
     parser.add_argument(
         "--n-samples", type=int, default=1000, help="Samples per iteration"
     )
+    parser.add_argument(
+        "--n-parallel",
+        type=int,
+        default=1,
+        help="Number of disjoint chip embeddings to sample in a single QPU call "
+             "(parallel embedding). Only valid with --sampler dimod, "
+             "--sampling-method pegasus/zephyr, and --rbm full; --n-samples must "
+             "be divisible by this value.",
+    )
 
     # Training
     parser.add_argument(
@@ -267,6 +276,27 @@ def main():
             "--ansatz dbm is not compatible with --sampler velox. "
             "Use --sampler custom (Metropolis) or --sampler dimod (SA / D-Wave QPU)."
         )
+    if args.n_parallel > 1:
+        if not (
+            args.ansatz == "rbm"
+            and args.rbm == "full"
+            and args.sampler == "dimod"
+            and args.sampling_method in ("pegasus", "zephyr")
+        ):
+            raise ValueError(
+                f"--n-parallel {args.n_parallel} requires --ansatz rbm --rbm full "
+                "--sampler dimod --sampling-method pegasus/zephyr (parallel "
+                "embedding replicates the dense biclique across disjoint chip "
+                "regions; DWaveTopologyRBM/fullbm/RA/fast-anneal are not "
+                "supported). Got --ansatz "
+                f"{args.ansatz} --rbm {getattr(args, 'rbm', None)} --sampler "
+                f"{args.sampler} --sampling-method {args.sampling_method}."
+            )
+        if args.n_samples % args.n_parallel != 0:
+            raise ValueError(
+                f"--n-samples {args.n_samples} must be divisible by "
+                f"--n-parallel {args.n_parallel}."
+            )
 
     print(f"Configuration:")
     print(f"  Model: {_model_desc}")
@@ -434,6 +464,7 @@ def main():
             "ra_s_target": args.ra_s_target,
             "ra_pause_time": args.ra_pause_time,
             "ra_anneal_time": args.ra_anneal_time,
+            "n_parallel": args.n_parallel,
         }
         trainer = Trainer(wave_fn, ising, sampler, trainer_config, args=args)
         print(f"\nStarting RBM training...")

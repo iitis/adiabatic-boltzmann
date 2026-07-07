@@ -1927,11 +1927,19 @@ class DimodSampler(Sampler):
         self._embedding_cache[cache_key] = composite
         return composite
 
-    def dwave_parallel(self, bqms, n_samples, config, rbms, n_parallel):
+    def dwave_parallel(
+        self, bqms, n_samples, config, rbms, n_parallel, return_hidden=False
+    ):
         """Single QPU call sampling n_parallel independent BQMs via sample_multiple.
 
-        QPU access time is divided by n_parallel for per-run budget attribution.
-        Returns list[np.ndarray] of shape (n_samples, n_visible), one per run.
+        All n_parallel BQMs are merged into one combined problem and solved with
+        a single physical QPU submission, so info["timing"]["qpu_access_time"]
+        is already the total real cost of this call — it is logged in full, not
+        divided, so the shared time.json budget counter reflects actual QPU usage
+        regardless of how many logical problems were packed into the anneal.
+
+        Returns list[np.ndarray] of shape (n_samples, n_visible), one per run
+        (or list of (v, h) tuples if return_hidden).
         """
         solver_name = config.get("solver")
         annealing_time = config.get("annealing_time", 20)
@@ -1957,9 +1965,8 @@ class DimodSampler(Sampler):
                     bqms, chain_strengths=chain_strengths, **sample_kwargs
                 )
                 access_time_us = info["timing"]["qpu_access_time"]
-                # Divide QPU time equally across parallel runs for budget attribution.
-                self._log_access_time(access_time_us / n_parallel)
-                self.last_sampling_time_s = access_time_us * 1e-6 / n_parallel
+                self._log_access_time(access_time_us)
+                self.last_sampling_time_s = access_time_us * 1e-6
                 self.last_n_parallel = n_parallel
                 break
             except Exception as e:
@@ -1981,10 +1988,16 @@ class DimodSampler(Sampler):
             df = ss.to_pandas_dataframe()
             df = df.loc[df.index.repeat(df["num_occurrences"])].reset_index(drop=True)
             v = df.loc[:, list(range(self.n_visible))].to_numpy()
-            results.append(v)
+            if return_hidden:
+                h_cols = list(range(self.n_visible, self.n_visible + self.n_hidden))
+                results.append((v, df.loc[:, h_cols].to_numpy()))
+            else:
+                results.append(v)
         return results
 
-    def sample_parallel(self, rbms, n_samples, config={}, n_parallel=None):
+    def sample_parallel(
+        self, rbms, n_samples, config={}, n_parallel=None, return_hidden=False
+    ):
         """Sample from n_parallel independent RBMs in a single QPU call.
 
         All RBMs must share the same n_visible and n_hidden. For DWaveTopologyRBM,
@@ -2050,7 +2063,9 @@ class DimodSampler(Sampler):
 
         config = dict(config)
         config["solver"] = get_solver_name(self.method)
-        return self.dwave_parallel(bqms, n_samples, config, rbms, n_parallel)
+        return self.dwave_parallel(
+            bqms, n_samples, config, rbms, n_parallel, return_hidden=return_hidden
+        )
 
     def dwave(self, bqm, n_samples, config={}, rbm=None, return_hidden=False):
         solver_name = config.get("solver", None)

@@ -2,8 +2,9 @@
 """
 Iterations/Time/Energy-to-Epsilon (ITE) scaling plot.
 
-Reuses the existing results/ tree (no new runs, no results/hparam_search/
-dependency — those are tuning trials, not the data we want here) and
+Reuses the existing results/ tree (no new runs; results/hparam_search/ is
+excluded by default — those are tuning trials, not production sweeps — but
+can be pulled in with --include-hparam, see plot_ttc.load_runs) and
 applies the same causal rolling-mean convergence criterion as
 scripts/ite/ite_run.py's compute_ite(): the first iteration whose
 rolling-mean energy (window W) is within relative error epsilon of the
@@ -54,6 +55,7 @@ Saved to:
 Usage:
     python scripts/viz/plot_ite.py --model tfim_1d --h 0.5
     python scripts/viz/plot_ite.py --model heisenberg_j1j2_1d --j2 0.5
+    python scripts/viz/plot_ite.py --model tfim_1d --h 0.5 --include-hparam
 """
 
 import argparse
@@ -256,7 +258,7 @@ def plot_ite(model: str, runs: list[dict], epsilon: float, window: int,
 
     print_convergence_table(bucket)
 
-    fig, axes = plt.subplots(3, 1, figsize=(10, 13), sharex=False)
+    fig, axes = plt.subplots(3, 1, figsize=(10, 13), sharex=True)
     ax_ite, ax_time, ax_energy = axes
 
     fig.suptitle(
@@ -296,7 +298,7 @@ def plot_ite(model: str, runs: list[dict], epsilon: float, window: int,
 
     def _legend_if_any(ax):
         if ax.get_legend_handles_labels()[0]:
-            ax.legend(fontsize=8, loc="upper left")
+            ax.legend(fontsize=8, loc="lower right")
 
     ax_ite.set_ylabel("ITE (iterations)", fontsize=11)
     ax_ite.set_xscale("log")
@@ -365,10 +367,17 @@ def main():
         "--results", type=Path, default=RESULTS_DIR,
         help="Root results directory",
     )
+    parser.add_argument(
+        "--include-hparam", action="store_true",
+        help="Also include Optuna trial runs from results/hparam_search/{model}/ "
+             "(tagged '@hparam' in method_key). Off by default — these are "
+             "hyperparameter search probes, not production multi-seed sweeps.",
+    )
     args = parser.parse_args()
 
     print(f"Loading results from: {args.results / args.model}")
-    runs = load_runs(args.results, args.model, args.h, args.j2)
+    runs = load_runs(args.results, args.model, args.h, args.j2,
+                      include_hparam=args.include_hparam)
     print(f"{len(runs)} total runs")
     if not runs:
         print("No runs found. Check --results/--model/--h/--j2.")

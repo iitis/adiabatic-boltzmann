@@ -94,6 +94,7 @@ def save_rbm_checkpoint(rbm, args, iteration):
         },
     }
 
+    _n_parallel = getattr(args, "n_parallel", 1)
     checkpoint_file = checkpoint_dir / (
         f"checkpoint"
         f"_{args.model}"
@@ -102,7 +103,8 @@ def save_rbm_checkpoint(rbm, args, iteration):
         f"_nh{args.n_hidden}"
         f"_lr{args.learning_rate}"
         f"_iter{iteration:04d}"
-        f".pkl"
+        + (f"_np{_n_parallel}" if _n_parallel and _n_parallel != 1 else "")
+        + f".pkl"
     )
 
     with open(checkpoint_file, "wb") as f:
@@ -276,6 +278,7 @@ def save_results(args, history, ising, rbm=None, energy_j=None):
     }
 
     # Filename encodes every axis that varies in the sweep
+    _n_parallel = getattr(args, "n_parallel", 1)
     output_file = output_dir / (
         f"result"
         f"_{args.model}"
@@ -288,7 +291,8 @@ def save_results(args, history, ising, rbm=None, energy_j=None):
         f"_iter{args.iterations}"
         f"_cem{int(use_cem)}"
         f"_sigma{float(getattr(args, 'sigma', 1.0))}"
-        f".json.gz"
+        + (f"_np{_n_parallel}" if _n_parallel and _n_parallel != 1 else "")
+        + f".json.gz"
     )
 
     with gzip.open(output_file, "wt") as f:
@@ -363,6 +367,7 @@ def save_dwave_samples(V: np.ndarray, args, iteration: int, sampleset=None) -> P
     )
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    _n_parallel = getattr(args, "n_parallel", 1)
     fname = (
         f"samples_{args.model}"
         f"{_model_params_str(args)}"
@@ -373,7 +378,8 @@ def save_dwave_samples(V: np.ndarray, args, iteration: int, sampleset=None) -> P
         f"_ns{args.n_samples}"
         f"_seed{args.seed}"
         f"_iter{iteration:04d}"
-        f".pkl.gz"
+        + (f"_np{_n_parallel}" if _n_parallel and _n_parallel != 1 else "")
+        + f".pkl.gz"
     )
     path = out_dir / fname
 

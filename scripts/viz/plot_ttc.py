@@ -35,6 +35,7 @@ Usage:
     python scripts/viz/plot_ttc.py --convergence fixed --fixed-iter 50
     python scripts/viz/plot_ttc.py --model tfim_1d --h 0.5
     python scripts/viz/plot_ttc.py --results path/to/results
+    python scripts/viz/plot_ttc.py --model tfim_1d --h 0.5 --include-hparam
 """
 
 import argparse
@@ -137,7 +138,8 @@ def _fixed_convergence_iter(energies: list[float], fixed_iter: int) -> int:
 # ---------------------------------------------------------------------------
 
 def load_runs(results_dir: Path, model_filter: str,
-              h_filter: float | None, j2_filter: float | None = None):
+              h_filter: float | None, j2_filter: float | None = None,
+              include_hparam: bool = False):
     """
     Scan results_dir/model_filter/**/*.json AND results_dir/sweeps*/model_filter/**/*.json
     (sibling campaign directories — e.g. sweeps100/, sweeps2000/ — that hold
@@ -147,6 +149,15 @@ def load_runs(results_dir: Path, model_filter: str,
     directory get "@sweeps100"/"@sweeps2000" appended to method_key so they
     plot as distinct series rather than silently merging with runs of the
     same sampler/method from the base directory or from each other.
+
+    include_hparam=True additionally scans
+    results_dir/hparam_search/model_filter/**/*.json.gz — Optuna trial runs
+    (written by scripts/hparam/hparam_optuna.py in the same save_results()
+    format). These are search probes, not production multi-seed sweeps: many
+    distinct hyperparameter configs, often 1-2 seeds each, sometimes short
+    iteration budgets. Off by default for that reason; when on, they get
+    "@hparam" appended to method_key so they never silently merge with
+    production runs of the same sampler/method.
 
     Returns a list of run dicts:
         {method_key, N, h, j2, energies, times_per_iter, exact_energy, seed,
@@ -173,6 +184,10 @@ def load_runs(results_dir: Path, model_filter: str,
         root = campaign_dir / model_filter
         if root.exists():
             campaigns.append((f"@{campaign_dir.name}", root))
+    if include_hparam:
+        hparam_root = results_dir / "hparam_search" / model_filter
+        if hparam_root.exists():
+            campaigns.append(("@hparam", hparam_root))
 
     for suffix, search_root in campaigns:
         if not search_root.exists():
@@ -398,7 +413,7 @@ def plot_ttc(model: str, runs: list[dict], mode: str, window: int, tol: float,
     print_convergence_table(bucket, mode)
     print_timing_overview(runs)
 
-    fig, axes = plt.subplots(2, 1, figsize=(10, 9), sharex=False)
+    fig, axes = plt.subplots(2, 1, figsize=(10, 9), sharex=True)
     ax_ttc, ax_err = axes
 
     mode_label = (
@@ -458,7 +473,7 @@ def plot_ttc(model: str, runs: list[dict], mode: str, window: int, tol: float,
     ax_ttc.set_xscale("log")
     ax_ttc.set_yscale("log")
     ax_ttc.grid(True, alpha=0.3, which="both")
-    ax_ttc.legend(fontsize=8, loc="upper left")
+    ax_ttc.legend(fontsize=8, loc="lower right")
     ax_ttc.set_title("Time to convergence", fontsize=11)
 
     # -- Error panel formatting
@@ -467,7 +482,7 @@ def plot_ttc(model: str, runs: list[dict], mode: str, window: int, tol: float,
     ax_err.set_xscale("log")
     ax_err.set_yscale("log")
     ax_err.grid(True, alpha=0.3, which="both")
-    ax_err.legend(fontsize=8, loc="upper left")
+    ax_err.legend(fontsize=8, loc="lower right")
     ax_err.set_title("Energy error at convergence point", fontsize=11)
 
     plt.tight_layout()
@@ -522,10 +537,17 @@ def main():
         "--results", type=Path, default=RESULTS_DIR,
         help="Root results directory",
     )
+    parser.add_argument(
+        "--include-hparam", action="store_true",
+        help="Also include Optuna trial runs from results/hparam_search/{model}/ "
+             "(tagged '@hparam' in method_key). Off by default — these are "
+             "hyperparameter search probes, not production multi-seed sweeps.",
+    )
     args = parser.parse_args()
 
     print(f"Loading results from: {args.results / args.model}")
-    runs = load_runs(args.results, args.model, args.h, args.j2)
+    runs = load_runs(args.results, args.model, args.h, args.j2,
+                      include_hparam=args.include_hparam)
     if not runs:
         print("No runs found. Check --results path and --model.")
         return

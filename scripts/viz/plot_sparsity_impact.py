@@ -42,8 +42,29 @@ import jax
 from plot_style import setup_style
 from ising import TransverseFieldIsing1D
 from model import FullyConnectedRBM, DWaveTopologyRBM
-from sampler import ClassicalSampler
+from sampler import ClassicalSampler, DimodSampler
 from encoder import Trainer
+from helpers import read_qpu_time_ms
+
+# ── QPU budget guard (real D-Wave sampling only — _run_one/ClassicalSampler
+# never touches this) ───────────────────────────────────────────────────────
+# Conservative self-imposed cap for this script specifically; other scripts
+# (e.g. scripts/j1j2/j1j2_bench.py) track the same shared time.json against
+# their own, separate caps. No silent fallback: if the file is missing or
+# unreadable, read_qpu_time_ms raises rather than assuming 0.
+QPU_BUDGET_MS = 30 * 60 * 1000  # 30 minutes
+QPU_TIME_PATH = Path("time.json")
+
+
+def _check_qpu_budget():
+    used_ms = read_qpu_time_ms(QPU_TIME_PATH)
+    if used_ms >= QPU_BUDGET_MS:
+        raise RuntimeError(
+            f"QPU budget exceeded: {used_ms / 60_000:.2f} min used >= "
+            f"{QPU_BUDGET_MS / 60_000:.0f} min self-imposed cap for this script. "
+            f"Raise QPU_BUDGET_MS deliberately if you want to spend more."
+        )
+    return used_ms
 
 # ── Topology styling ──────────────────────────────────────────────────────────
 
@@ -147,12 +168,121 @@ def _make_rbm(topology, N, alpha, seed):
         raise ValueError(f"Unknown topology: {topology}")
 
 
-def _run_one(N, alpha, h, topology, seed, cfg):
+# ── Sparsity ablation: prune a fixed-alpha mask instead of raising alpha ──────
+#
+# The alpha-sweep confounds two things that both increase together on a real
+# hardware graph: more hidden units (n_hidden = N*alpha) AND higher sparsity
+# (each additional hidden unit gets fewer real edges, since a visible qubit's
+# neighbour pool on the chip is finite). This section isolates sparsity from
+# alpha: start from the real alpha=1 Zephyr/Pegasus mask (n_hidden = N, fixed
+# for every point in this sweep) and prune real edges out of it to reach
+# higher target sparsity levels, so n_hidden never changes — only how many of
+# its genuine hardware edges survive.
+
+
+def _prune_mask_balanced(mask: np.ndarray, target_sparsity: float, rng) -> np.ndarray:
+    """Prune a binary (n_visible, n_hidden) mask down to target_sparsity by
+    repeatedly removing an edge from whichever hidden unit currently has the
+    highest degree (ties broken by a seeded shuffle, for reproducibility),
+    and never removing a visible or hidden unit's last remaining edge — same
+    "no dead units" invariant as the shore-aware construction in model.py,
+    just enforced by pruning instead of by upfront selection.
+    """
+    mask = mask.copy()
+    n_visible, n_hidden = mask.shape
+    total_possible = n_visible * n_hidden
+    current_edges = int(mask.sum())
+    target_kept = round((1 - target_sparsity) * total_possible)
+    if target_kept >= current_edges:
+        raise ValueError(
+            f"target_sparsity={target_sparsity} implies keeping {target_kept} edges, "
+            f">= the {current_edges} currently present — native sparsity is already "
+            f"at or above this target. Choose a higher target_sparsity."
+        )
+
+    hidden_degree  = mask.sum(axis=0).astype(int)
+    visible_degree = mask.sum(axis=1).astype(int)
+    n_to_remove = current_edges - target_kept
+
+    for _ in range(n_to_remove):
+        removable_hidden = [h for h in range(n_hidden) if hidden_degree[h] > 1]
+        if not removable_hidden:
+            raise RuntimeError(
+                f"Cannot reach target_sparsity={target_sparsity} without zeroing out "
+                f"a hidden unit — stuck after removing {current_edges - int(mask.sum())}"
+                f"/{n_to_remove} edges."
+            )
+        max_deg = max(hidden_degree[h] for h in removable_hidden)
+        best_hidden = [h for h in removable_hidden if hidden_degree[h] == max_deg]
+        h = rng.choice(best_hidden)
+        candidates = [v for v in range(n_visible) if mask[v, h] and visible_degree[v] > 1]
+        if not candidates:
+            raise RuntimeError(
+                f"Cannot reach target_sparsity={target_sparsity} without zeroing out "
+                f"a visible unit (stuck on hidden unit {h})."
+            )
+        v = rng.choice(candidates)
+        mask[v, h] = 0
+        hidden_degree[h] -= 1
+        visible_degree[v] -= 1
+
+    return mask
+
+
+def _make_pruned_rbm(topology, N, target_sparsity, seed, live=True):
+    """DWaveTopologyRBM at fixed alpha=1 (n_hidden=N) on the real hardware
+    graph, with its native mask pruned down to target_sparsity. Isolates the
+    sparsity variable from alpha for the ablation sweep: n_hidden is always N
+    here, regardless of target_sparsity.
+    """
+    import random as _rng
+    import jax.numpy as jnp
+
+    key = jax.random.PRNGKey(seed)
+    rbm = DWaveTopologyRBM(N, N, key, solver=topology, seed=42, live=live)  # alpha=1
+    native_sparsity = rbm.sparsity()
+    if target_sparsity <= native_sparsity:
+        raise ValueError(
+            f"target_sparsity={target_sparsity} <= native alpha=1 sparsity "
+            f"({native_sparsity:.4f}) on this hardware graph — nothing to prune. "
+            f"The native mask is already at least this sparse."
+        )
+    pruned_mask = _prune_mask_balanced(np.array(rbm._mask), target_sparsity, _rng.Random(seed))
+    rbm._mask = pruned_mask
+    rbm.W = rbm.W * jnp.asarray(pruned_mask)  # re-apply to already-initialised weights
+    return rbm
+
+
+def _run_one_sparsity_ablation(N, target_sparsity, h, topology, seed, cfg):
+    """Classical training at fixed alpha=1 (n_hidden=N), with the real mask
+    pruned to target_sparsity. Directly comparable to _run_one's alpha-sweep
+    results at the same sparsity values, but with the alpha confound removed.
+    """
+    rbm = _make_pruned_rbm(topology, N, target_sparsity, seed, live=True)
+    return _run_one(N, alpha=1, h=h, topology=topology, seed=seed, cfg=cfg, rbm_override=rbm)
+
+
+def _run_one_sparsity_ablation_qpu(N, target_sparsity, h, topology, seed, cfg, n_iters, num_reads, **kwargs):
+    """Same ablation, but trained with real D-Wave QPU sampling via
+    _run_one_qpu — see that function's docstring for the underlying mechanism.
+    """
+    rbm = _make_pruned_rbm(topology, N, target_sparsity, seed, live=True)
+    return _run_one_qpu(
+        N, alpha=1, h=h, topology=topology, seed=seed, cfg=cfg,
+        n_iters=n_iters, num_reads=num_reads, rbm_override=rbm, **kwargs,
+    )
+
+
+def _run_one(N, alpha, h, topology, seed, cfg, rbm_override=None):
+    """rbm_override: pass a pre-built RBM (e.g. from _make_pruned_rbm) to use
+    it directly instead of building one from (topology, N, alpha, seed) --
+    used by the sparsity-ablation sweep, which needs a mask that isn't a
+    plain function of alpha."""
     import numpy as np
     np.random.seed(seed)
 
     ising   = TransverseFieldIsing1D(size=N, h=h)
-    rbm     = _make_rbm(topology, N, alpha, seed)
+    rbm     = rbm_override if rbm_override is not None else _make_rbm(topology, N, alpha, seed)
     sampler = ClassicalSampler(method="metropolis")
     config  = {
         "n_samples":          cfg["n_samples"],
@@ -178,6 +308,86 @@ def _run_one(N, alpha, h, topology, seed, cfg):
         "rel_error":      rel_err,
         "n_params":       rbm.n_parameters(),
         "sparsity":       rbm.sparsity(),
+    }
+
+
+def _run_one_qpu(N, alpha, h, topology, seed, cfg, n_iters, num_reads, annealing_time=20,
+                  auto_scale=True, rbm_override=None):
+    """Same as _run_one, but trains with real D-Wave QPU sampling instead of
+    classical Metropolis. topology must be 'pegasus' or 'zephyr' — DimodSampler
+    submits to the live solver via DWaveTopologyRBM's chain-free identity
+    embedding (model.py), and every QPU call's access time is logged to
+    time.json by DimodSampler._log_access_time (src/sampler.py) automatically.
+
+    n_iters/num_reads default much lower than the classical sweeps: real QPU
+    time is a metered, shared, non-reset budget (see QPU_BUDGET_MS above),
+    unlike the classical runs which cost nothing but wall-clock.
+
+    rbm_override: see _run_one — used by the sparsity-ablation sweep.
+    """
+    import numpy as np
+    from types import SimpleNamespace
+    if topology not in ("pegasus", "zephyr"):
+        raise ValueError(f"_run_one_qpu requires a QPU topology, got {topology!r}")
+    np.random.seed(seed)
+
+    used_before = _check_qpu_budget()
+
+    ising   = TransverseFieldIsing1D(size=N, h=h)
+    rbm     = rbm_override if rbm_override is not None else _make_rbm(topology, N, alpha, seed)  # live=True by default (model.py)
+    sampler = DimodSampler(method=topology)
+    config  = {
+        "n_samples":           num_reads,
+        "n_iterations":        n_iters,
+        "learning_rate":       cfg["lr"],
+        "regularization":      cfg["reg"],
+        # Reuse Trainer's existing convergence detection instead of a fixed
+        # iteration count: stops once Var(E_loc) stays below threshold for
+        # conv_window consecutive iterations (encoder.py) — exactly "abort
+        # once nothing is changing anymore", so we don't burn QPU budget
+        # running out a full n_iters on a run that plateaued at iteration 20.
+        "stop_at_convergence": True,
+        "save_checkpoints":    False,
+        "num_reads":           num_reads,
+        "annealing_time":      annealing_time,
+        "auto_scale":          auto_scale,
+    }
+    # Minimal args namespace — only what save_dwave_samples/_model_params_str
+    # (src/helpers.py) actually read. Setting sampling_method to a QPU method
+    # is what makes Trainer.train() call save_dwave_samples every iteration
+    # (encoder.py), reusing that existing function rather than writing new
+    # save logic here.
+    args = SimpleNamespace(
+        model="1d",
+        h=h,
+        rbm=topology,
+        n_hidden=rbm.n_hidden,
+        sampler="dimod",
+        sampling_method=topology,
+        learning_rate=cfg["lr"],
+        regularization=cfg["reg"],
+        n_samples=num_reads,
+        seed=seed,
+    )
+    trainer = Trainer(rbm=rbm, ising_model=ising, sampler=sampler, config=config, args=args)
+    history = trainer.train()
+
+    used_after = read_qpu_time_ms(QPU_TIME_PATH)
+
+    energies = np.array(history["energy"])
+    E_exact  = ising.exact_ground_energy()
+    tail     = max(1, len(energies) // 5)
+    E_final  = float(np.nanmean(energies[-tail:]))
+    rel_err  = abs(E_final - E_exact) / abs(E_exact)
+
+    return {
+        "energy_history":   [float(e) for e in energies],
+        "E_exact":          float(E_exact),
+        "E_final":          E_final,
+        "rel_error":        rel_err,
+        "n_params":         rbm.n_parameters(),
+        "sparsity":         rbm.sparsity(),
+        "qpu_time_ms_used": used_after - used_before,
     }
 
 
