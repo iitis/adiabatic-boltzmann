@@ -1,6 +1,7 @@
 using VeloxQstandard, VeloxQIO, VeloxQtoolbox
 using CUDA
 using Sockets
+using Logging
 
 function _env_bool(key::String, default::Bool)
     val = get(ENV, key, "")
@@ -62,7 +63,13 @@ function handle_sample(parts::Vector{<:AbstractString}, comp_model::ComputationM
     schedule_type = String(parts[9])
     meta_path = String(parts[10])
 
-    model = load_model(model_path)
+    # VeloxQIO's load_model emits an @info line ("Loading BinaryQuadraticModel
+    # from CSV file assumes :SPIN vartype.") on every call. We load a model per
+    # sample() request, so it floods stderr. Silence Info during the load only;
+    # Warn/Error still surface via the stderr ConsoleLogger.
+    model = with_logger(ConsoleLogger(stderr, Logging.Warn)) do
+        load_model(model_path)
+    end
     solver = SimulatedAnnealing{Float32}(;
         num_rep = num_rep,
         num_steps = num_steps,
