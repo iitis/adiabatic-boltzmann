@@ -87,7 +87,7 @@ def _result_exists(args_ns) -> bool:
         f"_iter{args_ns.iterations}"
         f"_cem{int(use_cem)}"
         f"_sigma{float(getattr(args_ns, 'sigma', 1.0))}"
-        f".json"
+        f".json.gz"
     )
     return (output_dir / fname).exists()
 

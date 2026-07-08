@@ -295,8 +295,14 @@ def save_results(args, history, ising, rbm=None, energy_j=None):
         + f".json.gz"
     )
 
-    with gzip.open(output_file, "wt") as f:
+    # Write to a temp file and rename atomically: if the process is killed
+    # mid-write, no partial/corrupt file ever appears at output_file, so a
+    # resumed run's _result_exists() check can't mistake a truncated file
+    # for a completed one and silently skip re-running that seed.
+    tmp_file = output_file.with_suffix(output_file.suffix + ".tmp")
+    with gzip.open(tmp_file, "wt") as f:
         json.dump(results, f, indent=2)
+    tmp_file.replace(output_file)
 
     def _fmt(v):
         return f"{v:.6f}" if v is not None else "N/A"
