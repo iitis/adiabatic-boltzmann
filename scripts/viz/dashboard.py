@@ -304,51 +304,64 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
 # ── LR-TFIM reference panel ────────────────────────────────────────────────────
 
 
-def _lr_tfim_reference_panel(df: pd.DataFrame) -> None:
-    """Show exact reference energies per spin for visible LR-TFIM configurations.
+_REF_PANEL_LABEL_COLS = [
+    ("model", "{}"),
+    ("alpha", "α={:g}"),
+    ("J", "J={:g}"),
+    ("J1", "J1={:g}"),
+    ("J2", "J2={:g}"),
+    ("delta", "δ={:g}"),
+    ("h", "h={:g}"),
+    ("size", "N={:g}"),
+]
 
-    Only rendered when the filtered dataframe contains lr1d runs.
-    Reference energies come from the master cache — no computation is triggered here.
+_REF_PANEL_MAX_SHOWN = 12
+
+
+def _reference_energy_panel(df: pd.DataFrame) -> None:
+    """Show exact reference energy per spin for every distinct physical
+    configuration in the current filter selection (any model).
+
+    Reference energies come from the master cache — no computation is
+    triggered here, so a config only appears once it's been computed
+    elsewhere (e.g. via exact diagonalization or the closed-form TFIM
+    solution) and cached in reference_energies.
     """
-    lr_df = df[df["model"] == "lr1d"].copy() if "model" in df.columns else pd.DataFrame()
-    if lr_df.empty:
+    key_cols = [c for c, _ in _REF_PANEL_LABEL_COLS if c in df.columns]
+    if not key_cols or "exact_energy" not in df.columns:
         return
 
-    st.markdown("### LR-TFIM Reference Energies (exact diagonalization, N ≤ 16)")
-
-    key_cols = [c for c in ("alpha", "J", "h", "size") if c in lr_df.columns]
     ref_rows = (
-        lr_df[key_cols + ["exact_energy", "n_spins"]]
+        df[key_cols + ["exact_energy", "n_spins"]]
         .dropna(subset=["exact_energy"])
         .drop_duplicates(subset=key_cols)
         .sort_values(key_cols)
     )
-
     if ref_rows.empty:
-        st.info(
-            "No reference energies cached for the selected LR-TFIM configurations. "
-            "Run with N ≤ 16 to compute them via exact diagonalization."
-        )
         return
 
-    cols = st.columns(min(len(ref_rows), 4))
-    for i, (_, rv) in enumerate(ref_rows.iterrows()):
-        n_sp = int(rv["n_spins"]) if pd.notna(rv.get("n_spins")) else int(rv["size"])
+    st.markdown("### Theoretical Ground State Energy (current filter selection)")
+
+    n_shown = min(len(ref_rows), _REF_PANEL_MAX_SHOWN)
+    if len(ref_rows) > _REF_PANEL_MAX_SHOWN:
+        st.caption(
+            f"Showing {n_shown} of {len(ref_rows)} distinct configurations — "
+            "narrow the sidebar filters to see the rest."
+        )
+
+    cols = st.columns(min(n_shown, 4))
+    for i, (_, rv) in enumerate(ref_rows.head(n_shown).iterrows()):
+        n_sp = int(rv["n_spins"]) if pd.notna(rv.get("n_spins")) else int(rv.get("size", 1))
         e_per_spin = rv["exact_energy"] / n_sp
-        label_parts = []
-        if pd.notna(rv.get("alpha")):
-            label_parts.append(f"α={rv['alpha']:g}")
-        if pd.notna(rv.get("J")):
-            label_parts.append(f"J={rv['J']:g}")
-        if pd.notna(rv.get("h")):
-            label_parts.append(f"h={rv['h']:g}")
-        if pd.notna(rv.get("size")):
-            label_parts.append(f"N={int(rv['size'])}")
+        label_parts = [
+            fmt.format(rv[col]) for col, fmt in _REF_PANEL_LABEL_COLS
+            if col in rv and pd.notna(rv[col])
+        ]
         with cols[i % len(cols)]:
             st.metric(
                 label=",  ".join(label_parts),
                 value=f"{e_per_spin:.6f}",
-                help=f"Exact ground state energy per spin  (E_exact = {rv['exact_energy']:.6f})",
+                help=f"Exact ground state energy per spin  (E_exact = {rv['exact_energy']:.6f}, N_spins={n_sp})",
             )
 
     st.markdown("---")
@@ -1399,7 +1412,7 @@ def main() -> None:
         st.warning("No runs match the current filters.")
         st.stop()
 
-    _lr_tfim_reference_panel(df)
+    _reference_energy_panel(df)
 
     tab1, tab2, tab3, tab4, tab5 = st.tabs(
         [
