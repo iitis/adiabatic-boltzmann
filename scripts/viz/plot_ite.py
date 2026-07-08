@@ -233,8 +233,19 @@ def print_convergence_table(bucket: dict) -> None:
 # Plotting
 # ---------------------------------------------------------------------------
 
+# Panel definitions, keyed by the --panels choice. Order here is the
+# canonical top-to-bottom order regardless of the order given on the CLI.
+PANEL_SPECS = {
+    "ite": dict(key="ite", ylabel="ITE (iterations)", title="Iterations to epsilon"),
+    "time": dict(key="time_s", ylabel="Time-to-ITE (s)", title="Cumulative sampling time to epsilon"),
+    "energy": dict(key="energy_wh", ylabel="Energy-to-ITE (Wh)", title="Energy consumed to epsilon"),
+}
+PANEL_ORDER = ("ite", "time", "energy")
+
+
 def plot_ite(model: str, runs: list[dict], epsilon: float, window: int,
-             out_dir: Path) -> None:
+             out_dir: Path, panels: tuple[str, ...] = PANEL_ORDER,
+             suffix: str = "") -> None:
     bucket: dict = defaultdict(lambda: defaultdict(
         lambda: {"ite": [], "time_s": [], "energy_wh": []}
     ))
@@ -258,8 +269,9 @@ def plot_ite(model: str, runs: list[dict], epsilon: float, window: int,
 
     print_convergence_table(bucket)
 
-    fig, axes = plt.subplots(3, 1, figsize=(10, 13), sharex=True)
-    ax_ite, ax_time, ax_energy = axes
+    panels = tuple(p for p in PANEL_ORDER if p in panels)
+    fig, axes = plt.subplots(len(panels), 1, figsize=(10, 4.4 * len(panels) + 1), sharex=True)
+    axes = np.atleast_1d(axes)
 
     fig.suptitle(
         f"Iterations/Time/Energy to reach $\\epsilon$={epsilon:g}  —  model={model}\n"
@@ -267,23 +279,25 @@ def plot_ite(model: str, runs: list[dict], epsilon: float, window: int,
         fontsize=13, fontweight="bold",
     )
 
-    for mk in sorted(bucket.keys()):
-        size_data = bucket[mk]
-        sizes = sorted(size_data.keys())
+    def _legend_if_any(ax):
+        if ax.get_legend_handles_labels()[0]:
+            ax.legend(fontsize=8, loc="lower right")
 
-        color = METHOD_COLORS.get(mk)
-        marker = METHOD_MARKERS.get(mk, "o")
-        base_kw = dict(color=color, marker=marker, markersize=6,
-                        linewidth=1.8, capsize=3, alpha=0.85)
+    for ax, panel in zip(axes, panels):
+        spec = PANEL_SPECS[panel]
+        for mk in sorted(bucket.keys()):
+            size_data = bucket[mk]
+            sizes = sorted(size_data.keys())
 
-        for ax, key, label in (
-            (ax_ite, "ite", mk),
-            (ax_time, "time_s", mk),
-            (ax_energy, "energy_wh", f"{mk} (assumed)" if _base_method(mk) in ASSUMED_POWER_W else mk),
-        ):
+            color = METHOD_COLORS.get(mk)
+            marker = METHOD_MARKERS.get(mk, "o")
+            base_kw = dict(color=color, marker=marker, markersize=6,
+                            linewidth=1.8, capsize=3, alpha=0.85)
+            label = f"{mk} (assumed)" if panel == "energy" and _base_method(mk) in ASSUMED_POWER_W else mk
+
             meds, los, his, xs = [], [], [], []
             for N in sizes:
-                vals = size_data[N][key]
+                vals = size_data[N][spec["key"]]
                 m, lo, hi = aggregate(vals)
                 if np.isfinite(m):
                     xs.append(N)
@@ -296,38 +310,25 @@ def plot_ite(model: str, runs: list[dict], epsilon: float, window: int,
                     [hi - m for m, hi in zip(meds, his)]]
             ax.errorbar(xs, meds, yerr=yerr, label=label, **base_kw)
 
-    def _legend_if_any(ax):
-        if ax.get_legend_handles_labels()[0]:
-            ax.legend(fontsize=8, loc="lower right")
+        ax.set_ylabel(spec["ylabel"], fontsize=11)
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.grid(True, alpha=0.3, which="both")
+        _legend_if_any(ax)
+        title = spec["title"]
+        if panel == "energy" and any_assumed:
+            title += "  (methods marked \"assumed\" use a constant power draw, not measured telemetry)"
+        ax.set_title(title, fontsize=11 if panel != "energy" else 10)
 
-    ax_ite.set_ylabel("ITE (iterations)", fontsize=11)
-    ax_ite.set_xscale("log")
-    ax_ite.set_yscale("log")
-    ax_ite.grid(True, alpha=0.3, which="both")
-    _legend_if_any(ax_ite)
-    ax_ite.set_title("Iterations to epsilon", fontsize=11)
+    axes[-1].set_xlabel("Instance size N", fontsize=11)
 
-    ax_time.set_ylabel("Time-to-ITE (s)", fontsize=11)
-    ax_time.set_xscale("log")
-    ax_time.set_yscale("log")
-    ax_time.grid(True, alpha=0.3, which="both")
-    _legend_if_any(ax_time)
-    ax_time.set_title("Cumulative sampling time to epsilon", fontsize=11)
-
-    ax_energy.set_xlabel("Instance size N", fontsize=11)
-    ax_energy.set_ylabel("Energy-to-ITE (Wh)", fontsize=11)
-    ax_energy.set_xscale("log")
-    ax_energy.set_yscale("log")
-    ax_energy.grid(True, alpha=0.3, which="both")
-    _legend_if_any(ax_energy)
-    title = "Energy consumed to epsilon"
-    if any_assumed:
-        title += "  (methods marked \"assumed\" use a constant power draw, not measured telemetry)"
-    ax_energy.set_title(title, fontsize=10)
+    all_sizes = sorted({N for mk in bucket for N in bucket[mk]})
+    if all_sizes:
+        axes[0].set_xlim(all_sizes[0] * 0.85, all_sizes[-1] * 1.15)
 
     plt.tight_layout()
     out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / f"{model}_ite.png"
+    out_path = out_dir / f"{model}_ite{suffix}.png"
     plt.savefig(out_path, dpi=150, bbox_inches="tight")
     print(f"Saved: {out_path}")
     plt.close(fig)
@@ -373,6 +374,22 @@ def main():
              "(tagged '@hparam' in method_key). Off by default — these are "
              "hyperparameter search probes, not production multi-seed sweeps.",
     )
+    parser.add_argument(
+        "--methods", nargs="+", default=None,
+        help="Restrict the plot to these exact method_key values (e.g. "
+             "fpga/fpga@sweeps100 velox/simulated_annealing@hparam). "
+             "Default: include every method found.",
+    )
+    parser.add_argument(
+        "--panels", nargs="+", choices=list(PANEL_ORDER), default=list(PANEL_ORDER),
+        help="Which panels to draw, top-to-bottom order is fixed regardless "
+             "of the order given here. Default: all three.",
+    )
+    parser.add_argument(
+        "--suffix", default="",
+        help="Appended to the output filename ({model}_ite{suffix}.png), "
+             "so a filtered figure doesn't overwrite the full one.",
+    )
     args = parser.parse_args()
 
     print(f"Loading results from: {args.results / args.model}")
@@ -384,6 +401,13 @@ def main():
         return
 
     runs = select_best_configs(runs)
+
+    if args.methods is not None:
+        wanted = set(args.methods)
+        runs = [r for r in runs if r["method_key"] in wanted]
+        missing = wanted - {r["method_key"] for r in runs}
+        if missing:
+            print(f"WARNING: no runs found for requested methods: {sorted(missing)}")
 
     param_str = ""
     if args.h is not None:
@@ -402,6 +426,8 @@ def main():
         epsilon=args.epsilon,
         window=args.window,
         out_dir=PLOTS_DIR,
+        panels=tuple(args.panels),
+        suffix=args.suffix,
     )
 
     print("Done.")

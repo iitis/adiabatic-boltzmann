@@ -516,7 +516,10 @@ def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_
             # start_temp is the only meaningful schedule knob: num_steps=1
             # below makes this a single-temperature Gibbs sample (matches
             # run_fpga_best.py), so stop_temp never gets used.
-            T_initial = trial.suggest_float("T_initial", 1.0, 20.0)
+            # Lower bound widened from 1.0: N=32/64 searches found optima
+            # clustered at the old floor (T_initial~1.0-1.7), suggesting the
+            # true optimum was being clipped by the search range.
+            T_initial = trial.suggest_float("T_initial", 0.1, 20.0)
             T_final = 0.5 * T_initial
             num_sweeps = trial.suggest_int("num_sweeps", 50, 2000, log=True)
             use_cem = False

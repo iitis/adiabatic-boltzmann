@@ -453,7 +453,11 @@ def _load_best_trials(hparam_dir, model, size, h, top_k, num_sweeps_per_step):
                     continue
                 if abs(rec.get("phys_params", {}).get("h", float("nan")) - h) > 1e-9:
                     continue
-                if rec.get("params", {}).get("sampling_method") != "simulated_annealing":
+                # index.jsonl logs the raw Optuna category ("velox_sa"); only
+                # the saved result JSON's config gets relabeled to
+                # "simulated_annealing" (see hparam_optuna.py's
+                # _VELOX_METHOD_LABEL). Match the raw label here.
+                if rec.get("params", {}).get("sampling_method") != "velox_sa":
                     continue
                 if not math.isfinite(rec.get("rel_error", float("nan"))):
                     continue
@@ -568,7 +572,21 @@ def _run_one(hparam_dir, model, size, h, args):
                 )
 
                 results = []
+                skipped = 0
                 for seed in range(args.n_seeds):
+                    probe = _make_args_ns(
+                        model=model, size=size, h=h,
+                        n_hidden=vmc["n_hidden"],
+                        learning_rate=vmc["learning_rate"],
+                        regularization=vmc["regularization"],
+                        n_samples=vmc["n_samples"],
+                        iterations=args.iterations,
+                        seed=seed, sampler_name=sampler_name,
+                        sampling_method=sampling_method, output_dir=output_dir,
+                    )
+                    if _result_exists(probe):
+                        skipped += 1
+                        continue
                     print(
                         f"    seed {seed + 1}/{args.n_seeds} ...", end="\r", flush=True
                     )
@@ -598,9 +616,11 @@ def _run_one(hparam_dir, model, size, h, args):
                     if not m["diverged"] and math.isfinite(m["rel_error"])
                 ]
                 mean_err = sum(errors) / len(errors) if errors else float("nan")
+                skip_str = f"  ({skipped} skipped)" if skipped else ""
                 print(
                     f"    {n_ok}/{len(results)} converged"
                     f"  mean_rel_err={mean_err:.6f}"
+                    f"{skip_str}"
                     f"                    "
                 )
         finally:

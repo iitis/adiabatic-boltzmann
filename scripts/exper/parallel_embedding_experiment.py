@@ -180,15 +180,25 @@ def print_summary(cache):
         print(f"{n_parallel:>10} {n_crashed}/{len(recs):>8} {best:>12.4f} {mean_survivors:>24.4f}")
 
 
-def make_figure(cache, out_path):
-    setup_style(fontsize=11, scale=2.2)
-    colors = {1: "#2166ac", 3: "#d62728", 5: "#2ca02c"}
-    ls = {42: "-", 1: "--", 7: ":"}
-    fig, axes = plt.subplots(1, 2, figsize=(9, 3.6))
+def _best_seed_per_n_parallel(cache):
+    """For each n_parallel, the seed with the lowest final relative error."""
+    best = {}
+    for n_parallel in N_PARALLEL_VALUES:
+        recs = [(seed, cache[f"{n_parallel}_{seed}"]) for seed in SEEDS if f"{n_parallel}_{seed}" in cache]
+        if not recs:
+            continue
+        seed, rec = min(recs, key=lambda sr: _final_and_relerr(sr[1])[1])
+        best[n_parallel] = seed
+    return best
 
+
+def _plot_one_panel(cache, ax, x_key, best_only, colors, ls):
+    """x_key: 'iteration' or 'qpu_time'."""
+    best_seed = _best_seed_per_n_parallel(cache) if best_only else None
     exact = None
     for n_parallel in N_PARALLEL_VALUES:
-        for seed in SEEDS:
+        seeds_to_plot = [best_seed[n_parallel]] if best_only else SEEDS
+        for seed in seeds_to_plot:
             rec = cache.get(f"{n_parallel}_{seed}")
             if rec is None:
                 continue
@@ -197,35 +207,58 @@ def make_figure(cache, out_path):
             blown = np.abs(e - exact) > 50
             cutoff = int(np.argmax(blown)) if blown.any() else len(e)
 
-            ax = axes[0]
-            ax.plot(np.arange(cutoff), e[:cutoff], color=colors[n_parallel],
-                     linestyle=ls[seed], alpha=0.85,
-                     label=f"$n_\\mathrm{{parallel}}={n_parallel}$, seed={seed}")
+            label = (f"$n_\\mathrm{{parallel}}={n_parallel}$" if best_only
+                     else f"$n_\\mathrm{{parallel}}={n_parallel}$, seed={seed}")
+            linestyle = "-" if best_only else ls[seed]
+
+            if x_key == "iteration":
+                x = np.arange(cutoff)
+                x_end = cutoff
+            else:
+                x = np.cumsum(rec["sampling_time_s"])[:cutoff]
+                x_end = x[-1] if len(x) else 0
+
+            ax.plot(x, e[:cutoff], color=colors[n_parallel], linestyle=linestyle,
+                     alpha=0.85, label=label)
             if cutoff < len(e):
-                ax.plot(cutoff, e[cutoff - 1], marker="x", color=colors[n_parallel], ms=6)
+                ax.plot(x_end, e[cutoff - 1], marker="x", color=colors[n_parallel], ms=6)
 
-            ax = axes[1]
-            t = np.cumsum(rec["sampling_time_s"])[:cutoff]
-            ax.plot(t, e[:cutoff], color=colors[n_parallel], linestyle=ls[seed], alpha=0.85)
-            if cutoff < len(e):
-                ax.plot(t[-1] if len(t) else 0, e[cutoff - 1], marker="x", color=colors[n_parallel], ms=6)
+    if exact is not None:
+        ax.axhline(exact, color="black", ls="--", lw=0.8, label="exact")
+        ax.set_ylim(exact - 5, exact + 15)
+    ax.set_ylabel("energy")
+    return exact
 
-    for ax in axes:
-        if exact is not None:
-            ax.axhline(exact, color="black", ls="--", lw=0.8, label="exact")
-        if exact is not None:
-            ax.set_ylim(exact - 5, exact + 15)
-    axes[0].set_xlabel("iteration")
-    axes[0].set_ylabel("energy")
-    axes[0].legend(fontsize=6, ncol=2, loc="upper right")
-    axes[1].set_xlabel("cumulative QPU access time (s)")
-    axes[1].set_ylabel("energy")
 
+def make_figures(cache, out_dir, tag, best_only=False):
+    """Two separate single-panel figures: energy-vs-iteration and
+    energy-vs-cumulative-QPU-time. tag distinguishes the output filenames."""
+    setup_style(fontsize=11, scale=2.2)
+    colors = {1: "#2166ac", 3: "#d62728", 5: "#2ca02c"}
+    ls = {42: "-", 1: "--", 7: ":"}
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    fig, ax = plt.subplots(figsize=(5, 3.6))
+    _plot_one_panel(cache, ax, "iteration", best_only, colors, ls)
+    ax.set_xlabel("iteration")
+    ax.legend(fontsize=7, loc="upper right")
     fig.tight_layout()
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out_path.with_suffix(".pdf"))
-    fig.savefig(out_path.with_suffix(".png"), dpi=200)
-    print(f"Saved figure to {out_path.with_suffix('.pdf')} / .png")
+    p = out_dir / f"{tag}_convergence"
+    fig.savefig(p.with_suffix(".pdf"))
+    fig.savefig(p.with_suffix(".png"), dpi=200)
+    plt.close(fig)
+    print(f"Saved figure to {p.with_suffix('.pdf')} / .png")
+
+    fig, ax = plt.subplots(figsize=(5, 3.6))
+    _plot_one_panel(cache, ax, "qpu_time", best_only, colors, ls)
+    ax.set_xlabel("cumulative QPU access time (s)")
+    ax.legend(fontsize=7, loc="upper right")
+    fig.tight_layout()
+    p = out_dir / f"{tag}_qpu_time"
+    fig.savefig(p.with_suffix(".pdf"))
+    fig.savefig(p.with_suffix(".png"), dpi=200)
+    plt.close(fig)
+    print(f"Saved figure to {p.with_suffix('.pdf')} / .png")
 
 
 if __name__ == "__main__":
@@ -238,5 +271,6 @@ if __name__ == "__main__":
     cache = load_cache() if cli_args.plot_only else run_experiments(cli_args.n_parallel, cli_args.seeds)
     print_summary(cache)
 
-    out_path = _REPO / "plots" / "parallel_embedding" / "parallel_embedding_np_seeds"
-    make_figure(cache, out_path)
+    out_dir = _REPO / "plots" / "embedding" / "parallel_embedding"
+    make_figures(cache, out_dir, tag="parallel_embedding_np_seeds", best_only=False)
+    make_figures(cache, out_dir, tag="parallel_embedding_np_best", best_only=True)

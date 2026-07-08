@@ -242,5 +242,5 @@ if __name__ == "__main__":
 
     cache = load_cache() if cli_args.plot_only else run_experiments()
     print_summary(cache)
-    out_path = _REPO / "plots" / "parallel_embedding" / "embedding_algo_comparison"
+    out_path = _REPO / "plots" / "embedding" / "parallel_embedding" / "embedding_algo_comparison"
     make_figure(cache, out_path)
