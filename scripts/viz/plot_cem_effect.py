@@ -37,7 +37,7 @@ from plot_style import load_json
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 RESULTS_DIR = ROOT / "results"
-PLOTS_DIR = ROOT / "plots" / "cem_effect"
+PLOTS_DIR = ROOT / "plots" / "cem"
 
 KL_EXACT_MAX_N = 16  # must match src/encoder.py — exact KL only computed below this
 KL_DIVERGED_CLIP = 12.0  # display cap for inf/nan KL (diverged run), flagged separately

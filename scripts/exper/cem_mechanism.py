@@ -52,7 +52,7 @@ from model import FullyConnectedRBM
 from sampler import ClassicalSampler
 from plot_style import setup_style
 
-PLOTS_DIR = _REPO / "plots" / "cem_mechanism"
+PLOTS_DIR = _REPO / "plots" / "cem"
 
 N = 16
 H_FIELD = 1.0

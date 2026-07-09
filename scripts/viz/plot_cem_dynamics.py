@@ -38,7 +38,7 @@ from plot_style import load_json, setup_style
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 RESULTS_DIR = ROOT / "results" / "tfim_1d" / "16" / "custom" / "lsb"
-PLOTS_DIR = ROOT / "plots" / "cem_dynamics"
+PLOTS_DIR = ROOT / "plots" / "cem"
 
 TARGET_LR = 0.01
 MIN_SEEDS = 3
