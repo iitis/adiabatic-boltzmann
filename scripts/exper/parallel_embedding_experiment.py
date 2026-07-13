@@ -244,8 +244,8 @@ def make_figures(cache, out_dir, tag, best_only=False):
     ax.legend(fontsize=7, loc="upper right")
     fig.tight_layout()
     p = out_dir / f"{tag}_convergence"
-    fig.savefig(p.with_suffix(".pdf"))
-    fig.savefig(p.with_suffix(".png"), dpi=200)
+    fig.savefig(p.with_suffix(".pdf"), bbox_inches="tight")
+    fig.savefig(p.with_suffix(".png"), dpi=200, bbox_inches="tight")
     plt.close(fig)
     print(f"Saved figure to {p.with_suffix('.pdf')} / .png")
 
@@ -255,8 +255,8 @@ def make_figures(cache, out_dir, tag, best_only=False):
     ax.legend(fontsize=7, loc="upper right")
     fig.tight_layout()
     p = out_dir / f"{tag}_qpu_time"
-    fig.savefig(p.with_suffix(".pdf"))
-    fig.savefig(p.with_suffix(".png"), dpi=200)
+    fig.savefig(p.with_suffix(".pdf"), bbox_inches="tight")
+    fig.savefig(p.with_suffix(".png"), dpi=200, bbox_inches="tight")
     plt.close(fig)
     print(f"Saved figure to {p.with_suffix('.pdf')} / .png")
 

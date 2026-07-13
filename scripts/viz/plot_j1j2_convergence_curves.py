@@ -70,9 +70,9 @@ def main():
 
     fig, axes = plt.subplots(
         len(N_ROWS), len(J2_COLS),
-        figsize=(13, 8),
+        figsize=(20, 6),
         sharex=False,
-        gridspec_kw={"hspace": 0.52, "wspace": 0.52},
+        gridspec_kw={"hspace": 0.52, "wspace": 0.42},
     )
 
     for col, j2 in enumerate(J2_COLS):
@@ -97,8 +97,7 @@ def main():
                         color="#1d4ed8", lw=1.6)
 
             # Exact GS line
-            ax.axhline(e_exact, color="#dc2626", lw=1.3, ls="--",
-                       label=r"$E_\mathrm{exact}/N$" if row == 0 and col == 0 else None)
+            ax.axhline(e_exact, color="#dc2626", lw=1.3, ls="--")
 
             # J2/J1 label in every panel (top-left); N label only on leftmost panel of each row
             if col == 0:
@@ -108,11 +107,7 @@ def main():
                     ha="left", va="top", transform=ax.transAxes,
                     fontsize="small", color="#111")
 
-            # Final error annotation in bottom-right
-            err_str = f"{final_err*100:.1f}\\%" if final_err < 10 else f"{final_err*100:.0f}\\%"
-            ax.text(0.97, 0.06, rf"err $={err_str}$",
-                    ha="right", va="bottom", transform=ax.transAxes,
-                    fontsize="small", color="#374151")
+            e_final = float(e_hist[-1])
 
             # Y-axis: zoom in around convergence region
             e_min = min(e_exact, np.min(e_hist[-max(1, len(e_hist)//3):]))
@@ -120,12 +115,18 @@ def main():
             margin = abs(e_exact) * 0.08
             ax.set_ylim(e_min - margin, max(e_max, e_exact + margin))
 
+            # Inline "E/N = ..." label next to the converged (blue) curve
+            ylo, yhi = ax.get_ylim()
+            mid_idx = int(len(e_hist) * 0.68)
+            y_label = min(e_hist[mid_idx] + 0.06 * (yhi - ylo), yhi - 0.16 * (yhi - ylo))
+            ax.text(iters[mid_idx], y_label,
+                    rf"$E/N={e_final:.3f}$", color="#1d4ed8", fontsize="small",
+                    ha="center", va="bottom")
+
             if row == len(N_ROWS) - 1:
                 ax.set_xlabel("Iteration")
             if col == 0:
                 ax.set_ylabel("$E/N$")
-
-    axes[0][0].legend(loc="upper right", handlelength=1.5)
 
     _OUT.mkdir(parents=True, exist_ok=True)
     for ext in ("pdf", "png"):
