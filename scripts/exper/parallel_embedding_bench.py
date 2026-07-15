@@ -436,12 +436,12 @@ def main():
     mode.add_argument("--dry-run", action="store_true",
                       help="print schedule + projection, run nothing")
     parser.add_argument("--live-ledger", action="store_true",
-                        help="[plot-only] use the live ledger instead of rehearsal")
+                        help="[plot-only/dry-run] use the live ledger instead of rehearsal")
     cli = parser.parse_args()
 
     live = cli.live
-    rehearse = not live  # default; also governs which ledger plot-only reads
-    if cli.plot_only and cli.live_ledger:
+    rehearse = not live  # default; also governs which ledger plot-only/dry-run reads
+    if (cli.plot_only or cli.dry_run) and cli.live_ledger:
         rehearse = False
 
     ledger = load_ledger(rehearse)
