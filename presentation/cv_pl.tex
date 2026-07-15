@@ -1,0 +1,179 @@
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[a4paper,12pt]{memoir} % Font and paper size
+
+\input{struc.tex} % Include the file specifying document layout and packages
+
+%----------------------------------------------------------------------------------------
+%	NAME AND CONTACT INFORMATION 
+%----------------------------------------------------------------------------------------
+
+\userinformation{
+\begin{flushright}
+\includegraphics[width=0.7\columnwidth,height=80pt]{photo.jpg}\\[\baselineskip] % Your photo
+
+\small
+Philipp Hanussek \\
+\url{hanup@mailbox.org} \\
+575 854 652 \\
+\Sep
+\textbf{Adres} \\
+ul. Bytomska 105 \\
+42-672 Wieszowa \\
+\Sep
+\textbf{Języki} \\
+Niemiecki (ojczysty) \\
+Angielski (C2, IELTS - styczeń 2024) \\
+Francuski (C2) \\
+Polski (C1) \\
+\vfill
+\end{flushright}
+}
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+\userinformation % Print your information in the left column
+
+\framebreak % End of the first column
+
+%----------------------------------------------------------------------------------------
+%	HEADING
+%----------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------
+\cvheading{Philipp Hanussek}
+
+\cvsubheading{Student Informatyki / Badania ML}
+
+\CVSection{Umiejętności techniczne}
+
+\CVItem{Praca}{
+Python do uczenia maszynowego (PyTorch, NumPy/CuPy, Pandas);
+frameworki ML (Optuna, Streamlit); ABAP; REST API; SQL; Bash
+}
+
+\CVItem{Projekty}{
+Scikit-learn; Julia; C do obliczeń wysokowydajnych (wielowątkowość);
+Matlab; dokumentacja techniczna (UML); ITIL4
+}
+
+\Sep
+
+%----------------------------------------------------------------------------------------
+% EDUCATION
+%----------------------------------------------------------------------------------------
+
+\CVSection{Wykształcenie}
+
+\CVItem{09/2024 -- 09/2026, Sorbonne Université (Paryż, Francja)}{
+Magister Informatyki \\
+Kursy: Deep Learning, High Performance Computing, kryptografia (w tym kwantowa), sieci neuronowe do rozpoznawania obrazów
+}
+
+\CVItem{2020 -- 2024, FH Aachen (Akwizgran, Niemcy)}{
+Licencjat z Informatyki \\
+Ocena końcowa: GPA 3.5/4 (z wyróżnieniem) \\
+Praca dyplomowa: Comparison of Factoring Methods on the D-Wave Quantum Annealer \\
+Osiągnięcia:
+\begin{itemize}
+\item Top 5\% rocznika (2021, 2022)
+\item Stypendium za wyniki w nauce (2023)
+\end{itemize}
+}
+
+\Sep
+
+%----------------------------------------------------------------------------------------
+% EXPERIENCE
+%----------------------------------------------------------------------------------------
+
+\CVSection{Doświadczenie}
+
+\CVItem{03/2026 -- 08/2026, \textit{Badacz kwantowy}, Polska Akademia Nauk (Gliwice, Polska)}{
+\begin{itemize}
+\item Ocena wykorzystania współczesnych urządzeń kwantowych i klasycznych (GPU) do trenowania generatywnych sieci neuronowych
+\item Główny autor publikacji naukowej przyjętej przez American Physical Society dotyczącej symulacji układów kwantowych
+\end{itemize}
+}
+
+\CVItem{03/2024 -- 07/2024, \textit{Asystent studencki}, Jülich Supercomputing Centre, Forschungszentrum Jülich (Niemcy)}{
+\begin{itemize}
+\item Udział w projekcie oceniającym możliwości współczesnych komputerów kwantowych w rozwiązywaniu problemów kryptograficznych 
+\item Opracowanie pipeline’ów symulacyjnych i eksperymentalnych do benchmarkowania systemów kwantowych
+\end{itemize}
+}
+
+\CVItem{04/2022 -- 05/2024, \textit{Programista automatyzacji (część etatu)}, Zurich Insurance Group (Kolonia, Niemcy)}{
+\begin{itemize}
+\item Projektowanie i wdrażanie rozwiązań automatyzujących procesy płatności (ABAP, skrypty)
+\item Odpowiedzialność za migrację rozwiązań automatyzacji do SAP FS-CD
+\item Opracowanie prototypowego dashboardu SAP UI5/Fiori i integracja z backendem w ramach globalnego zespołu IT w Barcelonie
+\end{itemize}
+}
+
+\CVItem{09/2021 -- 07/2022, \textit{Tutor studencki}, FH Aachen}{
+\begin{itemize}
+\item Prowadzenie zajęć przygotowawczych dla ponad 20 studentów
+\item Wsparcie w zaawansowanych zagadnieniach matematycznych
+\end{itemize}
+}
+
+\Sep
+
+%------------------------------------------------
+
+\Sep % Extra whitespace after the end of a major section
+
+
+%------------------------------------------------
+
+
+
+%----------------------------------------------------------------------------------------
+%	NEW PAGE DELIMITER
+%----------------------------------------------------------------------------------------
+
+\clearpage % Start a new page
+
+\begin{flushright}
+
+\end{flushright}
+
+\framebreak % End of the first column
+
+%----------------------------------------------------------------------------------------
+% PUBLICATIONS
+%----------------------------------------------------------------------------------------
+
+\CVSection{Publikacje}
+
+\CVItem{2026}{
+\href{https://journals.aps.org/prapplied/abstract/10.1103/rrf3-jm5m}
+{\textit{Quantum-inspired dynamical models on quantum and classical annealers}} \\
+P. Hanussek, J. Pawłowski, Z. Mzaouali, B. Gardas \\
+Phys. Rev. Applied
+}
+
+\CVItem{2024}{
+\href{https://arxiv.org/abs/2410.14397}
+{\textit{The State of Factoring on Quantum Computers}} \\
+D. Willsch, P. Hanussek, G. Hoever, M. Willsch, F. Jin, H. De Raedt, K. Michielsen \\
+NIC Symposium 2025
+}
+\Sep
+
+%----------------------------------------------------------------------------------------
+% VOLUNTEERING
+%----------------------------------------------------------------------------------------
+
+\CVSection{Wolontariat}
+
+\CVItem{09/2025 -- obecnie, Paryż / Gliwice}{
+Wolontariusz \\
+Cotygodniowa działalność (2h): dystrybucja posiłków dla osób w potrzebie, wsparcie i kierowanie do lokalnych usług pomocowych
+}
+
+\Sep
+\end{document}

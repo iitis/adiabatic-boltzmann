@@ -1,0 +1,164 @@
+\ProvidesPackage{beamerthemeIITiS}[2026/07/15 IITiS modern presentation theme]
+
+\RequirePackage{tikz}
+\RequirePackage{xcolor}
+
+% Sans-serif everywhere (metropolis-style) without needing xelatex/fontspec
+\RequirePackage[T1]{fontenc}
+\RequirePackage{lmodern}
+\RequirePackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
+% ---------------------------------------------------------------------------
+% Colors
+% ---------------------------------------------------------------------------
+\definecolor{iitis-gray}{RGB}{131,130,128}
+\definecolor{iitis-orange}{RGB}{230,120,23}
+\definecolor{iitis-lightgray}{RGB}{237,237,236}
+\definecolor{iitis-darkgray}{RGB}{60,60,60}
+
+\setbeamercolor{normal text}{fg=iitis-darkgray,bg=white}
+\setbeamercolor{structure}{fg=iitis-orange}
+\setbeamercolor{alerted text}{fg=iitis-orange}
+\setbeamercolor{example text}{fg=iitis-gray}
+
+\setbeamercolor{title}{fg=iitis-orange}
+\setbeamercolor{subtitle}{fg=iitis-gray}
+\setbeamercolor{author}{fg=iitis-darkgray}
+\setbeamercolor{institute}{fg=iitis-gray}
+\setbeamercolor{date}{fg=iitis-gray}
+
+\setbeamercolor{frametitle}{fg=iitis-orange,bg=white}
+\setbeamercolor{footline}{fg=iitis-gray,bg=white}
+\setbeamercolor{progress bar}{fg=iitis-orange,bg=iitis-lightgray}
+
+\setbeamercolor{block title}{fg=white,bg=iitis-orange}
+\setbeamercolor{block body}{fg=iitis-darkgray,bg=iitis-lightgray}
+\setbeamercolor{block title alerted}{fg=white,bg=iitis-gray}
+\setbeamercolor{block body alerted}{fg=iitis-darkgray,bg=iitis-lightgray}
+\setbeamercolor{block title example}{fg=white,bg=iitis-gray}
+\setbeamercolor{block body example}{fg=iitis-darkgray,bg=iitis-lightgray}
+
+\setbeamercolor{item}{fg=iitis-orange}
+\setbeamercolor{section in toc}{fg=iitis-darkgray}
+\setbeamercolor{subsection in toc}{fg=iitis-gray}
+\setbeamercolor{standout}{fg=white,bg=iitis-orange}
+
+% ---------------------------------------------------------------------------
+% Fonts
+% ---------------------------------------------------------------------------
+\usefonttheme{professionalfonts}
+\setbeamerfont{title}{size=\Huge,series=\bfseries}
+\setbeamerfont{subtitle}{size=\Large,series=\mdseries,shape=\itshape}
+\setbeamerfont{author}{size=\normalsize}
+\setbeamerfont{institute}{size=\small}
+\setbeamerfont{date}{size=\small}
+\setbeamerfont{frametitle}{size=\LARGE,series=\bfseries}
+\setbeamerfont{block title}{size=\normalsize,series=\bfseries}
+\setbeamerfont{footline}{size=\tiny}
+\setbeamerfont{standout}{size=\Huge,series=\bfseries}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{itemize items}[circle]
+\setbeamertemplate{enumerate items}[default]
+\setbeamertemplate{blocks}[rounded][shadow=false]
+\setbeamertemplate{caption}[numbered]
+
+% ---------------------------------------------------------------------------
+% Logo (reused from beamerthemeIITiSPoster.sty)
+% ---------------------------------------------------------------------------
+\def\iitis@e{0.2}
+\newcommand{\iitislogo}[1]{%
+	\begin{tikzpicture}[scale=#1]%
+		\fill[color=iitis-gray] (2,0) rectangle (3,1);%
+		\fill[color=iitis-gray] (2,4) rectangle (3,5);%
+		\fill[color=iitis-gray] ({0-2*\iitis@e},2) rectangle ({1-2*\iitis@e},3);%
+		\fill[color=iitis-orange] ({1-\iitis@e},2) rectangle ({2-\iitis@e},3);%
+		\fill[color=iitis-orange] (2,2) rectangle (3,3);%
+		\fill[color=iitis-orange] (4,2) rectangle (5,3);%
+		\fill[color=iitis-orange] (3,3) rectangle (4,4);%
+		\fill[color=iitis-orange] (3,1) rectangle (4,2);%
+	\end{tikzpicture}%
+}
+
+% ---------------------------------------------------------------------------
+% Title page
+% ---------------------------------------------------------------------------
+\setbeamertemplate{title page}{
+	\vbox to \textheight{
+		\vfill
+		\iitislogo{0.35}\\[1.5em]
+		{\usebeamercolor[fg]{title}\usebeamerfont{title}\inserttitle\par}
+		\vspace{0.3em}
+		{\color{iitis-orange}\rule{0.22\textwidth}{2pt}}\\[0.8em]
+		\ifx\insertsubtitle\@empty\else
+			{\usebeamercolor[fg]{subtitle}\usebeamerfont{subtitle}\insertsubtitle\par}
+			\vspace{1.2em}
+		\fi
+		{\usebeamercolor[fg]{author}\usebeamerfont{author}\insertauthor\par}
+		\vspace{0.3em}
+		{\usebeamercolor[fg]{institute}\usebeamerfont{institute}\insertinstitute\par}
+		\vspace{0.3em}
+		{\usebeamercolor[fg]{date}\usebeamerfont{date}\insertdate\par}
+		\vfill
+	}
+}
+
+% ---------------------------------------------------------------------------
+% Frame title: bold text + thin orange rule underneath
+% ---------------------------------------------------------------------------
+\setbeamertemplate{frametitle}{
+	\vspace{0.6em}
+	\hspace{0.4cm}\usebeamerfont{frametitle}\usebeamercolor[fg]{frametitle}\insertframetitle\par
+	\vspace{0.3em}
+	\hspace{0.4cm}{\color{iitis-orange}\rule{0.12\paperwidth}{2pt}}
+	\vspace{0.5em}
+}
+
+% ---------------------------------------------------------------------------
+% Footline: thin progress bar + logo + short title + page number
+% ---------------------------------------------------------------------------
+\newlength{\iitis@barwidth}
+\newcommand{\iitisprogressbar}{%
+	\ifnum\inserttotalframenumber>1
+		\pgfmathsetmacro{\iitis@ratio}{(\insertframenumber-1)/(\inserttotalframenumber-1)}%
+	\else
+		\def\iitis@ratio{1}%
+	\fi
+	\pgfmathsetlength{\iitis@barwidth}{\iitis@ratio\paperwidth}%
+	{\color{iitis-lightgray}\rule{\paperwidth}{0.045cm}}%
+	\hspace{-\paperwidth}%
+	{\color{iitis-orange}\rule{\iitis@barwidth}{0.045cm}}%
+	\par
+}
+
+\setbeamertemplate{footline}{
+	\iitisprogressbar
+	\begin{beamercolorbox}[wd=\paperwidth,ht=3.2ex,leftskip=0.4cm,rightskip=0.4cm]{footline}
+		\usebeamerfont{footline}\iitislogo{0.12}\hfill\insertshorttitle\hfill\insertframenumber\,/\,\inserttotalframenumber
+	\end{beamercolorbox}
+}
+
+% ---------------------------------------------------------------------------
+% Section divider ("standout") frame: \begin{frame}\dividerpage{Section Name}\end{frame}
+% ---------------------------------------------------------------------------
+\newcommand{\dividerpage}[1]{%
+	\setbeamertemplate{footline}{}%
+	\begin{tikzpicture}[remember picture,overlay]
+		\fill[iitis-orange] (current page.south west) rectangle (current page.north east);
+	\end{tikzpicture}%
+	\vbox to \textheight{\vfill\centering\usebeamerfont{standout}\color{white}#1\vfill}%
+}
+
+% ---------------------------------------------------------------------------
+% Placeholder figure box (for demo slides / mockups without real assets)
+% ---------------------------------------------------------------------------
+\newcommand{\placeholderbox}[3][]{%
+	% #1 = optional tikz options, #2 = width, #3 = label text
+	\begin{tikzpicture}[#1]
+		\draw[iitis-gray,thick,fill=iitis-lightgray] (0,0) rectangle (#2,0.62*#2);
+		\draw[iitis-gray] (0,0) -- (#2,0.62*#2);
+		\draw[iitis-gray] (0,0.62*#2) -- (#2,0);
+		\node[iitis-darkgray,align=center,font=\small] at (0.5*#2,0.31*#2) {#3};
+	\end{tikzpicture}%
+}
