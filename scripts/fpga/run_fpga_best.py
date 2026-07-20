@@ -45,6 +45,12 @@ sys.path.insert(0, str(_REPO / "scripts"))
 
 import jax
 
+# Match hparam_optuna.py: the VMC/SR/CG math explicitly requests float64
+# throughout (encoder/ising/model). Without this, jax silently truncates to
+# float32 and the production sweep would run in lower precision than the
+# hparam search it consumes.
+jax.config.update("jax_enable_x64", True)
+
 from encoder import Trainer
 from helpers import (
     _ansatz_str,
