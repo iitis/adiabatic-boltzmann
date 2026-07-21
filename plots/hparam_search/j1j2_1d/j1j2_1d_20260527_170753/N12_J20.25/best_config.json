@@ -1,0 +1,32 @@
+{
+  "err_per_spin": 7.796457087335303e-07,
+  "config": {
+    "model": "j1j2_1d",
+    "size": 12,
+    "J1": 1.0,
+    "J2": 0.25,
+    "h": 0.5,
+    "J": 1.0,
+    "delta": 1.0,
+    "rbm": "full",
+    "ansatz": "rbm",
+    "n_hidden": 32,
+    "alpha": 2.6666666666666665,
+    "d_model": 32,
+    "n_layers": 2,
+    "n_heads": 4,
+    "patch_size": 2,
+    "sampler": "custom",
+    "sampling_method": "gibbs",
+    "n_samples": 1600,
+    "iterations": 150,
+    "learning_rate": 0.025595863321791503,
+    "regularization": 3.125375178371015e-06,
+    "seed": 1,
+    "cem": false,
+    "cem_interval": 5,
+    "sigma": 1.0,
+    "visualize": false,
+    "output_dir": "/home/phanussek/adiabatic-boltzmann/results/hparam_search/j1j2_1d/j1j2_1d_20260527_170753/N12_J20.25"
+  }
+}

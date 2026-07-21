@@ -1,0 +1,32 @@
+{
+  "err_per_spin": 0.8255467044685865,
+  "config": {
+    "model": "heisenberg_j1j2_1d",
+    "size": 8,
+    "J1": 1.0,
+    "J2": 0.0,
+    "delta": 1.0,
+    "h": 0.0,
+    "J": 1.0,
+    "rbm": "full",
+    "ansatz": "rbm",
+    "n_hidden": 17,
+    "alpha": 2.125,
+    "d_model": 32,
+    "n_layers": 2,
+    "n_heads": 4,
+    "patch_size": 2,
+    "sampler": "custom",
+    "sampling_method": "gibbs",
+    "n_samples": 2000,
+    "iterations": 200,
+    "learning_rate": 0.3805325445244189,
+    "regularization": 0.022535074365613195,
+    "seed": 42,
+    "cem": false,
+    "cem_interval": 5,
+    "sigma": 1.0,
+    "visualize": false,
+    "output_dir": "/home/atg205/adiabatic-boltzmann/results/hparam_search/heisenberg_j1j2_1d/j1j2_gibbs_lsb_v1/N8_J20.0"
+  }
+}

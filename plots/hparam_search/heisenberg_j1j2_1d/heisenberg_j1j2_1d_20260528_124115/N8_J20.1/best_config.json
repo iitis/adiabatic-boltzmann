@@ -1,0 +1,32 @@
+{
+  "err_per_spin": 1.3133421683519941e-08,
+  "config": {
+    "model": "heisenberg_j1j2_1d",
+    "size": 8,
+    "J1": 1.0,
+    "J2": 0.1,
+    "delta": 1.0,
+    "h": 0.0,
+    "J": 1.0,
+    "rbm": "full",
+    "ansatz": "rbm",
+    "n_hidden": 13,
+    "alpha": 1.625,
+    "d_model": 32,
+    "n_layers": 2,
+    "n_heads": 4,
+    "patch_size": 2,
+    "sampler": "custom",
+    "sampling_method": "exchange",
+    "n_samples": 600,
+    "iterations": 300,
+    "learning_rate": 0.005478909518465534,
+    "regularization": 0.0023284826120660317,
+    "seed": 1,
+    "cem": false,
+    "cem_interval": 5,
+    "sigma": 1.0,
+    "visualize": false,
+    "output_dir": "/home/phanussek/adiabatic-boltzmann/results/hparam_search/heisenberg_j1j2_1d/heisenberg_j1j2_1d_20260528_124115/N8_J20.1"
+  }
+}

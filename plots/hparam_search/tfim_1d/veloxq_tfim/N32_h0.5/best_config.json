@@ -1,0 +1,32 @@
+{
+  "err_per_spin": 3.5250436307698862e-06,
+  "config": {
+    "model": "1d",
+    "size": 32,
+    "h": 0.5,
+    "J1": 1.0,
+    "J2": 0.0,
+    "J": 1.0,
+    "delta": 1.0,
+    "rbm": "full",
+    "ansatz": "rbm",
+    "n_hidden": 124,
+    "alpha": 3.875,
+    "d_model": 32,
+    "n_layers": 2,
+    "n_heads": 4,
+    "patch_size": 2,
+    "sampler": "velox",
+    "sampling_method": "simulated_annealing",
+    "n_samples": 2400,
+    "iterations": 150,
+    "learning_rate": 0.05596450593539421,
+    "regularization": 3.289646304697835e-07,
+    "seed": 1,
+    "cem": false,
+    "cem_interval": 5,
+    "sigma": 1.0,
+    "visualize": false,
+    "output_dir": "/home/lpawela/side-projects/qmz/adiabatic-boltzmann/results/hparam_search/tfim_1d/veloxq_tfim/N32_h0.5"
+  }
+}

@@ -4,10 +4,10 @@
 \usepackage[utf8]{inputenc}
 \usepackage{caption}
 
-\title[Kandydatura doktorancka]{Kandydatura na stanowisko doktoranckie}
-\subtitle{Obliczenia i dynamika kwantowa}
+\title[Kandydatura doktorancka]{Kandydatura do szkoły doktorskiej}
+\subtitle{Practical quantum advantage in optimization: hybrid algorithms and classical HPC baselines}
 \author{Philipp Hanussek}
-\institute{IITiS PAN, Gliwice}
+\institute{IITiS PAN, Gliwice \\ Promotor: dr hab. inż. Łukasz Pawela}
 \date{\today}
 
 \begin{document}
@@ -41,27 +41,6 @@
 			      \item Praca dyplomowa: \textit{Comparison of Factoring Methods on the D-Wave Quantum Annealer}
 		      \end{itemize}
 	\end{itemize}
-\end{frame}
-
-\begin{frame}{Umiejętności i języki}
-	\begin{columns}[T]
-		\column{0.55\textwidth}
-		\textbf{Umiejętności techniczne}
-		\begin{itemize}
-			\item Python do uczenia maszynowego (PyTorch, NumPy/CuPy, Pandas)
-			\item Frameworki ML: Optuna, Streamlit
-			\item C do obliczeń wysokowydajnych (wielowątkowość)
-			\item Julia, Matlab, SQL, Bash, ABAP, REST API
-		\end{itemize}
-		\column{0.4\textwidth}
-		\textbf{Języki}
-		\begin{itemize}
-			\item Niemiecki -- ojczysty
-			\item Angielski -- C2
-			\item Francuski -- C2
-			\item Polski -- C1
-		\end{itemize}
-	\end{columns}
 \end{frame}
 
 \section{Doświadczenie zawodowe}
@@ -111,13 +90,18 @@
 	\end{block}
 \end{frame}
 
-\begin{frame}{Praca magisterska -- problem faktoryzacji}
+\begin{frame}{Praca licencjacka -- problem faktoryzacji}
 	\begin{itemize}
 		\item Faktoryzacja liczb całkowitych jako problem optymalizacyjny -- odwzorowanie na problem Isinga rozwiązywalny przez D-Wave
-		\item \textit{[Opis problemu -- uzupełnij]}
 	\end{itemize}
-	\begin{block}{Sformułowanie problemu}
-		\textit{[miejsce na wzór -- uzupełnij]}
+	\begin{block}{Sformułowanie problemu (QUBO)}
+		\[
+			N = p \cdot q
+		\]
+		\begin{itemize}
+			\item $N$ -- znana liczba całkowita, którą chcemy rozłożyć na czynniki
+			\item $p, q$ -- nieznane czynniki (liczby pierwsze), szukane przez solver
+		\end{itemize}
 	\end{block}
 \end{frame}
 
@@ -153,7 +137,7 @@
 			\vspace{0.3cm}
 			\begin{itemize}
 				\item Ansatz: funkcja falowa RBM $\Psi(v)$
-				\item porównowania $TT_\epsilon$ na klasyczych metodach (GPU, FPGA) i komputerach kwantowych)
+				\item porównanie $TT_\epsilon$ na klasycznych metodach (GPU, FPGA) i komputerach kwantowych
 			\end{itemize}
 		\end{column}
 		\begin{column}{0.45\textwidth}
@@ -164,12 +148,11 @@
 	\end{columns}
 \end{frame}
 
-\begin{frame}{}
-	\vfill
-	\begin{center}
-		{\usebeamercolor[fg]{title}\usebeamerfont{subtitle}\LARGE\itshape ``\textit{[Krótki, zapadający w~pamięć cytat o~Twojej motywacji -- uzupełnij]}''}
-	\end{center}
-	\vfill
+\begin{frame}{Szerszy kontekst doktoratu}
+	\begin{itemize}
+		\item Rzetelny benchmarking: quantum annealing vs.\ klasyczne HPC
+		\item Pytanie: czy realna jest bliskoterminowa przewaga kwantowa?
+	\end{itemize}
 \end{frame}
 
 % --- Zakończenie -----------------------------------------------------------

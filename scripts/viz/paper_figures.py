@@ -433,6 +433,595 @@ def fig4_success_fraction_heisenberg():
     _save(fig, "fig4_success_fraction_heisenberg_mg_point")
 
 
+# ---------------------------------------------------------------------------
+# Figure 5 — Single-instance convergence, TFIM 1D, includes real D-Wave QPU
+# sampling (pegasus, zephyr), no new QPU time used (archived runs only).
+#
+# Data: N=8 and N=16, h=0.5, rbmfull, lr=0.1, reg=0.001, ns=1000, seed=42,
+# iter=300 — the only cell in the whole results tree where a classical
+# sampler, VeloxQ, and both D-Wave QPU solvers (pegasus, zephyr) share
+# identical (N, h, RBM, lr, reg, n_samples, seed). Exact filenames (not
+# globs) are used below because several nominally-identical cells on disk
+# contain more than one archived run under the same seed label (from
+# different sweep campaigns); one verified case (tfim_2d, metropolis) shows
+# these can converge to very different final energies, so silently picking
+# one via a generic tie-break risks a hidden cherry-pick. Here we instead
+# pin the exact file whose name matches the D-Wave runs' naming byte-for-byte.
+# VeloxQ has no archived N=8 run at this config, so N=8 has 3 solvers only.
+# Single seed per solver: this is a qualitative single-instance comparison,
+# not a statistical claim. No wall-clock timing is recorded for the D-Wave
+# QPU runs (history has no sampling_time_s), so this is energy-vs-iteration
+# only, not a TTE plot.
+# ---------------------------------------------------------------------------
+
+def fig5_convergence_dwave_tfim1d():
+    panels = [
+        (8, [
+            ("results/tfim_1d/8/custom/metropolis/result_1d_h0.5_rbmfull_nh8_lr0.1_reg0.001_ns1000_seed42_iter300_cem0.json.gz", "Metropolis", COLOR_BLUE, "-"),
+            ("results/tfim_1d/8/dimod/pegasus/result_1d_h0.5_rbmfull_nh8_lr0.1_reg0.001_ns1000_seed42_iter300_cem0.json.gz", "D-Wave Pegasus (QPU)", COLOR_MAGENTA, "-"),
+            ("results/tfim_1d/8/dimod/zephyr/result_1d_h0.5_rbmfull_nh8_lr0.1_reg0.001_ns1000_seed42_iter300_cem0.json.gz", "D-Wave Zephyr (QPU)", "#eb6834", "-"),
+        ]),
+        (16, [
+            ("results/tfim_1d/16/custom/metropolis/result_1d_h0.5_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed42_iter300.json.gz", "Metropolis", COLOR_BLUE, "-"),
+            ("results/tfim_1d/16/velox/velox/result_1d_h0.5_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed42_iter300.json.gz", "VeloxQ (SA)", COLOR_GREEN, "-"),
+            ("results/tfim_1d/16/dimod/pegasus/result_1d_h0.5_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed42_iter300.json.gz", "D-Wave Pegasus (QPU)", COLOR_MAGENTA, "-"),
+            ("results/tfim_1d/16/dimod/zephyr/result_1d_h0.5_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed42_iter300.json.gz", "D-Wave Zephyr (QPU)", "#eb6834", "-"),
+        ]),
+    ]
+
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5.5))
+
+    for ax, (n, runs) in zip(axes, panels):
+        for path, label, color, linestyle in runs:
+            with gzip.open(path) as fh:
+                r = json.load(fh)
+            energies = np.array(r["history"]["energy"])
+            exact = r["exact_energy"]
+            rel_err = np.abs(energies - exact) / abs(exact)
+            n_budget = r["config"]["iterations"]
+            plot_label = label if len(rel_err) == n_budget else f"{label} (stopped @ {len(rel_err)}/{n_budget})"
+            ax.plot(np.arange(1, len(rel_err) + 1), rel_err, color=color, label=plot_label,
+                    linewidth=1.6, linestyle=linestyle, zorder=3)
+            if len(rel_err) < n_budget:
+                ax.scatter([len(rel_err)], [rel_err[-1]], color=color, marker="x", s=40, zorder=4)
+        ax.set_yscale("log")
+        ax.set_xlabel("SR iteration")
+        ax.set_title(f"N = {n}")
+        style_axes(ax)
+        ax.legend(frameon=False, loc="upper right", fontsize=9)
+
+    axes[0].set_ylabel(r"Relative error $|E-E_\mathrm{exact}|/|E_\mathrm{exact}|$")
+    fig.suptitle(
+        "Single-instance convergence, TFIM 1D, h=0.5, matched hyperparameters\n"
+        "(seed=42, single run per solver — not a statistical comparison)", y=1.03
+    )
+    fig.tight_layout()
+    _save(fig, "fig5_convergence_dwave_tfim1d")
+
+
+# ---------------------------------------------------------------------------
+# Figure 6 — Energy-to-solution vs N, TFIM 2D, includes real D-Wave QPU
+# sampling (pegasus, zephyr), no new QPU time used (archived runs only).
+#
+# Data: results/tfim_2d/{4,6,8}/{custom/metropolis, dimod/pegasus,
+# dimod/zephyr}, rbmfull, lr=0.1, reg=0.001, ns=1000, iter=300, matched
+# across all three sizes and both D-Wave solvers, three field strengths
+# h=0.5/1.0/2.0. D-Wave has 2 independent QPU runs per cell (seed 1, 42);
+# metropolis has 2-3 (archived runs sharing a nominal seed label are kept as
+# separate samples rather than deduplicated, since one checked case shows
+# they can converge to genuinely different final energies — treating them
+# as independent is honest, picking one would be a hidden cherry-pick).
+# With only 2-3 samples per point, the shown band is not a real IQR; it is
+# the same median_iqr() convention as Figures 1/3, interpreted as a
+# min/max-ish spread rather than a statistical distribution.
+# ---------------------------------------------------------------------------
+
+def fig6_energy_vs_n_tfim2d_dwave():
+    sizes = [4, 6, 8]
+    hs = [0.5, 1.0, 2.0]
+    solvers = [
+        ("custom/metropolis", "Metropolis", COLOR_BLUE, "o"),
+        ("dimod/pegasus", "D-Wave Pegasus (QPU)", COLOR_MAGENTA, "^"),
+        ("dimod/zephyr", "D-Wave Zephyr (QPU)", "#eb6834", "s"),
+    ]
+
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5), sharey=True)
+
+    for ax, h in zip(axes, hs):
+        for subdir, label, color, marker in solvers:
+            med, lo, hi, ns = [], [], [], []
+            for n in sizes:
+                nh = n * n
+                recs = [
+                    r for r in load(f"results/tfim_2d/{n}/{subdir}/result_2d_h{h}_rbmfull_nh{nh}_lr0.1_reg0.001_ns1000_seed*_iter300*")
+                    if r["config"]["n_hidden"] == nh
+                ]
+                errs = [abs(r["final_energy"] - r["exact_energy"]) / abs(r["exact_energy"]) for r in recs]
+                ns.append(len(errs))
+                m, l, hh = median_iqr(errs)
+                med.append(m); lo.append(l); hi.append(hh)
+            xs = [n for n, m in zip(sizes, med) if m is not None]
+            ys = [m for m in med if m is not None]
+            lo_v = [v for v in lo if v is not None]
+            hi_v = [v for v in hi if v is not None]
+            if xs:
+                yerr = [[y - l for y, l in zip(ys, lo_v)], [hh - y for y, hh in zip(ys, hi_v)]]
+                ax.errorbar(xs, ys, yerr=yerr, marker=marker, color=color, label=label,
+                            markersize=7, linewidth=1.6, capsize=3, zorder=3)
+            for x, n_total in zip(sizes, ns):
+                if n_total:
+                    ax.annotate(f"n={n_total}", (x, med[sizes.index(x)]), textcoords="offset points",
+                                xytext=(0, 7), fontsize=6.5, color=color, ha="center")
+        ax.set_yscale("log")
+        ax.set_xticks(sizes)
+        ax.set_xticklabels([str(n) for n in sizes])
+        ax.set_xlabel("Linear size N (lattice N×N)")
+        ax.set_title(f"h = {h}")
+        style_axes(ax)
+
+    axes[0].set_ylabel(r"Final relative error $|E_\mathrm{final}-E_\mathrm{exact}|/|E_\mathrm{exact}|$")
+    axes[0].legend(frameon=False, loc="upper left", fontsize=8.5)
+    fig.suptitle(
+        "Energy-to-solution vs. system size, TFIM 2D, matched hyperparameters\n"
+        "Metropolis vs. D-Wave QPU (Pegasus, Zephyr) — n=2-3 samples per point", y=1.04
+    )
+    fig.tight_layout()
+    _save(fig, "fig6_energy_vs_n_tfim2d_dwave")
+
+
+# ---------------------------------------------------------------------------
+# Figure 7 — ITE and energy-to-solution vs N, classical solver comparison,
+# with real statistical power (10-15 seeds per point, not 2-3).
+#
+# Data: results/tfim_1d/{4,8,16}/{custom/metropolis, dimod/simulated_annealing,
+# dimod/tabu}, h=1.0, rbmfull, lr=0.1, reg=1e-05, ns=1000, iter=100, cem=0.
+# dimod/simulated_annealing and dimod/tabu run through the SAME DimodSampler
+# codepath used for the D-Wave QPU runs (sampler.py) -- they are the
+# classical software analogs of the pegasus/zephyr methods, just executed on
+# CPU instead of the QPU. This isolates "does annealing-style discrete
+# sampling help vs. plain MCMC" from "does the actual QPU help vs. its own
+# classical simulation" (the latter question is addressed separately in
+# Figures 5-6, where QPU data is thin).
+#
+# Panel A: final relative error vs. N (4, 8, 16), h=1.0, matched
+# hyperparameters, seeds 1-10 (N=4,16) or 1-15 (N=8) -- no cherry-picking, no
+# best-of. An iterations-to-epsilon panel was tried here first and dropped:
+# at this cell's 100-iteration budget, individual per-seed histories are
+# unstable (energy jumps to large positive values before settling, verified
+# on several seeds), so an early iteration can spuriously satisfy even a
+# loose epsilon by chance while the run is still far from converged --
+# ITE would silently misrepresent those seeds as fast. Final relative error
+# is not sensitive to this artifact and is the honest metric for this cell.
+#
+# Panel B: same three solvers and same rich 15-seeds-per-cell campaign, but
+# swept across field strength h at fixed N=8 instead of across N (this is
+# the only size with h=0.5/1.0/1.5/2.0 all archived at 15 seeds). This is
+# not a size-scaling panel -- it is included because, at fixed size, no
+# solver dominates across the whole field range: Metropolis is best at
+# h=0.5 (median 3.8% error) while Tabu is best at h=1.5-2.0 (median
+# 17-19% error, vs. 63-88% for Metropolis/SA there). That crossover is a
+# genuine, well-powered (n=15) finding, not an artifact of panel A's issue.
+# ---------------------------------------------------------------------------
+
+def fig7_classical_scaling_tfim1d():
+    solvers = [
+        ("custom/metropolis", "Metropolis (MCMC)", COLOR_BLUE, "o"),
+        ("dimod/simulated_annealing", "Simulated annealing (classical, dimod/neal)", COLOR_GREEN, "s"),
+        ("dimod/tabu", "Tabu search (classical, dimod)", COLOR_MAGENTA, "^"),
+    ]
+
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5.5))
+
+    # Panel A: final relative error vs N, h=1.0
+    ax = axes[0]
+    sizes = [4, 8, 16]
+    for solver, label, color, marker in solvers:
+        med, lo, hi, ns = [], [], [], []
+        for n in sizes:
+            recs = load(f"results/tfim_1d/{n}/{solver}/result_1d_h1.0_rbmfull_nh{n}_lr0.1_reg1e-05_ns1000_seed*_iter100_cem0.json.gz")
+            ns.append(len(recs))
+            errs = [abs(r["final_energy"] - r["exact_energy"]) / abs(r["exact_energy"]) for r in recs]
+            m, l, h = median_iqr(errs)
+            med.append(m); lo.append(l); hi.append(h)
+        xs = [n for n, m in zip(sizes, med) if m is not None]
+        ys = [m for m in med if m is not None]
+        yerr = [[y - l for y, l in zip(ys, [v for v in lo if v is not None])],
+                [h - y for y, h in zip(ys, [v for v in hi if v is not None])]]
+        ax.errorbar(xs, ys, yerr=yerr, marker=marker, color=color, label=label,
+                    markersize=7, linewidth=1.6, capsize=3, zorder=3)
+        for x, n_total in zip(sizes, ns):
+            ax.annotate(f"n={n_total}", (x, med[sizes.index(x)]), textcoords="offset points",
+                        xytext=(8, 0), fontsize=7, color=color, ha="left")
+    ax.set_yscale("log")
+    log_x_with_ticks(ax, sizes)
+    ax.set_xlabel("System size N")
+    ax.set_ylabel(r"Final relative error $|E_\mathrm{final}-E_\mathrm{exact}|/|E_\mathrm{exact}|$")
+    ax.set_title("(A) vs. system size, h=1.0 (critical point)")
+    style_axes(ax)
+    ax.legend(frameon=False, loc="upper left", fontsize=8)
+
+    # Panel B: final relative error vs h, N=8 fixed
+    ax = axes[1]
+    hs = [0.5, 1.0, 1.5, 2.0]
+    for solver, label, color, marker in solvers:
+        med, lo, hi, ns = [], [], [], []
+        for h_val in hs:
+            recs = load(f"results/tfim_1d/8/{solver}/result_1d_h{h_val}_rbmfull_nh8_lr0.1_reg1e-05_ns1000_seed*_iter100_cem0.json.gz")
+            ns.append(len(recs))
+            errs = [abs(r["final_energy"] - r["exact_energy"]) / abs(r["exact_energy"]) for r in recs]
+            m, l, hh = median_iqr(errs)
+            med.append(m); lo.append(l); hi.append(hh)
+        xs = [x for x, m in zip(hs, med) if m is not None]
+        ys = [m for m in med if m is not None]
+        yerr = [[y - l for y, l in zip(ys, [v for v in lo if v is not None])],
+                [hh - y for y, hh in zip(ys, [v for v in hi if v is not None])]]
+        ax.errorbar(xs, ys, yerr=yerr, marker=marker, color=color, label=label,
+                    markersize=7, linewidth=1.6, capsize=3, zorder=3)
+        for x, n_total in zip(hs, ns):
+            ax.annotate(f"n={n_total}", (x, med[hs.index(x)]), textcoords="offset points",
+                        xytext=(0, 8), fontsize=7, color=color, ha="center")
+    ax.set_yscale("log")
+    ax.set_xticks(hs)
+    ax.set_xlabel("Transverse field h")
+    ax.set_title("(B) vs. field strength, N=8 fixed")
+    style_axes(ax)
+    ax.legend(frameon=False, loc="center left", fontsize=8)
+
+    fig.suptitle(
+        "Classical solver comparison, TFIM 1D, matched hyperparameters, 100 iterations\n"
+        "MCMC vs. classical annealing/tabu (10-15 independent seeds per point, no best-of)", y=1.03
+    )
+    fig.tight_layout()
+    _save(fig, "fig7_classical_scaling_tfim1d")
+
+
+# ---------------------------------------------------------------------------
+# Figure 8 — All solvers archived at N=16, TFIM 1D, each at its own
+# best-available operating point.
+#
+# THIS IS NOT A HYPERPARAMETER-MATCHED COMPARISON. It was checked
+# exhaustively (every config tuple in every solver directory, across the
+# entire results/ tree) and no (h, rbm, lr, reg, n_samples, iterations)
+# cell is shared by more than 3 of these solvers anywhere in the archive --
+# FPGA and VeloxQ in particular never share a config with Metropolis,
+# Gibbs, LSB, or the dimod classical/QPU methods at any size. Forcing a
+# match would mean throwing away everything except 1-2 solvers per plot
+# (Figures 5-7 do exactly that, deliberately). This figure instead shows
+# each solver's own richest archived cell at N=16 side by side, so every
+# solver that has ever been run at this size appears -- but each row's (h,
+# hyperparameters, n) is different and is annotated directly on the plot.
+# Reading a difference between rows as "solver A beats solver B" is only
+# valid to the extent you also believe their respective operating points
+# are each that solver's fair shot; that is a judgment call for the reader,
+# not something this figure can adjudicate.
+#
+# Per-solver cell (all rbm=full, n_hidden=16 unless noted):
+#   Metropolis / dimod-SA / dimod-Tabu : h=1.0, lr=0.1,  reg=1e-05, ns=1000, iter=100,  n=10 each (matches Figure 7A)
+#   Gibbs                              : h=0.5, lr=0.01, reg=1e-05, ns=1000, iter=300, cem=False, n=6
+#   LSB                                : h=0.5, lr=0.01, reg=1e-05, ns=1000, iter=300, cem=False, n=3
+#                                        (cem=False picked deliberately -- LSB also has cem=True
+#                                        archived runs at this exact cell; using cem=False avoids
+#                                        the LSB+CEM confound flagged in Figure 1)
+#   VeloxQ (SA) / FPGA                 : h=0.5, lr=0.08 (sweeps convention, matches Fig 2/3),
+#                                        reg=0.05, ns=200, sweeps100+sweeps2000 pooled, n=40 runs
+#                                        (20 unique seeds, each campaign independently verified
+#                                        non-duplicate final energies -- same pooling as Figure 2/3)
+#   D-Wave Pegasus / Zephyr (QPU)      : h=0.5, rbmfull, lr=0.1, reg=0.001, ns=1000, iter=300, n=2
+#                                        (matches Figure 5/6's cell; real QPU, thin)
+# ---------------------------------------------------------------------------
+
+def fig8_all_solvers_n16():
+    rows = [
+        ("Metropolis (MCMC)", "results/tfim_1d/16/custom/metropolis/result_1d_h1.0_rbmfull_nh16_lr0.1_reg1e-05_ns1000_seed*_iter100_cem0.json.gz", None, COLOR_BLUE),
+        ("Gibbs (MCMC)", "results/tfim_1d/16/custom/gibbs/result_1d_h0.5_rbmfull_nh16_lr0.01_reg1e-05_ns1000_seed*_iter300_cem0_sigma1.0.json.gz", None, COLOR_BLUE),
+        ("LSB (MCMC)", "results/tfim_1d/16/custom/lsb/result_1d_h0.5_rbmfull_nh16_lr0.01_reg1e-05_ns1000_seed*_iter300_cem0_sigma1.0.json.gz", None, COLOR_BLUE),
+        ("Simulated annealing (dimod/neal)", "results/tfim_1d/16/dimod/simulated_annealing/result_1d_h1.0_rbmfull_nh16_lr0.1_reg1e-05_ns1000_seed*_iter100_cem0.json.gz", None, COLOR_GREEN),
+        ("Tabu search (dimod)", "results/tfim_1d/16/dimod/tabu/result_1d_h1.0_rbmfull_nh16_lr0.1_reg1e-05_ns1000_seed*_iter100_cem0.json.gz", None, COLOR_GREEN),
+        ("VeloxQ (SA hardware)", None, "velox", "#eb6834"),
+        ("FPGA", None, "fpga", "#eb6834"),
+        ("D-Wave Pegasus (QPU)", "results/tfim_1d/16/dimod/pegasus/result_1d_h0.5_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed*_iter300.json.gz", None, COLOR_MAGENTA),
+        ("D-Wave Zephyr (QPU)", "results/tfim_1d/16/dimod/zephyr/result_1d_h0.5_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed*_iter300.json.gz", None, COLOR_MAGENTA),
+    ]
+
+    def sweeps_recs(solver):
+        out = []
+        for campaign in ("sweeps100", "sweeps2000"):
+            for r in load(f"results/{campaign}/tfim_1d/16/{solver}/*/result_*_seed*_iter*"):
+                c = r["config"]
+                if c["n_hidden"] == 16 and abs(c["learning_rate"] - 0.08) < 1e-9 \
+                        and abs(c["regularization"] - 0.05) < 1e-9 and c["n_samples"] == 200:
+                    out.append(r)
+        return out
+
+    fig, ax = plt.subplots(figsize=(9, 6.5))
+    ylabels = []
+    for i, (label, pattern, sweep_solver, color) in enumerate(rows):
+        recs = sweeps_recs(sweep_solver) if sweep_solver else load(pattern)
+        errs = [abs(r["final_energy"] - r["exact_energy"]) / abs(r["exact_energy"]) for r in recs]
+        m, lo, hi = median_iqr(errs)
+        y = len(rows) - i
+        if m is not None:
+            ax.errorbar([m], [y], xerr=[[m - lo], [hi - m]], marker="o", color=color,
+                        markersize=8, linewidth=1.6, capsize=4, zorder=3)
+        ax.annotate(f"n={len(errs)}", (max(errs) if errs else 1, y), textcoords="offset points",
+                    xytext=(8, 0), fontsize=7.5, color=color, va="center")
+        ylabels.append(label)
+
+    ax.set_yticks([len(rows) - i for i in range(len(rows))])
+    ax.set_yticklabels(ylabels)
+    ax.set_xscale("log")
+    ax.set_xlabel(r"Final relative error $|E_\mathrm{final}-E_\mathrm{exact}|/|E_\mathrm{exact}|$ (median, IQR)")
+    ax.set_title(
+        "All archived solvers at N=16, each at its own best-available operating point\n"
+        "NOT hyperparameter-matched -- see script comments for each row's (h, config, n)",
+        fontsize=11
+    )
+    style_axes(ax)
+    ax.grid(axis="x", which="major", color=GRID, linewidth=0.8, zorder=0)
+
+    fig.tight_layout()
+    _save(fig, "fig8_all_solvers_n16")
+
+
+# ---------------------------------------------------------------------------
+# Figure 9 — ITE and TTE, all solvers at N=16, each at its own best-available
+# operating point (companion to Figure 8; same per-solver cells/config
+# table, see Figure 8's header comment).
+#
+# Panel A (ITE): iterations to 1% relative error, rolling window=10
+# (ite_run.py convention). Solvers whose best-available cell never reaches
+# 1% within its own iteration budget are censored (hollow marker at the
+# recorded budget) rather than dropped -- for Metropolis and dimod-SA at
+# their h=1.0/100-iteration cell this is a real result (that cell is a hard,
+# short-budget regime), not a plotting gap.
+#
+# Panel B (TTE): wall-clock time to 1% relative error, from cumulative
+# per-iteration timing in each run's own history. Per CLAUDE.md's
+# no-silent-fallback rule, a solver is only included here if its archived
+# history actually records a timing field -- D-Wave Pegasus/Zephyr (QPU)
+# results in this archive have NO per-iteration timing field at all (verified:
+# 'sampling_time_s' is simply absent from their history dict), so they are
+# omitted from panel B entirely rather than assigned a fabricated or
+# assumed duration. Where a run logs both 'sampling_time_s' and
+# 'total_sampling_time_s' (LSB, VeloxQ, FPGA -- these use CEM, so total
+# includes cem_time_s), the 'total_*' field is used for a fair like-for-like
+# wall-clock accounting; solvers without CEM only ever have 'sampling_time_s'.
+# ---------------------------------------------------------------------------
+
+def fig9_ite_tte_all_solvers_n16():
+    epsilon = 0.01
+
+    rows = [
+        ("Metropolis (MCMC)", "results/tfim_1d/16/custom/metropolis/result_1d_h1.0_rbmfull_nh16_lr0.1_reg1e-05_ns1000_seed*_iter100_cem0.json.gz", None, COLOR_BLUE),
+        ("Gibbs (MCMC)", "results/tfim_1d/16/custom/gibbs/result_1d_h0.5_rbmfull_nh16_lr0.01_reg1e-05_ns1000_seed*_iter300_cem0_sigma1.0.json.gz", None, COLOR_BLUE),
+        ("LSB (MCMC)", "results/tfim_1d/16/custom/lsb/result_1d_h0.5_rbmfull_nh16_lr0.01_reg1e-05_ns1000_seed*_iter300_cem0_sigma1.0.json.gz", None, COLOR_BLUE),
+        ("Simulated annealing (dimod/neal)", "results/tfim_1d/16/dimod/simulated_annealing/result_1d_h1.0_rbmfull_nh16_lr0.1_reg1e-05_ns1000_seed*_iter100_cem0.json.gz", None, COLOR_GREEN),
+        ("Tabu search (dimod)", "results/tfim_1d/16/dimod/tabu/result_1d_h1.0_rbmfull_nh16_lr0.1_reg1e-05_ns1000_seed*_iter100_cem0.json.gz", None, COLOR_GREEN),
+        ("VeloxQ (SA hardware)", None, "velox", "#eb6834"),
+        ("FPGA", None, "fpga", "#eb6834"),
+        ("D-Wave Pegasus (QPU)", "results/tfim_1d/16/dimod/pegasus/result_1d_h0.5_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed*_iter300.json.gz", None, COLOR_MAGENTA),
+        ("D-Wave Zephyr (QPU)", "results/tfim_1d/16/dimod/zephyr/result_1d_h0.5_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed*_iter300.json.gz", None, COLOR_MAGENTA),
+    ]
+
+    def sweeps_recs(solver):
+        out = []
+        for campaign in ("sweeps100", "sweeps2000"):
+            for r in load(f"results/{campaign}/tfim_1d/16/{solver}/*/result_*_seed*_iter*"):
+                c = r["config"]
+                if c["n_hidden"] == 16 and abs(c["learning_rate"] - 0.08) < 1e-9 \
+                        and abs(c["regularization"] - 0.05) < 1e-9 and c["n_samples"] == 200:
+                    out.append(r)
+        return out
+
+    def time_field(r):
+        h = r["history"]
+        if "total_sampling_time_s" in h:
+            return "total_sampling_time_s"
+        if "sampling_time_s" in h:
+            return "sampling_time_s"
+        return None
+
+    fig, axes = plt.subplots(1, 2, figsize=(15, 6.5))
+    ylabels = []
+    for i, (label, pattern, sweep_solver, color) in enumerate(rows):
+        recs = sweeps_recs(sweep_solver) if sweep_solver else load(pattern)
+        y = len(rows) - i
+        ylabels.append(label)
+
+        ites = [compute_ite(r["history"]["energy"], r["exact_energy"], epsilon) for r in recs]
+        reached_ite = [v for v in ites if v is not None]
+        budgets = [len(r["history"]["energy"]) for r in recs]
+
+        ax = axes[0]
+        if reached_ite:
+            m, lo, hi = median_iqr(reached_ite)
+            ax.errorbar([m], [y], xerr=[[m - lo], [hi - m]], marker="o", color=color,
+                        markersize=8, linewidth=1.6, capsize=4, zorder=3)
+        if len(reached_ite) < len(recs) and budgets:
+            ax.scatter([max(budgets)], [y], marker="x", color=color, s=60, zorder=4)
+        ax.annotate(f"n={len(reached_ite)}/{len(recs)}", (max(budgets) if budgets else 1, y),
+                    textcoords="offset points", xytext=(8, 0), fontsize=7.5, color=color, va="center")
+
+        ax = axes[1]
+        tf = time_field(recs[0]) if recs else None
+        if tf is None:
+            ax.annotate(f"{label}: no timing recorded", (0.02, y), xycoords=("axes fraction", "data"),
+                        fontsize=8, color=MUTED, va="center", style="italic")
+            continue
+        cum_times = [np.cumsum(r["history"][tf]) for r in recs]
+        ttes = [float(ct[ite - 1]) for ct, ite in zip(cum_times, ites) if ite is not None]
+        totals = [float(ct[-1]) for ct in cum_times]
+        if ttes:
+            m, lo, hi = median_iqr(ttes)
+            ax.errorbar([m], [y], xerr=[[m - lo], [hi - m]], marker="o", color=color,
+                        markersize=8, linewidth=1.6, capsize=4, zorder=3)
+        if len(ttes) < len(recs) and totals:
+            ax.scatter([max(totals)], [y], marker="x", color=color, s=60, zorder=4)
+        ax.annotate(f"n={len(ttes)}/{len(recs)}", (max(totals) if totals else 1, y),
+                    textcoords="offset points", xytext=(8, 0), fontsize=7.5, color=color, va="center")
+
+    for ax, xlabel, title in [
+        (axes[0], f"ITE — iterations to {epsilon*100:.0f}% relative error (median, IQR; x = censored)", "(A) Iterations-to-epsilon"),
+        (axes[1], f"TTE — wall-clock seconds to {epsilon*100:.0f}% relative error (median, IQR; x = censored)", "(B) Time-to-epsilon (QPU omitted, no timing recorded)"),
+    ]:
+        ax.set_yticks([len(rows) - i for i in range(len(rows))])
+        ax.set_yticklabels(ylabels if ax is axes[0] else [])
+        ax.set_xscale("log")
+        ax.set_xlabel(xlabel, fontsize=9)
+        ax.set_title(title, fontsize=10.5)
+        ax.set_ylim(0.3, len(rows) + 0.7)
+        style_axes(ax)
+        ax.grid(axis="x", which="major", color=GRID, linewidth=0.8, zorder=0)
+
+    fig.suptitle(
+        "All archived solvers at N=16, each at its own best-available operating point\n"
+        "NOT hyperparameter-matched -- see Figure 8 for each row's (h, config, n)", y=1.03
+    )
+    fig.tight_layout()
+    _save(fig, "fig9_ite_tte_all_solvers_n16")
+
+
+# ---------------------------------------------------------------------------
+# Figure 10 — ITE and TTE vs. system size N, all solvers, each at its own
+# best-available operating point (same philosophy as Figures 8-9, but with N
+# on the x-axis instead of a single fixed N=16).
+#
+# Per-solver cell, chosen as each solver's richest archived campaign (all
+# rbm=full, ns=1000 unless noted):
+#   Metropolis / Gibbs / LSB  : h=1.0, lr=0.01, reg=1e-05, iter=300 -- N=25..196,
+#                               5 seeds/point (this is Figure 1's cell/campaign).
+#   dimod-SA / dimod-Tabu     : h=1.0, lr=0.1, reg=1e-05, iter=100 -- N=4,8,16 only,
+#                               10-15 seeds/point (Figure 7's cell). This solver
+#                               family was simply never run at larger N in the
+#                               archive; the line stops at N=16, it is not cut off.
+#   VeloxQ (SA) / FPGA        : h=0.5, lr=0.08, reg=0.05, ns=200, sweeps100+2000(+_v2)
+#                               pooled -- N=8..128, 40 runs/point (Figure 2's cell).
+#   D-Wave Pegasus / Zephyr   : h=0.5, reg=0.001, iter=300, lr in {0.01, 0.1} pooled
+#                               together (both attempted, not enough seeds at either
+#                               alone) -- N=6,8,16,32,64, 1-4 runs/point. ITE only:
+#                               no timing field exists for these runs (see Figure 9),
+#                               so they are absent from panel B, not zero.
+#
+# Every point that is not fully censored is a real median (or single value at
+# n=1); points where 0 seeds reach 1% error within budget are shown hollow at
+# the recorded iteration/time budget, not omitted. n is annotated at every
+# point that has fewer seeds than its neighbors so a thin point is never
+# mistaken for a well-powered one.
+# ---------------------------------------------------------------------------
+
+def fig10_ite_tte_vs_n_all_solvers():
+    epsilon = 0.01
+
+    def mcmc_recs(solver, n):
+        recs = load(f"results/tfim_1d/{n}/custom/{solver}/result_1d_h1.0_rbmfull_nh{n}_lr0.01_reg1e-05_ns1000_seed*_iter300*.json.gz")
+        return [r for r in recs if r["config"]["n_hidden"] == n and abs(r["config"]["learning_rate"] - 0.01) < 1e-9
+                and abs(r["config"]["regularization"] - 1e-05) < 1e-9 and r["config"]["iterations"] == 300]
+
+    def dimod_recs(method, n):
+        return load(f"results/tfim_1d/{n}/dimod/{method}/result_1d_h1.0_rbmfull_nh{n}_lr0.1_reg1e-05_ns1000_seed*_iter100_cem0.json.gz")
+
+    def sweeps_recs(solver, n):
+        out = []
+        for campaign in ("sweeps100", "sweeps2000", "sweeps100_v2", "sweeps2000_v2"):
+            for r in load(f"results/{campaign}/tfim_1d/{n}/{solver}/*/result_*_seed*_iter*"):
+                c = r["config"]
+                if c["n_hidden"] == n and abs(c["learning_rate"] - 0.08) < 1e-9 \
+                        and abs(c["regularization"] - 0.05) < 1e-9 and c["n_samples"] == 200:
+                    out.append(r)
+        return out
+
+    def dwave_recs(method, n):
+        recs = load(f"results/tfim_1d/{n}/dimod/{method}/result_1d_h0.5_rbmfull_nh{n}_lr*_reg0.001_ns1000_seed*_iter300*.json.gz")
+        return [r for r in recs if r["config"]["n_hidden"] == n and abs(r["config"]["regularization"] - 0.001) < 1e-9]
+
+    series = [
+        ("Metropolis", [25, 36, 49, 64, 81, 100, 121, 144, 169, 196], lambda n: mcmc_recs("metropolis", n), COLOR_BLUE, "o", "-", True),
+        ("Gibbs", [25, 36, 49, 64, 81, 100, 121, 144, 169, 196], lambda n: mcmc_recs("gibbs", n), COLOR_GREEN, "s", "-", True),
+        ("LSB (+CEM)", [25, 36, 49, 64, 81, 100, 121, 144, 169, 196], lambda n: mcmc_recs("lsb", n), COLOR_MAGENTA, "^", "--", True),
+        ("dimod SA", [4, 8, 16], lambda n: dimod_recs("simulated_annealing", n), "#7a5195", "D", "-", True),
+        ("dimod Tabu", [4, 8, 16], lambda n: dimod_recs("tabu", n), "#003f5c", "v", "-", True),
+        ("VeloxQ (SA hardware)", [8, 12, 16, 24, 32, 64, 128], lambda n: sweeps_recs("velox", n), "#eb6834", "P", "-", True),
+        ("FPGA", [8, 12, 16, 24, 32, 64, 128], lambda n: sweeps_recs("fpga", n), "#ffa600", "X", "-", True),
+        ("D-Wave Pegasus (QPU)", [6, 8, 16, 32, 64], lambda n: dwave_recs("pegasus", n), "#bc5090", "*", ":", False),
+        ("D-Wave Zephyr (QPU)", [6, 8, 16, 32, 64], lambda n: dwave_recs("zephyr", n), "#ef5675", "*", ":", False),
+    ]
+
+    fig, axes = plt.subplots(1, 2, figsize=(15, 6.5))
+
+    for series_idx, (label, sizes, get_recs, color, marker, linestyle, has_timing) in enumerate(series):
+        ite_med, ite_lo, ite_hi, ite_n, ite_budget = [], [], [], [], []
+        tte_med, tte_lo, tte_hi, tte_n, tte_budget = [], [], [], [], []
+        for n in sizes:
+            recs = get_recs(n)
+            ites = [compute_ite(r["history"]["energy"], r["exact_energy"], epsilon) for r in recs]
+            reached = [v for v in ites if v is not None]
+            m, l, h = median_iqr(reached) if reached else (None, None, None)
+            ite_med.append(m); ite_lo.append(l); ite_hi.append(h)
+            ite_n.append((len(reached), len(recs)))
+            ite_budget.append(max((len(r["history"]["energy"]) for r in recs), default=None))
+
+            if has_timing and recs:
+                tf = "total_sampling_time_s" if "total_sampling_time_s" in recs[0]["history"] else "sampling_time_s"
+                cum_times = [np.cumsum(r["history"][tf]) for r in recs]
+                ttes = [float(ct[ite - 1]) for ct, ite in zip(cum_times, ites) if ite is not None]
+                m, l, h = median_iqr(ttes) if ttes else (None, None, None)
+                tte_med.append(m); tte_lo.append(l); tte_hi.append(h)
+                tte_n.append((len(ttes), len(recs)))
+                tte_budget.append(max((float(ct[-1]) for ct in cum_times), default=None))
+            else:
+                tte_med.append(None); tte_lo.append(None); tte_hi.append(None)
+                tte_n.append((0, 0)); tte_budget.append(None)
+
+        for ax, med, lo, hi, ns, budget in [
+            (axes[0], ite_med, ite_lo, ite_hi, ite_n, ite_budget),
+            (axes[1], tte_med, tte_lo, tte_hi, tte_n, tte_budget),
+        ]:
+            xs = [n for n, m in zip(sizes, med) if m is not None]
+            ys = [m for m in med if m is not None]
+            lo_v = [v for v in lo if v is not None]
+            hi_v = [v for v in hi if v is not None]
+            if xs:
+                yerr = [[y - l for y, l in zip(ys, lo_v)], [h - y for y, h in zip(ys, hi_v)]]
+                ax.errorbar(xs, ys, yerr=yerr, marker=marker, color=color, label=label,
+                            markersize=7, linewidth=1.5, capsize=3, zorder=3, linestyle=linestyle)
+            elif ax is axes[0]:
+                # fully censored in this panel: still needs a legend entry, or these hollow
+                # markers are unlabeled and unidentifiable (e.g. dimod-SA is 0-reached at every N)
+                ax.plot([], [], marker=marker, color=color, linestyle=linestyle, label=label)
+            cx = [n for n, m, b in zip(sizes, med, budget) if m is None and b is not None]
+            # small multiplicative offset so censored markers from different series don't
+            # sit exactly on top of each other when they share the same iteration/time budget
+            cb = [b * (1.0 + 0.05 * series_idx) for m, b in zip(med, budget) if m is None and b is not None]
+            if cx:
+                ax.scatter(cx, cb, marker=marker, facecolors="none", edgecolors=color, s=50, linewidth=1.3, zorder=3)
+            for n, (r, total) in zip(sizes, ns):
+                if total and r < total:
+                    y_pos = budget[sizes.index(n)] if med[sizes.index(n)] is None else med[sizes.index(n)]
+                    if y_pos is not None:
+                        ax.annotate(f"{r}/{total}", (n, y_pos), textcoords="offset points",
+                                    xytext=(4, 6), fontsize=6, color=color, ha="left")
+
+    for ax in axes:
+        ax.set_yscale("log")
+        ax.set_xscale("log")
+        ax.set_xlabel("System size N")
+        style_axes(ax)
+    axes[0].set_ylabel(f"ITE — iterations to {epsilon*100:.0f}% relative error (median, IQR; hollow = censored)")
+    axes[1].set_ylabel(f"TTE — wall-clock seconds to {epsilon*100:.0f}% relative error (median, IQR)")
+    axes[0].set_title("(A) Iterations-to-epsilon vs. N")
+    axes[1].set_title("(B) Time-to-epsilon vs. N (D-Wave QPU omitted, no timing recorded)")
+    axes[0].legend(frameon=False, loc="upper left", fontsize=7.5, ncol=2)
+
+    fig.suptitle(
+        "ITE / TTE vs. system size, all archived solvers, each at its own best-available operating point\n"
+        "NOT hyperparameter-matched across solvers -- see script header for each series' (h, config, N range, n)\n"
+        "(hollow markers at the same x are nudged apart vertically to stay distinguishable; the offset is cosmetic, not data)",
+        y=1.04, fontsize=10.5
+    )
+    fig.tight_layout()
+    _save(fig, "fig10_ite_tte_vs_n_all_solvers")
+
+
 def _save(fig, name):
     os.makedirs(OUT_DIR, exist_ok=True)
     for ext in ("png", "pdf"):
@@ -447,3 +1036,9 @@ if __name__ == "__main__":
     fig2_tte_vs_n_velox_fpga()
     fig3_energy_to_solution_vs_n()
     fig4_success_fraction_heisenberg()
+    fig5_convergence_dwave_tfim1d()
+    fig6_energy_vs_n_tfim2d_dwave()
+    fig7_classical_scaling_tfim1d()
+    fig8_all_solvers_n16()
+    fig9_ite_tte_all_solvers_n16()
+    fig10_ite_tte_vs_n_all_solvers()
