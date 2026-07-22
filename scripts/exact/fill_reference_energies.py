@@ -19,12 +19,12 @@ sys.path.insert(0, str(_SRC))
 from ising import TransverseFieldIsing1D, TransverseFieldIsing2D
 
 # All 1D sizes that appear in results
-SIZES_1D = [4, 6, 8, 12, 14, 16, 24, 28, 32, 42, 64, 96, 128, 512, 768, 1024, 2048]
+SIZES_1D = [4, 6, 8, 12, 14, 16, 24, 28, 32, 42, 64, 96, 100, 128, 512, 768, 1024, 2048]
 
 # 2D linear dimensions: only L≤4 can be exactly diagonalised (2^16 states)
 SIZES_2D = [2, 3, 4]
 
-H_VALUES = [0.5, 1.0, 1.5, 2.0]
+H_VALUES = [0.5, 1.0, 1.5, 2.0, 3.044]
 
 
 def _fill_1d(h_values, sizes):

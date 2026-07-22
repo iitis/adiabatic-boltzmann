@@ -36,13 +36,20 @@ GRID = "#e1e0d9"
 # Wilson CI matches scripts/exper/parallel_embedding_bench.py)
 # ---------------------------------------------------------------------------
 
-def compute_ite(energies, exact_energy, epsilon, window=10):
-    """First iteration (1-indexed) where the causal rolling-mean relative
-    error drops below epsilon. None if never reached within the recorded run."""
+def compute_ite(energies, exact_energy, size, epsilon, window=10):
+    """First iteration (1-indexed) where the causal rolling-mean energy error
+    PER SPIN (|E-E_exact|/N, not relative to |E_exact|) drops below epsilon.
+    None if never reached within the recorded run.
+
+    Per-spin error is the convention used elsewhere in this repo (dashboard.py,
+    plot_hparam_search.py, plot_sparsity_ablation_floor.py) and is the fairer
+    one when a comparison spans different h (energy density varies with h, so
+    relative error implicitly rescales by a different reference at every h;
+    per-spin error does not)."""
     for t in range(len(energies)):
         w_start = max(0, t - window + 1)
         mean_e = sum(energies[w_start:t + 1]) / (t - w_start + 1)
-        if abs(mean_e - exact_energy) / abs(exact_energy) < epsilon:
+        if abs(mean_e - exact_energy) / size < epsilon:
             return t + 1
     return None
 
@@ -112,7 +119,13 @@ def log_x_with_ticks(ax, sizes, rotation=0):
 # dashed/hollow, explicitly labeled "+CEM", because its apparent speed advantage
 # cannot be attributed to the sampler alone with the data on disk.
 #
-# Epsilon=0.01 (1% relative error), rolling window=10 iterations (ite_run.py convention).
+# Epsilon=0.01 energy error PER SPIN (|E-E_exact|/N), rolling window=10
+# iterations (ite_run.py convention). h=1.0 is fixed across every N here and
+# the ground-state energy density is verified near-constant (-1.2733 to
+# -1.2741 per spin across N=25..196), so this per-spin threshold is not just
+# a relabeling of the old relative-error one -- it happens to reproduce the
+# same censoring pattern (checked: Metropolis/Gibbs were already 0/5 reached
+# at N>=64 under the old relative-error convention too).
 # Runs that never cross epsilon within the 300-iteration budget are censored,
 # not dropped — shown as hollow markers at the iteration budget.
 # ---------------------------------------------------------------------------
@@ -136,7 +149,7 @@ def fig1_ite_vs_n_tfim1d():
             if not recs:
                 med.append(None); lo.append(None); hi.append(None); ns.append(0)
                 continue
-            ites = [compute_ite(r["history"]["energy"], r["exact_energy"], epsilon) for r in recs]
+            ites = [compute_ite(r["history"]["energy"], r["exact_energy"], n, epsilon) for r in recs]
             reached = [v for v in ites if v is not None]
             ns.append(len(ites))
             if reached:
@@ -170,7 +183,7 @@ def fig1_ite_vs_n_tfim1d():
     ax.set_yscale("log")
     log_x_with_ticks(ax, sizes, rotation=45)
     ax.set_xlabel("System size N")
-    ax.set_ylabel(f"ITE — iterations to {epsilon*100:.0f}% relative error (median, IQR)")
+    ax.set_ylabel(f"ITE — iterations to {epsilon:.3g} energy error/spin (median, IQR)")
     ax.set_title("Iterations-to-epsilon vs. system size\nTFIM 1D, critical point h=1.0, matched hyperparameters, no best-of")
     style_axes(ax)
     ax.legend(frameon=False, loc="lower right", fontsize=9)
@@ -194,6 +207,12 @@ def fig1_ite_vs_n_tfim1d():
 # matched velox/fpga line, since FPGA has no equivalently re-tuned config at
 # N=128 and connecting them would misrepresent a hardware-vs-hardware claim
 # as a hyperparameter-tuning artifact.
+#
+# Epsilon=0.01 energy error PER SPIN (not relative to |E_exact|; see
+# compute_ite docstring). h=0.5 is fixed across N here and the ground-state
+# energy density is verified constant (-1.0635 to -1.0636 per spin across
+# N=8..128), so this reproduces the same reach/censoring pattern the old
+# relative-error convention gave (checked directly).
 # ---------------------------------------------------------------------------
 
 def fig2_tte_vs_n_velox_fpga():
@@ -221,7 +240,7 @@ def fig2_tte_vs_n_velox_fpga():
                 continue
             times = []
             for r in recs:
-                ite = compute_ite(r["history"]["energy"], r["exact_energy"], epsilon)
+                ite = compute_ite(r["history"]["energy"], r["exact_energy"], n, epsilon)
                 if ite is not None:
                     cum_t = np.cumsum(r["history"]["sampling_time_s"])
                     times.append(float(cum_t[ite - 1]))
@@ -254,7 +273,7 @@ def fig2_tte_vs_n_velox_fpga():
         load("results/sweeps2000_v2/tfim_1d/128/velox/simulated_annealing/result_*seed*")
     times = []
     for r in recs:
-        ite = compute_ite(r["history"]["energy"], r["exact_energy"], epsilon)
+        ite = compute_ite(r["history"]["energy"], r["exact_energy"], 128, epsilon)
         if ite is not None:
             cum_t = np.cumsum(r["history"]["sampling_time_s"])
             times.append(float(cum_t[ite - 1]))
@@ -271,7 +290,7 @@ def fig2_tte_vs_n_velox_fpga():
     ax.set_yscale("log")
     log_x_with_ticks(ax, sizes)
     ax.set_xlabel("System size N")
-    ax.set_ylabel(f"TTE — wall-clock time to {epsilon*100:.0f}% relative error [s] (median, IQR)")
+    ax.set_ylabel(f"TTE — wall-clock time to {epsilon:.3g} energy error/spin [s] (median, IQR)")
     ax.set_title("Time-to-epsilon vs. system size\nTFIM 1D, h=0.5, matched hyperparameters, VeloxQ vs. FPGA")
     style_axes(ax)
     ax.legend(frameon=False, loc="upper left", fontsize=9)
@@ -281,12 +300,15 @@ def fig2_tte_vs_n_velox_fpga():
 
 
 # ---------------------------------------------------------------------------
-# Figure 3 — Energy-to-solution (final relative error) vs N, two panels
+# Figure 3 — Energy-to-solution (final energy error per spin) vs N, two panels
 #
 # Panel A: same tfim_1d custom-sampler cells as Figure 1 (h=1.0, 300 iters).
 # Panel B: same velox/fpga matched cells as Figure 2 (h=0.5, 100 iters),
 #          plus the re-tuned N=128 VeloxQ point.
 # Shows the residual-error scaling directly, independent of any epsilon choice.
+#
+# Metric: energy error PER SPIN, |E_final-E_exact|/N -- not relative to
+# |E_exact| (see compute_ite docstring for why per-spin is the fairer metric).
 # ---------------------------------------------------------------------------
 
 def fig3_energy_to_solution_vs_n():
@@ -304,7 +326,7 @@ def fig3_energy_to_solution_vs_n():
         med, lo, hi = [], [], []
         for n in sizes:
             recs = load(f"results/tfim_1d/{n}/custom/{method}/result_1d_h1.0_rbmfull_nh{n}_lr0.01_reg1e-05_ns1000_seed*_iter*")
-            errs = [abs(r["final_energy"] - r["exact_energy"]) / abs(r["exact_energy"]) for r in recs]
+            errs = [abs(r["final_energy"] - r["exact_energy"]) / n for r in recs]
             m, l, h = median_iqr(errs)
             med.append(m); lo.append(l); hi.append(h)
         xs = [n for n, m in zip(sizes, med) if m is not None]
@@ -316,7 +338,7 @@ def fig3_energy_to_solution_vs_n():
     ax.set_yscale("log")
     log_x_with_ticks(ax, sizes, rotation=45)
     ax.set_xlabel("System size N")
-    ax.set_ylabel(r"Final relative error $|E_\mathrm{final}-E_\mathrm{exact}|/|E_\mathrm{exact}|$")
+    ax.set_ylabel(r"Final energy error per spin  $|E_\mathrm{final}-E_\mathrm{exact}|/N$")
     ax.set_title("(A) TFIM critical point (h=1.0), 300 iterations")
     style_axes(ax)
     ax.legend(frameon=False, loc="upper left", fontsize=9)
@@ -337,7 +359,7 @@ def fig3_energy_to_solution_vs_n():
                 and abs(r["config"]["regularization"] - 0.05) < 1e-9
                 and r["config"]["n_samples"] == 200
             ]
-            errs = [abs(r["final_energy"] - r["exact_energy"]) / abs(r["exact_energy"]) for r in recs]
+            errs = [abs(r["final_energy"] - r["exact_energy"]) / n for r in recs]
             m, l, h = median_iqr(errs)
             med.append(m); lo.append(l); hi.append(h)
         xs = [n for n, m in zip(sizes, med) if m is not None]
@@ -349,7 +371,7 @@ def fig3_energy_to_solution_vs_n():
 
     recs = load("results/sweeps100_v2/tfim_1d/128/velox/simulated_annealing/result_*seed*") + \
         load("results/sweeps2000_v2/tfim_1d/128/velox/simulated_annealing/result_*seed*")
-    errs = [abs(r["final_energy"] - r["exact_energy"]) / abs(r["exact_energy"]) for r in recs]
+    errs = [abs(r["final_energy"] - r["exact_energy"]) / 128 for r in recs]
     m, l, h = median_iqr(errs)
     ax.errorbar([128], [m], yerr=[[m - l], [h - m]], marker="*", color="#eb6834",
                 markersize=16, linewidth=1.6, capsize=3, zorder=4,
@@ -373,8 +395,12 @@ def fig3_energy_to_solution_vs_n():
 # Data: results/heisenberg_j1j2_1d/{8,12,16}/custom/{exchange,gibbs,simulated_annealing}
 #       at J2=0.5 (the maximally frustrated Majumdar-Ghosh point of the J1-J2
 #       chain), 28-30 seeds per cell, 300 SR iterations. "Success" = final
-#       relative error < 5% (loose threshold appropriate for this highly
-#       degenerate point). Wilson score CI (scripts/exper/parallel_embedding_bench.py
+#       energy error per spin < 0.05 (loose threshold appropriate for this
+#       highly degenerate point; ground-state energy density is exactly
+#       -1.5/spin at every N here, and success/failure is strongly bimodal --
+#       checked that this per-spin threshold gives identical success counts
+#       to the old relative-error 5% threshold at every method/N cell).
+#       Wilson score CI (scripts/exper/parallel_embedding_bench.py
 #       convention). The story is a sharp, solver-dependent finite-size crossover
 #       rather than smooth hardness scaling: Gibbs solves this point at every N
 #       tested, Exchange only becomes reliable at N>=12, and simulated annealing
@@ -397,7 +423,7 @@ def fig4_success_fraction_heisenberg():
         fracs, los, his, ns = [], [], [], []
         for n in sizes:
             recs = load(f"results/heisenberg_j1j2_1d/{n}/custom/{method}/result_*_J20.5_*_seed*_iter*")
-            errs = [abs(r["final_energy"] - r["exact_energy"]) / abs(r["exact_energy"]) for r in recs]
+            errs = [abs(r["final_energy"] - r["exact_energy"]) / n for r in recs]
             k = sum(1 for e in errs if e < success_threshold)
             n_total = len(errs)
             ns.append(n_total)
@@ -421,7 +447,7 @@ def fig4_success_fraction_heisenberg():
     ax.set_xticklabels([str(n) for n in sizes])
     ax.set_ylim(-0.05, 1.05)
     ax.set_xlabel("System size N")
-    ax.set_ylabel(f"Ground-state success fraction (rel. error < {success_threshold*100:.0f}%), Wilson 95% CI")
+    ax.set_ylabel(f"Ground-state success fraction (energy error/spin < {success_threshold:.2g}), Wilson 95% CI")
     ax.set_title(
         "Solver-dependent finite-size crossover at the Majumdar-Ghosh point\n"
         "J1-J2 Heisenberg chain, J2/J1 = 0.5, 300 SR iterations"
@@ -477,20 +503,20 @@ def fig5_convergence_dwave_tfim1d():
                 r = json.load(fh)
             energies = np.array(r["history"]["energy"])
             exact = r["exact_energy"]
-            rel_err = np.abs(energies - exact) / abs(exact)
+            err_per_spin = np.abs(energies - exact) / n
             n_budget = r["config"]["iterations"]
-            plot_label = label if len(rel_err) == n_budget else f"{label} (stopped @ {len(rel_err)}/{n_budget})"
-            ax.plot(np.arange(1, len(rel_err) + 1), rel_err, color=color, label=plot_label,
+            plot_label = label if len(err_per_spin) == n_budget else f"{label} (stopped @ {len(err_per_spin)}/{n_budget})"
+            ax.plot(np.arange(1, len(err_per_spin) + 1), err_per_spin, color=color, label=plot_label,
                     linewidth=1.6, linestyle=linestyle, zorder=3)
-            if len(rel_err) < n_budget:
-                ax.scatter([len(rel_err)], [rel_err[-1]], color=color, marker="x", s=40, zorder=4)
+            if len(err_per_spin) < n_budget:
+                ax.scatter([len(err_per_spin)], [err_per_spin[-1]], color=color, marker="x", s=40, zorder=4)
         ax.set_yscale("log")
         ax.set_xlabel("SR iteration")
         ax.set_title(f"N = {n}")
         style_axes(ax)
         ax.legend(frameon=False, loc="upper right", fontsize=9)
 
-    axes[0].set_ylabel(r"Relative error $|E-E_\mathrm{exact}|/|E_\mathrm{exact}|$")
+    axes[0].set_ylabel(r"Energy error per spin  $|E-E_\mathrm{exact}|/N$")
     fig.suptitle(
         "Single-instance convergence, TFIM 1D, h=0.5, matched hyperparameters\n"
         "(seed=42, single run per solver — not a statistical comparison)", y=1.03
@@ -514,6 +540,13 @@ def fig5_convergence_dwave_tfim1d():
 # With only 2-3 samples per point, the shown band is not a real IQR; it is
 # the same median_iqr() convention as Figures 1/3, interpreted as a
 # min/max-ish spread rather than a statistical distribution.
+#
+# Metric: energy error PER SPIN, |E_final-E_exact|/N_spins, where N_spins=n*n
+# for this 2D lattice (n_hidden=n*n for the matched rbmfull cell here) --
+# not relative to |E_exact|. This panel set spans three different h values,
+# each with its own energy density, so per-spin error (not implicitly
+# rescaled by a different reference per h) is the metric that keeps panels
+# comparable on their own terms rather than flattened to look similar.
 # ---------------------------------------------------------------------------
 
 def fig6_energy_vs_n_tfim2d_dwave():
@@ -536,7 +569,7 @@ def fig6_energy_vs_n_tfim2d_dwave():
                     r for r in load(f"results/tfim_2d/{n}/{subdir}/result_2d_h{h}_rbmfull_nh{nh}_lr0.1_reg0.001_ns1000_seed*_iter300*")
                     if r["config"]["n_hidden"] == nh
                 ]
-                errs = [abs(r["final_energy"] - r["exact_energy"]) / abs(r["exact_energy"]) for r in recs]
+                errs = [abs(r["final_energy"] - r["exact_energy"]) / nh for r in recs]
                 ns.append(len(errs))
                 m, l, hh = median_iqr(errs)
                 med.append(m); lo.append(l); hi.append(hh)
@@ -559,7 +592,7 @@ def fig6_energy_vs_n_tfim2d_dwave():
         ax.set_title(f"h = {h}")
         style_axes(ax)
 
-    axes[0].set_ylabel(r"Final relative error $|E_\mathrm{final}-E_\mathrm{exact}|/|E_\mathrm{exact}|$")
+    axes[0].set_ylabel(r"Final energy error per spin  $|E_\mathrm{final}-E_\mathrm{exact}|/N_\mathrm{spins}$")
     axes[0].legend(frameon=False, loc="upper left", fontsize=8.5)
     fig.suptitle(
         "Energy-to-solution vs. system size, TFIM 2D, matched hyperparameters\n"
@@ -583,24 +616,31 @@ def fig6_energy_vs_n_tfim2d_dwave():
 # classical simulation" (the latter question is addressed separately in
 # Figures 5-6, where QPU data is thin).
 #
-# Panel A: final relative error vs. N (4, 8, 16), h=1.0, matched
+# Metric: energy error PER SPIN, |E_final-E_exact|/N -- not relative to
+# |E_exact| (see compute_ite docstring). This matters most for panel B below,
+# where h varies at fixed N: energy density here ranges from -1.06/spin at
+# h=0.5 to -2.13/spin at h=2.0, so relative error implicitly rescales each
+# h's numbers by a different reference -- per-spin error does not, and is
+# the fairer metric for a same-N, cross-h comparison.
+#
+# Panel A: final energy error per spin vs. N (4, 8, 16), h=1.0, matched
 # hyperparameters, seeds 1-10 (N=4,16) or 1-15 (N=8) -- no cherry-picking, no
 # best-of. An iterations-to-epsilon panel was tried here first and dropped:
 # at this cell's 100-iteration budget, individual per-seed histories are
 # unstable (energy jumps to large positive values before settling, verified
 # on several seeds), so an early iteration can spuriously satisfy even a
 # loose epsilon by chance while the run is still far from converged --
-# ITE would silently misrepresent those seeds as fast. Final relative error
-# is not sensitive to this artifact and is the honest metric for this cell.
+# ITE would silently misrepresent those seeds as fast. Final energy error is
+# not sensitive to this artifact and is the honest metric for this cell.
 #
 # Panel B: same three solvers and same rich 15-seeds-per-cell campaign, but
 # swept across field strength h at fixed N=8 instead of across N (this is
 # the only size with h=0.5/1.0/1.5/2.0 all archived at 15 seeds). This is
 # not a size-scaling panel -- it is included because, at fixed size, no
 # solver dominates across the whole field range: Metropolis is best at
-# h=0.5 (median 3.8% error) while Tabu is best at h=1.5-2.0 (median
-# 17-19% error, vs. 63-88% for Metropolis/SA there). That crossover is a
-# genuine, well-powered (n=15) finding, not an artifact of panel A's issue.
+# h=0.5 (median 0.040 err/spin) while Tabu is best at h=1.5-2.0 (median
+# 0.32-0.37 err/spin, vs. 1.06-1.88 for Metropolis/SA there). That crossover
+# is a genuine, well-powered (n=15) finding, not an artifact of panel A's issue.
 # ---------------------------------------------------------------------------
 
 def fig7_classical_scaling_tfim1d():
@@ -612,7 +652,7 @@ def fig7_classical_scaling_tfim1d():
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 5.5))
 
-    # Panel A: final relative error vs N, h=1.0
+    # Panel A: final energy error per spin vs N, h=1.0
     ax = axes[0]
     sizes = [4, 8, 16]
     for solver, label, color, marker in solvers:
@@ -620,7 +660,7 @@ def fig7_classical_scaling_tfim1d():
         for n in sizes:
             recs = load(f"results/tfim_1d/{n}/{solver}/result_1d_h1.0_rbmfull_nh{n}_lr0.1_reg1e-05_ns1000_seed*_iter100_cem0.json.gz")
             ns.append(len(recs))
-            errs = [abs(r["final_energy"] - r["exact_energy"]) / abs(r["exact_energy"]) for r in recs]
+            errs = [abs(r["final_energy"] - r["exact_energy"]) / n for r in recs]
             m, l, h = median_iqr(errs)
             med.append(m); lo.append(l); hi.append(h)
         xs = [n for n, m in zip(sizes, med) if m is not None]
@@ -635,12 +675,12 @@ def fig7_classical_scaling_tfim1d():
     ax.set_yscale("log")
     log_x_with_ticks(ax, sizes)
     ax.set_xlabel("System size N")
-    ax.set_ylabel(r"Final relative error $|E_\mathrm{final}-E_\mathrm{exact}|/|E_\mathrm{exact}|$")
+    ax.set_ylabel(r"Final energy error per spin  $|E_\mathrm{final}-E_\mathrm{exact}|/N$")
     ax.set_title("(A) vs. system size, h=1.0 (critical point)")
     style_axes(ax)
     ax.legend(frameon=False, loc="upper left", fontsize=8)
 
-    # Panel B: final relative error vs h, N=8 fixed
+    # Panel B: final energy error per spin vs h, N=8 fixed
     ax = axes[1]
     hs = [0.5, 1.0, 1.5, 2.0]
     for solver, label, color, marker in solvers:
@@ -648,7 +688,7 @@ def fig7_classical_scaling_tfim1d():
         for h_val in hs:
             recs = load(f"results/tfim_1d/8/{solver}/result_1d_h{h_val}_rbmfull_nh8_lr0.1_reg1e-05_ns1000_seed*_iter100_cem0.json.gz")
             ns.append(len(recs))
-            errs = [abs(r["final_energy"] - r["exact_energy"]) / abs(r["exact_energy"]) for r in recs]
+            errs = [abs(r["final_energy"] - r["exact_energy"]) / 8 for r in recs]
             m, l, hh = median_iqr(errs)
             med.append(m); lo.append(l); hi.append(hh)
         xs = [x for x, m in zip(hs, med) if m is not None]
@@ -663,6 +703,7 @@ def fig7_classical_scaling_tfim1d():
     ax.set_yscale("log")
     ax.set_xticks(hs)
     ax.set_xlabel("Transverse field h")
+    ax.set_ylabel(r"Final energy error per spin  $|E_\mathrm{final}-E_\mathrm{exact}|/N$")
     ax.set_title("(B) vs. field strength, N=8 fixed")
     style_axes(ax)
     ax.legend(frameon=False, loc="center left", fontsize=8)
@@ -708,6 +749,11 @@ def fig7_classical_scaling_tfim1d():
 #                                        non-duplicate final energies -- same pooling as Figure 2/3)
 #   D-Wave Pegasus / Zephyr (QPU)      : h=0.5, rbmfull, lr=0.1, reg=0.001, ns=1000, iter=300, n=2
 #                                        (matches Figure 5/6's cell; real QPU, thin)
+#
+# Metric: energy error PER SPIN, |E_final-E_exact|/16 -- not relative to
+# |E_exact|. N=16 is fixed for every row here, so this is just a constant
+# divisor, but rows mix h=1.0 (density -1.2732/spin) and h=0.5 (density
+# -1.0635/spin) cells, so it is not a no-op relative to the old convention.
 # ---------------------------------------------------------------------------
 
 def fig8_all_solvers_n16():
@@ -737,7 +783,7 @@ def fig8_all_solvers_n16():
     ylabels = []
     for i, (label, pattern, sweep_solver, color) in enumerate(rows):
         recs = sweeps_recs(sweep_solver) if sweep_solver else load(pattern)
-        errs = [abs(r["final_energy"] - r["exact_energy"]) / abs(r["exact_energy"]) for r in recs]
+        errs = [abs(r["final_energy"] - r["exact_energy"]) / 16 for r in recs]
         m, lo, hi = median_iqr(errs)
         y = len(rows) - i
         if m is not None:
@@ -750,7 +796,7 @@ def fig8_all_solvers_n16():
     ax.set_yticks([len(rows) - i for i in range(len(rows))])
     ax.set_yticklabels(ylabels)
     ax.set_xscale("log")
-    ax.set_xlabel(r"Final relative error $|E_\mathrm{final}-E_\mathrm{exact}|/|E_\mathrm{exact}|$ (median, IQR)")
+    ax.set_xlabel(r"Final energy error per spin  $|E_\mathrm{final}-E_\mathrm{exact}|/N$ (median, IQR)")
     ax.set_title(
         "All archived solvers at N=16, each at its own best-available operating point\n"
         "NOT hyperparameter-matched -- see script comments for each row's (h, config, n)",
@@ -768,15 +814,15 @@ def fig8_all_solvers_n16():
 # operating point (companion to Figure 8; same per-solver cells/config
 # table, see Figure 8's header comment).
 #
-# Panel A (ITE): iterations to 1% relative error, rolling window=10
+# Panel A (ITE): iterations to 0.01 energy error per spin, rolling window=10
 # (ite_run.py convention). Solvers whose best-available cell never reaches
-# 1% within its own iteration budget are censored (hollow marker at the
-# recorded budget) rather than dropped -- for Metropolis and dimod-SA at
+# threshold within its own iteration budget are censored (hollow marker at
+# the recorded budget) rather than dropped -- for Metropolis and dimod-SA at
 # their h=1.0/100-iteration cell this is a real result (that cell is a hard,
 # short-budget regime), not a plotting gap.
 #
-# Panel B (TTE): wall-clock time to 1% relative error, from cumulative
-# per-iteration timing in each run's own history. Per CLAUDE.md's
+# Panel B (TTE): wall-clock time to 0.01 energy error per spin, from
+# cumulative per-iteration timing in each run's own history. Per CLAUDE.md's
 # no-silent-fallback rule, a solver is only included here if its archived
 # history actually records a timing field -- D-Wave Pegasus/Zephyr (QPU)
 # results in this archive have NO per-iteration timing field at all (verified:
@@ -828,7 +874,7 @@ def fig9_ite_tte_all_solvers_n16():
         y = len(rows) - i
         ylabels.append(label)
 
-        ites = [compute_ite(r["history"]["energy"], r["exact_energy"], epsilon) for r in recs]
+        ites = [compute_ite(r["history"]["energy"], r["exact_energy"], 16, epsilon) for r in recs]
         reached_ite = [v for v in ites if v is not None]
         budgets = [len(r["history"]["energy"]) for r in recs]
 
@@ -861,8 +907,8 @@ def fig9_ite_tte_all_solvers_n16():
                     textcoords="offset points", xytext=(8, 0), fontsize=7.5, color=color, va="center")
 
     for ax, xlabel, title in [
-        (axes[0], f"ITE — iterations to {epsilon*100:.0f}% relative error (median, IQR; x = censored)", "(A) Iterations-to-epsilon"),
-        (axes[1], f"TTE — wall-clock seconds to {epsilon*100:.0f}% relative error (median, IQR; x = censored)", "(B) Time-to-epsilon (QPU omitted, no timing recorded)"),
+        (axes[0], f"ITE — iterations to {epsilon:.3g} energy error/spin (median, IQR; x = censored)", "(A) Iterations-to-epsilon"),
+        (axes[1], f"TTE — wall-clock seconds to {epsilon:.3g} energy error/spin (median, IQR; x = censored)", "(B) Time-to-epsilon (QPU omitted, no timing recorded)"),
     ]:
         ax.set_yticks([len(rows) - i for i in range(len(rows))])
         ax.set_yticklabels(ylabels if ax is axes[0] else [])
@@ -903,10 +949,25 @@ def fig9_ite_tte_all_solvers_n16():
 #                               so they are absent from panel B, not zero.
 #
 # Every point that is not fully censored is a real median (or single value at
-# n=1); points where 0 seeds reach 1% error within budget are shown hollow at
-# the recorded iteration/time budget, not omitted. n is annotated at every
-# point that has fewer seeds than its neighbors so a thin point is never
-# mistaken for a well-powered one.
+# n=1); points where 0 seeds reach the epsilon threshold within budget are
+# shown hollow at the recorded iteration/time budget, not omitted. n is
+# annotated at every point that has fewer seeds than its neighbors so a thin
+# point is never mistaken for a well-powered one.
+#
+# Metric: energy error PER SPIN, |E-E_exact|/N -- not relative to |E_exact|
+# (epsilon=0.01 err/spin, not 1% relative). This matters here specifically
+# because different series use different h (Metropolis/Gibbs/LSB/dimod-SA/
+# dimod-Tabu at h=1.0, VeloxQ/FPGA/D-Wave at h=0.5), so relative error would
+# implicitly compare each series against a different reference scale.
+#
+# A separate star marks the freshly re-tuned N=128 VeloxQ config (same
+# Optuna-found hyperparameters as Figures 2/3's re-tuned point) -- without
+# it, VeloxQ/FPGA's shared un-tuned hyperparameters (lr=0.08, reg=0.05)
+# simply never converge at N=128 (0/40 for both, verified), so the main
+# series line goes fully censored there and the plot would otherwise imply
+# N=128 is unreachable for VeloxQ, which is only true for that specific
+# untuned config. FPGA has no equivalent re-tuned run, so its line is left
+# censored at N=128, same as Figure 2/3's treatment.
 # ---------------------------------------------------------------------------
 
 def fig10_ite_tte_vs_n_all_solvers():
@@ -953,7 +1014,7 @@ def fig10_ite_tte_vs_n_all_solvers():
         tte_med, tte_lo, tte_hi, tte_n, tte_budget = [], [], [], [], []
         for n in sizes:
             recs = get_recs(n)
-            ites = [compute_ite(r["history"]["energy"], r["exact_energy"], epsilon) for r in recs]
+            ites = [compute_ite(r["history"]["energy"], r["exact_energy"], n, epsilon) for r in recs]
             reached = [v for v in ites if v is not None]
             m, l, h = median_iqr(reached) if reached else (None, None, None)
             ite_med.append(m); ite_lo.append(l); ite_hi.append(h)
@@ -1001,13 +1062,38 @@ def fig10_ite_tte_vs_n_all_solvers():
                         ax.annotate(f"{r}/{total}", (n, y_pos), textcoords="offset points",
                                     xytext=(4, 6), fontsize=6, color=color, ha="left")
 
+    # re-tuned N=128 VeloxQ point (same Optuna-found config as Figures 2/3),
+    # annotated separately -- not connected to the untuned VeloxQ/FPGA line
+    retuned = load("results/sweeps100_v2/tfim_1d/128/velox/simulated_annealing/result_*seed*") + \
+        load("results/sweeps2000_v2/tfim_1d/128/velox/simulated_annealing/result_*seed*")
+    retuned_ites = [compute_ite(r["history"]["energy"], r["exact_energy"], 128, epsilon) for r in retuned]
+    reached_ites = [v for v in retuned_ites if v is not None]
+    if reached_ites:
+        m, l, h = median_iqr(reached_ites)
+        axes[0].errorbar([128], [m], yerr=[[m - l], [h - m]], marker="*", color="#eb6834",
+                          markersize=16, linewidth=1.6, capsize=3, zorder=4,
+                          label=f"VeloxQ, re-tuned (n={len(reached_ites)}/{len(retuned)} reached)")
+        axes[0].annotate("re-tuned\n(not matched)", xy=(128, m), xytext=(45, m * 1.5),
+                          fontsize=7.5, color=MUTED, ha="center",
+                          arrowprops=dict(arrowstyle="->", color=MUTED, linewidth=0.8))
+        cum_times = [np.cumsum(r["history"]["total_sampling_time_s"] if "total_sampling_time_s" in r["history"] else r["history"]["sampling_time_s"]) for r in retuned]
+        retuned_ttes = [float(ct[ite - 1]) for ct, ite in zip(cum_times, retuned_ites) if ite is not None]
+        if retuned_ttes:
+            m, l, h = median_iqr(retuned_ttes)
+            axes[1].errorbar([128], [m], yerr=[[m - l], [h - m]], marker="*", color="#eb6834",
+                              markersize=16, linewidth=1.6, capsize=3, zorder=4,
+                              label=f"VeloxQ, re-tuned (n={len(retuned_ttes)}/{len(retuned)} reached)")
+            axes[1].annotate("re-tuned\n(not matched)", xy=(128, m), xytext=(45, m * 1.5),
+                              fontsize=7.5, color=MUTED, ha="center",
+                              arrowprops=dict(arrowstyle="->", color=MUTED, linewidth=0.8))
+
     for ax in axes:
         ax.set_yscale("log")
         ax.set_xscale("log")
         ax.set_xlabel("System size N")
         style_axes(ax)
-    axes[0].set_ylabel(f"ITE — iterations to {epsilon*100:.0f}% relative error (median, IQR; hollow = censored)")
-    axes[1].set_ylabel(f"TTE — wall-clock seconds to {epsilon*100:.0f}% relative error (median, IQR)")
+    axes[0].set_ylabel(f"ITE — iterations to {epsilon:.3g} energy error/spin (median, IQR; hollow = censored)")
+    axes[1].set_ylabel(f"TTE — wall-clock seconds to {epsilon:.3g} energy error/spin (median, IQR)")
     axes[0].set_title("(A) Iterations-to-epsilon vs. N")
     axes[1].set_title("(B) Time-to-epsilon vs. N (D-Wave QPU omitted, no timing recorded)")
     axes[0].legend(frameon=False, loc="upper left", fontsize=7.5, ncol=2)
