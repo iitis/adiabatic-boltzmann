@@ -1,0 +1,25 @@
+{
+  "configs": [
+    {
+      "N": 32, "h": 0.5,
+      "n_hidden": 32,
+      "learning_rate": 0.05, "regularization": 9e-7, "n_samples": 2400,
+      "T_initial": 1.1, "num_sweeps": 2000,
+      "cg_tol": 2e-9, "cg_maxiter": 100
+    },
+    {
+      "N": 64, "h": 0.5,
+      "n_hidden": 64,
+      "learning_rate": 0.09, "regularization": 1.5e-6, "n_samples": 2000,
+      "T_initial": 1.2, "num_sweeps": 2000,
+      "cg_tol": 4e-10, "cg_maxiter": 100
+    },
+    {
+      "N": 128, "h": 0.5,
+      "n_hidden": 128,
+      "learning_rate": 0.035, "regularization": 1e-5, "n_samples": 5700,
+      "T_initial": 1.2, "num_sweeps": 2000,
+      "cg_tol": 4e-7, "cg_maxiter": 230
+    }
+  ]
+}
