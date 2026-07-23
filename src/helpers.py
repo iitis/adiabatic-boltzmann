@@ -226,7 +226,17 @@ def _ansatz_str(args) -> str:
     return f"_rbm{rbm}_nh{n_hidden}"
 
 
-def save_results(args, history, ising, rbm=None, energy_j=None):
+def save_results(args, history, ising, rbm=None, energy_j=None, num_sweeps=None):
+    """
+    num_sweeps: optional SA/annealing sweep count. Not derivable from `args`
+    (main.py's Metropolis path has no such concept), so callers that have it
+    (run_fpga_best.py's fpga/veloxq_sa modes) pass it explicitly. When given,
+    it's appended to the filename and stored in the result JSON; when None,
+    filenames are unchanged from before this parameter existed. This matters
+    because num_sweeps otherwise isn't encoded anywhere the filename/resume
+    logic can see it: rerunning with a different num_sweeps but identical
+    lr/reg/n_samples/seed would otherwise collide with a prior run's file.
+    """
     # Directory structure: results/{model}/{size}/{sampler}/{method}/
     output_dir = Path(
         f"{args.output_dir}/{_model_subdir(args.model)}/{args.size}/{args.sampler}/{args.sampling_method}"
@@ -275,6 +285,7 @@ def save_results(args, history, ising, rbm=None, energy_j=None):
         )
         else None,
         "n_parallel": getattr(args, "n_parallel", None),
+        "num_sweeps": num_sweeps,
     }
 
     # Filename encodes every axis that varies in the sweep
@@ -292,6 +303,7 @@ def save_results(args, history, ising, rbm=None, energy_j=None):
         f"_cem{int(use_cem)}"
         f"_sigma{float(getattr(args, 'sigma', 1.0))}"
         + (f"_np{_n_parallel}" if _n_parallel and _n_parallel != 1 else "")
+        + (f"_sw{num_sweeps}" if num_sweeps is not None else "")
         + f".json.gz"
     )
 
