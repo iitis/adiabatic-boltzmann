@@ -1,0 +1,47 @@
+{
+  "source_config": "/home/lpawela/side-projects/qmz/adiabatic-boltzmann/scripts/fpga/configs/alpha1_h0.5.json",
+  "n_seeds": 20,
+  "iterations": 150,
+  "backends": [
+    "veloxq_sa"
+  ],
+  "resolved": {
+    "N32_h0.5": {
+      "model": "1d",
+      "n_hidden": 32,
+      "learning_rate": 0.05,
+      "regularization": 9e-07,
+      "n_samples": 2400,
+      "momentum": 0.0,
+      "cg_tol": 2e-09,
+      "cg_maxiter": 100,
+      "T_initial": 1.1,
+      "num_sweeps": 2000
+    },
+    "N64_h0.5": {
+      "model": "1d",
+      "n_hidden": 64,
+      "learning_rate": 0.09,
+      "regularization": 1.5e-06,
+      "n_samples": 2000,
+      "momentum": 0.0,
+      "cg_tol": 4e-10,
+      "cg_maxiter": 100,
+      "T_initial": 1.2,
+      "num_sweeps": 2000
+    },
+    "N128_h0.5": {
+      "model": "1d",
+      "n_hidden": 128,
+      "learning_rate": 0.035,
+      "regularization": 1e-05,
+      "n_samples": 5700,
+      "momentum": 0.0,
+      "cg_tol": 4e-07,
+      "cg_maxiter": 230,
+      "T_initial": 1.2,
+      "num_sweeps": 2000
+    }
+  },
+  "skipped": []
+}

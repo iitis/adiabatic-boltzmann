@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.12.6"
+julia_version = "1.12.3"
 manifest_format = "2.0"
 project_hash = "6428dab003321be9f38ff6ee37247c00721b8450"
 
@@ -904,7 +904,7 @@ version = "2.2.6"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
-version = "2025.11.4"
+version = "2025.5.20"
 
 [[deps.Multisets]]
 git-tree-sha1 = "f4205a002e2e0c4a10971ea313084ee212f761a4"
@@ -1448,15 +1448,15 @@ weakdeps = ["LLVM"]
 
 [[deps.VeloxQIO]]
 deps = ["AWS", "AWSS3", "CSV", "Combinatorics", "HDF5", "InteractiveUtils", "JSON", "LinearAlgebra", "MAT", "SparseArrays", "SparseMultiDimArrays", "VeloxQtoolbox"]
-git-tree-sha1 = "5b3f4c24e574ef8b019662a54d725a42ebc677db"
+path = "/home/lpawela/side-projects/qmz/veloxQIO"
 uuid = "468689c0-ba0c-4dfc-8cdc-299b503212c3"
-version = "3.1.0"
+version = "4.0.0"
 
 [[deps.VeloxQstandard]]
 deps = ["Atomix", "KernelAbstractions", "LinearAlgebra", "Logging", "MKL", "ProgressMeter", "Random", "SparseArrays", "SparseMultiDimArrays", "StatsBase", "StructTypes", "VeloxQtoolbox"]
-path = "/home/lpawela/veloxQstandard"
+path = "/home/lpawela/side-projects/qmz/veloxQstandard"
 uuid = "b336e6d0-f40c-4f4b-affc-bec69abff78f"
-version = "3.5.4"
+version = "4.0.0"
 
     [deps.VeloxQstandard.extensions]
     VeloxQstandardAMDGPUExt = "AMDGPU"
@@ -1468,9 +1468,9 @@ version = "3.5.4"
 
 [[deps.VeloxQtoolbox]]
 deps = ["JSON", "KernelAbstractions", "LinearAlgebra", "Logging", "Random", "SimpleGraphAlgorithms", "SimpleGraphs", "SparseArrays", "SparseMultiDimArrays", "Statistics", "StructTypes"]
-git-tree-sha1 = "81e8ef8b9fa036544e9a98cc06d1f66988caf331"
+path = "/home/lpawela/side-projects/qmz/veloxQtoolbox"
 uuid = "91c8515d-36a8-474c-936b-b351acb2875d"
-version = "3.5.1"
+version = "4.0.0"
 
     [deps.VeloxQtoolbox.extensions]
     VeloxQtoolboxAMDGPUExt = "AMDGPU"
