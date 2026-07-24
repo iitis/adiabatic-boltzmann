@@ -928,61 +928,7 @@ def fig9_ite_tte_all_solvers_n16():
 
 
 # ---------------------------------------------------------------------------
-# Figure 10 — ITE and TTE vs. system size N, all solvers, each at its own
-# best-available operating point (same philosophy as Figures 8-9, but with N
-# on the x-axis instead of a single fixed N=16).
-#
-# Per-solver cell, chosen as each solver's richest archived campaign (all
-# rbm=full, ns=1000 unless noted). h=0.5 throughout -- unified across every
-# series so no series is being compared against a different physics point
-# (verified constant ground-state energy density, -1.06354/spin, across
-# N=25..196 for the Metropolis/Gibbs/LSB cell and N=8..128 for VeloxQ/FPGA,
-# matching Figure 2's own check):
-#   Metropolis / Gibbs / LSB  : h=0.5, lr=0.01, reg=1e-05, iter=300 -- N=25..196,
-#                               5 seeds/point (h=1.0 was used previously; switched
-#                               to h=0.5 since the archive has the same seed depth
-#                               at this h too, removing one whole axis of mismatch
-#                               against VeloxQ/FPGA/D-Wave below).
-#   VeloxQ (SA) / FPGA        : h=0.5, lr=0.08, reg=0.05, ns=200, sweeps100+2000(+_v2)
-#                               pooled -- N=8..128, 40 runs/point (Figure 2's cell).
-#   D-Wave Pegasus / Zephyr   : h=0.5, reg=0.001, iter=300, lr in {0.01, 0.1} pooled
-#                               together (both attempted, not enough seeds at either
-#                               alone) -- N=6,8,16,32,64, 1-4 runs/point. Most of
-#                               these archived runs never recorded a timing field
-#                               (old schema, pre-dating per-iteration wall-clock
-#                               logging) -- panel B uses whichever individual runs
-#                               in each cell actually have sampling_time_s/
-#                               total_sampling_time_s (checked per-record, not
-#                               assumed per-series); currently that's only N=6,8.
-#                               N=16,32,64 have no timed runs on disk and stay
-#                               absent from panel B, not zero.
-#
-# dimod-SA / dimod-Tabu are deliberately NOT included here: at h=0.5 the archive
-# only has them at N=8 (checked N=4,16 at every lr/reg -- nothing), so there is
-# no real N-trend to show at the unified physics point, and keeping them at
-# h=1.0 would reintroduce the exact cross-series h mismatch this figure is
-# trying to avoid. See Figure 7 for that solver family's own (h=1.0) comparison.
-#
-# Every point that is not fully censored is a real median (or single value at
-# n=1); points where 0 seeds reach the epsilon threshold within budget are
-# shown hollow at the recorded iteration/time budget, not omitted. n is
-# annotated at every point that has fewer seeds than its neighbors so a thin
-# point is never mistaken for a well-powered one.
-#
-# Metric: energy error PER SPIN, |E-E_exact|/N -- not relative to |E_exact|.
-# epsilon is a function parameter (default 0.01 err/spin, not 1% relative).
-# h is now matched across every series in this figure; lr/reg/n_samples/
-# iteration-budget still differ per solver family (see cell list above) --
-# this is still NOT a fully hyperparameter-matched comparison, only h-matched.
-#
-# A separate star marks the freshly re-tuned N=128 VeloxQ config (same
-# Optuna-found hyperparameters as Figures 2/3's re-tuned point) -- without
-# it, VeloxQ/FPGA's shared un-tuned hyperparameters (lr=0.08, reg=0.05)
-# simply never converge at N=128 (0/40 for both, verified), so the main
-# series line goes fully censored there and the plot would otherwise imply
-# N=128 is unreachable for VeloxQ, which is only true for that specific
-# untuned config. FPGA has no equivalent re-tuned run, so its line is left
-# censored at N=128, same as Figure 2/3's treatment.
+# Figure 10 — ITE and TTE vs. system size N, all solvers
 # ---------------------------------------------------------------------------
 
 def fig10_ite_tte_vs_n_all_solvers(epsilon=0.01):
@@ -993,46 +939,56 @@ def fig10_ite_tte_vs_n_all_solvers(epsilon=0.01):
 
     def sweeps_recs(solver, n):
         out = []
-        for campaign in ("sweeps100", "sweeps2000", "sweeps100_v2", "sweeps2000_v2"):
-            for r in load(f"results/{campaign}/tfim_1d/{n}/{solver}/*/result_*_seed*_iter*"):
-                c = r["config"]
-                if c["n_hidden"] == n and abs(c["learning_rate"] - 0.08) < 1e-9 \
-                        and abs(c["regularization"] - 0.05) < 1e-9 and c["n_samples"] == 200:
-                    out.append(r)
-        return out
+        for r in load(f"results/sweeps100/tfim_1d/{n}/{solver}/*/result_*_seed*_iter*"):
+            c = r["config"]
+            if c["n_hidden"] == n and abs(c["learning_rate"] - 0.08) < 1e-9 \
+                    and abs(c["regularization"] - 0.05) < 1e-9 and c["n_samples"] == 200:
+                out.append(r)
+        return out[:20]
 
     def dwave_recs(method, n):
         recs = load(f"results/tfim_1d/{n}/dimod/{method}/result_1d_h0.5_rbmfull_nh{n}_lr*_reg0.001_ns1000_seed*_iter300*.json.gz")
         return [r for r in recs if r["config"]["n_hidden"] == n and abs(r["config"]["regularization"] - 0.001) < 1e-9]
 
+    def velox_untuned_recs(n):
+        with open("results/custom/velox_default_h0.5.json") as f:
+            default = json.load(f)
+        cfg = default["config"]
+        out = []
+        for campaign in default["source_campaigns"]:
+            pattern = default["source_path_template"].format(campaign=campaign, n=n)
+            for r in load(pattern):
+                c = r["config"]
+                if c["n_hidden"] == n and abs(c["learning_rate"] - cfg["learning_rate"]) < 1e-9 \
+                        and abs(c["regularization"] - cfg["regularization"]) < 1e-9 and c["n_samples"] == cfg["n_samples"]:
+                    out.append(r)
+        return out[:20]
+
+    def velox_tuned_recs(n):
+        with open("results/custom/alpha1_h0.5/manifest.json") as f:
+            tuned_manifest = json.load(f)
+        key = f"N{n}_h0.5"
+        if key not in tuned_manifest["resolved"]:
+            return []
+        cfg = tuned_manifest["resolved"][key]
+        recs = load(f"results/custom/alpha1_h0.5/tfim_1d/{n}/velox/simulated_annealing/result_*seed*")
+        return [r for r in recs if r["config"]["n_hidden"] == cfg["n_hidden"]][:20]
+
     series = [
         ("Metropolis", [25, 36, 49, 64, 81, 100, 121, 144, 169, 196], lambda n: mcmc_recs("metropolis", n), COLOR_BLUE, "o", "-"),
         ("Gibbs", [25, 36, 49, 64, 81, 100, 121, 144, 169, 196], lambda n: mcmc_recs("gibbs", n), COLOR_GREEN, "s", "-"),
         ("LSB (+CEM)", [25, 36, 49, 64, 81, 100, 121, 144, 169, 196], lambda n: mcmc_recs("lsb", n), COLOR_MAGENTA, "^", "--"),
-        ("VeloxQ (SA hardware)", [8, 12, 16, 24, 32, 64, 128], lambda n: sweeps_recs("velox", n), "#eb6834", "P", "-"),
+        ("VeloxQ (SA, untuned)", [8, 12, 16, 24, 32, 64, 128], lambda n: velox_untuned_recs(n), "#eb6834", "P", "-"),
+        ("VeloxQ (SA, tuned)", [32, 64, 128], lambda n: velox_tuned_recs(n), "#eb6834", "D", ":"),
         ("FPGA", [8, 12, 16, 24, 32, 64, 128], lambda n: sweeps_recs("fpga", n), "#ffa600", "X", "-"),
-        ("D-Wave Pegasus (QPU)", [6, 8, 16, 32, 64], lambda n: dwave_recs("pegasus", n), "#bc5090", "*", ":"),
-        ("D-Wave Zephyr (QPU)", [6, 8, 16, 32, 64], lambda n: dwave_recs("zephyr", n), "#ef5675", "*", ":"),
     ]
 
-    fig, axes = plt.subplots(1, 2, figsize=(15, 6.5))
+    fig, ax = plt.subplots(figsize=(8, 6.5))
 
     for series_idx, (label, sizes, get_recs, color, marker, linestyle) in enumerate(series):
-        ite_med, ite_lo, ite_hi, ite_n, ite_budget = [], [], [], [], []
         tte_med, tte_lo, tte_hi, tte_n, tte_budget = [], [], [], [], []
         for n in sizes:
             recs = get_recs(n)
-            ites = [compute_ite(r["history"]["energy"], r["exact_energy"], n, epsilon) for r in recs]
-            reached = [v for v in ites if v is not None]
-            m, l, h = median_iqr(reached) if reached else (None, None, None)
-            ite_med.append(m); ite_lo.append(l); ite_hi.append(h)
-            ite_n.append((len(reached), len(recs)))
-            ite_budget.append(max((len(r["history"]["energy"]) for r in recs), default=None))
-
-            # per-record timing check (not a blanket per-series flag): some D-Wave
-            # QPU runs never recorded sampling_time_s/total_sampling_time_s (old
-            # schema, pre-dating per-iteration wall-clock logging), others did --
-            # use whichever records in this cell actually have it.
             timed_recs = [r for r in recs if "sampling_time_s" in r["history"] or "total_sampling_time_s" in r["history"]]
             if timed_recs:
                 tf = "total_sampling_time_s" if "total_sampling_time_s" in timed_recs[0]["history"] else "sampling_time_s"
@@ -1047,75 +1003,38 @@ def fig10_ite_tte_vs_n_all_solvers(epsilon=0.01):
                 tte_med.append(None); tte_lo.append(None); tte_hi.append(None)
                 tte_n.append((0, 0)); tte_budget.append(None)
 
-        for ax, med, lo, hi, ns, budget in [
-            (axes[0], ite_med, ite_lo, ite_hi, ite_n, ite_budget),
-            (axes[1], tte_med, tte_lo, tte_hi, tte_n, tte_budget),
-        ]:
-            xs = [n for n, m in zip(sizes, med) if m is not None]
-            ys = [m for m in med if m is not None]
-            lo_v = [v for v in lo if v is not None]
-            hi_v = [v for v in hi if v is not None]
-            if xs:
-                yerr = [[y - l for y, l in zip(ys, lo_v)], [h - y for y, h in zip(ys, hi_v)]]
-                ax.errorbar(xs, ys, yerr=yerr, marker=marker, color=color, label=label,
-                            markersize=7, linewidth=1.5, capsize=3, zorder=3, linestyle=linestyle)
-            elif ax is axes[0]:
-                # fully censored in this panel: still needs a legend entry, or these hollow
-                # markers are unlabeled and unidentifiable (e.g. dimod-SA is 0-reached at every N)
-                ax.plot([], [], marker=marker, color=color, linestyle=linestyle, label=label)
-            cx = [n for n, m, b in zip(sizes, med, budget) if m is None and b is not None]
-            # small multiplicative offset so censored markers from different series don't
-            # sit exactly on top of each other when they share the same iteration/time budget
-            cb = [b * (1.0 + 0.05 * series_idx) for m, b in zip(med, budget) if m is None and b is not None]
-            if cx:
-                ax.scatter(cx, cb, marker=marker, facecolors="none", edgecolors=color, s=50, linewidth=1.3, zorder=3)
-            for n, (r, total) in zip(sizes, ns):
-                if total and r < total:
-                    y_pos = budget[sizes.index(n)] if med[sizes.index(n)] is None else med[sizes.index(n)]
-                    if y_pos is not None:
-                        ax.annotate(f"{r}/{total}", (n, y_pos), textcoords="offset points",
-                                    xytext=(4, 6), fontsize=6, color=color, ha="left")
+        xs = [n for n, m in zip(sizes, tte_med) if m is not None]
+        ys = [m for m in tte_med if m is not None]
+        lo_v = [v for v in tte_lo if v is not None]
+        hi_v = [v for v in tte_hi if v is not None]
+        if xs:
+            yerr = [[y - l for y, l in zip(ys, lo_v)], [h - y for y, h in zip(ys, hi_v)]]
+            ax.errorbar(xs, ys, yerr=yerr, marker=marker, color=color, label=label,
+                        markersize=7, linewidth=1.5, capsize=3, zorder=3, linestyle=linestyle)
+        else:
+            ax.plot([], [], marker=marker, color=color, linestyle=linestyle, label=label)
+        cx = [n for n, m, b in zip(sizes, tte_med, tte_budget) if m is None and b is not None]
+        cb = [b * (1.0 + 0.05 * series_idx) for m, b in zip(tte_med, tte_budget) if m is None and b is not None]
+        if cx:
+            ax.scatter(cx, cb, marker=marker, facecolors="none", edgecolors=color, s=50, linewidth=1.3, zorder=3)
+        for n, (r, total) in zip(sizes, tte_n):
+            if total and r < total:
+                y_pos = tte_budget[sizes.index(n)] if tte_med[sizes.index(n)] is None else tte_med[sizes.index(n)]
+                if y_pos is not None:
+                    ax.annotate(f"{r}/{total}", (n, y_pos), textcoords="offset points",
+                                xytext=(4, 6), fontsize=6, color=color, ha="left")
 
-    # re-tuned N=128 VeloxQ point (same Optuna-found config as Figures 2/3),
-    # annotated separately -- not connected to the untuned VeloxQ/FPGA line
-    retuned = load("results/sweeps100_v2/tfim_1d/128/velox/simulated_annealing/result_*seed*") + \
-        load("results/sweeps2000_v2/tfim_1d/128/velox/simulated_annealing/result_*seed*")
-    retuned_ites = [compute_ite(r["history"]["energy"], r["exact_energy"], 128, epsilon) for r in retuned]
-    reached_ites = [v for v in retuned_ites if v is not None]
-    if reached_ites:
-        m, l, h = median_iqr(reached_ites)
-        axes[0].errorbar([128], [m], yerr=[[m - l], [h - m]], marker="*", color="#eb6834",
-                          markersize=16, linewidth=1.6, capsize=3, zorder=4,
-                          label=f"VeloxQ, re-tuned (n={len(reached_ites)}/{len(retuned)} reached)")
-        axes[0].annotate("re-tuned\n(not matched)", xy=(128, m), xytext=(45, m * 1.5),
-                          fontsize=7.5, color=MUTED, ha="center",
-                          arrowprops=dict(arrowstyle="->", color=MUTED, linewidth=0.8))
-        cum_times = [np.cumsum(r["history"]["total_sampling_time_s"] if "total_sampling_time_s" in r["history"] else r["history"]["sampling_time_s"]) for r in retuned]
-        retuned_ttes = [float(ct[ite - 1]) for ct, ite in zip(cum_times, retuned_ites) if ite is not None]
-        if retuned_ttes:
-            m, l, h = median_iqr(retuned_ttes)
-            axes[1].errorbar([128], [m], yerr=[[m - l], [h - m]], marker="*", color="#eb6834",
-                              markersize=16, linewidth=1.6, capsize=3, zorder=4,
-                              label=f"VeloxQ, re-tuned (n={len(retuned_ttes)}/{len(retuned)} reached)")
-            axes[1].annotate("re-tuned\n(not matched)", xy=(128, m), xytext=(45, m * 1.5),
-                              fontsize=7.5, color=MUTED, ha="center",
-                              arrowprops=dict(arrowstyle="->", color=MUTED, linewidth=0.8))
-
-    for ax in axes:
-        ax.set_yscale("log")
-        ax.set_xscale("log")
-        ax.set_xlabel("System size N")
-        style_axes(ax)
-    axes[0].set_ylabel(f"ITE — iterations to {epsilon:.3g} energy error/spin (median, IQR; hollow = censored)")
-    axes[1].set_ylabel(f"TTE — wall-clock seconds to {epsilon:.3g} energy error/spin (median, IQR)")
-    axes[0].set_title("(A) Iterations-to-epsilon vs. N")
-    axes[1].set_title("(B) Time-to-epsilon vs. N (D-Wave QPU shown only where timing was recorded)")
-    axes[0].legend(frameon=False, loc="upper left", fontsize=7.5, ncol=2)
+    ax.set_yscale("log")
+    ax.set_xscale("log")
+    ax.set_xlabel("System size N")
+    style_axes(ax)
+    ax.set_ylabel(f"TTE — wall-clock seconds to {epsilon:.3g} energy error/spin (median, IQR)")
+    ax.set_title("Time-to-epsilon vs. N (D-Wave QPU shown only where timing was recorded)")
+    ax.legend(frameon=False, loc="upper left", fontsize=7.5, ncol=2)
 
     fig.suptitle(
-        "ITE / TTE vs. system size, all archived solvers, each at its own best-available operating point\n"
-        "h=0.5 matched across all series; lr/reg/n_samples/iter budget still differ -- see script header for each series' config, N range, n\n"
-        "(hollow markers at the same x are nudged apart vertically to stay distinguishable; the offset is cosmetic, not data)",
+        "TTE vs. system size, all solvers\n"
+        "h=0.5, alpha=1 (n_hidden=N)",
         y=1.04, fontsize=10.5
     )
     fig.tight_layout()

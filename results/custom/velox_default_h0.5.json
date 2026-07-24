@@ -1,0 +1,10 @@
+{
+  "description": "Shared default (untuned) VeloxQ SA config, TFIM 1D, h=0.5, alpha=1 (n_hidden=N). Used by scripts/viz/paper_figures.py for any N with no per-N tuned entry in alpha1_h0.5/manifest.json. sweeps2000 excluded: same (lr, reg, n_samples) on record but a different num_sweeps (SA sweeps per sample), not a repeated seed of this config.",
+  "config": {
+    "learning_rate": 0.08,
+    "regularization": 0.05,
+    "n_samples": 200
+  },
+  "source_campaigns": ["sweeps100"],
+  "source_path_template": "results/{campaign}/tfim_1d/{n}/velox/simulated_annealing/result_*_seed*_iter*"
+}
