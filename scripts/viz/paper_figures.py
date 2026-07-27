@@ -932,10 +932,15 @@ def fig9_ite_tte_all_solvers_n16():
 # ---------------------------------------------------------------------------
 
 def fig10_ite_tte_vs_n_all_solvers(epsilon=0.01):
-    def mcmc_recs(solver, n):
-        recs = load(f"results/tfim_1d/{n}/custom/{solver}/result_1d_h0.5_rbmfull_nh{n}_lr0.01_reg1e-05_ns1000_seed*_iter300*.json.gz")
-        return [r for r in recs if r["config"]["n_hidden"] == n and abs(r["config"]["learning_rate"] - 0.01) < 1e-9
-                and abs(r["config"]["regularization"] - 1e-05) < 1e-9 and r["config"]["iterations"] == 300]
+    # Metropolis/Gibbs/LSB(+CEM) run at the exact same (lr, reg, n_samples,
+    # iterations) cell as FPGA/VeloxQ's "sweeps100" campaign below (see
+    # scripts/exper/mcmc_matched_sweep.py) -- this makes the comparison
+    # hyperparameter-matched, not just h-matched.
+    def mcmc_recs(solver, n, cem=0):
+        recs = load(f"results/tfim_1d/{n}/custom/{solver}/result_1d_h0.5_rbmfull_nh{n}_lr0.08_reg0.05_ns200_seed*_iter100_cem{cem}_sigma1.0.json.gz")
+        return [r for r in recs if r["config"]["n_hidden"] == n and abs(r["config"]["learning_rate"] - 0.08) < 1e-9
+                and abs(r["config"]["regularization"] - 0.05) < 1e-9 and r["config"]["n_samples"] == 200
+                and r["config"]["iterations"] == 100][:20]
 
     def sweeps_recs(solver, n):
         out = []
@@ -964,23 +969,14 @@ def fig10_ite_tte_vs_n_all_solvers(epsilon=0.01):
                     out.append(r)
         return out[:20]
 
-    def velox_tuned_recs(n):
-        with open("results/custom/alpha1_h0.5/manifest.json") as f:
-            tuned_manifest = json.load(f)
-        key = f"N{n}_h0.5"
-        if key not in tuned_manifest["resolved"]:
-            return []
-        cfg = tuned_manifest["resolved"][key]
-        recs = load(f"results/custom/alpha1_h0.5/tfim_1d/{n}/velox/simulated_annealing/result_*seed*")
-        return [r for r in recs if r["config"]["n_hidden"] == cfg["n_hidden"]][:20]
-
+    _sizes = [8, 12, 16, 24, 32, 64, 128]
     series = [
-        ("Metropolis", [25, 36, 49, 64, 81, 100, 121, 144, 169, 196], lambda n: mcmc_recs("metropolis", n), COLOR_BLUE, "o", "-"),
-        ("Gibbs", [25, 36, 49, 64, 81, 100, 121, 144, 169, 196], lambda n: mcmc_recs("gibbs", n), COLOR_GREEN, "s", "-"),
-        ("LSB (+CEM)", [25, 36, 49, 64, 81, 100, 121, 144, 169, 196], lambda n: mcmc_recs("lsb", n), COLOR_MAGENTA, "^", "--"),
-        ("VeloxQ (SA, untuned)", [8, 12, 16, 24, 32, 64, 128], lambda n: velox_untuned_recs(n), "#eb6834", "P", "-"),
-        ("VeloxQ (SA, tuned)", [32, 64, 128], lambda n: velox_tuned_recs(n), "#eb6834", "D", ":"),
-        ("FPGA", [8, 12, 16, 24, 32, 64, 128], lambda n: sweeps_recs("fpga", n), "#ffa600", "X", "-"),
+        ("Metropolis", _sizes, lambda n: mcmc_recs("metropolis", n), COLOR_BLUE, "o", "-"),
+        ("Gibbs", _sizes, lambda n: mcmc_recs("gibbs", n), COLOR_GREEN, "s", "-"),
+        ("LSB", _sizes, lambda n: mcmc_recs("lsb", n, cem=0), COLOR_MAGENTA, "^", "--"),
+        ("LSB (+CEM)", _sizes, lambda n: mcmc_recs("lsb", n, cem=1), "#a83279", "v", "--"),
+        ("VeloxQ (SA, untuned)", _sizes, lambda n: velox_untuned_recs(n), "#eb6834", "P", "-"),
+        ("FPGA", _sizes, lambda n: sweeps_recs("fpga", n), "#ffa600", "X", "-"),
     ]
 
     fig, ax = plt.subplots(figsize=(8, 6.5))
@@ -1029,12 +1025,12 @@ def fig10_ite_tte_vs_n_all_solvers(epsilon=0.01):
     ax.set_xlabel("System size N")
     style_axes(ax)
     ax.set_ylabel(f"TTE — wall-clock seconds to {epsilon:.3g} energy error/spin (median, IQR)")
-    ax.set_title("Time-to-epsilon vs. N (D-Wave QPU shown only where timing was recorded)")
+    ax.set_title("Time-to-epsilon vs. N")
     ax.legend(frameon=False, loc="upper left", fontsize=7.5, ncol=2)
 
     fig.suptitle(
         "TTE vs. system size, all solvers\n"
-        "h=0.5, alpha=1 (n_hidden=N)",
+        "h=0.5, alpha=1 (n_hidden=N); lr=0.08, reg=0.05, n_samples=200, iter=100 matched across every series",
         y=1.04, fontsize=10.5
     )
     fig.tight_layout()
