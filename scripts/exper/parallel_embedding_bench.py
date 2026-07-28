@@ -81,11 +81,14 @@ import numpy as np
 
 CONFIG = dict(N=8, h=0.5, method="pegasus", lr=0.1, reg=1e-5,
               n_samples=990, iterations=150)
-ARMS = [1, 3, 5, 165]
+ARMS = [1, 3, 5, 99, 165]
 # n_parallel=165 chosen classically (zero QPU cost): busclique found 191
 # disjoint K_{8,8} embeddings on Advantage_system6 (76.5% of chip, chain
 # length 2-3), and 165 is the largest divisor of n_samples=990 comfortably
 # under that ceiling (990/165 = 6 reads/copy/iteration).
+# n_parallel=99 is a second, smaller "big" arm (990/99 = 10 reads/copy) —
+# nearest divisor of n_samples to 100, added as its own arm (not a swap for
+# 165, which already has live seed data) to keep both comparisons uncorrupted.
 EVAL_SEEDS = [0, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13]
 META_SEED = 7
 EPSILON = 0.01
@@ -97,7 +100,7 @@ QPU_BUDGET_MS = 15 * 60 * 1000
 # arm=165 is untested at this scale (embedded BQM spans ~76% of the chip) —
 # prior set pessimistically (above arm=1) so the budget guard stays safe
 # until a real measurement replaces it.
-COST_PRIOR_MS = {1: 21_000, 3: 11_000, 5: 9_000, 165: 25_000}
+COST_PRIOR_MS = {1: 21_000, 3: 11_000, 5: 9_000, 99: 12_000, 165: 25_000}
 
 QPU_TIME_PATH = _REPO / "time.json"
 OUT_DIR = _REPO / "results" / "parallel_embedding_bench"
@@ -167,6 +170,12 @@ def check_budget(ledger: dict, arm: int) -> float:
 # One run
 # ---------------------------------------------------------------------------
 
+_SHARED_EMBEDDING_CACHE: dict = {}  # injected into each fresh DimodSampler so
+# the expensive n_parallel-way disjoint busclique packing is reused across
+# seeds, without reusing the sampler instance itself (which stays fresh per
+# run to avoid carrying over any other instance state between runs).
+
+
 def run_one(seed: int, arm: int, rehearse: bool, ledger: dict) -> dict:
     from encoder import Trainer
     from ising import TransverseFieldIsing1D
@@ -192,6 +201,7 @@ def run_one(seed: int, arm: int, rehearse: bool, ledger: dict) -> dict:
         n_parallel_actual = 1  # sample_parallel is QPU-only (pegasus/zephyr)
     else:
         sampler = DimodSampler(method=CONFIG["method"])
+        sampler._embedding_cache = _SHARED_EMBEDDING_CACHE
         n_parallel_actual = arm
 
     trainer = Trainer(rbm=rbm, ising_model=ising, sampler=sampler, config={
