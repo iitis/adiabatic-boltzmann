@@ -951,9 +951,16 @@ def fig10_ite_tte_vs_n_all_solvers(epsilon=0.01):
                 out.append(r)
         return out[:20]
 
+    # Pegasus/Zephyr QPU runs at the same matched cell, N in {16,32,64} only
+    # (see scripts/exper/dwave_matched_sweep.py) -- limited range because
+    # Zephyr's dense full-RBM biclique embedding tops out around N=64 on this
+    # chip (K_{96,96}/K_{128,128} don't embed at all), and the 25-min QPU
+    # session budget didn't extend past this range for either method.
     def dwave_recs(method, n):
-        recs = load(f"results/tfim_1d/{n}/dimod/{method}/result_1d_h0.5_rbmfull_nh{n}_lr*_reg0.001_ns1000_seed*_iter300*.json.gz")
-        return [r for r in recs if r["config"]["n_hidden"] == n and abs(r["config"]["regularization"] - 0.001) < 1e-9]
+        recs = load(f"results/tfim_1d/{n}/dimod/{method}/result_1d_h0.5_rbmfull_nh{n}_lr0.08_reg0.05_ns200_seed*_iter100_cem0_sigma1.0.json.gz")
+        return [r for r in recs if r["config"]["n_hidden"] == n and abs(r["config"]["learning_rate"] - 0.08) < 1e-9
+                and abs(r["config"]["regularization"] - 0.05) < 1e-9 and r["config"]["n_samples"] == 200
+                and r["config"]["iterations"] == 100][:20]
 
     def velox_untuned_recs(n):
         with open("results/custom/velox_default_h0.5.json") as f:
@@ -970,6 +977,7 @@ def fig10_ite_tte_vs_n_all_solvers(epsilon=0.01):
         return out[:20]
 
     _sizes = [8, 12, 16, 24, 32, 64, 128]
+    _dwave_sizes = [16, 32, 64]
     series = [
         ("Metropolis", _sizes, lambda n: mcmc_recs("metropolis", n), COLOR_BLUE, "o", "-"),
         ("Gibbs", _sizes, lambda n: mcmc_recs("gibbs", n), COLOR_GREEN, "s", "-"),
@@ -977,6 +985,8 @@ def fig10_ite_tte_vs_n_all_solvers(epsilon=0.01):
         ("LSB (+CEM)", _sizes, lambda n: mcmc_recs("lsb", n, cem=1), "#a83279", "v", "--"),
         ("VeloxQ (SA, untuned)", _sizes, lambda n: velox_untuned_recs(n), "#eb6834", "P", "-"),
         ("FPGA", _sizes, lambda n: sweeps_recs("fpga", n), "#ffa600", "X", "-"),
+        ("Pegasus (QPU)", _dwave_sizes, lambda n: dwave_recs("pegasus", n), "#bc5090", "*", ":"),
+        ("Zephyr (QPU)", _dwave_sizes, lambda n: dwave_recs("zephyr", n), "#ef5675", "*", ":"),
     ]
 
     fig, ax = plt.subplots(figsize=(8, 6.5))
@@ -1030,7 +1040,8 @@ def fig10_ite_tte_vs_n_all_solvers(epsilon=0.01):
 
     fig.suptitle(
         "TTE vs. system size, all solvers\n"
-        "h=0.5, alpha=1 (n_hidden=N); lr=0.08, reg=0.05, n_samples=200, iter=100 matched across every series",
+        "h=0.5, alpha=1 (n_hidden=N); lr=0.08, reg=0.05, n_samples=200, iter=100 matched across every series\n"
+        "Pegasus/Zephyr QPU: N=16,32,64 only (Zephyr's dense embedding doesn't fit N>=96 on this chip)",
         y=1.04, fontsize=10.5
     )
     fig.tight_layout()

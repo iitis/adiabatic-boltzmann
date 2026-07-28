@@ -81,16 +81,23 @@ import numpy as np
 
 CONFIG = dict(N=8, h=0.5, method="pegasus", lr=0.1, reg=1e-5,
               n_samples=990, iterations=150)
-ARMS = [1, 3, 5]
+ARMS = [1, 3, 5, 165]
+# n_parallel=165 chosen classically (zero QPU cost): busclique found 191
+# disjoint K_{8,8} embeddings on Advantage_system6 (76.5% of chip, chain
+# length 2-3), and 165 is the largest divisor of n_samples=990 comfortably
+# under that ceiling (990/165 = 6 reads/copy/iteration).
 EVAL_SEEDS = [0, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13]
 META_SEED = 7
 EPSILON = 0.01
 WINDOW = 10
 FIXED_BUDGET_S = 5.0
-QPU_BUDGET_MS = 11 * 60 * 1000
+QPU_BUDGET_MS = 15 * 60 * 1000
 # Conservative per-run cost (ms of time.json delta) used until >=1 live run
 # of the arm has been measured; based on cache medians x1.5 overhead margin.
-COST_PRIOR_MS = {1: 21_000, 3: 11_000, 5: 9_000}
+# arm=165 is untested at this scale (embedded BQM spans ~76% of the chip) —
+# prior set pessimistically (above arm=1) so the budget guard stays safe
+# until a real measurement replaces it.
+COST_PRIOR_MS = {1: 21_000, 3: 11_000, 5: 9_000, 165: 25_000}
 
 QPU_TIME_PATH = _REPO / "time.json"
 OUT_DIR = _REPO / "results" / "parallel_embedding_bench"
