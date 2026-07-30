@@ -121,12 +121,20 @@ def _train_with_checkpoints(rbm, ising, n_iter, train_samples, ckpt_dir, label,
 def _ground_truth_beta(rbm, N, samples_v, beta_bounds=(0.01, 200.0)) -> float:
     """
     beta_eff = argmin_beta D_KL(p_empirical(v) || p_beta(v)),
-    p_beta(v) ~ exp(-beta * E(v)), E(v) = -2*log|Psi(v)| (so beta=1 -> |Psi|^2).
+    p_beta(v) ~ exp(-beta*a.v) * prod_j 2cosh(beta*Theta_j(v)) -- the visible
+    marginal of the JOINTLY beta-rescaled Boltzmann distribution, i.e. the
+    family the sampler actually realises when a, b, W are uniformly rescaled
+    by beta before sampling (report.tex L317-320: E_in = alpha*E_theta).
 
-    Same definition already used for the report's dtv_beta_scale reference line.
+    NOT |Psi(v)|^{2*beta} (raising the beta=1 marginal to a power beta) --
+    that family coincides with this one only at beta=1, since
+    prod_j (2cosh Theta_j)^beta != prod_j 2cosh(beta*Theta_j) in general.
+    Audit finding F1: this mismatch, not CEM's own error, was driving most of
+    the reported RMSE and the "unbiased only near beta_eff=1" pattern.
     """
     configs = all_configs_jax(N)
-    energies_np = np.asarray(-2.0 * jax.vmap(rbm.log_psi)(configs))
+    a_v = np.asarray(configs @ rbm.a)                     # (2^N,)
+    theta = np.asarray(configs @ rbm.W + rbm.b[None, :])  # (2^N, M)
     p_emp = np.asarray(empirical_dist_jax(samples_v, N))
 
     def _logsumexp(a):
@@ -134,7 +142,7 @@ def _ground_truth_beta(rbm, N, samples_v, beta_bounds=(0.01, 200.0)) -> float:
         return c + float(np.log(np.sum(np.exp(a - c))))
 
     def objective(beta):
-        log_unnorm = -beta * energies_np
+        log_unnorm = -beta * a_v + np.sum(np.log(2.0 * np.cosh(beta * theta)), axis=1)
         log_b = log_unnorm - _logsumexp(log_unnorm)
         mask = p_emp > 0
         return float(np.sum(p_emp[mask] * (np.log(p_emp[mask]) - log_b[mask])))

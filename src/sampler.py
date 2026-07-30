@@ -278,7 +278,7 @@ class Sampler(ABC):
         W_np = np.asarray(rbm.W)
 
         for i in range(Nv):
-            linear[i] = -float(a_np[i]) / beta_x
+            linear[i] = float(a_np[i]) / beta_x
         for j in range(Nh):
             linear[Nv + j] = -float(b_np[j]) / beta_x
         for i in range(Nv):
@@ -330,7 +330,7 @@ class Sampler(ABC):
         # Visible biases
         a_np = np.asarray(dbm.params.a)
         for i in range(Nv):
-            linear[i] = -float(a_np[i]) / beta_x
+            linear[i] = float(a_np[i]) / beta_x
 
         # Per-layer: biases for hidden layer l, couplings W[l] from layer l to l+1
         for l, (b_l, W_l) in enumerate(zip(dbm.params.b, dbm.params.W)):
@@ -475,7 +475,7 @@ class ClassicalSampler(Sampler):
         M = jnp.zeros((N_total, N_total), dtype=jnp.float64)
         M = M.at[:Nv, Nv:].set(rbm.W / beta_x)
         M = M.at[Nv:, :Nv].set(rbm.W.T / beta_x)
-        f = jnp.concatenate([rbm.a / beta_x, rbm.b / beta_x])
+        f = jnp.concatenate([-rbm.a / beta_x, rbm.b / beta_x])
 
         key = self._next_key()
         s = _lsb_jit(key, M, f, sigma, delta, gamma, n_samples, steps, N_total)

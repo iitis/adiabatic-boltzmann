@@ -21,6 +21,8 @@ import statistics
 import matplotlib.pyplot as plt
 import numpy as np
 
+from plot_style import setup_style
+
 OUT_DIR = "plots/paper_figures"
 
 COLOR_BLUE = "#2a78d6"
@@ -989,7 +991,8 @@ def fig10_ite_tte_vs_n_all_solvers(epsilon=0.01):
         ("Zephyr (QPU)", _dwave_sizes, lambda n: dwave_recs("zephyr", n), "#ef5675", "*", ":"),
     ]
 
-    fig, ax = plt.subplots(figsize=(8, 6.5))
+    setup_style(fontsize=9)
+    fig, ax = plt.subplots(figsize=(4.2, 3.8))
 
     for series_idx, (label, sizes, get_recs, color, marker, linestyle) in enumerate(series):
         tte_med, tte_lo, tte_hi, tte_n, tte_budget = [], [], [], [], []
@@ -1032,20 +1035,200 @@ def fig10_ite_tte_vs_n_all_solvers(epsilon=0.01):
 
     ax.set_yscale("log")
     ax.set_xscale("log")
-    ax.set_xlabel("System size N")
-    style_axes(ax)
-    ax.set_ylabel(f"TTE — wall-clock seconds to {epsilon:.3g} energy error/spin (median, IQR)")
-    ax.set_title("Time-to-epsilon vs. N")
-    ax.legend(frameon=False, loc="upper left", fontsize=7.5, ncol=2)
+    log_x_with_ticks(ax, _sizes)
+    ax.set_xlabel("System size $N$")
+    ax.set_ylabel(f"TTE to $\\epsilon={epsilon:.3g}$ [s]\n(median, IQR)")
+    ax.legend(loc="upper left", fontsize=6, ncol=2, handlelength=1.6, borderpad=0.4)
 
-    fig.suptitle(
-        "TTE vs. system size, all solvers\n"
-        "h=0.5, alpha=1 (n_hidden=N); lr=0.08, reg=0.05, n_samples=200, iter=100 matched across every series\n"
-        "Pegasus/Zephyr QPU: N=16,32,64 only (Zephyr's dense embedding doesn't fit N>=96 on this chip)",
-        y=1.04, fontsize=10.5
-    )
     fig.tight_layout()
     _save(fig, f"fig10_ite_tte_vs_n_all_solvers_eps{epsilon:g}")
+
+
+def fig11_appendix_convergence_grid():
+    # Appendix figure: convergence to the exact ground-state energy across
+    # every model in the suite that has BOTH a real exact reference energy at
+    # N=16 (TFIM's is analytic and exists at any N; the others come from exact
+    # diagonalization and are only available at small N) AND several
+    # matched-hyperparameter seeds at that cell. This ruled out lr_tfim_1d
+    # beyond N~16-ish, j1j2_1d, and heisenberg_xxz_2d, none of which have both
+    # at once (see chat). heisenberg_xy_1d was also dropped: its recorded
+    # history["energy"] never approaches its own exact_energy (stays positive,
+    # decays toward 0 instead of ~-20.5) -- that result set looks broken/
+    # mismatched, not just unconverged, so it isn't shown rather than plotting
+    # a misleading trace.
+    #
+    # heisenberg_xxz_1d was tried and dropped too: none of its classical
+    # solvers (exchange/gibbs/lsb) actually reach the true ground state at
+    # this cell -- best case (exchange) lands at ~42% of the exact
+    # correlation energy, others land further off or SR-diverge to NaN before
+    # getting there. That's a genuine unresolved optimization failure for
+    # this model at these hyperparameters, not a plotting issue, so it isn't
+    # shown rather than presenting an unconverged run as "convergence".
+    # tfim_2d (L=2, N=16 spins) replaces it: ED-exact energy, and the raw
+    # traces were checked to land within ~1e-3 of exact at h=0.5/1.0/2.0.
+    #
+    # One row per model. Column 0 is a multi-solver comparison at one
+    # representative parameter value (hyperparameters matched *within* that
+    # panel across solvers -- this is the "different solvers" column).
+    # Columns 1-2 sweep the model's physical parameter (h / alpha) using its
+    # single richest classical solver across several seeds (hyperparameters
+    # matched within each of those panels too, but not necessarily equal to
+    # column 0's cell -- each panel documents its own hyperparameters isn't
+    # shown on the plot, but every path below was individually verified to
+    # be a real matched-hyperparameter, multi-seed cell before use).
+    #
+    # Solver colors are shared across all column-0 panels for a consistent
+    # legend; parameter-sweep colors (cols 1-2) are one color per model, kept
+    # from the previous version of this figure.
+    SOLVER_COLORS = {
+        "Metropolis (CPU)": "#1f77b4",
+        "Gibbs (CPU)": "#2ca02c",
+        "LSB (CPU)": "#8c564b",
+        "FPGA": "#17becf",
+        "VeloxQ (SA)": "#9467bd",
+        "D-Wave Zephyr (QPU)": "#d62728",
+        "D-Wave Pegasus (QPU)": "#ff7f0e",
+    }
+
+    def load_trace(path):
+        matches = glob.glob(path)
+        if len(matches) != 1:
+            return None
+        with gzip.open(matches[0]) as fh:
+            r = json.load(fh)
+        return r["exact_energy"], np.array(r["history"]["energy"])
+
+    def plot_solver_group(ax, label, paths):
+        color = SOLVER_COLORS[label]
+        exact, traces = None, []
+        for path in paths:
+            loaded = load_trace(path)
+            if loaded is None:
+                continue
+            exact, energies = loaded
+            traces.append(energies)
+        if not traces:
+            return None
+        if len(traces) >= 5:
+            n = min(len(t) for t in traces)
+            stacked = np.stack([t[:n] for t in traces])
+            med = np.nanmedian(stacked, axis=0)
+            lo, hi = np.nanpercentile(stacked, [25, 75], axis=0)
+            x = np.arange(1, n + 1)
+            ax.plot(x, med, color=color, linewidth=1.4, label=label, zorder=3)
+            ax.fill_between(x, lo, hi, color=color, alpha=0.2, linewidth=0, zorder=2)
+        else:
+            for i, t in enumerate(traces):
+                ax.plot(np.arange(1, len(t) + 1), t, color=color, alpha=0.7, linewidth=1.2,
+                         label=label if i == 0 else None)
+        return exact, np.concatenate(traces)
+
+    def clip_ylim(ax, exact, pool):
+        scale = 20 * (abs(exact) + 1)
+        pool = pool[np.isfinite(pool) & (np.abs(pool - exact) < scale)]
+        if not pool.size:
+            return
+        lo, hi = np.percentile(pool, [1, 99])
+        span = max(hi - lo, abs(exact) * 0.05, 1e-3)
+        ax.set_ylim(min(lo, exact) - 0.5 * span, max(hi, exact) + 2 * span)
+
+    def sweep_panel(ax, color, dirpath, tmpl, pval, seeds):
+        exact, traces = None, []
+        for seed in seeds:
+            loaded = load_trace(f"{dirpath}/{tmpl.format(p=pval, s=seed)}")
+            if loaded is None:
+                continue
+            exact, energies = loaded
+            traces.append(energies)
+            ax.plot(np.arange(1, len(energies) + 1), energies, color=color, alpha=0.6, linewidth=1.1)
+        if exact is not None and traces:
+            clip_ylim(ax, exact, np.concatenate(traces))
+        return exact
+
+    rows = [
+        dict(
+            title="TFIM 1D",
+            solver_panel_title="TFIM 1D, h=0.5 -- solvers",
+            solver_groups={
+                "Metropolis (CPU)": [f"results/tfim_1d/16/custom/metropolis/result_1d_h0.5_rbmfull_nh16_lr0.08_reg0.05_ns200_seed{s}_iter100_cem0_sigma1.0.json.gz" for s in range(20)],
+                "FPGA": [f"results/sweeps100/tfim_1d/16/fpga/fpga/result_1d_h0.5_rbmfull_nh16_lr0.08_reg0.05_ns200_seed{s}_iter100_cem0_sigma1.0.json.gz" for s in range(20)],
+                "VeloxQ (SA)": [f"results/sweeps100/tfim_1d/16/velox/simulated_annealing/result_1d_h0.5_rbmfull_nh16_lr0.08_reg0.05_ns200_seed{s}_iter100_cem0_sigma1.0.json.gz" for s in range(20)],
+                "D-Wave Zephyr (QPU)": [f"results/tfim_1d/16/dimod/zephyr/result_1d_h0.5_rbmfull_nh16_lr0.08_reg0.05_ns200_seed{s}_iter100_cem0_sigma1.0.json.gz" for s in range(1, 20)],
+            },
+            sweep_color=COLOR_BLUE,
+            sweep_dir="results/tfim_1d/16/custom/metropolis",
+            sweep_tmpl="result_1d_h{p}_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed{s}_iter300_cem0_sigma1.0.json.gz",
+            pname="h", pvals=[1.0, 1.5], seeds=[1, 7, 42, 123],
+        ),
+        dict(
+            title="TFIM 2D (L=2)",
+            solver_panel_title="TFIM 2D (L=2), h=0.5 -- solvers",
+            solver_groups={
+                "Metropolis (CPU)": [f"results/tfim_2d/4/custom/metropolis/result_2d_h0.5_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed{s}_iter300.json.gz" for s in (1, 42)],
+                "VeloxQ (SA)": [f"results/tfim_2d/4/velox/velox/result_2d_h0.5_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed{s}_iter300.json.gz" for s in (1, 42)],
+                "D-Wave Pegasus (QPU)": [f"results/tfim_2d/4/dimod/pegasus/result_2d_h0.5_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed{s}_iter300.json.gz" for s in (1, 42)],
+                "D-Wave Zephyr (QPU)": [f"results/tfim_2d/4/dimod/zephyr/result_2d_h0.5_rbmfull_nh16_lr0.1_reg0.001_ns1000_seed{s}_iter300.json.gz" for s in (1, 42)],
+            },
+            sweep_color=COLOR_GREEN,
+            sweep_dir="results/tfim_2d/4/custom/metropolis",
+            sweep_tmpl="result_2d_h{p}_rbmfull_nh16_lr0.01_reg1e-05_ns1000_seed{s}_iter300_cem0_sigma1.0.json.gz",
+            pname="h", pvals=[1.0, 2.0], seeds=[1, 2, 3, 4, 5],
+        ),
+        dict(
+            title="Long-range TFIM 1D",
+            solver_panel_title="LR-TFIM 1D, alpha=1.0 -- solvers",
+            solver_groups={
+                "Metropolis (CPU)": [f"results/lr_tfim_1d/16/custom/metropolis/result_lr1d_h0.5_alpha1.0_rbmfull_nh16_lr0.01_reg1e-05_ns1000_seed{s}_iter300_cem0_sigma1.0.json.gz" for s in (1, 2, 3, 4, 5)],
+                "Gibbs (CPU)": [f"results/lr_tfim_1d/16/custom/gibbs/result_lr1d_h0.5_alpha1.0_rbmfull_nh16_lr0.01_reg1e-05_ns1000_seed{s}_iter300_cem0_sigma1.0.json.gz" for s in (1, 2, 3, 4, 5)],
+                "LSB (CPU)": [f"results/lr_tfim_1d/16/custom/lsb/result_lr1d_h0.5_alpha1.0_rbmfull_nh16_lr0.01_reg1e-05_ns1000_seed{s}_iter300_cem1_sigma1.0.json.gz" for s in (1, 2, 3, 4, 5)],
+            },
+            sweep_color=COLOR_MAGENTA,
+            sweep_dir="results/lr_tfim_1d/16/custom/gibbs",
+            sweep_tmpl="result_lr1d_h0.5_alpha{p}_rbmfull_nh16_lr0.01_reg1e-05_ns1000_seed{s}_iter300_cem0_sigma1.0.json.gz",
+            pname="alpha", pvals=[0.5, 2.0], seeds=[1, 2, 3, 4, 5],
+        ),
+    ]
+    n_cols = 3
+    fig, axes = plt.subplots(len(rows), n_cols, figsize=(14, 3.1 * len(rows)), squeeze=False)
+
+    for row, spec in enumerate(rows):
+        ax0 = axes[row][0]
+        exact0, pooled = None, []
+        for label, paths in spec["solver_groups"].items():
+            result = plot_solver_group(ax0, label, paths)
+            if result is not None:
+                exact0, tr = result
+                pooled.append(tr)
+        if exact0 is not None:
+            ax0.axhline(exact0, color=INK, linestyle="--", linewidth=1.0, zorder=4)
+            clip_ylim(ax0, exact0, np.concatenate(pooled))
+        ax0.set_title(spec["solver_panel_title"], fontsize=9)
+        ax0.legend(fontsize=6, loc="lower right", frameon=True)
+        style_axes(ax0)
+        ax0.set_ylabel("Energy")
+
+        for col, pval in enumerate(spec["pvals"], start=1):
+            ax = axes[row][col]
+            exact = sweep_panel(ax, spec["sweep_color"], spec["sweep_dir"], spec["sweep_tmpl"], pval, spec["seeds"])
+            if exact is not None:
+                ax.axhline(exact, color=INK, linestyle="--", linewidth=1.0, zorder=4)
+            ax.set_title(f"{spec['title']}, {spec['pname']}={pval}", fontsize=9)
+            style_axes(ax)
+
+        for col in range(n_cols):
+            if row == len(rows) - 1:
+                axes[row][col].set_xlabel("SR iteration")
+
+    fig.suptitle(
+        "Appendix: convergence across models, solvers, parameters and seeds (N=16)\n"
+        "col 0: multi-solver comparison (median+IQR band where seeds>=5, else individual seeds), dashed = exact energy\n"
+        "cols 1-2: parameter sweep, single classical solver, individual seeds\n"
+        "solver panels use one shared hyperparameter cell per model, not each solver's own tuned config -- some spread\n"
+        "(e.g. VeloxQ and one Metropolis seed settling on a metastable plateau in TFIM 2D) reflects that, not a plotting artifact",
+        y=1.05, fontsize=10,
+    )
+    fig.tight_layout()
+    _save(fig, "fig11_appendix_convergence_grid")
 
 
 def _save(fig, name):
@@ -1068,3 +1251,4 @@ if __name__ == "__main__":
     fig8_all_solvers_n16()
     fig9_ite_tte_all_solvers_n16()
     fig10_ite_tte_vs_n_all_solvers()
+    fig11_appendix_convergence_grid()
