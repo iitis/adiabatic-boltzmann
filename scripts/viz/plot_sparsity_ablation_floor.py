@@ -38,7 +38,7 @@ H = 1.0
 TOPOLOGY = "zephyr"
 SEEDS = [42, 123, 456, 789, 1234]
 TARGET_SPARSITIES = [0.557, 0.682, 0.809, 0.877]
-NATIVE_SPARSITY = 0.55859375  # zephyr alpha=1 mask's own sparsity (see cache "0.557" point)
+NATIVE_SPARSITY = 0.42578125  # unpruned zephyr alpha=1 mask's own sparsity (cache_full.json "16_1_1_zephyr_*")
 
 
 def load(path):
