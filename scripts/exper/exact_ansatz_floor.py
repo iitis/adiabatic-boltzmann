@@ -30,6 +30,7 @@ import jax
 jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 
+from model import DWaveTopologyRBM
 from ising import TransverseFieldIsing1D
 from plot_sparsity_impact import _make_pruned_rbm
 
@@ -38,6 +39,10 @@ H_FIELD = 1.0
 TOPOLOGY = "zephyr"
 SEEDS = [42, 123, 456, 789, 1234]  # same seeds as the classical/QPU ablation cache
 TARGET_SPARSITIES = [0.557, 0.682, 0.809, 0.877]
+# Unpruned native mask (sparsity 0.42578125) -- can't go through _make_pruned_rbm,
+# which requires target_sparsity > native_sparsity. Matches the "native" label
+# used in scripts/exper/sparsity_ablation_classical_baselines.py.
+NATIVE_LABEL = "native"
 LR = 0.05
 REG = 1e-3
 N_ITERATIONS = 3000  # exact (noise-free) training can hit long plateaus at high
@@ -101,6 +106,13 @@ def exact_train(rbm, ising, all_v, n_iterations: int, lr: float, reg: float):
     return energies
 
 
+def _make_rbm_for(ts, seed):
+    if ts == NATIVE_LABEL:
+        key = jax.random.PRNGKey(seed)
+        return DWaveTopologyRBM(N, N, key, solver=TOPOLOGY, seed=42, live=True)
+    return _make_pruned_rbm(TOPOLOGY, N, ts, seed, live=True)
+
+
 def main():
     ising = TransverseFieldIsing1D(size=N, h=H_FIELD)
     all_v = enumerate_configs(N)
@@ -108,12 +120,20 @@ def main():
     print(f"Exact ground energy (N={N}, h={H_FIELD}): {E_exact:.6f}")
 
     results = {}
-    for ts in TARGET_SPARSITIES:
+    if CACHE_PATH.exists():
+        with open(CACHE_PATH) as f:
+            results = json.load(f)
+        print(f"Loaded {len(results)} existing point(s) from {CACHE_PATH}")
+
+    for ts in TARGET_SPARSITIES + [NATIVE_LABEL]:
+        if str(ts) in results:
+            print(f"\n=== target_sparsity={ts} -- cached, skipping ===")
+            continue
         print(f"\n=== target_sparsity={ts} ===")
         per_seed = []
         for seed in SEEDS:
             t0 = time.perf_counter()
-            rbm = _make_pruned_rbm(TOPOLOGY, N, ts, seed, live=True)
+            rbm = _make_rbm_for(ts, seed)
             energies = exact_train(rbm, ising, all_v, N_ITERATIONS, LR, REG)
             elapsed = time.perf_counter() - t0
 
@@ -154,6 +174,9 @@ def main():
             "sparsity": best["sparsity"],
             "n_params": best["n_params"],
         }
+        with open(CACHE_PATH, "w") as f:
+            json.dump(results, f, indent=2)
+        print(f"  saved to {CACHE_PATH}")
 
     CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(CACHE_PATH, "w") as f:
