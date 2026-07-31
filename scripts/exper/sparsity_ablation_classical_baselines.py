@@ -29,13 +29,14 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "viz"))
 
+import jax
+jax.config.update("jax_enable_x64", True)
+
 from ising import TransverseFieldIsing1D
 from model import DWaveTopologyRBM
 from sampler import ClassicalSampler
 from encoder import Trainer
 from plot_sparsity_impact import _make_pruned_rbm
-
-import jax
 
 N = 16
 H = 1.0

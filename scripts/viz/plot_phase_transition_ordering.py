@@ -39,6 +39,7 @@ sys.path.insert(0, str(_REPO / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # plot_style
 
 import jax
+jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 
 from plot_style import setup_style

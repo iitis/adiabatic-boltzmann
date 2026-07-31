@@ -25,6 +25,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import jax
+jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 
 # ── src imports ──────────────────────────────────────────────────────────────

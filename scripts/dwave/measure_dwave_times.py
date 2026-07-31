@@ -21,6 +21,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import jax
+jax.config.update("jax_enable_x64", True)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))

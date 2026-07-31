@@ -9,7 +9,7 @@ Implementation of Variational Monte Carlo (VMC) with Restricted Boltzmann Machin
 ## Layout
 
 - **`src/`** — library modules only: `model.py`, `ising.py`, `sampler.py`, `encoder.py`, `helpers.py`, tests. Not a Python package; imported via `sys.path.insert`.
-- **`scripts/`** — runner scripts (entry points). Each inserts `src/` on `sys.path` at the top.
+- **`scripts/`** — runner scripts (entry points). Each inserts `src/` on `sys.path` at the top, and each must call `jax.config.update("jax_enable_x64", True)` immediately after `import jax` and before importing anything from `src/` or `jax.numpy` — the codebase relies on float64 precision (e.g. the SR conjugate-gradient solve and the variational-bound checks in `test_e2e.py`). Without it, JAX silently truncates to float32 and prints a `UserWarning` on every explicit `dtype=jnp.float64` cast.
 - **`scripts/viz/`** — plotting and dashboard scripts.
 - **`scripts/exper/`** — experiment comparison runners.
 

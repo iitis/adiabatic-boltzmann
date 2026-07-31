@@ -27,6 +27,7 @@ sys.path.insert(0, str(_REPO / "scripts" / "viz"))
 
 import numpy as np
 import jax
+jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 
 from ising import TransverseFieldIsing1D
