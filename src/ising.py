@@ -517,6 +517,11 @@ class TransverseFieldIsing1D(IsingModel):
         return get_or_compute("1d", self.size, self.h, self._compute_exact_ground_energy)
 
     def _compute_exact_ground_energy(self) -> float:
+        # J=1 (ferromagnetic) is hardcoded below, not a parameter of this class:
+        # this closed form is invariant under J -> -J and returns a wrong
+        # energy for antiferromagnetic couplings on odd-N rings (report.tex,
+        # finding M4). If J is ever exposed here, guard it as in
+        # HeisenbergXY1D.exact_ground_energy.
         N, h = self.size, self.h
         m = np.arange(N)
         # Ramond sector: anti-periodic fermion BC (even-parity sector)
@@ -1107,6 +1112,18 @@ class HeisenbergXY1D(HeisenbergXXZ1D):
         """
         import numpy as np
         N, J = self.size, self.J
+        if J <= 0:
+            raise ValueError(
+                f"HeisenbergXY1D.exact_ground_energy: closed form assumes J>0 "
+                f"(ferromagnetic); got J={J}. Like the TFIM closed form (see "
+                f"report.tex, finding M4), it is invariant under J -> -J and "
+                f"returns a wrong energy for antiferromagnetic couplings."
+            )
+        if N % 2 != 0:
+            raise ValueError(
+                f"HeisenbergXY1D.exact_ground_energy: closed form requires "
+                f"even N (half-filling); got N={N}."
+            )
         n_f = N // 2
         k_ns = np.pi * (2 * np.arange(N) + 1) / N   # antiperiodic (NS sector)
         k_r  = 2 * np.pi * np.arange(N) / N           # periodic (R sector)
