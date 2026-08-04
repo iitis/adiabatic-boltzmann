@@ -13,12 +13,19 @@ classical arms' (see F3 in audyt_cld_bg.md) and the report's conclusion now
 explicitly scopes this ablation to classical hardware only -- keeping an
 unmatched QPU curve in the same figure would contradict that.
 
+The classical-Metropolis curve's sparsity=0 point (dense, cache_full.json's
+"_dense_" entries -- a 288-parameter biclique RBM from a different experiment,
+with no QPU or floor counterpart) is dropped per F3(c) in audyt_cld_bg.md: its
+own native-mask point (sparsity 0.42578) is now the curve's left edge instead,
+matching the SA/Gibbs/floor curves.
+
 Reuses these caches:
-    plots/sparsity/cache_full.json               (dense, sparsity=0 reference;
-                                                    also the classical-Metropolis
+    plots/sparsity/cache_full.json               (classical-Metropolis
                                                     native-mask point)
     plots/sparsity/cache_sparsity_ablation.json   (classical MCMC, Metropolis)
-    plots/sparsity/cache_sparsity_ablation_exact.json (exact-enumeration floor)
+    plots/sparsity/cache_sparsity_ablation_exact.json (exact-enumeration floor,
+                                                    including its own native
+                                                    point under key "native")
     plots/sparsity/cache_sparsity_ablation_simulated_annealing.json (classical SA)
     plots/sparsity/cache_sparsity_ablation_gibbs.json (classical persistent Gibbs)
 
@@ -85,8 +92,9 @@ def native_point(cache, seeds, key_fmt):
     return np.mean(errs), np.std(errs)
 
 
-def dense_point(cache_full):
-    errs = [_per_spin_err(cache_full[f"{N}_1_1_dense_{s}"]) for s in SEEDS]
+def floor_point(cache_exact, key):
+    entry = cache_exact[key]
+    errs = [abs(r["E_final"] - entry["E_exact"]) / N for r in entry["per_seed"]]
     return np.mean(errs), np.std(errs)
 
 
@@ -112,25 +120,25 @@ def main():
     cache_sa = load(CACHE_DIR / "cache_sparsity_ablation_simulated_annealing.json")
     cache_gibbs = load(CACHE_DIR / "cache_sparsity_ablation_gibbs.json")
 
-    dense_mean, dense_std = dense_point(cache_full)
     native_cl_mean, native_cl_std = native_point(cache_full, SEEDS, "16_1_1_zephyr_{}")
     native_sa_mean, native_sa_std = native_point(cache_sa, SEEDS, "16_native_1.0_zephyr_{}")
     native_gi_mean, native_gi_std = native_point(cache_gibbs, SEEDS, "16_native_1.0_zephyr_{}")
+    native_floor_mean, native_floor_std = floor_point(cache_exact, "native")
 
     cl_mean, cl_std = classical_sampler_series(cache_classical, TARGET_SPARSITIES, SEEDS)
     sa_mean, sa_std = classical_sampler_series(cache_sa, TARGET_SPARSITIES, SEEDS)
     gi_mean, gi_std = classical_sampler_series(cache_gibbs, TARGET_SPARSITIES, SEEDS)
     floor_mean, floor_std, floor_best = floor_series(cache_exact, TARGET_SPARSITIES)
 
-    x_classical = [0.0, NATIVE_SPARSITY] + TARGET_SPARSITIES
-    y_classical = np.concatenate([[dense_mean, native_cl_mean], cl_mean])
-    yerr_classical = np.concatenate([[dense_std, native_cl_std], cl_std])
-
     x_native = [NATIVE_SPARSITY] + TARGET_SPARSITIES
+    y_classical = np.concatenate([[native_cl_mean], cl_mean])
+    yerr_classical = np.concatenate([[native_cl_std], cl_std])
     y_sa = np.concatenate([[native_sa_mean], sa_mean])
     yerr_sa = np.concatenate([[native_sa_std], sa_std])
     y_gibbs = np.concatenate([[native_gi_mean], gi_mean])
     yerr_gibbs = np.concatenate([[native_gi_std], gi_std])
+    y_floor = np.concatenate([[native_floor_mean], floor_mean])
+    yerr_floor = np.concatenate([[native_floor_std], floor_std])
 
     def safe_yerr(mean, std, min_frac=0.3):
         """Asymmetric [lower, upper] error clipped so the lower whisker never
@@ -146,7 +154,7 @@ def main():
     fig, ax = plt.subplots()
 
     ax.errorbar(
-        x_classical, y_classical, yerr=safe_yerr(y_classical, yerr_classical),
+        x_native, y_classical, yerr=safe_yerr(y_classical, yerr_classical),
         marker="o", color="#2166ac", linestyle="-",
         label="Classical (Metropolis)", capsize=3, markersize=5, linewidth=1.4,
     )
@@ -161,7 +169,7 @@ def main():
         label="Classical (Gibbs)", capsize=3, markersize=4.5, linewidth=1.4,
     )
     ax.errorbar(
-        TARGET_SPARSITIES, floor_mean, yerr=safe_yerr(floor_mean, floor_std),
+        x_native, y_floor, yerr=safe_yerr(y_floor, yerr_floor),
         marker="^", color="#2ca02c", linestyle=":",
         label="Exact floor", capsize=3, markersize=5, linewidth=1.4,
     )
