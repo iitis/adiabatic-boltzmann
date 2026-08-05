@@ -26,9 +26,20 @@ can be caught before being trusted.
 Runs in-process (Trainer/DimodSampler directly, same construction as
 scripts/main.py's --sampler dimod path) — never shells out to main.py.
 
+--cem-values controls which beta_x regime(s) to run, one full pass each:
+  False -- matches every other "plain" series in Figure 10 (LSB, FPGA):
+           beta_x starts at 1.0 and is nudged by Trainer's blind
+           heuristic (encoder.py, +-5% on energy regression).
+  True  -- matches "LSB (+CEM)": beta_x is instead tracked online via
+           estimate_beta_eff_cem from the same per-iteration QPU sample
+           (return_hidden=True) -- no extra QPU calls versus False.
+Default runs both, False fully before True, so a mid-run budget cutoff
+still leaves the correctness-fix (plain) series complete.
+
 Usage:
     python scripts/exper/dwave_matched_sweep.py
     python scripts/exper/dwave_matched_sweep.py --methods pegasus --seeds 2 --smoke-test
+    python scripts/exper/dwave_matched_sweep.py --sizes 16 32 64 --seeds 20
 """
 import argparse
 import sys
@@ -50,7 +61,7 @@ from ising import TransverseFieldIsing1D
 DEFAULT_SIZES = [8, 12, 16, 24, 32, 64, 128]
 DEFAULT_METHODS = ["pegasus", "zephyr"]
 DWAVE_BUDGET_MS = 60 * 60 * 1000  # raised from 30 to 60 min for this sweep (absolute, cumulative ceiling)
-SESSION_BUDGET_MS = 25 * 60 * 1000  # this invocation may spend at most 25 min of NEW QPU time
+SESSION_BUDGET_MS = 30 * 60 * 1000  # raised from 25 to 30 min -- user-authorized for the auto_scale-fix rerun
 DWAVE_TIME_FILE = Path("time.json")
 OUTLIER_FACTOR = 8  # flag an iteration if it's this many times its run's own median
 
@@ -100,8 +111,15 @@ def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--sizes", type=int, nargs="+", default=DEFAULT_SIZES)
     p.add_argument("--methods", type=str, nargs="+", default=DEFAULT_METHODS,
-                   choices=["pegasus", "zephyr"])
+                   choices=["pegasus", "zephyr", "pegasus_fast", "zephyr_fast"])
     p.add_argument("--seeds", type=int, default=5, help="Number of seeds, 0..seeds-1")
+    p.add_argument(
+        "--cem-values", type=lambda s: s.lower() == "true", nargs="+",
+        default=[False, True],
+        help="beta_x regime(s) to run: False = plain (matches LSB/FPGA's "
+             "blind-heuristic series), True = online CEM (matches 'LSB "
+             "(+CEM)'). Default runs both, False fully before True.",
+    )
     p.add_argument("--h", type=float, default=0.5)
     p.add_argument("--lr", type=float, default=0.08)
     p.add_argument("--reg", type=float, default=0.05)
@@ -115,19 +133,19 @@ def parse_args():
     return p.parse_args()
 
 
-def run_one(size, method, seed, args):
+def run_one(size, method, seed, cem, args):
     ns_args = Namespace(
         model="1d", size=size, h=args.h, rbm="full", n_hidden=size,
         sampler="dimod", sampling_method=method,
         iterations=args.iterations, learning_rate=args.lr,
         regularization=args.reg, n_samples=args.n_samples,
-        output_dir=args.output_dir, seed=seed, visualize=False, cem=False,
+        output_dir=args.output_dir, seed=seed, visualize=False, cem=cem,
     )
 
     out_file = (
         Path(args.output_dir) / "tfim_1d" / str(size) / "dimod" / method /
         f"result_1d_h{args.h}_rbmfull_nh{size}_lr{args.lr}_reg{args.reg}"
-        f"_ns{args.n_samples}_seed{seed}_iter{args.iterations}_cem0_sigma1.0.json.gz"
+        f"_ns{args.n_samples}_seed{seed}_iter{args.iterations}_cem{int(cem)}_sigma1.0.json.gz"
     )
     if args.skip_existing and out_file.exists():
         print(f"  skip (exists): {out_file}")
@@ -143,6 +161,7 @@ def run_one(size, method, seed, args):
         "n_samples": args.n_samples,
         "regularization": args.reg,
         "seed": seed,
+        "use_cem": cem,
     }
     trainer = Trainer(rbm, ising, sampler, trainer_config, args=ns_args)
     history = trainer.train()
@@ -162,23 +181,24 @@ def main():
           f"(absolute cap {DWAVE_BUDGET_MS / 60_000:.0f} min, session cap "
           f"+{SESSION_BUDGET_MS / 60_000:.0f} min for this run)")
 
-    for method in args.methods:
-        for size in args.sizes:
-            for seed in range(args.seeds):
-                if _qpu_budget_exceeded(session_baseline_ms):
-                    return
-                print(f"=== {method} N={size} seed={seed} "
-                      f"(QPU used: {_require_qpu_time_ms() / 60_000:.2f} min) ===")
-                try:
-                    history = run_one(size, method, seed, args)
-                    if history is not None:
-                        _flag_timing_outliers(history, f"{method} N={size} seed={seed}")
-                except RuntimeError as e:
-                    if "busclique failed to find a biclique embedding" in str(e):
-                        print(f"  SKIPPED size (no embedding exists at this N): {e}")
-                        break  # deterministic for this (method, size); every seed would fail identically
-                    print(f"  SKIPPED seed (sampling call failed after retries): {e}")
-                    continue  # transient (network/timing-field) failure; other seeds may still succeed
+    for cem in args.cem_values:
+        for method in args.methods:
+            for size in args.sizes:
+                for seed in range(args.seeds):
+                    if _qpu_budget_exceeded(session_baseline_ms):
+                        return
+                    print(f"=== cem={cem} {method} N={size} seed={seed} "
+                          f"(QPU used: {_require_qpu_time_ms() / 60_000:.2f} min) ===")
+                    try:
+                        history = run_one(size, method, seed, cem, args)
+                        if history is not None:
+                            _flag_timing_outliers(history, f"cem={cem} {method} N={size} seed={seed}")
+                    except RuntimeError as e:
+                        if "busclique failed to find a biclique embedding" in str(e):
+                            print(f"  SKIPPED size (no embedding exists at this N): {e}")
+                            break  # deterministic for this (method, size); every seed would fail identically
+                        print(f"  SKIPPED seed (sampling call failed after retries): {e}")
+                        continue  # transient (network/timing-field) failure; other seeds may still succeed
 
 
 if __name__ == "__main__":

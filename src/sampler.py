@@ -1945,7 +1945,6 @@ class DimodSampler(Sampler):
         annealing_time = config.get("annealing_time", 20)
         num_reads = config.get("num_reads", n_samples)
         chain_strength = config.get("chain_strength", None)
-        auto_scale = bool(config.get("auto_scale", True))
 
         cache_key = ("parallel", self.n_visible, self.n_hidden, solver_name, n_parallel)
         composite = self._get_parallel_composite(bqms[0], solver_name, rbms, n_parallel)
@@ -1955,7 +1954,7 @@ class DimodSampler(Sampler):
             num_reads=num_reads,
             annealing_time=annealing_time,
             answer_mode="raw",
-            auto_scale=auto_scale,
+            auto_scale=False,
         )
 
         MAX_DWAVE_RETRIES = 3
@@ -2075,12 +2074,11 @@ class DimodSampler(Sampler):
 
         composite, is_trivial, cache_key = self._get_composite(bqm, solver_name, rbm)
 
-        auto_scale = bool(config.get("auto_scale", True))
         sample_kwargs = dict(
             num_reads=num_reads,
             annealing_time=annealing_time,
             answer_mode="raw",
-            auto_scale=auto_scale,
+            auto_scale=False,
         )
         if not is_trivial and chain_strength is not None:
             sample_kwargs["chain_strength"] = chain_strength
@@ -2147,7 +2145,7 @@ class DimodSampler(Sampler):
             initial_state=ra_initial_state,
             reinitialize_state=True,
             answer_mode="raw",
-            auto_scale=True,
+            auto_scale=False,
         )
         if not is_trivial and chain_strength is not None:
             sample_kwargs["chain_strength"] = chain_strength
@@ -2207,13 +2205,12 @@ class DimodSampler(Sampler):
 
         composite, is_trivial, cache_key = self._get_composite(bqm_no_h, solver_name, rbm)
 
-        auto_scale = bool(config.get("auto_scale", True))
         sample_kwargs = dict(
             num_reads=num_reads,
             fast_anneal=True,
             annealing_time=anneal_time_ns,
             answer_mode="raw",
-            auto_scale=auto_scale,
+            auto_scale=False,
         )
         if not is_trivial and chain_strength is not None:
             sample_kwargs["chain_strength"] = chain_strength

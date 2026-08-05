@@ -145,7 +145,12 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
     records: list[dict] = []
     histories: dict[str, dict] = {}
 
-    paths = sorted(p for d in results_dirs for p in d.rglob("*.json*"))
+    # results/archive/** holds superseded/invalid runs (e.g. pre-auto_scale-fix
+    # D-Wave data) kept for reference, not live results -- never show them here.
+    paths = sorted(
+        p for d in results_dirs for p in d.rglob("*.json*")
+        if "archive" not in p.relative_to(d).parts
+    )
     for path in paths:
         try:
             d = load_result_json(path)
