@@ -165,7 +165,7 @@ def run_one(size, method, seed, cem, args):
     }
     trainer = Trainer(rbm, ising, sampler, trainer_config, args=ns_args)
     history = trainer.train()
-    save_results(ns_args, history, ising, rbm, energy_j=trainer.total_energy_j)
+    save_results(ns_args, history, ising, rbm, energy_j=trainer.total_energy_j, sampler=sampler)
     return history
 
 

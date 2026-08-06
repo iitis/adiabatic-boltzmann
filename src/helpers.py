@@ -226,7 +226,7 @@ def _ansatz_str(args) -> str:
     return f"_rbm{rbm}_nh{n_hidden}"
 
 
-def save_results(args, history, ising, rbm=None, energy_j=None, num_sweeps=None):
+def save_results(args, history, ising, rbm=None, energy_j=None, num_sweeps=None, sampler=None):
     """
     num_sweeps: optional SA/annealing sweep count. Not derivable from `args`
     (main.py's Metropolis path has no such concept), so callers that have it
@@ -236,6 +236,12 @@ def save_results(args, history, ising, rbm=None, energy_j=None, num_sweeps=None)
     because num_sweeps otherwise isn't encoded anywhere the filename/resume
     logic can see it: rerunning with a different num_sweeps but identical
     lr/reg/n_samples/seed would otherwise collide with a prior run's file.
+
+    sampler: optional Sampler instance. When it's a DimodSampler that hit a
+    real/trivial embedding this run, its `last_embedding_info` (chain stats
+    for the embedding actually used on the solver) is stored in the result
+    JSON as "embedding_info" -- otherwise this is unverifiable after the
+    fact since the embedding search is only logged to stdout.
     """
     # Directory structure: results/{model}/{size}/{sampler}/{method}/
     output_dir = Path(
@@ -286,6 +292,7 @@ def save_results(args, history, ising, rbm=None, energy_j=None, num_sweeps=None)
         else None,
         "n_parallel": getattr(args, "n_parallel", None),
         "num_sweeps": num_sweeps,
+        "embedding_info": getattr(sampler, "last_embedding_info", None),
     }
 
     # Filename encodes every axis that varies in the sweep

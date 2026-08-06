@@ -1706,6 +1706,7 @@ class DimodSampler(Sampler):
                 json.dump({"time_ms": 0}, f)
         self._embedding_cache: dict = {}
         self.last_sampleset = None  # set after every QPU call; holds the raw dimod SampleSet
+        self.last_embedding_info = None  # set by _get_composite; chain stats for the embedding actually used
 
     def sample(
         self, rbm, n_samples: int, config: dict = {}, return_hidden: bool = False
@@ -1817,6 +1818,15 @@ class DimodSampler(Sampler):
                 print(
                     f"  [embedding] Trivial identity embedding cached for {cache_key}."
                 )
+                self.last_embedding_info = {
+                    "type": "trivial",
+                    "solver": solver_name,
+                    "n_visible": self.n_visible,
+                    "n_hidden": self.n_hidden,
+                    "max_chain": 1,
+                    "mean_chain": 1.0,
+                    "qubits": len(identity_embedding),
+                }
             else:
                 print(f"  [embedding] Running busclique biclique for {cache_key}...")
                 import minorminer.busclique as bc
@@ -1837,6 +1847,15 @@ class DimodSampler(Sampler):
                     f"max_chain={max(chains)}, mean_chain={sum(chains)/len(chains):.1f}, "
                     f"qubits={sum(chains)}."
                 )
+                self.last_embedding_info = {
+                    "type": "biclique",
+                    "solver": solver_name,
+                    "n_visible": self.n_visible,
+                    "n_hidden": self.n_hidden,
+                    "max_chain": max(chains),
+                    "mean_chain": sum(chains) / len(chains),
+                    "qubits": sum(chains),
+                }
             self._embedding_cache[cache_key] = composite
         else:
             composite = self._embedding_cache[cache_key]
