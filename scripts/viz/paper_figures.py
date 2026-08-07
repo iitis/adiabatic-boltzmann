@@ -56,6 +56,62 @@ def compute_ite(energies, exact_energy, size, epsilon, window=10):
     return None
 
 
+def compute_convergence_iter(history, cv_threshold, window=10):
+    """Self-referential, oracle-free convergence check -- no exact_energy
+    needed. First iteration after which the per-iteration coefficient of
+    variation CV = std(E_loc)/|mean(E_loc)| stays below cv_threshold for
+    `window` consecutive iterations. None if never reached.
+
+    This is a retrospective version of Trainer's live stop_at_convergence
+    (src/encoder.py) -- same zero-variance-principle idea (Var(E_loc) -> 0
+    at an exact eigenstate) -- but Trainer thresholds the RAW Var(E_loc)
+    with no N-normalization, and a naive per-spin normalization (Var/N^2)
+    turns out to be scale-broken: Var(E_loc) itself scales ~N even at the
+    untrained state (verified empirically: Var/N ~ 1.0 at iteration 1
+    across N=8..128), so a fixed Var/N^2 threshold is trivially satisfied
+    at large N regardless of training progress. CV cancels that scaling
+    (both std and |E| grow ~sqrt(N)/~N respectively) and is empirically
+    stable across N at convergence (~0.01-0.02 band, checked N=8..128),
+    which is why it's used here instead."""
+    energies = history["energy"]
+    stds = history["error"]
+    consecutive = 0
+    for t, (e, std) in enumerate(zip(energies, stds)):
+        cv = std / abs(e) if e != 0 else float("inf")
+        if cv < cv_threshold:
+            consecutive += 1
+        else:
+            consecutive = 0
+        if consecutive >= window:
+            return t - window + 2
+    return None
+
+
+def compute_validated_convergence_iter(history, exact_energy, size, epsilon, cv_threshold, window=10):
+    """A genuine TTE point: the run must (1) self-detect convergence (see
+    compute_convergence_iter -- oracle-free, this is what a real deployment
+    without a known answer would use to decide "we're done") AND (2) the
+    value it stopped at must actually be within epsilon energy-error-per-spin
+    of the true answer (same convention as compute_ite). A run that
+    self-detects convergence at the WRONG plateau (verified to happen often
+    for uncalibrated D-Wave sampling, see conversation) does NOT count --
+    it's censored, same as a run that never stabilizes at all. This is what
+    makes it a genuine "time to a good answer" rather than "time to
+    training visibly stopping", which those two can disagree about.
+
+    Returns the self-detected convergence iteration if validated, else None.
+    """
+    conv_iter = compute_convergence_iter(history, cv_threshold, window)
+    if conv_iter is None:
+        return None
+    energies = history["energy"]
+    w_start = max(0, conv_iter - window)
+    mean_e = sum(energies[w_start:conv_iter]) / (conv_iter - w_start)
+    if abs(mean_e - exact_energy) / size < epsilon:
+        return conv_iter
+    return None
+
+
 def wilson_ci(k, n, z=1.96):
     if n == 0:
         return (0.0, 1.0)
@@ -953,13 +1009,15 @@ def fig10_ite_tte_vs_n_all_solvers(epsilon=0.01):
                 out.append(r)
         return out[:20]
 
-    # Pegasus/Zephyr QPU runs at the same matched cell, N in {16,32,64} only
-    # (see scripts/exper/dwave_matched_sweep.py) -- limited range because
-    # Zephyr's dense full-RBM biclique embedding tops out around N=64 on this
-    # chip (K_{96,96}/K_{128,128} don't embed at all), and the 25-min QPU
-    # session budget didn't extend past this range for either method.
-    def dwave_recs(method, n):
-        recs = load(f"results/tfim_1d/{n}/dimod/{method}/result_1d_h0.5_rbmfull_nh{n}_lr0.08_reg0.05_ns200_seed*_iter100_cem0_sigma1.0.json.gz")
+    # Pegasus/Zephyr QPU runs at the same matched cell (see
+    # scripts/exper/dwave_matched_sweep.py). Zephyr (Advantage2_system1,
+    # 4577 live qubits) stops at N in {16,32,64} -- its dense full-RBM
+    # biclique embedding is confirmed (independently re-verified) to fail
+    # starting at N=80, so K_128,128 never embeds. Pegasus (Advantage_system6,
+    # 5760 qubits) does embed K_128,128 (chains up to 12, 2987 qubits), so it
+    # additionally runs at N=128.
+    def dwave_recs(method, n, cem=0):
+        recs = load(f"results/tfim_1d/{n}/dimod/{method}/result_1d_h0.5_rbmfull_nh{n}_lr0.08_reg0.05_ns200_seed*_iter100_cem{cem}_sigma1.0.json.gz")
         return [r for r in recs if r["config"]["n_hidden"] == n and abs(r["config"]["learning_rate"] - 0.08) < 1e-9
                 and abs(r["config"]["regularization"] - 0.05) < 1e-9 and r["config"]["n_samples"] == 200
                 and r["config"]["iterations"] == 100][:20]
@@ -979,22 +1037,23 @@ def fig10_ite_tte_vs_n_all_solvers(epsilon=0.01):
         return out[:20]
 
     _sizes = [8, 12, 16, 24, 32, 64, 128]
-    _dwave_sizes = [16, 32, 64]
+    _dwave_sizes = [16, 32, 64]  # Zephyr's dense biclique embedding tops out here -- no K_128,128
+    _pegasus_sizes = [16, 32, 64, 128]  # Pegasus (Advantage_system6) does embed K_128,128
     series = [
         ("Metropolis", _sizes, lambda n: mcmc_recs("metropolis", n), COLOR_BLUE, "o", "-"),
         ("Gibbs", _sizes, lambda n: mcmc_recs("gibbs", n), COLOR_GREEN, "s", "-"),
         ("LSB", _sizes, lambda n: mcmc_recs("lsb", n, cem=0), COLOR_MAGENTA, "^", "--"),
-        ("LSB (+CEM)", _sizes, lambda n: mcmc_recs("lsb", n, cem=1), "#a83279", "v", "--"),
         ("VeloxQ (SA, untuned)", _sizes, lambda n: velox_untuned_recs(n), "#eb6834", "P", "-"),
         ("FPGA", _sizes, lambda n: sweeps_recs("fpga", n), "#ffa600", "X", "-"),
-        ("Pegasus (QPU)", _dwave_sizes, lambda n: dwave_recs("pegasus", n), "#bc5090", "*", ":"),
-        ("Zephyr (QPU)", _dwave_sizes, lambda n: dwave_recs("zephyr", n), "#ef5675", "*", ":"),
+        ("Pegasus (QPU)", _pegasus_sizes, lambda n: dwave_recs("pegasus", n, cem=0), "#bc5090", "*", ":"),
+        ("Pegasus (+CEM)", _pegasus_sizes, lambda n: dwave_recs("pegasus", n, cem=1), "#bc5090", "D", "--"),
+        ("Zephyr (QPU)", _dwave_sizes, lambda n: dwave_recs("zephyr", n, cem=0), "#ef5675", "*", ":"),
+        ("Zephyr (+CEM)", _dwave_sizes, lambda n: dwave_recs("zephyr", n, cem=1), "#ef5675", "h", "--"),
     ]
 
-    setup_style(fontsize=9)
-    fig, ax = plt.subplots(figsize=(4.2, 3.8))
-
-    for series_idx, (label, sizes, get_recs, color, marker, linestyle) in enumerate(series):
+    def _plot_tte_series(ax, series_idx, label, sizes, get_recs, color, marker, linestyle,
+                         annotate=True, markersize=10, linewidth=2.0, capsize=4,
+                         annotate_fontsize=9, annotate_offset=(5, 7)):
         tte_med, tte_lo, tte_hi, tte_n, tte_budget = [], [], [], [], []
         for n in sizes:
             recs = get_recs(n)
@@ -1019,29 +1078,252 @@ def fig10_ite_tte_vs_n_all_solvers(epsilon=0.01):
         if xs:
             yerr = [[y - l for y, l in zip(ys, lo_v)], [h - y for y, h in zip(ys, hi_v)]]
             ax.errorbar(xs, ys, yerr=yerr, marker=marker, color=color, label=label,
-                        markersize=7, linewidth=1.5, capsize=3, zorder=3, linestyle=linestyle)
+                        markersize=markersize, linewidth=linewidth, capsize=capsize, zorder=3,
+                        linestyle=linestyle)
         else:
             ax.plot([], [], marker=marker, color=color, linestyle=linestyle, label=label)
         cx = [n for n, m, b in zip(sizes, tte_med, tte_budget) if m is None and b is not None]
         cb = [b * (1.0 + 0.05 * series_idx) for m, b in zip(tte_med, tte_budget) if m is None and b is not None]
         if cx:
-            ax.scatter(cx, cb, marker=marker, facecolors="none", edgecolors=color, s=50, linewidth=1.3, zorder=3)
-        for n, (r, total) in zip(sizes, tte_n):
-            if total and r < total:
-                y_pos = tte_budget[sizes.index(n)] if tte_med[sizes.index(n)] is None else tte_med[sizes.index(n)]
-                if y_pos is not None:
-                    ax.annotate(f"{r}/{total}", (n, y_pos), textcoords="offset points",
-                                xytext=(4, 6), fontsize=6, color=color, ha="left")
+            ax.scatter(cx, cb, marker=marker, facecolors="none", edgecolors=color,
+                       s=(markersize ** 2), linewidth=1.6, zorder=3)
+        if annotate:
+            for n, (r, total) in zip(sizes, tte_n):
+                if total and r < total:
+                    y_pos = tte_budget[sizes.index(n)] if tte_med[sizes.index(n)] is None else tte_med[sizes.index(n)]
+                    if y_pos is not None:
+                        ax.annotate(f"{r}/{total}", (n, y_pos), textcoords="offset points",
+                                    xytext=annotate_offset, fontsize=annotate_fontsize,
+                                    color=color, ha="left")
+
+    setup_style(fontsize=13)
+    fig, ax = plt.subplots(figsize=(8.5, 7.2))
+
+    for series_idx, (label, sizes, get_recs, color, marker, linestyle) in enumerate(series):
+        _plot_tte_series(ax, series_idx, label, sizes, get_recs, color, marker, linestyle)
 
     ax.set_yscale("log")
     ax.set_xscale("log")
     log_x_with_ticks(ax, _sizes)
     ax.set_xlabel("System size $N$")
     ax.set_ylabel(f"TTE to $\\epsilon={epsilon:.3g}$ [s]\n(median, IQR)")
-    ax.legend(loc="upper left", fontsize=6, ncol=2, handlelength=1.6, borderpad=0.4)
+    ax.legend(loc="upper left", fontsize=11, ncol=2, handlelength=1.8, borderpad=0.5)
+    ax.set_title(f"Time-to-$\\epsilon$ vs. system size $N$ — all solvers "
+                 f"(hyperparameter-matched)", fontsize=13)
 
     fig.tight_layout()
     _save(fig, f"fig10_ite_tte_vs_n_all_solvers_eps{epsilon:g}")
+
+
+# ---------------------------------------------------------------------------
+# Figure 10b — same as Figure 10, QPUs only (Pegasus/Zephyr, with and
+# without CEM) -- companion figure, saved separately so Figure 10 stays
+# the all-solvers overview.
+# ---------------------------------------------------------------------------
+
+def fig10b_ite_tte_vs_n_qpu_only(epsilon=0.01):
+    # See scripts/exper/dwave_matched_sweep.py -- same matched cell as
+    # Figure 10 (lr=0.08, reg=0.05, ns=200, iter=100, h=0.5). Zephyr
+    # (Advantage2_system1, 4577 live qubits) stops at N in {16,32,64} --
+    # its dense full-RBM biclique embedding is confirmed (independently
+    # re-verified) to fail starting at N=80, so K_128,128 never embeds.
+    # Pegasus (Advantage_system6, 5760 qubits) does embed K_128,128
+    # (chains up to 12, 2987 qubits), so it additionally runs at N=128.
+    def dwave_recs(method, n, cem=0):
+        recs = load(f"results/tfim_1d/{n}/dimod/{method}/result_1d_h0.5_rbmfull_nh{n}_lr0.08_reg0.05_ns200_seed*_iter100_cem{cem}_sigma1.0.json.gz")
+        return [r for r in recs if r["config"]["n_hidden"] == n and abs(r["config"]["learning_rate"] - 0.08) < 1e-9
+                and abs(r["config"]["regularization"] - 0.05) < 1e-9 and r["config"]["n_samples"] == 200
+                and r["config"]["iterations"] == 100][:20]
+
+    _dwave_sizes = [16, 32, 64]
+    _pegasus_sizes = [16, 32, 64, 128]
+    series = [
+        ("Pegasus (QPU)", _pegasus_sizes, lambda n: dwave_recs("pegasus", n, cem=0), "#bc5090", "*", ":"),
+        ("Pegasus (+CEM)", _pegasus_sizes, lambda n: dwave_recs("pegasus", n, cem=1), "#bc5090", "D", "--"),
+        ("Zephyr (QPU)", _dwave_sizes, lambda n: dwave_recs("zephyr", n, cem=0), "#ef5675", "*", ":"),
+        ("Zephyr (+CEM)", _dwave_sizes, lambda n: dwave_recs("zephyr", n, cem=1), "#ef5675", "h", "--"),
+    ]
+
+    def _plot_tte_series(ax, series_idx, label, sizes, get_recs, color, marker, linestyle,
+                         annotate=True, markersize=10, linewidth=2.0, capsize=4,
+                         annotate_fontsize=9, annotate_offset=(5, 7)):
+        tte_med, tte_lo, tte_hi, tte_n, tte_budget = [], [], [], [], []
+        for n in sizes:
+            recs = get_recs(n)
+            timed_recs = [r for r in recs if "sampling_time_s" in r["history"] or "total_sampling_time_s" in r["history"]]
+            if timed_recs:
+                tf = "total_sampling_time_s" if "total_sampling_time_s" in timed_recs[0]["history"] else "sampling_time_s"
+                cum_times = [np.cumsum(r["history"][tf]) for r in timed_recs]
+                ites_timed = [compute_ite(r["history"]["energy"], r["exact_energy"], n, epsilon) for r in timed_recs]
+                ttes = [float(ct[ite - 1]) for ct, ite in zip(cum_times, ites_timed) if ite is not None]
+                m, l, h = median_iqr(ttes) if ttes else (None, None, None)
+                tte_med.append(m); tte_lo.append(l); tte_hi.append(h)
+                tte_n.append((len(ttes), len(recs)))
+                tte_budget.append(max((float(ct[-1]) for ct in cum_times), default=None))
+            else:
+                tte_med.append(None); tte_lo.append(None); tte_hi.append(None)
+                tte_n.append((0, 0)); tte_budget.append(None)
+
+        xs = [n for n, m in zip(sizes, tte_med) if m is not None]
+        ys = [m for m in tte_med if m is not None]
+        lo_v = [v for v in tte_lo if v is not None]
+        hi_v = [v for v in tte_hi if v is not None]
+        if xs:
+            yerr = [[y - l for y, l in zip(ys, lo_v)], [h - y for y, h in zip(ys, hi_v)]]
+            ax.errorbar(xs, ys, yerr=yerr, marker=marker, color=color, label=label,
+                        markersize=markersize, linewidth=linewidth, capsize=capsize, zorder=3,
+                        linestyle=linestyle)
+        else:
+            ax.plot([], [], marker=marker, color=color, linestyle=linestyle, label=label)
+        cx = [n for n, m, b in zip(sizes, tte_med, tte_budget) if m is None and b is not None]
+        cb = [b * (1.0 + 0.05 * series_idx) for m, b in zip(tte_med, tte_budget) if m is None and b is not None]
+        if cx:
+            ax.scatter(cx, cb, marker=marker, facecolors="none", edgecolors=color,
+                       s=(markersize ** 2), linewidth=1.6, zorder=3)
+        if annotate:
+            for n, (r, total) in zip(sizes, tte_n):
+                if total and r < total:
+                    y_pos = tte_budget[sizes.index(n)] if tte_med[sizes.index(n)] is None else tte_med[sizes.index(n)]
+                    if y_pos is not None:
+                        ax.annotate(f"{r}/{total}", (n, y_pos), textcoords="offset points",
+                                    xytext=annotate_offset, fontsize=annotate_fontsize,
+                                    color=color, ha="left")
+
+    setup_style(fontsize=13)
+    fig, ax = plt.subplots(figsize=(8.5, 7.2))
+
+    for series_idx, (label, sizes, get_recs, color, marker, linestyle) in enumerate(series):
+        _plot_tte_series(ax, series_idx, label, sizes, get_recs, color, marker, linestyle)
+
+    ax.set_yscale("log")
+    ax.set_xscale("log")
+    log_x_with_ticks(ax, _pegasus_sizes)
+    ax.set_xlabel("System size $N$")
+    ax.set_ylabel(f"TTE to $\\epsilon={epsilon:.3g}$ [s]\n(median, IQR)")
+    ax.legend(loc="upper left", fontsize=11, handlelength=1.8, borderpad=0.5)
+    ax.set_title(f"Time-to-$\\epsilon$ vs. system size $N$ — D-Wave QPUs only "
+                 f"(Pegasus/Zephyr, with and without CEM)", fontsize=13)
+
+    fig.tight_layout()
+    _save(fig, f"fig10b_ite_tte_vs_n_qpu_only_eps{epsilon:g}")
+
+
+# ---------------------------------------------------------------------------
+# Figure 10c — same as Figure 10 (all solvers), but time-to-CONVERGENCE
+# instead of time-to-epsilon: uses compute_convergence_iter (module-level
+# helper above), which needs no exact_energy at all. See that function's
+# docstring for why CV = std(E_loc)/|mean(E_loc)| is the metric, not a
+# naive per-spin-normalized Var(E_loc).
+# ---------------------------------------------------------------------------
+
+def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01):
+    def mcmc_recs(solver, n, cem=0):
+        recs = load(f"results/tfim_1d/{n}/custom/{solver}/result_1d_h0.5_rbmfull_nh{n}_lr0.08_reg0.05_ns200_seed*_iter100_cem{cem}_sigma1.0.json.gz")
+        return [r for r in recs if r["config"]["n_hidden"] == n and abs(r["config"]["learning_rate"] - 0.08) < 1e-9
+                and abs(r["config"]["regularization"] - 0.05) < 1e-9 and r["config"]["n_samples"] == 200
+                and r["config"]["iterations"] == 100][:20]
+
+    def sweeps_recs(solver, n):
+        out = []
+        for r in load(f"results/sweeps100/tfim_1d/{n}/{solver}/*/result_*_seed*_iter*"):
+            c = r["config"]
+            if c["n_hidden"] == n and abs(c["learning_rate"] - 0.08) < 1e-9 \
+                    and abs(c["regularization"] - 0.05) < 1e-9 and c["n_samples"] == 200:
+                out.append(r)
+        return out[:20]
+
+    def dwave_recs(method, n, cem=0):
+        recs = load(f"results/tfim_1d/{n}/dimod/{method}/result_1d_h0.5_rbmfull_nh{n}_lr0.08_reg0.05_ns200_seed*_iter100_cem{cem}_sigma1.0.json.gz")
+        return [r for r in recs if r["config"]["n_hidden"] == n and abs(r["config"]["learning_rate"] - 0.08) < 1e-9
+                and abs(r["config"]["regularization"] - 0.05) < 1e-9 and r["config"]["n_samples"] == 200
+                and r["config"]["iterations"] == 100][:20]
+
+    def velox_untuned_recs(n):
+        with open("results/custom/velox_default_h0.5.json") as f:
+            default = json.load(f)
+        cfg = default["config"]
+        out = []
+        for campaign in default["source_campaigns"]:
+            pattern = default["source_path_template"].format(campaign=campaign, n=n)
+            for r in load(pattern):
+                c = r["config"]
+                if c["n_hidden"] == n and abs(c["learning_rate"] - cfg["learning_rate"]) < 1e-9 \
+                        and abs(c["regularization"] - cfg["regularization"]) < 1e-9 and c["n_samples"] == cfg["n_samples"]:
+                    out.append(r)
+        return out[:20]
+
+    _sizes = [8, 12, 16, 24, 32, 64, 128]
+    _dwave_sizes = [16, 32, 64]
+    _pegasus_sizes = [16, 32, 64, 128]
+    series = [
+        ("Metropolis", _sizes, lambda n: mcmc_recs("metropolis", n), COLOR_BLUE, "o", "-"),
+        ("Gibbs", _sizes, lambda n: mcmc_recs("gibbs", n), COLOR_GREEN, "s", "-"),
+        ("LSB (+CEM)", _sizes, lambda n: mcmc_recs("lsb", n, cem=1), COLOR_MAGENTA, "^", "--"),
+        ("VeloxQ (SA, untuned)", _sizes, lambda n: velox_untuned_recs(n), "#eb6834", "P", "-"),
+        ("FPGA", _sizes, lambda n: sweeps_recs("fpga", n), "#ffa600", "X", "-"),
+        ("Pegasus (QPU)", _pegasus_sizes, lambda n: dwave_recs("pegasus", n, cem=0), "#bc5090", "*", ":"),
+        ("Pegasus (+CEM)", _pegasus_sizes, lambda n: dwave_recs("pegasus", n, cem=1), "#bc5090", "D", "--"),
+        ("Zephyr (QPU)", _dwave_sizes, lambda n: dwave_recs("zephyr", n, cem=0), "#ef5675", "*", ":"),
+        ("Zephyr (+CEM)", _dwave_sizes, lambda n: dwave_recs("zephyr", n, cem=1), "#ef5675", "h", "--"),
+    ]
+
+    def _plot_tte_series(ax, series_idx, label, sizes, get_recs, color, marker, linestyle):
+        tte_med, tte_lo, tte_hi, tte_n, tte_budget = [], [], [], [], []
+        for n in sizes:
+            recs = get_recs(n)
+            timed_recs = [r for r in recs if "sampling_time_s" in r["history"] or "total_sampling_time_s" in r["history"]]
+            if timed_recs:
+                tf = "total_sampling_time_s" if "total_sampling_time_s" in timed_recs[0]["history"] else "sampling_time_s"
+                cum_times = [np.cumsum(r["history"][tf]) for r in timed_recs]
+                conv_iters = [compute_validated_convergence_iter(
+                    r["history"], r["exact_energy"], n, epsilon, cv_threshold, window
+                ) for r in timed_recs]
+                ttes = [float(ct[it - 1]) for ct, it in zip(cum_times, conv_iters) if it is not None]
+                m, l, h = median_iqr(ttes) if ttes else (None, None, None)
+                tte_med.append(m); tte_lo.append(l); tte_hi.append(h)
+                tte_n.append((len(ttes), len(recs)))
+                tte_budget.append(max((float(ct[-1]) for ct in cum_times), default=None))
+            else:
+                tte_med.append(None); tte_lo.append(None); tte_hi.append(None)
+                tte_n.append((0, 0)); tte_budget.append(None)
+
+        xs = [n for n, m in zip(sizes, tte_med) if m is not None]
+        ys = [m for m in tte_med if m is not None]
+        lo_v = [v for v in tte_lo if v is not None]
+        hi_v = [v for v in tte_hi if v is not None]
+        if xs:
+            yerr = [[y - l for y, l in zip(ys, lo_v)], [h - y for y, h in zip(ys, hi_v)]]
+            ax.errorbar(xs, ys, yerr=yerr, marker=marker, color=color, label=label,
+                        markersize=10, linewidth=2.0, capsize=4, zorder=3, linestyle=linestyle)
+        else:
+            ax.plot([], [], marker=marker, color=color, linestyle=linestyle, label=label)
+        cx = [n for n, m, b in zip(sizes, tte_med, tte_budget) if m is None and b is not None]
+        cb = [b * (1.0 + 0.05 * series_idx) for m, b in zip(tte_med, tte_budget) if m is None and b is not None]
+        if cx:
+            ax.scatter(cx, cb, marker=marker, facecolors="none", edgecolors=color, s=100, linewidth=1.6, zorder=3)
+        for n, (r, total) in zip(sizes, tte_n):
+            if total and r < total:
+                y_pos = tte_budget[sizes.index(n)] if tte_med[sizes.index(n)] is None else tte_med[sizes.index(n)]
+                if y_pos is not None:
+                    ax.annotate(f"{r}/{total}", (n, y_pos), textcoords="offset points",
+                                xytext=(5, 7), fontsize=9, color=color, ha="left")
+
+    setup_style(fontsize=13)
+    fig, ax = plt.subplots(figsize=(8.5, 7.2))
+
+    for series_idx, (label, sizes, get_recs, color, marker, linestyle) in enumerate(series):
+        _plot_tte_series(ax, series_idx, label, sizes, get_recs, color, marker, linestyle)
+
+    ax.set_yscale("log")
+    ax.set_xscale("log")
+    log_x_with_ticks(ax, _sizes)
+    ax.set_xlabel("System size $N$")
+    ax.set_ylabel(f"TTE to $\\epsilon={epsilon:.3g}$ [s]\n(median, IQR)")
+    ax.legend(loc="upper left", fontsize=11, ncol=2, handlelength=1.8, borderpad=0.5)
+    ax.set_title("TTE at convergence (h=0.5, lr=0.08, reg=0.05, ns=200)", fontsize=13)
+
+    fig.tight_layout()
+    _save(fig, f"fig10c_tte_vs_n_self_convergence_cv{cv_threshold:g}_eps{epsilon:g}")
 
 
 def fig11_appendix_convergence_grid():
