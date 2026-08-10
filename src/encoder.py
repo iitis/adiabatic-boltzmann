@@ -591,6 +591,24 @@ class Trainer:
         if _energy_meter is not None:
             _energy_meter.__enter__()
 
+        if isinstance(self.sampler, ClassicalSampler) and self.sampler.method in (
+            "metropolis", "gibbs", "lsb",
+        ) and self.n_parallel <= 1:
+            # One untimed call to force XLA compilation for this RBM's shapes,
+            # so history["sampling_time_s"][0] measures real sampling only,
+            # not a one-time JIT-compile spike (up to ~275x steady-state cost
+            # for Gibbs at N=16). Snapshot/restore mutable sampler state so
+            # this is invisible to the real (timed) sample sequence and to
+            # Gibbs's persistent chain — the real iteration 0 still pays its
+            # genuine one-time burn-in cost, just without the compile on top.
+            _saved_key = self.sampler._key
+            _saved_gibbs_v = self.sampler._gibbs_v
+            self.sampler.sample(
+                self.rbm, self.n_samples, config={**self.config, "beta_x": self.beta_x}
+            )
+            self.sampler._key = _saved_key
+            self.sampler._gibbs_v = _saved_gibbs_v
+
         for iteration in range(start_iteration, self.n_iterations):
             # ── 1. Sample ──────────────────────────────────────────────────
             _need_hidden = self._is_ra or (self.use_cem and not self._beta_fixed)
