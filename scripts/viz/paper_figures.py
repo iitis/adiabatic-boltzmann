@@ -105,8 +105,12 @@ def compute_validated_convergence_iter(history, exact_energy, size, epsilon, cv_
     if conv_iter is None:
         return None
     energies = history["energy"]
-    w_start = max(0, conv_iter - window)
-    mean_e = sum(energies[w_start:conv_iter]) / (conv_iter - w_start)
+    # conv_iter is 1-indexed and marks the START of the low-CV plateau (see
+    # compute_convergence_iter), so the plateau itself spans energies
+    # [conv_iter - 1 : conv_iter - 1 + window] (0-indexed) -- NOT the window
+    # ending at conv_iter, which is the pre-plateau transient.
+    plateau = energies[conv_iter - 1: conv_iter - 1 + window]
+    mean_e = sum(plateau) / len(plateau)
     if abs(mean_e - exact_energy) / size < epsilon:
         return conv_iter
     return None
@@ -1252,14 +1256,19 @@ def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01)
                     out.append(r)
         return out[:20]
 
-    _sizes = [8, 12, 16, 24, 32, 64, 128]
-    _dwave_sizes = [16, 32, 64]
-    _pegasus_sizes = [16, 32, 64, 128]
+    # Capped at N=64: at N=128 the 100-iteration training budget doesn't reach
+    # epsilon for ANY solver (verified against the oracle exact_energy, not
+    # just the self-detector), so every series censors there for the same
+    # training-budget reason, not a sampler-speed reason. Plotting it would
+    # invite a solver-vs-solver reading the data can't support.
+    _sizes = [8, 12, 16, 24, 32, 64]
+    _dwave_sizes = [8, 16, 32, 64]
+    _pegasus_sizes = [8, 16, 32, 64]
     series = [
         ("Metropolis", _sizes, lambda n: mcmc_recs("metropolis", n), COLOR_BLUE, "o", "-"),
         ("Gibbs", _sizes, lambda n: mcmc_recs("gibbs", n), COLOR_GREEN, "s", "-"),
         ("LSB (+CEM)", _sizes, lambda n: mcmc_recs("lsb", n, cem=1), COLOR_MAGENTA, "^", "--"),
-        ("VeloxQ (SA, untuned)", _sizes, lambda n: velox_untuned_recs(n), "#eb6834", "P", "-"),
+        ("Simulated Annealing", _sizes, lambda n: velox_untuned_recs(n), "#eb6834", "P", "-"),
         ("FPGA", _sizes, lambda n: sweeps_recs("fpga", n), "#ffa600", "X", "-"),
         ("Pegasus (QPU)", _pegasus_sizes, lambda n: dwave_recs("pegasus", n, cem=0), "#bc5090", "*", ":"),
         ("Pegasus (+CEM)", _pegasus_sizes, lambda n: dwave_recs("pegasus", n, cem=1), "#bc5090", "D", "--"),
@@ -1319,7 +1328,12 @@ def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01)
     log_x_with_ticks(ax, _sizes)
     ax.set_xlabel("System size $N$")
     ax.set_ylabel(f"TTE to $\\epsilon={epsilon:.3g}$ [s]\n(median, IQR)")
-    ax.legend(loc="upper left", fontsize=11, ncol=2, handlelength=1.8, borderpad=0.5)
+    # Data occupies the entire lower-right region of the axes (FPGA/SA rise
+    # diagonally right through it), so an in-axes "lower right" legend covers
+    # real points -- anchored just outside the axes instead, still bottom-right
+    # of the figure as a whole.
+    ax.legend(loc="upper right", bbox_to_anchor=(1.0, -0.13), fontsize=11, ncol=3,
+              handlelength=1.8, borderpad=0.5)
     ax.set_title("TTE at convergence (h=0.5, lr=0.08, reg=0.05, ns=200)", fontsize=13)
 
     fig.tight_layout()
