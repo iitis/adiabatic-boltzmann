@@ -1264,16 +1264,29 @@ def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01)
     _sizes = [8, 12, 16, 24, 32, 64]
     _dwave_sizes = [8, 16, 32, 64]
     _pegasus_sizes = [8, 16, 32, 64]
-    series = [
-        ("Metropolis", _sizes, lambda n: mcmc_recs("metropolis", n), COLOR_BLUE, "o", "-"),
-        ("Gibbs", _sizes, lambda n: mcmc_recs("gibbs", n), COLOR_GREEN, "s", "-"),
-        ("LSB (+CEM)", _sizes, lambda n: mcmc_recs("lsb", n, cem=1), COLOR_MAGENTA, "^", "--"),
-        ("Simulated Annealing", _sizes, lambda n: velox_untuned_recs(n), "#eb6834", "P", "-"),
-        ("FPGA", _sizes, lambda n: sweeps_recs("fpga", n), "#ffa600", "X", "-"),
-        ("Pegasus (QPU)", _pegasus_sizes, lambda n: dwave_recs("pegasus", n, cem=0), "#bc5090", "*", ":"),
-        ("Pegasus (+CEM)", _pegasus_sizes, lambda n: dwave_recs("pegasus", n, cem=1), "#bc5090", "D", "--"),
-        ("Zephyr (QPU)", _dwave_sizes, lambda n: dwave_recs("zephyr", n, cem=0), "#ef5675", "*", ":"),
-        ("Zephyr (+CEM)", _dwave_sizes, lambda n: dwave_recs("zephyr", n, cem=1), "#ef5675", "h", "--"),
+
+    # Nine series on one axis was unreadable, so the panel is split into three
+    # groups sharing a y-axis: (a) classical MCMC samplers with asymptotic
+    # correctness guarantees, (b) classical, physics-inspired heuristics
+    # (annealing/bifurcation dynamics, no such guarantee), (c) actual quantum
+    # hardware (D-Wave QPUs). Grouping this way, rather than e.g. by vendor,
+    # is what makes the "does quantum hardware help" comparison legible.
+    groups = [
+        ("(a) Classical samplers", [
+            ("Metropolis", _sizes, lambda n: mcmc_recs("metropolis", n), COLOR_BLUE, "o", "-"),
+            ("Gibbs", _sizes, lambda n: mcmc_recs("gibbs", n), COLOR_GREEN, "s", "-"),
+        ]),
+        ("(b) Classical, physics-inspired", [
+            ("LSB (+CEM)", _sizes, lambda n: mcmc_recs("lsb", n, cem=1), COLOR_MAGENTA, "^", "--"),
+            ("SA", _sizes, lambda n: velox_untuned_recs(n), "#eb6834", "P", "-"),
+            ("FPGA", _sizes, lambda n: sweeps_recs("fpga", n), "#ffa600", "X", "-"),
+        ]),
+        ("(c) Quantum annealers (QPU)", [
+            ("Pegasus (QPU)", _pegasus_sizes, lambda n: dwave_recs("pegasus", n, cem=0), "#bc5090", "*", ":"),
+            ("Pegasus (+CEM)", _pegasus_sizes, lambda n: dwave_recs("pegasus", n, cem=1), "#bc5090", "D", "--"),
+            ("Zephyr (QPU)", _dwave_sizes, lambda n: dwave_recs("zephyr", n, cem=0), "#ef5675", "*", ":"),
+            ("Zephyr (+CEM)", _dwave_sizes, lambda n: dwave_recs("zephyr", n, cem=1), "#ef5675", "h", "--"),
+        ]),
     ]
 
     def _plot_tte_series(ax, series_idx, label, sizes, get_recs, color, marker, linestyle):
@@ -1318,24 +1331,29 @@ def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01)
                                 xytext=(5, 7), fontsize=9, color=color, ha="left")
 
     setup_style(fontsize=13)
-    fig, ax = plt.subplots(figsize=(8.5, 7.2))
+    fig, axes = plt.subplots(1, 3, figsize=(15, 6), sharey=True)
 
-    for series_idx, (label, sizes, get_recs, color, marker, linestyle) in enumerate(series):
-        _plot_tte_series(ax, series_idx, label, sizes, get_recs, color, marker, linestyle)
+    # (a)/(b) data climbs toward the top-right as N grows, so the legend goes
+    # top-left; (c)'s QPU data stays well below the shared axis ceiling
+    # everywhere, so top-left would sit on top of the N=8 points instead --
+    # top-right is the empty corner there.
+    legend_locs = ["upper left", "upper left", "upper right"]
 
-    ax.set_yscale("log")
-    ax.set_xscale("log")
-    log_x_with_ticks(ax, _sizes)
-    ax.set_xlabel("System size $N$")
-    ax.set_ylabel(f"TTE to $\\epsilon={epsilon:.3g}$ [s]\n(median, IQR)")
-    # Data occupies the entire lower-right region of the axes (FPGA/SA rise
-    # diagonally right through it), so an in-axes "lower right" legend covers
-    # real points -- anchored just outside the axes instead, still bottom-right
-    # of the figure as a whole.
-    ax.legend(loc="upper right", bbox_to_anchor=(1.0, -0.13), fontsize=11, ncol=3,
-              handlelength=1.8, borderpad=0.5)
-    ax.set_title("TTE at convergence (h=0.5, lr=0.08, reg=0.05, ns=200)", fontsize=13)
+    for ax, (panel_title, panel_series), legend_loc in zip(axes, groups, legend_locs):
+        for series_idx, (label, sizes, get_recs, color, marker, linestyle) in enumerate(panel_series):
+            _plot_tte_series(ax, series_idx, label, sizes, get_recs, color, marker, linestyle)
+        ax.set_yscale("log")
+        ax.set_xscale("log")
+        log_x_with_ticks(ax, _sizes)
+        ax.set_xlabel("System size $N$")
+        ax.set_title(panel_title, fontsize=13)
+        ax.legend(loc=legend_loc, fontsize=10, handlelength=1.6, borderpad=0.4)
 
+    axes[0].set_ylabel(f"TTE to $\\epsilon={epsilon:.3g}$ [s]\n(median, IQR)")
+    for ax in axes[1:]:
+        ax.label_outer()
+
+    fig.suptitle("TTE at convergence (h=0.5, lr=0.08, reg=0.05, ns=200)", fontsize=14)
     fig.tight_layout()
     _save(fig, f"fig10c_tte_vs_n_self_convergence_cv{cv_threshold:g}_eps{epsilon:g}")
 
