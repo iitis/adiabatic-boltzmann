@@ -494,7 +494,7 @@ def main():
             raise SystemExit(f"--sizes includes {N} > 16: exact enumeration requires N ≤ 16.")
 
     repo_root = Path(__file__).resolve().parent.parent.parent
-    out_dir = Path(args.output_dir) if args.output_dir else repo_root / "scripts" / "output" / "dtv_beta_scale"
+    out_dir = Path(args.output_dir) if args.output_dir else repo_root / "plots" / "dtv_beta_scale"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     sizes_tag = "_".join(str(N) for N in args.sizes)

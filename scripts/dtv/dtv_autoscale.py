@@ -34,7 +34,7 @@ src/../time.json before every call and aborts rather than silently
 overspending.
 
 OBSOLETE auto_scale=True branch: the hypothesis above has already been
-confirmed (see scripts/output/dtv_autoscale/dtv_autoscale_N8_h1.0.json,
+confirmed (see plots/dtv_autoscale/dtv_autoscale_N8_h1.0.json,
 gathered before the fix) and src/sampler.py now hardcodes
 auto_scale=False in every D-Wave call, with no config path left to turn
 it back on. --auto-scale-values defaults to [False] only; passing True
@@ -240,7 +240,7 @@ def _sweep(rbm, dwave_sampler, beta_x_values, auto_scale_values, num_reads,
                 "Requesting it here would silently run as auto_scale=False while "
                 "being recorded as True, corrupting the comparison this script "
                 "exists to make. The historical auto_scale=True vs False evidence "
-                "is preserved in scripts/output/dtv_autoscale/dtv_autoscale_N8_h1.0.json "
+                "is preserved in plots/dtv_autoscale/dtv_autoscale_N8_h1.0.json "
                 "(gathered before the fix) — use --auto-scale-values False to "
                 "calibrate beta_x going forward."
             )
@@ -473,7 +473,7 @@ def main():
         raise SystemExit(f"--size {N} > 16: exact enumeration requires N ≤ 16.")
 
     repo_root = _ROOT
-    out_dir = Path(args.output_dir) if args.output_dir else repo_root / "scripts" / "output" / "dtv_autoscale"
+    out_dir = Path(args.output_dir) if args.output_dir else repo_root / "plots" / "dtv_autoscale"
     out_dir.mkdir(parents=True, exist_ok=True)
     json_path = out_dir / f"dtv_autoscale_N{N}_h{args.h}.json"
 

@@ -1,10 +1,10 @@
 DWaveTopologyRBM omitted connections  (N=8, Nv=8, Nh=8)
 Full K_{Nv,Nh} connections: 64
 
-Pegasus (pegasus_graph(16), seed=42):
+Pegasus (pegasus_graph(16), shore-bipartite, seed=42):
   kept:    44 / 64  (68.8%)
   omitted: 20 / 64  (31.2%)
 
-Zephyr (zephyr_graph(4), seed=42):
+Zephyr (zephyr_graph(6), shore-bipartite, seed=42):
   kept:    64 / 64  (100.0%)
   omitted: 0 / 64  (0.0%)

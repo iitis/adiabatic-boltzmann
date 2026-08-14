@@ -1,4 +1,3 @@
-import fcntl
 import gzip
 import json
 from pathlib import Path
@@ -66,13 +65,7 @@ def save_rbm_checkpoint(rbm, args, iteration):
     """
     Save RBM parameters (weights, biases) to a checkpoint file.
 
-    Args:
-        rbm: RBM model instance
-        args: argparse Namespace with training config
-        iteration: current iteration number
-
-    Returns:
-        Path to saved checkpoint
+    Called from encoder.Trainer when config["save_checkpoints"] is set.
     """
     # Directory structure: checkpoints/{model}/{size}/{sampler}/{method}/{rbm}/
     checkpoint_dir = Path(
@@ -111,89 +104,6 @@ def save_rbm_checkpoint(rbm, args, iteration):
         pickle.dump(checkpoint, f)
 
     return checkpoint_file
-
-
-def load_rbm_checkpoint(checkpoint_path):
-    """
-    Load RBM parameters from a checkpoint file.
-
-    Args:
-        checkpoint_path: Path to checkpoint file
-
-    Returns:
-        Tuple of (rbm_state_dict, config, iteration)
-    """
-    with open(checkpoint_path, "rb") as f:
-        checkpoint = pickle.load(f)
-
-    return checkpoint["rbm_state"], checkpoint["config"], checkpoint["iteration"]
-
-
-def restore_rbm_from_checkpoint(rbm, checkpoint_path):
-    """
-    Restore RBM parameters from checkpoint into an RBM instance.
-
-    Args:
-        rbm: RBM model instance to update
-        checkpoint_path: Path to checkpoint file
-
-    Returns:
-        iteration number from checkpoint
-    """
-    rbm_state, config, iteration = load_rbm_checkpoint(checkpoint_path)
-
-    rbm.a = jnp.array(rbm_state["a"])
-    rbm.b = jnp.array(rbm_state["b"])
-    rbm.W = jnp.array(rbm_state["W"])
-
-    print(f"Restored RBM from checkpoint: {checkpoint_path}")
-    print(f"  Starting from iteration {iteration}")
-
-    return iteration
-
-
-def find_latest_checkpoint(args) -> Path | None:
-    """
-    Return the highest-iteration checkpoint file that matches args, or None.
-
-    Scans the checkpoint directory for files whose name prefix matches the
-    run configuration (model, h, rbm type, n_hidden, lr).  The iteration
-    number is parsed from the filename so the result is correct even if the
-    filesystem returns files in an arbitrary order.
-    """
-    checkpoint_dir = Path(
-        f"{args.output_dir.replace('results', 'checkpoints')}"
-        f"/{_model_subdir(args.model)}/{args.size}/{args.sampler}/{args.sampling_method}/{args.rbm}"
-    )
-    if not checkpoint_dir.exists():
-        return None
-
-    prefix = (
-        f"checkpoint"
-        f"_{args.model}"
-        f"{_model_params_str(args)}"
-        f"_rbm{args.rbm}"
-        f"_nh{args.n_hidden}"
-        f"_lr{args.learning_rate}"
-        f"_iter"
-    )
-
-    best: Path | None = None
-    best_iter = -1
-    for p in checkpoint_dir.glob(f"{prefix}*.pkl"):
-        stem = p.stem
-        marker = "_iter"
-        idx = stem.rfind(marker)
-        if idx == -1:
-            continue
-        try:
-            it = int(stem[idx + len(marker):])
-        except ValueError:
-            continue
-        if it > best_iter:
-            best_iter = it
-            best = p
-    return best
 
 
 def _safe_exact_energy(ising):
@@ -417,35 +327,6 @@ def save_dwave_samples(V: np.ndarray, args, iteration: int, sampleset=None) -> P
     with gzip.open(path, "wb") as f:
         pickle.dump(payload, f, protocol=5)
     return path
-
-
-def log_solver_time_ms(
-    elapsed_ms: float, time_path: Path = Path("time.json"), key="time_ms"
-):
-    """
-    Thread/process-safe append of solver elapsed time (ms) to time.json.
-
-    Uses the same exclusive-flock + atomic-rename pattern as
-    DimodSampler._log_access_time so all solvers share a single file safely.
-
-    key         : e.g. "time_ms" (D-Wave QPU), "velox_time_ms" (VeloxQ)
-    elapsed_ms  : wall time in milliseconds to add
-    time_path   : path to the shared JSON counter file
-    """
-    if not time_path.exists():
-        with time_path.open("w") as f:
-            json.dump({}, f)
-    with time_path.open("r+") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
-        try:
-            data = json.load(f)
-            data[key] = data.get(key, 0.0) + elapsed_ms
-            tmp = time_path.with_suffix(".tmp")
-            with tmp.open("w") as tf:
-                json.dump(data, tf)
-            tmp.rename(time_path)
-        finally:
-            fcntl.flock(f, fcntl.LOCK_UN)
 
 
 def read_qpu_time_ms(time_path: Path = Path("time.json"), key: str = "time_ms") -> float:
