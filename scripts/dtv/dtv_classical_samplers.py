@@ -38,7 +38,6 @@ from sampler import ClassicalSampler
 from encoder import SRLinearSystem, conjugate_gradient
 from plot_style import setup_style
 from kl_utils import (
-    all_configs_jax,
     exact_psi_sq,
     empirical_dist_jax,
     d_tv,
@@ -47,7 +46,7 @@ from kl_utils import (
 
 
 # ---------------------------------------------------------------------------
-# Training (inline SR, same pattern as dtv_vs_annealing.py)
+# Training
 # ---------------------------------------------------------------------------
 
 def _save_ckpt(rbm, path: Path) -> None:
@@ -99,7 +98,7 @@ def _train(rbm, ising, n_samples, n_iter, lr, reg, ckpt_path: Path, label: str) 
 
 
 # ---------------------------------------------------------------------------
-# D_TV sweep (pure JAX hot loop)
+# D_TV sweep
 # ---------------------------------------------------------------------------
 
 def _sweep(rbm, sampler_method, effort_values, effort_config_key,
@@ -141,8 +140,8 @@ _SAMPLER_STYLES = {
 _FLOOR_COLOR = "#555555"
 
 
-_FIG_W = 4.5  # per-panel width (shared by both plots)
-_FIG_H = 4.5  # height
+_FIG_W = 4.5
+_FIG_H = 4.5
 
 
 def _make_plot(all_data, h_values, N, n_samples, out_path: Path) -> None:
@@ -347,7 +346,6 @@ def main():
             "lsb": lsb_results,
         }
 
-    # Save JSON
     json_path = out_dir / f"dtv_classical_N{N}_M{M}.json"
     with open(json_path, "w") as f:
         json.dump({

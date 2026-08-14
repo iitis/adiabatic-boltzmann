@@ -11,7 +11,6 @@ Usage (from project root):
     python scripts/hparam_optuna.py
     python scripts/hparam_optuna.py --hamiltonian heisenberg_j1j2_1d \\
         --N 8 12 16 --J2 0.1 0.3 0.5 0.7 --n-trials 200 --iterations 150
-    python scripts/hparam_optuna.py --hamiltonian j1j2_1d --N 8 --n-trials 50
 
     # Resuming is automatic and keyed only by --study-name: rerunning the
     # exact same command (crash, Ctrl-C, or just wanting more trials later)
@@ -19,12 +18,6 @@ Usage (from project root):
     # *completed* trials, skipping any combo that already has enough.
     python scripts/hparam_optuna.py --study-name my_study \\
         --hamiltonian heisenberg_j1j2_1d --n-trials 200
-
-    # pegasus_fast: ~0.3 s per SR iteration → budget ≈ n_trials × iterations × 0.3 s
-    # 10 trials × 60 iters = 180 s ≈ 3 min per (N, sweep_val) combo
-    python scripts/hparam_optuna.py --hamiltonian heisenberg_j1j2_1d \\
-        --N 8 12 --sampling-methods pegasus_fast --ansatz-types rbm \\
-        --n-trials 10 --iterations 60
 
     # velox_sa: VeloxQ SA backend (requires Julia + VeloxQstandard installed).
     # One Julia server is started for the whole run and shared across every
@@ -76,14 +69,10 @@ optuna.logging.set_verbosity(optuna.logging.WARNING)
 from encoder import Trainer
 from helpers import save_results
 from ising import (
-    HeisenbergXXZ1D,
-    HeisenbergXY1D,
     J1J2HeisenbergXXZ1D,
-    J1J2Ising1D,
-    LongRangeTFIM1D,
     TransverseFieldIsing1D,
 )
-from model import FullBoltzmannMachine, FullyConnectedRBM
+from model import FullyConnectedRBM
 from sampler import ClassicalSampler, DimodSampler, VeloxQStandardSASampler
 
 
@@ -97,8 +86,6 @@ from sampler import ClassicalSampler, DimodSampler, VeloxQStandardSASampler
 #   sweep_params       → suggested values for CLI --sweep-param flags
 #   exact_max_N        → largest N with tractable exact_ground_energy()
 #   args_extra(phys)   → extra fields to inject into the args Namespace
-#
-# To add a Hamiltonian: add an entry here.  No other code changes are needed.
 
 HAMILTONIAN_REGISTRY: dict[str, dict] = {
     "heisenberg_j1j2_1d": {
@@ -117,48 +104,6 @@ HAMILTONIAN_REGISTRY: dict[str, dict] = {
             "J": p["J1"],
         },
     },
-    "j1j2_1d": {
-        "model_key": "j1j2_1d",
-        "build": lambda N, p: J1J2Ising1D(N, J1=p["J1"], J2=p["J2"], h=p["h"]),
-        "defaults": {"J1": 1.0, "J2": 0.5, "h": 0.5},
-        "sweep_params": {"J2": [0.0, 0.25, 0.5, 0.75, 1.0]},
-        "exact_max_N": 16,
-        "args_extra": lambda p: {
-            "J1": p["J1"],
-            "J2": p["J2"],
-            "h": p["h"],
-            "J": p["J1"],
-            "delta": 1.0,
-        },
-    },
-    "heisenberg_xy_1d": {
-        "model_key": "heisenberg_xy_1d",
-        "build": lambda N, p: HeisenbergXY1D(N, J=p["J"]),
-        "defaults": {"J": 1.0},
-        "sweep_params": {"J": [1.0]},  # J just rescales; one combo per N value
-        "exact_max_N": 10000,  # JW formula, no practical limit
-        "args_extra": lambda p: {
-            "J": p["J"],
-            "delta": 0.0,
-            "h": 0.0,
-            "J1": p["J"],
-            "J2": 0.0,
-        },
-    },
-    "heisenberg_xxz_1d": {
-        "model_key": "heisenberg_xxz_1d",
-        "build": lambda N, p: HeisenbergXXZ1D(N, J=p["J"], delta=p["delta"]),
-        "defaults": {"J": 1.0, "delta": 1.0},
-        "sweep_params": {"delta": [0.5, 1.0, 1.5]},
-        "exact_max_N": 20,
-        "args_extra": lambda p: {
-            "J": p["J"],
-            "delta": p["delta"],
-            "h": 0.0,
-            "J1": p["J"],
-            "J2": 0.0,
-        },
-    },
     "tfim_1d": {
         "model_key": "1d",
         "build": lambda N, p: TransverseFieldIsing1D(N, h=p["h"]),
@@ -173,34 +118,15 @@ HAMILTONIAN_REGISTRY: dict[str, dict] = {
             "delta": 1.0,
         },
     },
-    "lr_tfim_1d": {
-        "model_key": "lr1d",
-        "build": lambda N, p: LongRangeTFIM1D(N, h=p["h"], alpha=p["alpha"], J=p["J"]),
-        "defaults": {"h": 0.5, "alpha": 2.0, "J": 1.0},
-        "sweep_params": {"alpha": [1.0, 1.5, 2.0, 3.0]},
-        "exact_max_N": 16,
-        "args_extra": lambda p: {
-            "h": p["h"],
-            "alpha": p["alpha"],
-            "J": p["J"],
-            "J1": p["J"],
-            "J2": 0.0,
-            "delta": 1.0,
-        },
-    },
 }
 
-# Sampling methods that conserve Sz — physically correct for XXZ Heisenberg
+# Conserves Sz — needed for XXZ Heisenberg
 _SZ_CONSERVING = {"exchange"}
-# Methods for which beta is treated as fixed (no CEM beta adaptation)
 _BETA_FIXED_METHODS = {"metropolis", "gibbs"}
-# Methods that require DimodSampler (D-Wave QPU backend)
-_QPU_METHODS = {"pegasus", "zephyr", "pegasus_fast", "zephyr_fast", "pegasus_ra", "zephyr_ra"}
-# Methods that require the shared VeloxQStandardSASampler (Julia server)
+# Require DimodSampler (D-Wave QPU backend)
+_QPU_METHODS = {"pegasus", "zephyr"}
 _VELOX_METHODS = {"velox_sa"}
-# On-disk sampler/method labels used for saved results — kept aligned with
-# run_fpga_best.py so velox_sa trials land in the same results/.../velox/
-# simulated_annealing/ layout as the production FPGA/VeloxQ sweeps.
+# Aligned with run_fpga_best.py's results/.../velox/simulated_annealing/ layout
 _VELOX_SAMPLER_LABEL = "velox"
 _VELOX_METHOD_LABEL = "simulated_annealing"
 
@@ -233,24 +159,15 @@ def _build_args(
 ) -> Namespace:
     """Build the args Namespace consumed by save_results, Trainer, and helpers."""
     entry = HAMILTONIAN_REGISTRY[hamiltonian]
-    rbm_key = "fullbm" if ansatz_type == "fbm" else "full"
 
     return Namespace(
         model=entry["model_key"],
         size=N,
         **entry["args_extra"](phys_params),
         # Architecture
-        rbm=rbm_key,
-        ansatz=ansatz_type,
+        rbm="full",
         n_hidden=n_hidden,
-        alpha=n_hidden / N,
-        # ViT params — not used for RBM/FBM but expected by _ansatz_str fallback
-        d_model=32,
-        n_layers=2,
-        n_heads=4,
-        patch_size=2,
-        # Sampler — velox_sa trials are saved under the same sampler/method
-        # labels as the production FPGA/VeloxQ sweeps (see _VELOX_*_LABEL).
+        # Sampler
         sampler=(
             _VELOX_SAMPLER_LABEL if sampling_method in _VELOX_METHODS
             else "dimod" if sampling_method in _QPU_METHODS
@@ -269,8 +186,7 @@ def _build_args(
         # CEM flags — save_results reads args.cem
         cem=use_cem,
         cem_interval=cem_interval,
-        # sigma encodes lsb_sigma for LSB runs (used in result filename)
-        # for pegasus_fast it encodes fast_anneal_time_ns
+        # sigma encodes lsb_sigma (LSB) or fast_anneal_time_ns (pegasus_fast)
         sigma=fast_anneal_time_ns if sampling_method == "pegasus_fast" else 1.0,
         visualize=False,
         output_dir=str(output_dir),
@@ -324,10 +240,7 @@ def run_trial(
     key = jax.random.PRNGKey(seed)
     key, model_key, sampler_key = jax.random.split(key, 3)
 
-    if ansatz_type == "fbm":
-        wave_fn = FullBoltzmannMachine(N, n_hidden, model_key)
-    else:
-        wave_fn = FullyConnectedRBM(N, n_hidden, model_key)
+    wave_fn = FullyConnectedRBM(N, n_hidden, model_key)
 
     if sampling_method in _VELOX_METHODS:
         if velox_sampler is None:
@@ -355,7 +268,6 @@ def run_trial(
         "use_cem": use_cem,
         "cem_interval": cem_interval,
         "cem_ema_alpha": cem_ema_alpha,
-        # Pass SA schedule through Trainer → sampler (sampler reads from config)
         "T_initial": T_initial,
         "T_final": T_final,
         # LSB params — ignored by non-LSB samplers
@@ -370,9 +282,7 @@ def run_trial(
     }
 
     if sampling_method in _VELOX_METHODS:
-        # num_steps=1 + geometric schedule = single temperature point = Gibbs
-        # sampling, matching the convention used in run_fpga_best.py. Stop
-        # temp is therefore unused but kept at the same 0.5x ratio for parity.
+        # num_steps=1 + geometric schedule = single temperature = Gibbs sampling
         trainer_config.update({
             "veloxq_num_steps": 1,
             "veloxq_num_sweeps": num_sweeps,
@@ -414,13 +324,12 @@ def run_trial(
     history = trainer.train()
     elapsed = time.perf_counter() - t0
 
-    # Short-circuit if training diverged (NaN/inf energy at any point)
     if any(not math.isfinite(e) for e in history["energy"]):
         return {"final_energy": float("nan"), "exact_energy": None,
                 "rel_error": float("nan"), "abs_error": float("nan"),
                 "wall_time_s": time.perf_counter() - t0}
 
-    # Objective: mean energy over the last 20 % of iterations (reduces noise)
+    # Mean over last 20% of iterations, reduces noise
     energies = history["energy"]
     tail_start = max(0, int(0.8 * len(energies)))
     tail_mean = float(jnp.mean(jnp.array(energies[tail_start:])))
@@ -483,10 +392,6 @@ def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_
 
         ansatz_type = trial.suggest_categorical("ansatz_type", cli.ansatz_types)
 
-        # FBM has O(N²) extra parameters — prune very large FBM trials early
-        if ansatz_type == "fbm" and N > 16:
-            raise optuna.exceptions.TrialPruned()
-
         # ── Sampler (must come before n_samples — range depends on method) ──
         sampling_method = trial.suggest_categorical(
             "sampling_method", cli.sampling_methods
@@ -495,10 +400,7 @@ def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_
         # ── Optimizer ─────────────────────────────────────────────────────
         lr = trial.suggest_float("learning_rate", 5e-4, 5e-1, log=True)
         reg = trial.suggest_float("regularization", 1e-7, 1e-1, log=True)
-        if sampling_method == "pegasus_fast":
-            n_samples = 1000
-        else:
-            n_samples = trial.suggest_int("n_samples", 200, cli.n_samples_max, step=200)
+        n_samples = trial.suggest_int("n_samples", 200, cli.n_samples_max, step=200)
 
         # ── CG solver ─────────────────────────────────────────────────────
         cg_tol = trial.suggest_float("cg_tol", 1e-10, 1e-5, log=True)
@@ -513,12 +415,7 @@ def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_
         # Sampler-specific hyperparameters
         num_sweeps = 5  # only meaningful for velox_sa; overridden below
         if sampling_method == "velox_sa":
-            # start_temp is the only meaningful schedule knob: num_steps=1
-            # below makes this a single-temperature Gibbs sample (matches
-            # run_fpga_best.py), so stop_temp never gets used.
-            # Lower bound widened from 1.0: N=32/64 searches found optima
-            # clustered at the old floor (T_initial~1.0-1.7), suggesting the
-            # true optimum was being clipped by the search range.
+            # start_temp is the only meaningful schedule knob (num_steps=1 → Gibbs)
             T_initial = trial.suggest_float("T_initial", 0.1, 20.0)
             T_final = 0.5 * T_initial
             num_sweeps = trial.suggest_int("num_sweeps", 50, 2000, log=True)
@@ -553,20 +450,8 @@ def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_
             fast_anneal_time_ns = 7.0
             T_initial, T_final = 5.0, 1.0
 
-        elif sampling_method == "pegasus_fast":
-            # Fast anneal in the coherent regime — only anneal time is QPU-specific.
-            # n_samples upper bound is kept low: QPU latency is dominated by cloud
-            # overhead, not anneal time, so diminishing returns beyond ~400 reads.
-            fast_anneal_time_ns = trial.suggest_float("fast_anneal_time_ns", 0.5, 20.0, log=True)
-            T_initial, T_final = 5.0, 1.0
-            use_cem = False
-            cem_ema_alpha, cem_interval = 0.3, 5
-            lsb_steps, lsb_sigma, lsb_delta = 1000, 1.0, 1.0
-
         else:
             # metropolis, exchange, gibbs, remaining QPU methods — no schedule, no CEM
-            # (gibbs: beta_fixed=True in Trainer so CEM is silently skipped anyway)
-            # (QPU: DimodSampler ignores T_initial/T_final entirely)
             fast_anneal_time_ns = 7.0
             T_initial, T_final = 5.0, 1.0
             use_cem = False
@@ -706,9 +591,9 @@ def _build_cli() -> argparse.ArgumentParser:
     parser.add_argument(
         "--ansatz-types",
         nargs="+",
-        default=["rbm", "fbm"],
-        choices=["rbm", "fbm"],
-        help="Ansatz types to include (default: rbm fbm)",
+        default=["rbm"],
+        choices=["rbm"],
+        help="Ansatz types to include (default: rbm)",
     )
     parser.add_argument(
         "--sampling-methods",
@@ -773,8 +658,6 @@ def main(argv=None):
     their own defaults but still let the caller override any flag."""
     cli = _build_cli().parse_args(argv)
 
-    # Default sweep values from registry when not overridden on CLI.
-    # The sweep parameter differs per hamiltonian (J2 for J1J2 models, delta for XXZ, etc.).
     if cli.J2 is None:
         entry = HAMILTONIAN_REGISTRY[cli.hamiltonian]
         sweep_params = entry.get("sweep_params", {})
@@ -832,10 +715,7 @@ def main(argv=None):
 
     all_summaries = []
 
-    # One VeloxQ SA Julia server for the entire run, shared across every
-    # combo and every trial (constructing/tearing down per trial would mean
-    # a fresh server startup — up to --server-timeout seconds — per trial).
-    # Sized to the largest n_samples any trial could request.
+    # One shared VeloxQ SA Julia server for the whole run (avoids per-trial restart cost)
     velox_sampler = None
     if "velox_sa" in cli.sampling_methods:
         velox_num_rep = cli.velox_num_rep or max(1024, cli.n_samples_max)
@@ -871,9 +751,6 @@ def main(argv=None):
                 else:
                     opt_sampler = optuna.samplers.RandomSampler(seed=0)
 
-                # load_if_exists=True unconditionally: reusing a study name
-                # (e.g. rerunning the same command after a crash) always
-                # resumes rather than erroring out or silently starting over.
                 study = optuna.create_study(
                     study_name=combo_study_name,
                     storage=storage,
@@ -886,10 +763,7 @@ def main(argv=None):
                 print(f"{'':>{len(combo_key)+2}}  db    : {db_path}")
                 print(f"{'':>{len(combo_key)+2}}  index : {combo_dir / 'index.jsonl'}")
 
-                # --n-trials is a target *completed* count for this combo, not
-                # an increment — rerunning tops up whatever's missing and
-                # skips combos that already have enough, so restarting after
-                # a crash is just rerunning the same command.
+                # --n-trials is a target *completed* count, not an increment
                 n_already = sum(
                     1 for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE
                 )

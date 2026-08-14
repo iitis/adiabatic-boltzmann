@@ -212,10 +212,7 @@ def make_figure(cache, out_path):
                 continue
             exact = rec["exact"]
             e = np.array(rec["energy"])
-            # Clip at the point of divergence -- a NaN blowup's preceding
-            # iterations can already be enormous (1e10+) well before the
-            # NaN itself, which would otherwise swamp the y-axis and hide
-            # every other trajectory's early dynamics.
+            # clip at divergence point to avoid swamping the y-axis
             blown = np.abs(e - exact) > 50
             cutoff = int(np.argmax(blown)) if blown.any() else len(e)
             ax.plot(np.arange(cutoff), e[:cutoff], color=colors[algorithm],

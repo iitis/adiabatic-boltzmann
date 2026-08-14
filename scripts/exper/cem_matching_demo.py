@@ -55,7 +55,7 @@ REGULARIZATION = 1e-5
 N_SAMPLES_TRAIN = 1000
 N_ITERATIONS = 300
 CEM_INTERVAL = 5
-LSB_STEPS = 100      # production config -- see results/tfim_1d/16/custom/lsb/*.json.gz
+LSB_STEPS = 100      # production config
 LSB_DELTA = 1.0
 LSB_SIGMA = 1.0
 
@@ -63,7 +63,7 @@ SNAPSHOT_N_SAMPLES = 5000
 N_BINS = 40
 MIN_BIN_COUNT = 30
 
-CANDIDATE_BETAS = [0.5, 1.0, 5.0]   # "wrong" guesses shown alongside the fit
+CANDIDATE_BETAS = [0.5, 1.0, 5.0]
 COLOR_CANDIDATES = ["#cccccc", "#888888", "#444444"]  # light -> dark gray, magnitude-ordered
 COLOR_DATA = "#D55E00"
 COLOR_FIT = "#0072B2"

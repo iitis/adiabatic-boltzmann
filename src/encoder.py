@@ -22,7 +22,7 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 from helpers import save_rbm_checkpoint, save_dwave_samples
-from model import FullBoltzmannMachine, FullyConnectedRBM
+from model import FullyConnectedRBM
 from sampler import ClassicalSampler, DimodSampler
 from scipy.optimize import minimize_scalar
 from energy import GPUEnergyMeter, gpu_available
@@ -148,119 +148,6 @@ class SRLinearSystem:
 
 
 # ---------------------------------------------------------------------------
-# FBM SR matvec kernel
-# ---------------------------------------------------------------------------
-
-
-@functools.partial(jax.jit, static_argnums=(7, 8, 9, 10))
-def _fbm_sr_matvec_jit(
-    V: jax.Array,  # (ns, N)
-    H: jax.Array,  # (ns, M)
-    V_vv_c: jax.Array,  # (ns, n_J)  centred vis-vis gradient matrix
-    mu_a: jax.Array,  # (N,)
-    mu_b: jax.Array,  # (M,)
-    mu_W: jax.Array,  # (M, N)
-    diag_shift: float,
-    N: int,
-    M: int,
-    ns: int,
-    n_J: int,
-    x: jax.Array,
-) -> jax.Array:
-    """
-    S·x for the FBM parameter vector  [a(N), b(M), W(M*N), J_flat(n_J)].
-
-    V_vv_c is already mean-centred so the J block does not require an extra
-    subtraction in the centering step — only a, b, W are centred below.
-    """
-    xa = x[:N]
-    xb = x[N : N + M]
-    xW = x[N + M : N + M + M * N].reshape(M, N)
-    xJ = x[N + M + M * N :]
-
-    # Forward: z_s = Σ_p (O_sp - <O_p>) x_p
-    z = -0.5 * (V @ xa)
-    z = z + 0.5 * (H @ xb)
-    z = z + 0.5 * jnp.einsum("sm,mn,sn->s", H, xW, V)
-    z = z + V_vv_c @ xJ  # already centred
-    z = z - (mu_a @ xa + mu_b @ xb + jnp.sum(mu_W * xW))  # centre a,b,W
-
-    # Backward: out_p = (1/ns) Σ_s z_s (O_sp - <O_p>)
-    out_a = -0.5 * (z @ V) / ns + diag_shift * xa
-    out_b = 0.5 * (z @ H) / ns + diag_shift * xb
-    out_W = 0.5 * (H.T @ (z[:, None] * V)) / ns + diag_shift * xW
-    out_J = (V_vv_c.T @ z) / ns + diag_shift * xJ
-
-    return jnp.concatenate([out_a.ravel(), out_b.ravel(), out_W.ravel(), out_J.ravel()])
-
-
-class FBMSRLinearSystem(SRLinearSystem):
-    """
-    SR linear system for FullBoltzmannMachine.
-
-    Extends SRLinearSystem with the J_vv parameter block.
-
-    Additional gradient:  O_{J,kl} = 0.5 * v_k * v_l   (k < l, upper-triangle
-    parameterisation where J_{kl} = J_{lk} is one independent parameter).
-    """
-
-    def __init__(
-        self,
-        V: jax.Array,
-        H: jax.Array,
-        E: jax.Array,
-        diag_shift: float,
-        triu_k: np.ndarray,
-        triu_l: np.ndarray,
-    ):
-        super().__init__(V, H, E, diag_shift)
-        N = self.N
-        self.n_J = N * (N - 1) // 2
-
-        # O_{s,kl} = 0.5 * v_{s,k} * v_{s,l}  for (k,l) in upper triangle
-        V_vv_raw = 0.5 * self.V[:, triu_k] * self.V[:, triu_l]  # (ns, n_J)
-        self.mu_J = jnp.mean(V_vv_raw, axis=0)  # (n_J,)
-        self.V_vv_c = V_vv_raw - self.mu_J[None, :]  # (ns, n_J)
-
-        centered_E = self.E - jnp.mean(self.E)
-        self.F_J = (self.V_vv_c.T @ centered_E) / self.ns  # (n_J,)
-
-    def unpack(self, x: jax.Array):
-        """Split 1-D vector → (a, b, W, J_flat)."""
-        N, M = self.N, self.M
-        a = x[:N]
-        b = x[N : N + M]
-        W = x[N + M : N + M + M * N].reshape(M, N)
-        J_flat = x[N + M + M * N :]
-        return a, b, W, J_flat
-
-    @property
-    def force(self) -> jax.Array:
-        return jnp.concatenate(
-            [
-                self.pack(self.F_a, self.F_b, self.F_W),
-                self.F_J,
-            ]
-        )
-
-    def matvec(self, x: jax.Array) -> jax.Array:
-        return _fbm_sr_matvec_jit(
-            self.V,
-            self.H,
-            self.V_vv_c,
-            self.mu_a,
-            self.mu_b,
-            self.mu_W,
-            self.diag_shift,
-            self.N,
-            self.M,
-            self.ns,
-            self.n_J,
-            x,
-        )
-
-
-# ---------------------------------------------------------------------------
 # Conjugate gradient
 # ---------------------------------------------------------------------------
 
@@ -361,7 +248,6 @@ class Trainer:
         self.ising = ising_model
         self.sampler = sampler
         self.args = args
-        self._is_fbm = isinstance(rbm, FullBoltzmannMachine)
         print(self.rbm)
         print(self.ising)
         print(self.args)
@@ -374,8 +260,7 @@ class Trainer:
         self.regularization = config.get("regularization", 1e-3)
         self.cg_tol = config.get("cg_tol", 1e-8)
         self.cg_maxiter = config.get("cg_maxiter", 200)
-        # Heavy-ball momentum on the SR update direction (v_t = m·v_{t-1} + update;
-        # w -= lr · v_t). 0.0 reproduces vanilla SR.
+        # Heavy-ball momentum on the SR update direction.
         self.momentum = float(config.get("momentum", 0.0))
         self._velocity = None
 
@@ -395,10 +280,9 @@ class Trainer:
                     "embedding replicates the dense K_(n_visible,n_hidden) biclique "
                     "across disjoint chip regions: DWaveTopologyRBM's mask is "
                     "pinned to one specific chip subgraph chosen at construction "
-                    "(another chip region generally isn't isomorphic to it), and "
-                    "fullbm's visible-visible couplings aren't covered by a "
-                    "biclique embedding — neither can be safely replicated this "
-                    f"way. Got sampler={type(sampler).__name__}, "
+                    "(another chip region generally isn't isomorphic to it) — it "
+                    "cannot be safely replicated this way. "
+                    f"Got sampler={type(sampler).__name__}, "
                     f"method={_qpu_method!r}, rbm={type(rbm).__name__}."
                 )
             if self.n_samples % self.n_parallel != 0:
@@ -444,9 +328,6 @@ class Trainer:
         _seed = config.get("seed", 0)
         self._key = jax.random.PRNGKey(_seed)
 
-        self._is_ra = getattr(sampler, "method", "").endswith("_ra")
-        self._ra_initial_state: dict | None = None
-
         # GPU energy metering for the watt-hours-to-solution (WHS) metric.
         self.total_energy_j: float | None = None
         self._gpu_energy_available = gpu_available()
@@ -475,28 +356,6 @@ class Trainer:
         self._kl_all_v = None
         self._kl_config_idx = None
 
-    def _update_ra_initial_state(self, v_samples: np.ndarray, h_samples):
-        """Pick the MAP configuration under |Ψ|² and store it as the RA warm start."""
-        V = jnp.asarray(v_samples, dtype=jnp.float64)
-        Theta = V @ self.rbm.W + self.rbm.b[None, :]
-        if self._is_fbm:
-            J_term = 0.5 * jnp.einsum("si,ij,sj->s", V, self.rbm.J, V)
-            log_psi2 = (
-                -(V @ self.rbm.a)
-                + J_term
-                + jnp.sum(jnp.logaddexp(Theta, -Theta), axis=1)
-            )
-        else:
-            log_psi2 = -(V @ self.rbm.a) + jnp.sum(jnp.logaddexp(Theta, -Theta), axis=1)
-        best_idx = int(jnp.argmax(log_psi2))
-        v_best = v_samples[best_idx]
-        nv = self.rbm.n_visible
-        state = {i: int(v_best[i]) for i in range(nv)}
-        if h_samples is not None:
-            h_best = np.asarray(h_samples)[best_idx]
-            state.update({nv + j: int(h_best[j]) for j in range(self.rbm.n_hidden)})
-        self._ra_initial_state = state
-
     def _build_kl_cache(self):
         """Pre-compute all 2^N configs and index map for exact KL. Called once."""
         N = self.rbm.n_visible
@@ -519,20 +378,12 @@ class Trainer:
         """
         ns = V.shape[0]
 
-        # Unique samples (needs a Python set, so we pull to CPU)
+        # Unique samples (pulled to CPU for dedup)
         v_np = np.asarray(V)
         n_unique_ratio = float(len(np.unique(v_np, axis=0))) / ns
 
         # ESS: log|Ψ|²
-        if self._is_fbm:
-            J_term = 0.5 * jnp.einsum("si,ij,sj->s", V, self.rbm.J, V)
-            log_psi2 = (
-                -(V @ self.rbm.a)
-                + J_term
-                + jnp.sum(jnp.logaddexp(Theta, -Theta), axis=1)
-            )
-        else:
-            log_psi2 = -(V @ self.rbm.a) + jnp.sum(jnp.logaddexp(Theta, -Theta), axis=1)
+        log_psi2 = -(V @ self.rbm.a) + jnp.sum(jnp.logaddexp(Theta, -Theta), axis=1)
         lw = log_psi2 - jnp.max(log_psi2)
         w = jnp.exp(lw)
         w = w / jnp.sum(w)
@@ -547,17 +398,9 @@ class Trainer:
 
         all_v = self._kl_all_v
         Theta_all = all_v @ self.rbm.W + self.rbm.b[None, :]
-        if self._is_fbm:
-            J_term_all = 0.5 * jnp.einsum("si,ij,sj->s", all_v, self.rbm.J, all_v)
-            log_psi2_all = (
-                -(all_v @ self.rbm.a)
-                + J_term_all
-                + jnp.sum(jnp.logaddexp(Theta_all, -Theta_all), axis=1)
-            )
-        else:
-            log_psi2_all = -(all_v @ self.rbm.a) + jnp.sum(
-                jnp.logaddexp(Theta_all, -Theta_all), axis=1
-            )
+        log_psi2_all = -(all_v @ self.rbm.a) + jnp.sum(
+            jnp.logaddexp(Theta_all, -Theta_all), axis=1
+        )
         lw_all = log_psi2_all - jnp.max(log_psi2_all)
         p_true = jnp.exp(lw_all)
         p_true = p_true / jnp.sum(p_true)
@@ -594,13 +437,6 @@ class Trainer:
         if isinstance(self.sampler, ClassicalSampler) and self.sampler.method in (
             "metropolis", "gibbs", "lsb", "simulated_annealing",
         ) and self.n_parallel <= 1:
-            # One untimed call to force XLA compilation for this RBM's shapes,
-            # so history["sampling_time_s"][0] measures real sampling only,
-            # not a one-time JIT-compile spike (up to ~275x steady-state cost
-            # for Gibbs at N=16). Snapshot/restore mutable sampler state so
-            # this is invisible to the real (timed) sample sequence and to
-            # Gibbs's persistent chain — the real iteration 0 still pays its
-            # genuine one-time burn-in cost, just without the compile on top.
             _saved_key = self.sampler._key
             _saved_gibbs_v = self.sampler._gibbs_v
             self.sampler.sample(
@@ -611,10 +447,8 @@ class Trainer:
 
         for iteration in range(start_iteration, self.n_iterations):
             # ── 1. Sample ──────────────────────────────────────────────────
-            _need_hidden = self._is_ra or (self.use_cem and not self._beta_fixed)
+            _need_hidden = self.use_cem and not self._beta_fixed
             _sample_config = {**self.config, "beta_x": self.beta_x}
-            if self._is_ra and self._ra_initial_state is not None:
-                _sample_config["ra_initial_state"] = self._ra_initial_state
             try:
                 _t0 = time.perf_counter()
                 if self.n_parallel > 1:
@@ -665,9 +499,6 @@ class Trainer:
             else:
                 _V_raw, _H_raw = _result, None
 
-            if self._is_ra:
-                self._update_ra_initial_state(np.asarray(_V_raw), _H_raw)
-
             V = jnp.asarray(_V_raw, dtype=jnp.float64)  # (ns, N)
             ns = int(V.shape[0])
 
@@ -690,12 +521,6 @@ class Trainer:
             if self.args and getattr(self.args, "sampling_method", "") in (
                 "pegasus",
                 "zephyr",
-                "pegasus_mh",
-                "zephyr_mh",
-                "pegasus_ra",
-                "zephyr_ra",
-                "pegasus_fast",
-                "zephyr_fast",
             ):
                 _ss = getattr(self.sampler, "last_sampleset", None)
                 save_dwave_samples(np.asarray(V), self.args, iteration, sampleset=_ss)
@@ -718,17 +543,7 @@ class Trainer:
             self.history["total_sampling_time_s"].append(sample_time_s + cem_time)
 
             # ── 4. Build SR system and solve with CG ──────────────────────
-            if self._is_fbm:
-                sr = FBMSRLinearSystem(
-                    V,
-                    TanH,
-                    local_energies,
-                    self.regularization,
-                    self.rbm._triu_k,
-                    self.rbm._triu_l,
-                )
-            else:
-                sr = SRLinearSystem(V, TanH, local_energies, self.regularization)
+            sr = SRLinearSystem(V, TanH, local_energies, self.regularization)
             x, cg_info = conjugate_gradient(
                 sr.matvec,
                 sr.force,
@@ -738,15 +553,9 @@ class Trainer:
 
             # ── 5. Apply parameter update ──────────────────────────────────
             w = self.rbm.get_weights()
-            if self._is_fbm:
-                xa, xb, xW, xJ = sr.unpack(x)
-                update = jnp.concatenate(
-                    [xa.ravel(), xb.ravel(), xW.T.ravel(), xJ.ravel()]
-                )
-            else:
-                xa, xb, xW = sr.unpack(x)
-                # xW is (M, N) — transpose to (N, M) to match rbm.W layout
-                update = jnp.concatenate([xa.ravel(), xb.ravel(), xW.T.ravel()])
+            xa, xb, xW = sr.unpack(x)
+            # transpose (M,N) → (N,M) to match rbm.W layout
+            update = jnp.concatenate([xa.ravel(), xb.ravel(), xW.T.ravel()])
             if self.momentum > 0.0:
                 if self._velocity is None or self._velocity.shape != update.shape:
                     self._velocity = jnp.zeros_like(update)

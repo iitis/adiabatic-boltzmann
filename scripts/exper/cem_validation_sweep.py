@@ -160,7 +160,7 @@ def run_sweep(n_values, h_values, beta_x_values, n_seeds, n_iter, train_samples,
     _CKPT_DIR.mkdir(parents=True, exist_ok=True)
     sampler = ClassicalSampler("lsb")
     records = []
-    draw_id = 0  # deterministic incrementing seed, no hash() (unstable across runs)
+    draw_id = 0  # deterministic seed counter
 
     for N in n_values:
         M = N

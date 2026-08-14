@@ -60,10 +60,10 @@ from ising import TransverseFieldIsing1D
 
 DEFAULT_SIZES = [8, 12, 16, 24, 32, 64, 128]
 DEFAULT_METHODS = ["pegasus", "zephyr"]
-DWAVE_BUDGET_MS = 60 * 60 * 1000  # raised from 30 to 60 min for this sweep (absolute, cumulative ceiling)
-SESSION_BUDGET_MS = 30 * 60 * 1000  # raised from 25 to 30 min -- user-authorized for the auto_scale-fix rerun
+DWAVE_BUDGET_MS = 60 * 60 * 1000  # absolute, cumulative ceiling
+SESSION_BUDGET_MS = 30 * 60 * 1000  # per-invocation spend cap
 DWAVE_TIME_FILE = Path("time.json")
-OUTLIER_FACTOR = 8  # flag an iteration if it's this many times its run's own median
+OUTLIER_FACTOR = 8  # threshold vs run's own median
 
 
 def _require_qpu_time_ms() -> float:
@@ -111,7 +111,7 @@ def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--sizes", type=int, nargs="+", default=DEFAULT_SIZES)
     p.add_argument("--methods", type=str, nargs="+", default=DEFAULT_METHODS,
-                   choices=["pegasus", "zephyr", "pegasus_fast", "zephyr_fast"])
+                   choices=["pegasus", "zephyr"])
     p.add_argument("--seeds", type=int, default=5, help="Number of seeds, 0..seeds-1")
     p.add_argument(
         "--cem-values", type=lambda s: s.lower() == "true", nargs="+",

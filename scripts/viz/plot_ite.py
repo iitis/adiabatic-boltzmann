@@ -78,12 +78,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 RESULTS_DIR = ROOT / "results"
 PLOTS_DIR = ROOT / "plots" / "ite"
 
-# Constant power draw (Watts) assumed for hardware this machine cannot
-# self-measure via nvidia-smi. Rough estimates for order-of-magnitude
-# comparison only — see module docstring. Keyed by base "sampler/method"
-# (before any "@sweepsNNN" campaign suffix — see plot_ttc.load_runs); the
-# power draw is a hardware property, not a function of which campaign a
-# run came from.
+# Assumed power draw (W) for hardware without measured energy telemetry.
 ASSUMED_POWER_W = {
     "fpga/fpga": 45.0,
     "velox/velox": 380.0,
@@ -94,8 +89,7 @@ ASSUMED_POWER_W = {
 def _base_method(method_key: str) -> str:
     return method_key.split("@")[0]
 
-# Hyperparameter fields that define "the same config" for best-config
-# selection within a (method, N) group.
+# Fields defining "same config" for best-config selection.
 CONFIG_KEYS = (
     "learning_rate", "regularization", "n_samples", "n_hidden", "sigma",
     "cem", "cem_interval",
@@ -191,7 +185,7 @@ def compute_ite_metrics(run: dict, epsilon: float, window: int) -> dict | None:
             energy_is_assumed = True
 
     return {
-        "ite": t + 1,  # 1-indexed, matches ite_run.py's convention
+        "ite": t + 1,  # 1-indexed
         "time_s": time_s,
         "energy_wh": energy_wh,
         "energy_is_assumed": energy_is_assumed,
@@ -233,8 +227,7 @@ def print_convergence_table(bucket: dict) -> None:
 # Plotting
 # ---------------------------------------------------------------------------
 
-# Panel definitions, keyed by the --panels choice. Order here is the
-# canonical top-to-bottom order regardless of the order given on the CLI.
+# Canonical top-to-bottom order, independent of CLI order.
 PANEL_SPECS = {
     "ite": dict(key="ite", ylabel="ITE (iterations)", title="Iterations to epsilon"),
     "time": dict(key="time_s", ylabel="Time-to-ITE (s)", title="Cumulative sampling time to epsilon"),

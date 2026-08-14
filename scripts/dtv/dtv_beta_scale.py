@@ -32,7 +32,6 @@ Usage:
 
 import argparse
 import json
-import os
 import pickle
 import sys
 from pathlib import Path

@@ -67,10 +67,7 @@ sys.path.insert(0, str(_REPO / "scripts"))
 
 import jax
 
-# Match hparam_optuna.py: the VMC/SR/CG math explicitly requests float64
-# throughout (encoder/ising/model). Without this, jax silently truncates to
-# float32 and the production sweep would run in lower precision than the
-# hparam search it consumes.
+# must precede src imports; codebase relies on float64
 jax.config.update("jax_enable_x64", True)
 
 from encoder import Trainer
@@ -88,7 +85,6 @@ DEFAULT_SIZES = [16, 24]
 DEFAULT_MODEL = "1d"
 DEFAULT_H = 0.5
 
-# Fixed hyperparameters for the generalization sweep (from TFIM Optuna optima).
 _GEN_LR = 0.13
 _GEN_REG = 0.005
 _GEN_N_SAMPLES = 200
@@ -121,7 +117,7 @@ def _result_exists(args_ns) -> bool:
     )
     return (output_dir / fname).exists()
 
-# num_steps=1 + geometric schedule = single temperature point = Gibbs sampling.
+# num_steps=1 = Gibbs sampling
 _GIBBS_NUM_STEPS = 1
 
 DEFAULT_JULIA_PROJECT = str(Path(__file__).parent / "julia_local")
@@ -387,15 +383,12 @@ def _run_seed(
     stop_temp = 0.5 * start_temp  # T_min < T_max; irrelevant with num_steps=1
     num_sweeps = sa["num_sweeps_per_step"]
 
-    # 2D models use size² spins; 1D models (TFIM and J1J2 Heisenberg) use size.
     n_visible = size**2 if model == "2d" else size
     key = jax.random.PRNGKey(seed)
     _, model_key = jax.random.split(key)
     rbm = FullyConnectedRBM(n_visible, n_hidden, model_key)
 
-    # cg_tol/cg_maxiter are optional CG-solver tuning knobs (Trainer itself
-    # defaults to 1e-8/200 when absent) — not required shared state, so a
-    # config that omits them legitimately falls back to Trainer's defaults.
+    # optional CG tuning knobs; Trainer has defaults
     cg_kwargs = {}
     if "cg_tol" in vmc:
         cg_kwargs["cg_tol"] = vmc["cg_tol"]
@@ -512,10 +505,7 @@ def _load_best_trials(hparam_dir, model, size, h, top_k, num_sweeps_per_step):
                     continue
                 if abs(rec.get("phys_params", {}).get("h", float("nan")) - h) > 1e-9:
                     continue
-                # index.jsonl logs the raw Optuna category ("velox_sa"); only
-                # the saved result JSON's config gets relabeled to
-                # "simulated_annealing" (see hparam_optuna.py's
-                # _VELOX_METHOD_LABEL). Match the raw label here.
+                # index.jsonl uses the raw label "velox_sa", not the relabeled one
                 if rec.get("params", {}).get("sampling_method") != "velox_sa":
                     continue
                 if not math.isfinite(rec.get("rel_error", float("nan"))):
@@ -799,8 +789,6 @@ def _run_custom(args):
             json.dump(manifest, f, indent=2)
 
     if skipped:
-        # Exit non-zero even on --dry-run: this is exactly how a caller would
-        # validate config coverage before committing to a real (expensive) run.
         print(
             f"\nWARNING: {len(skipped)}/{len(args.sizes)} requested size(s) "
             f"skipped due to missing --custom-config entries: {skipped}",
@@ -857,8 +845,7 @@ def _run_one(hparam_dir, model, size, h, args):
 
         if backend == "veloxq_sa":
             os.environ["VELOXQ_BACKEND"] = args.veloxq_backend
-            # All trials share one Julia server; per-trial SA params are forwarded
-            # via trainer_config, not the constructor.
+            # per-trial SA params forwarded via trainer_config
             sampler_obj = VeloxQStandardSASampler(
                 project_path=args.julia_project,
                 num_rep=num_rep,
@@ -951,7 +938,6 @@ def _run_one(hparam_dir, model, size, h, args):
 
 def _run_generalize(args):
     """Generalization sweep: fixed VMC params across TFIM sizes + J1J2 Heisenberg."""
-    # Resolve hyperparameter overrides (None ⇒ module default).
     lr        = args.lr        if args.lr        is not None else _GEN_LR
     reg       = args.damping   if args.damping   is not None else _GEN_REG
     nh_alpha  = args.nh_alpha  if args.nh_alpha  is not None else _GEN_NH_ALPHA
@@ -1012,9 +998,7 @@ def _run_generalize(args):
 
         try:
             for num_sweeps in args.num_sweeps:
-                # Per-sweep subtree: save_results' filename does not include
-                # num_sweeps, so we must namespace by directory to avoid
-                # overwriting num_sweeps=100 results with num_sweeps=2000.
+                # namespace by sweeps to avoid filename collisions
                 sweep_output_dir = output_dir / f"sweeps{num_sweeps}"
                 for cfg in configs:
                     N = cfg["size"]

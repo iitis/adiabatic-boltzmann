@@ -20,7 +20,6 @@ Usage (from repo root):
 """
 
 import argparse
-import os
 import sys
 from pathlib import Path
 
@@ -40,7 +39,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))  # plot_style
 
 import jax
 jax.config.update("jax_enable_x64", True)
-import jax.numpy as jnp
 
 from plot_style import setup_style
 from ising import TransverseFieldIsing1D

@@ -100,34 +100,21 @@ sys.path.insert(0, str(_ROOT / "scripts" / "exper"))
 import jax
 jax.config.update("jax_enable_x64", True)
 
-from mcmc_matched_sweep import run_one  # noqa: E402  (reuse the in-process runner)
+from mcmc_matched_sweep import run_one  # noqa: E402
 import matplotlib
 matplotlib.use("Agg")
 from paper_figures import load, compute_validated_convergence_iter, median_iqr  # noqa: E402
 
 METROPOLIS_GRID = [200, 400, 800, 1600]
 GIBBS_GRID = [10, 20, 40, 80]
-# SA_GRID: timing probe (this machine, single seed, N=32, iter=100) showed SA's
-# per-seed cost is nearly flat across cooling length (sa_sweeps=1 -> 36s,
-# 10 -> 38s, 40 -> 38s, 160 -> 48s -- the fixed per-iteration overhead
-# dominates, not the cooling steps), so the grid is widened straight to 160
-# rather than doubling stepwise like Metropolis/Gibbs. The same single-seed
-# probe also showed a sharp transition between 10 (err/spin 0.057) and 40
-# (err/spin 0.0004) -- exactly the kind of single-seed signal the module
-# docstring warns not to trust, hence the full 10-seed grid below.
+# SA per-seed cost is nearly flat across cooling length, so widened straight to 160.
 SA_GRID = [1, 10, 40, 160]
 SEED_START = 90
 N_SEEDS = 10
 SIZE = 32
 H, LR, REG, N_SAMPLES, ITERATIONS = 0.5, 0.08, 0.05, 200, 100
 CV_THRESHOLD, WINDOW, EPSILON = 0.05, 10, 0.1
-# epsilon=0.1 (not fig10c_tte_vs_n_self_convergence's bare-signature default of 0.01)
-# matches plots/paper_figures/fig10c_tte_vs_n_self_convergence_cv0.05_eps0.1.{png,pdf},
-# the only existing rendered fig10c variant whose validated-rate pattern matches the
-# quoted degradation narrative (~20/20 at N<=16, falling through N=24/32, 0/20 at N=64).
-# epsilon=0.01 (the bare default) scores 0/20 at EVERY N for both solvers on the current
-# result files -- confirmed against the real seeds 0..19, not just the calibration seeds --
-# so it is not the criterion that produced the numbers this calibration is targeting.
+# epsilon=0.1 matches the rendered fig10c variant; 0.01 scores 0/20 everywhere.
 RATE_MARGIN = 0.30
 TTE_BUDGET_MULT = 2.0
 OUTPUT_DIR = str(_ROOT / "results")

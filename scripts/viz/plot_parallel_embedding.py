@@ -48,16 +48,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../src"))
 sys.path.insert(0, os.path.dirname(__file__))
 from plot_style import setup_style
 
-# Fixed, colorblind-distinguishable hue per copy index -- same hue used
-# consistently across figures for a given copy slot (copy identity, not
-# rank, drives color). Visible/hidden role is a second, color-independent
-# encoding (hatched vs. solid fill) so both copy identity and role are
-# readable off one set of markers without a color x role product.
+# Per-copy color; hatch encodes visible/hidden independently of color.
 COPY_COLORS = ["#2166ac", "#d62728", "#2ca02c", "#f5a623", "#9467bd", "#17becf", "#8c564b", "#e377c2"]
 NODE_SIZE = 70
 VISIBLE_HATCH = "////"
-# Same "unused chip" grey used elsewhere in the project (plot_dwave_embedding.py,
-# plot_sparse_graph_construction.py).
 UNUSED_NODE_COLOR = "#D9D9D9"
 UNUSED_EDGE_COLOR = "#E5E5E5"
 
@@ -184,8 +178,7 @@ def plot_embeddings(hw_graph, embeddings, n_visible, layout_fn, out, figsize=(5,
     ax.set_aspect("equal")
     ax.axis("off")
 
-    # Background: the real, otherwise-idle chip neighborhood around the
-    # embeddings -- every qubit/coupler in view, whether used or not.
+    # Background: idle chip neighborhood context.
     nx.draw_networkx_edges(sub, pos, edge_color=UNUSED_EDGE_COLOR, width=0.4, ax=ax)
     nx.draw_networkx_nodes(sub, pos, node_color=UNUSED_NODE_COLOR, node_size=NODE_SIZE * 0.6,
                             linewidths=0.3, edgecolors="#BFBFBF", ax=ax)
@@ -195,10 +188,7 @@ def plot_embeddings(hw_graph, embeddings, n_visible, layout_fn, out, figsize=(5,
         qlabel = {q: v for v, chain in emb.items() for q in chain}
         copy_sub = sub.subgraph(qlabel.keys())
 
-        # Within one copy: same chain (u == v) or a genuine visible-hidden
-        # pair (opposite sides of n_visible) is the only real edge a plain
-        # FullyConnectedRBM ever has -- no visible-visible / hidden-hidden
-        # couplings, so "opposite sides" already exactly means "connected".
+        # Same-chain or visible-hidden edges only (no vis-vis/hid-hid couplings).
         edges = [
             (p, q) for p, q in copy_sub.edges()
             if qlabel[p] == qlabel[q] or (qlabel[p] < n_visible) != (qlabel[q] < n_visible)

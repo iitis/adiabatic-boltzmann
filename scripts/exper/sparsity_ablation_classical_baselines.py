@@ -48,9 +48,7 @@ N_ITERS_DEFAULT = 300
 ALL_SEEDS = [42, 123, 456, 789, 1234]
 TARGET_SPARSITIES = [0.557, 0.682, 0.809, 0.877]
 
-# Label for the unpruned native mask -- can't go through _make_pruned_rbm
-# (which requires target_sparsity > native_sparsity); its true sparsity is
-# 0.42578125, verified against cache_full.json's "16_1_1_zephyr_*" entries.
+# Unpruned native mask; sparsity 0.42578125, can't go through _make_pruned_rbm
 NATIVE_LABEL = "native"
 
 _REPO = Path(__file__).resolve().parent.parent.parent
@@ -60,9 +58,7 @@ CACHE_DIR = _REPO / "plots" / "sparsity"
 def run_one(method, target_sparsity, seed, n_iters):
     np.random.seed(seed)
     if target_sparsity == NATIVE_LABEL:
-        # Same construction as _make_rbm's zephyr branch / _make_pruned_rbm:
-        # subgraph-selection seed is always 42 (matches every other cache in
-        # this study), only the weight-init key varies with the outer seed.
+        # subgraph-selection seed fixed at 42; only weight-init key varies
         key = jax.random.PRNGKey(seed)
         rbm = DWaveTopologyRBM(N, N, key, solver=TOPOLOGY, seed=42, live=True)
     else:

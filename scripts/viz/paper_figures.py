@@ -16,7 +16,6 @@ import glob
 import gzip
 import json
 import os
-import statistics
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -34,8 +33,7 @@ GRID = "#e1e0d9"
 
 
 # ---------------------------------------------------------------------------
-# Shared statistics helpers (ITE censoring convention matches scripts/ite/ite_run.py;
-# Wilson CI matches scripts/exper/parallel_embedding_bench.py)
+# Shared statistics helpers
 # ---------------------------------------------------------------------------
 
 def compute_ite(energies, exact_energy, size, epsilon, window=10):
@@ -105,10 +103,7 @@ def compute_validated_convergence_iter(history, exact_energy, size, epsilon, cv_
     if conv_iter is None:
         return None
     energies = history["energy"]
-    # conv_iter is 1-indexed and marks the START of the low-CV plateau (see
-    # compute_convergence_iter), so the plateau itself spans energies
-    # [conv_iter - 1 : conv_iter - 1 + window] (0-indexed) -- NOT the window
-    # ending at conv_iter, which is the pre-plateau transient.
+    # plateau is energies[conv_iter-1 : conv_iter-1+window] (0-indexed)
     plateau = energies[conv_iter - 1: conv_iter - 1 + window]
     mean_e = sum(plateau) / len(plateau)
     if abs(mean_e - exact_energy) / size < epsilon:
@@ -145,6 +140,19 @@ def load(pattern):
     return out
 
 
+def fpga_glob(n):
+    """FPGA (sweeps100 campaign) result glob for TFIM 1D at size n.
+
+    Lives under results/tfim_1d/{n}/fpga/fpga/ alongside every other TFIM 1D
+    solver -- migrated out of results/sweeps100/tfim_1d/{n}/fpga/ so this is
+    the only copy. The sweeps2000 FPGA campaign (different num_sweeps, same
+    filenames -- see results/custom/velox_default_h0.5.json's description)
+    is a genuinely separate dataset and still lives under
+    results/sweeps2000/tfim_1d/{n}/fpga/; it is NOT merged here.
+    """
+    return f"results/tfim_1d/{n}/fpga/*/result_*_seed*_iter*"
+
+
 def style_axes(ax):
     ax.grid(axis="y", which="major", color=GRID, linewidth=0.8, zorder=0)
     ax.grid(axis="y", which="minor", color=GRID, linewidth=0.4, zorder=0, alpha=0.5)
@@ -169,27 +177,12 @@ def log_x_with_ticks(ax, sizes, rotation=0):
 # ---------------------------------------------------------------------------
 # Figure 1 — ITE vs N, tfim_1d, TFIM critical point
 #
-# Data: results/tfim_1d/{25,36,49,64,81,100,121,144,169,196}/custom/{metropolis,gibbs,lsb}
-#       h=1.0 (critical point), matched RBM (full, n_hidden=N), lr=0.01, reg=1e-5,
-#       n_samples=1000, 300 SR iterations, 5-7 seeds per cell.
-#
-# IMPORTANT CONFOUND, verified in the raw configs: every archived LSB run has
-# cem=True (Cross-Entropy adaptive beta_x scaling, see encoder.py) while every
-# Metropolis/Gibbs run has cem=False — there is no cem-matched LSB data to
-# compare against. Metropolis vs. Gibbs below is a true sampler-only match
-# (identical everything else, cem=False for both). LSB is plotted separately,
-# dashed/hollow, explicitly labeled "+CEM", because its apparent speed advantage
-# cannot be attributed to the sampler alone with the data on disk.
-#
-# Epsilon=0.01 energy error PER SPIN (|E-E_exact|/N), rolling window=10
-# iterations (ite_run.py convention). h=1.0 is fixed across every N here and
-# the ground-state energy density is verified near-constant (-1.2733 to
-# -1.2741 per spin across N=25..196), so this per-spin threshold is not just
-# a relabeling of the old relative-error one -- it happens to reproduce the
-# same censoring pattern (checked: Metropolis/Gibbs were already 0/5 reached
-# at N>=64 under the old relative-error convention too).
-# Runs that never cross epsilon within the 300-iteration budget are censored,
-# not dropped — shown as hollow markers at the iteration budget.
+# Metropolis/Gibbs are a true sampler-only match (cem=False for both); LSB
+# is plotted separately (dashed/hollow, "+CEM") since only cem=True LSB runs
+# are archived here, so it isn't sampler-matched to the other two.
+# Epsilon=0.01 energy error per spin, rolling window=10. Runs that never
+# cross epsilon within the 300-iteration budget are censored (hollow marker
+# at the iteration budget), not dropped.
 # ---------------------------------------------------------------------------
 
 def fig1_ite_vs_n_tfim1d():
@@ -257,24 +250,11 @@ def fig1_ite_vs_n_tfim1d():
 # ---------------------------------------------------------------------------
 # Figure 2 — Wall-clock time-to-epsilon vs N, VeloxQ vs FPGA
 #
-# Data: results/sweeps100 + results/sweeps2000, tfim_1d, N=8..128, h=0.5,
-#       matched hyperparameters (n_hidden=N, lr=0.08, reg=0.05, n_samples=200),
-#       velox vs fpga. sweeps100/sweeps2000 pooled: verified the two campaigns
-#       give different outcomes for identical (seed, config) pairs, so VeloxQ's
-#       sampler is not seed-deterministic and the pooled ~40 runs/cell are
-#       genuinely independent, not duplicated.
-# A separate point marks the freshly re-tuned N=128 VeloxQ config from
-# results/sweeps100_v2 + sweeps2000_v2 (n_hidden=305, from a dedicated 45-trial
-# Optuna search) — shown as a distinct annotated marker, NOT connected to the
-# matched velox/fpga line, since FPGA has no equivalently re-tuned config at
-# N=128 and connecting them would misrepresent a hardware-vs-hardware claim
-# as a hyperparameter-tuning artifact.
-#
-# Epsilon=0.01 energy error PER SPIN (not relative to |E_exact|; see
-# compute_ite docstring). h=0.5 is fixed across N here and the ground-state
-# energy density is verified constant (-1.0635 to -1.0636 per spin across
-# N=8..128), so this reproduces the same reach/censoring pattern the old
-# relative-error convention gave (checked directly).
+# sweeps100/sweeps2000 pooled (verified independent, not duplicated runs).
+# The re-tuned N=128 VeloxQ point (sweeps100_v2/sweeps2000_v2) is shown
+# separately, not connected to the matched velox/fpga line, since FPGA has
+# no equivalently re-tuned config at N=128.
+# Epsilon=0.01 energy error per spin (see compute_ite docstring).
 # ---------------------------------------------------------------------------
 
 def fig2_tte_vs_n_velox_fpga():
@@ -287,10 +267,16 @@ def fig2_tte_vs_n_velox_fpga():
 
     for solver, label, color, marker in solvers:
         med, lo, hi, censored_x = [], [], [], []
+        # FPGA's sweeps100 campaign now lives under results/tfim_1d/{n}/fpga/
+        # (see fpga_glob docstring); sweeps2000 is a separate campaign, still
+        # under results/sweeps2000/. velox is unaffected -- both campaigns
+        # still live under results/sweeps{100,2000}/.
+        sweeps100_pattern = (lambda n: fpga_glob(n)) if solver == "fpga" \
+            else (lambda n: f"results/sweeps100/tfim_1d/{n}/{solver}/*/result_*_seed*_iter*")
         for n in sizes:
             recs = [
                 r for r in
-                load(f"results/sweeps100/tfim_1d/{n}/{solver}/*/result_*_seed*_iter*")
+                load(sweeps100_pattern(n))
                 + load(f"results/sweeps2000/tfim_1d/{n}/{solver}/*/result_*_seed*_iter*")
                 if r["config"]["n_hidden"] == n
                 and abs(r["config"]["learning_rate"] - 0.08) < 1e-9
@@ -330,7 +316,7 @@ def fig2_tte_vs_n_velox_fpga():
             ax.scatter(cx, [ymax * 3] * len(cx), marker=marker, facecolors="none",
                        edgecolors=color, s=55, linewidth=1.4, zorder=3)
 
-    # re-tuned N=128 velox point (sweeps100_v2 + sweeps2000_v2), annotated separately
+    # re-tuned N=128 velox point (sweeps100_v2 + sweeps2000_v2)
     recs = load("results/sweeps100_v2/tfim_1d/128/velox/simulated_annealing/result_*seed*") + \
         load("results/sweeps2000_v2/tfim_1d/128/velox/simulated_annealing/result_*seed*")
     times = []
@@ -367,10 +353,6 @@ def fig2_tte_vs_n_velox_fpga():
 # Panel A: same tfim_1d custom-sampler cells as Figure 1 (h=1.0, 300 iters).
 # Panel B: same velox/fpga matched cells as Figure 2 (h=0.5, 100 iters),
 #          plus the re-tuned N=128 VeloxQ point.
-# Shows the residual-error scaling directly, independent of any epsilon choice.
-#
-# Metric: energy error PER SPIN, |E_final-E_exact|/N -- not relative to
-# |E_exact| (see compute_ite docstring for why per-spin is the fairer metric).
 # ---------------------------------------------------------------------------
 
 def fig3_energy_to_solution_vs_n():
@@ -411,10 +393,16 @@ def fig3_energy_to_solution_vs_n():
     solvers = [("velox", "VeloxQ (SA)", COLOR_BLUE, "o"), ("fpga", "FPGA", COLOR_GREEN, "s")]
     for solver, label, color, marker in solvers:
         med, lo, hi = [], [], []
+        # FPGA's sweeps100 campaign now lives under results/tfim_1d/{n}/fpga/
+        # (see fpga_glob docstring); sweeps2000 is a separate campaign, still
+        # under results/sweeps2000/. velox is unaffected -- both campaigns
+        # still live under results/sweeps{100,2000}/.
+        sweeps100_pattern = (lambda n: fpga_glob(n)) if solver == "fpga" \
+            else (lambda n: f"results/sweeps100/tfim_1d/{n}/{solver}/*/result_*_seed*_iter*")
         for n in sizes:
             recs = [
                 r for r in
-                load(f"results/sweeps100/tfim_1d/{n}/{solver}/*/result_*_seed*_iter*")
+                load(sweeps100_pattern(n))
                 + load(f"results/sweeps2000/tfim_1d/{n}/{solver}/*/result_*_seed*_iter*")
                 if r["config"]["n_hidden"] == n
                 and abs(r["config"]["learning_rate"] - 0.08) < 1e-9
@@ -454,20 +442,10 @@ def fig3_energy_to_solution_vs_n():
 # ---------------------------------------------------------------------------
 # Figure 4 — Ground-state success fraction vs N at the Majumdar-Ghosh point
 #
-# Data: results/heisenberg_j1j2_1d/{8,12,16}/custom/{exchange,gibbs,simulated_annealing}
-#       at J2=0.5 (the maximally frustrated Majumdar-Ghosh point of the J1-J2
-#       chain), 28-30 seeds per cell, 300 SR iterations. "Success" = final
-#       energy error per spin < 0.05 (loose threshold appropriate for this
-#       highly degenerate point; ground-state energy density is exactly
-#       -1.5/spin at every N here, and success/failure is strongly bimodal --
-#       checked that this per-spin threshold gives identical success counts
-#       to the old relative-error 5% threshold at every method/N cell).
-#       Wilson score CI (scripts/exper/parallel_embedding_bench.py
-#       convention). The story is a sharp, solver-dependent finite-size crossover
-#       rather than smooth hardness scaling: Gibbs solves this point at every N
-#       tested, Exchange only becomes reliable at N>=12, and simulated annealing
-#       stays at 0% success until a sudden jump at N=16 — each solver has a
-#       different crossover size, not a shared monotonic trend.
+# J1-J2 chain at J2=0.5, 28-30 seeds per cell, 300 SR iterations. "Success"
+# = final energy error per spin < 0.05. Wilson score CI. Each solver shows
+# a different finite-size crossover (Gibbs solves it at every N tested,
+# Exchange only from N>=12, SA jumps from 0% at N=16).
 # ---------------------------------------------------------------------------
 
 def fig4_success_fraction_heisenberg():
@@ -525,21 +503,13 @@ def fig4_success_fraction_heisenberg():
 # Figure 5 — Single-instance convergence, TFIM 1D, includes real D-Wave QPU
 # sampling (pegasus, zephyr), no new QPU time used (archived runs only).
 #
-# Data: N=8 and N=16, h=0.5, rbmfull, lr=0.1, reg=0.001, ns=1000, seed=42,
-# iter=300 — the only cell in the whole results tree where a classical
-# sampler, VeloxQ, and both D-Wave QPU solvers (pegasus, zephyr) share
-# identical (N, h, RBM, lr, reg, n_samples, seed). Exact filenames (not
-# globs) are used below because several nominally-identical cells on disk
-# contain more than one archived run under the same seed label (from
-# different sweep campaigns); one verified case (tfim_2d, metropolis) shows
-# these can converge to very different final energies, so silently picking
-# one via a generic tie-break risks a hidden cherry-pick. Here we instead
-# pin the exact file whose name matches the D-Wave runs' naming byte-for-byte.
-# VeloxQ has no archived N=8 run at this config, so N=8 has 3 solvers only.
-# Single seed per solver: this is a qualitative single-instance comparison,
-# not a statistical claim. No wall-clock timing is recorded for the D-Wave
-# QPU runs (history has no sampling_time_s), so this is energy-vs-iteration
-# only, not a TTE plot.
+# N=8 and N=16, h=0.5, rbmfull, lr=0.1, reg=0.001, ns=1000, seed=42, iter=300.
+# Exact filenames (not globs) pin the specific archived run matching the
+# D-Wave runs' naming, since some nominally-identical cells hold more than
+# one run under the same seed label. VeloxQ has no archived N=8 run at this
+# config. Single seed per solver -- qualitative comparison, not a
+# statistical claim. D-Wave QPU runs have no sampling_time_s, so this is
+# energy-vs-iteration only, not a TTE plot.
 # ---------------------------------------------------------------------------
 
 def fig5_convergence_dwave_tfim1d():
@@ -591,24 +561,10 @@ def fig5_convergence_dwave_tfim1d():
 # Figure 6 — Energy-to-solution vs N, TFIM 2D, includes real D-Wave QPU
 # sampling (pegasus, zephyr), no new QPU time used (archived runs only).
 #
-# Data: results/tfim_2d/{4,6,8}/{custom/metropolis, dimod/pegasus,
-# dimod/zephyr}, rbmfull, lr=0.1, reg=0.001, ns=1000, iter=300, matched
-# across all three sizes and both D-Wave solvers, three field strengths
-# h=0.5/1.0/2.0. D-Wave has 2 independent QPU runs per cell (seed 1, 42);
-# metropolis has 2-3 (archived runs sharing a nominal seed label are kept as
-# separate samples rather than deduplicated, since one checked case shows
-# they can converge to genuinely different final energies — treating them
-# as independent is honest, picking one would be a hidden cherry-pick).
-# With only 2-3 samples per point, the shown band is not a real IQR; it is
-# the same median_iqr() convention as Figures 1/3, interpreted as a
-# min/max-ish spread rather than a statistical distribution.
-#
-# Metric: energy error PER SPIN, |E_final-E_exact|/N_spins, where N_spins=n*n
-# for this 2D lattice (n_hidden=n*n for the matched rbmfull cell here) --
-# not relative to |E_exact|. This panel set spans three different h values,
-# each with its own energy density, so per-spin error (not implicitly
-# rescaled by a different reference per h) is the metric that keeps panels
-# comparable on their own terms rather than flattened to look similar.
+# rbmfull, lr=0.1, reg=0.001, ns=1000, iter=300, h=0.5/1.0/2.0, sizes 4/6/8.
+# D-Wave has 2 QPU runs per cell (seed 1, 42); metropolis has 2-3. With only
+# 2-3 samples per point the shown band is a min/max-ish spread, not a real
+# IQR. Metric is energy error per spin, N_spins=n*n.
 # ---------------------------------------------------------------------------
 
 def fig6_energy_vs_n_tfim2d_dwave():
@@ -668,41 +624,19 @@ def fig6_energy_vs_n_tfim2d_dwave():
 # Figure 7 — ITE and energy-to-solution vs N, classical solver comparison,
 # with real statistical power (10-15 seeds per point, not 2-3).
 #
-# Data: results/tfim_1d/{4,8,16}/{custom/metropolis, dimod/simulated_annealing,
-# dimod/tabu}, h=1.0, rbmfull, lr=0.1, reg=1e-05, ns=1000, iter=100, cem=0.
-# dimod/simulated_annealing and dimod/tabu run through the SAME DimodSampler
-# codepath used for the D-Wave QPU runs (sampler.py) -- they are the
-# classical software analogs of the pegasus/zephyr methods, just executed on
-# CPU instead of the QPU. This isolates "does annealing-style discrete
-# sampling help vs. plain MCMC" from "does the actual QPU help vs. its own
-# classical simulation" (the latter question is addressed separately in
-# Figures 5-6, where QPU data is thin).
+# h=1.0, rbmfull, lr=0.1, reg=1e-05, ns=1000, iter=100, cem=0.
+# dimod/simulated_annealing and dimod/tabu run through the same DimodSampler
+# codepath as the D-Wave QPU runs, executed on CPU instead of QPU.
+# Metric is energy error per spin (see compute_ite docstring).
 #
-# Metric: energy error PER SPIN, |E_final-E_exact|/N -- not relative to
-# |E_exact| (see compute_ite docstring). This matters most for panel B below,
-# where h varies at fixed N: energy density here ranges from -1.06/spin at
-# h=0.5 to -2.13/spin at h=2.0, so relative error implicitly rescales each
-# h's numbers by a different reference -- per-spin error does not, and is
-# the fairer metric for a same-N, cross-h comparison.
+# Panel A: final energy error per spin vs. N (4, 8, 16). An ITE panel was
+# tried here first and dropped -- at this cell's short iteration budget,
+# per-seed histories are unstable enough that ITE can spuriously flag an
+# early iteration as converged.
 #
-# Panel A: final energy error per spin vs. N (4, 8, 16), h=1.0, matched
-# hyperparameters, seeds 1-10 (N=4,16) or 1-15 (N=8) -- no cherry-picking, no
-# best-of. An iterations-to-epsilon panel was tried here first and dropped:
-# at this cell's 100-iteration budget, individual per-seed histories are
-# unstable (energy jumps to large positive values before settling, verified
-# on several seeds), so an early iteration can spuriously satisfy even a
-# loose epsilon by chance while the run is still far from converged --
-# ITE would silently misrepresent those seeds as fast. Final energy error is
-# not sensitive to this artifact and is the honest metric for this cell.
-#
-# Panel B: same three solvers and same rich 15-seeds-per-cell campaign, but
-# swept across field strength h at fixed N=8 instead of across N (this is
-# the only size with h=0.5/1.0/1.5/2.0 all archived at 15 seeds). This is
-# not a size-scaling panel -- it is included because, at fixed size, no
-# solver dominates across the whole field range: Metropolis is best at
-# h=0.5 (median 0.040 err/spin) while Tabu is best at h=1.5-2.0 (median
-# 0.32-0.37 err/spin, vs. 1.06-1.88 for Metropolis/SA there). That crossover
-# is a genuine, well-powered (n=15) finding, not an artifact of panel A's issue.
+# Panel B: same solvers/seeds, swept across h at fixed N=8. No solver
+# dominates across the whole field range (Metropolis best at h=0.5, Tabu
+# best at h=1.5-2.0).
 # ---------------------------------------------------------------------------
 
 def fig7_classical_scaling_tfim1d():
@@ -780,42 +714,17 @@ def fig7_classical_scaling_tfim1d():
 
 # ---------------------------------------------------------------------------
 # Figure 8 — All solvers archived at N=16, TFIM 1D, each at its own
-# best-available operating point.
-#
-# THIS IS NOT A HYPERPARAMETER-MATCHED COMPARISON. It was checked
-# exhaustively (every config tuple in every solver directory, across the
-# entire results/ tree) and no (h, rbm, lr, reg, n_samples, iterations)
-# cell is shared by more than 3 of these solvers anywhere in the archive --
-# FPGA and VeloxQ in particular never share a config with Metropolis,
-# Gibbs, LSB, or the dimod classical/QPU methods at any size. Forcing a
-# match would mean throwing away everything except 1-2 solvers per plot
-# (Figures 5-7 do exactly that, deliberately). This figure instead shows
-# each solver's own richest archived cell at N=16 side by side, so every
-# solver that has ever been run at this size appears -- but each row's (h,
-# hyperparameters, n) is different and is annotated directly on the plot.
-# Reading a difference between rows as "solver A beats solver B" is only
-# valid to the extent you also believe their respective operating points
-# are each that solver's fair shot; that is a judgment call for the reader,
-# not something this figure can adjudicate.
+# best-available operating point (NOT hyperparameter-matched -- no config
+# is shared by more than 3 of these solvers anywhere in the archive).
 #
 # Per-solver cell (all rbm=full, n_hidden=16 unless noted):
-#   Metropolis / dimod-SA / dimod-Tabu : h=1.0, lr=0.1,  reg=1e-05, ns=1000, iter=100,  n=10 each (matches Figure 7A)
+#   Metropolis / dimod-SA / dimod-Tabu : h=1.0, lr=0.1,  reg=1e-05, ns=1000, iter=100,  n=10 each
 #   Gibbs                              : h=0.5, lr=0.01, reg=1e-05, ns=1000, iter=300, cem=False, n=6
 #   LSB                                : h=0.5, lr=0.01, reg=1e-05, ns=1000, iter=300, cem=False, n=3
-#                                        (cem=False picked deliberately -- LSB also has cem=True
-#                                        archived runs at this exact cell; using cem=False avoids
-#                                        the LSB+CEM confound flagged in Figure 1)
-#   VeloxQ (SA) / FPGA                 : h=0.5, lr=0.08 (sweeps convention, matches Fig 2/3),
-#                                        reg=0.05, ns=200, sweeps100+sweeps2000 pooled, n=40 runs
-#                                        (20 unique seeds, each campaign independently verified
-#                                        non-duplicate final energies -- same pooling as Figure 2/3)
+#   VeloxQ (SA) / FPGA                 : h=0.5, lr=0.08, reg=0.05, ns=200, sweeps100+sweeps2000 pooled, n=40
 #   D-Wave Pegasus / Zephyr (QPU)      : h=0.5, rbmfull, lr=0.1, reg=0.001, ns=1000, iter=300, n=2
-#                                        (matches Figure 5/6's cell; real QPU, thin)
 #
-# Metric: energy error PER SPIN, |E_final-E_exact|/16 -- not relative to
-# |E_exact|. N=16 is fixed for every row here, so this is just a constant
-# divisor, but rows mix h=1.0 (density -1.2732/spin) and h=0.5 (density
-# -1.0635/spin) cells, so it is not a no-op relative to the old convention.
+# Metric: energy error per spin, |E_final-E_exact|/16.
 # ---------------------------------------------------------------------------
 
 def fig8_all_solvers_n16():
@@ -832,9 +741,18 @@ def fig8_all_solvers_n16():
     ]
 
     def sweeps_recs(solver):
+        # FPGA's sweeps100 campaign now lives under results/tfim_1d/16/fpga/
+        # (see fpga_glob docstring); sweeps2000 is a separate campaign, still
+        # under results/sweeps2000/. velox is unaffected -- both campaigns
+        # still live under results/sweeps{100,2000}/.
+        patterns = (
+            [fpga_glob(16), "results/sweeps2000/tfim_1d/16/fpga/*/result_*_seed*_iter*"]
+            if solver == "fpga" else
+            [f"results/{campaign}/tfim_1d/16/{solver}/*/result_*_seed*_iter*" for campaign in ("sweeps100", "sweeps2000")]
+        )
         out = []
-        for campaign in ("sweeps100", "sweeps2000"):
-            for r in load(f"results/{campaign}/tfim_1d/16/{solver}/*/result_*_seed*_iter*"):
+        for pattern in patterns:
+            for r in load(pattern):
                 c = r["config"]
                 if c["n_hidden"] == 16 and abs(c["learning_rate"] - 0.08) < 1e-9 \
                         and abs(c["regularization"] - 0.05) < 1e-9 and c["n_samples"] == 200:
@@ -872,28 +790,17 @@ def fig8_all_solvers_n16():
 
 
 # ---------------------------------------------------------------------------
-# Figure 9 — ITE and TTE, all solvers at N=16, each at its own best-available
-# operating point (companion to Figure 8; same per-solver cells/config
-# table, see Figure 8's header comment).
+# Figure 9 — ITE and TTE, all solvers at N=16 (companion to Figure 8, same
+# per-solver cells).
 #
-# Panel A (ITE): iterations to 0.01 energy error per spin, rolling window=10
-# (ite_run.py convention). Solvers whose best-available cell never reaches
-# threshold within its own iteration budget are censored (hollow marker at
-# the recorded budget) rather than dropped -- for Metropolis and dimod-SA at
-# their h=1.0/100-iteration cell this is a real result (that cell is a hard,
-# short-budget regime), not a plotting gap.
+# Panel A (ITE): iterations to 0.01 energy error per spin, rolling window=10.
+# Solvers that never reach threshold within their budget are censored
+# (hollow marker at the recorded budget), not dropped.
 #
-# Panel B (TTE): wall-clock time to 0.01 energy error per spin, from
-# cumulative per-iteration timing in each run's own history. Per CLAUDE.md's
-# no-silent-fallback rule, a solver is only included here if its archived
-# history actually records a timing field -- D-Wave Pegasus/Zephyr (QPU)
-# results in this archive have NO per-iteration timing field at all (verified:
-# 'sampling_time_s' is simply absent from their history dict), so they are
-# omitted from panel B entirely rather than assigned a fabricated or
-# assumed duration. Where a run logs both 'sampling_time_s' and
-# 'total_sampling_time_s' (LSB, VeloxQ, FPGA -- these use CEM, so total
-# includes cem_time_s), the 'total_*' field is used for a fair like-for-like
-# wall-clock accounting; solvers without CEM only ever have 'sampling_time_s'.
+# Panel B (TTE): wall-clock time to threshold. D-Wave Pegasus/Zephyr (QPU)
+# have no per-iteration timing field and are omitted rather than assigned a
+# fabricated duration. Uses 'total_sampling_time_s' where present (includes
+# CEM time), else 'sampling_time_s'.
 # ---------------------------------------------------------------------------
 
 def fig9_ite_tte_all_solvers_n16():
@@ -912,9 +819,18 @@ def fig9_ite_tte_all_solvers_n16():
     ]
 
     def sweeps_recs(solver):
+        # FPGA's sweeps100 campaign now lives under results/tfim_1d/16/fpga/
+        # (see fpga_glob docstring); sweeps2000 is a separate campaign, still
+        # under results/sweeps2000/. velox is unaffected -- both campaigns
+        # still live under results/sweeps{100,2000}/.
+        patterns = (
+            [fpga_glob(16), "results/sweeps2000/tfim_1d/16/fpga/*/result_*_seed*_iter*"]
+            if solver == "fpga" else
+            [f"results/{campaign}/tfim_1d/16/{solver}/*/result_*_seed*_iter*" for campaign in ("sweeps100", "sweeps2000")]
+        )
         out = []
-        for campaign in ("sweeps100", "sweeps2000"):
-            for r in load(f"results/{campaign}/tfim_1d/16/{solver}/*/result_*_seed*_iter*"):
+        for pattern in patterns:
+            for r in load(pattern):
                 c = r["config"]
                 if c["n_hidden"] == 16 and abs(c["learning_rate"] - 0.08) < 1e-9 \
                         and abs(c["regularization"] - 0.05) < 1e-9 and c["n_samples"] == 200:
@@ -994,32 +910,21 @@ def fig9_ite_tte_all_solvers_n16():
 # ---------------------------------------------------------------------------
 
 def fig10_ite_tte_vs_n_all_solvers(epsilon=0.01):
-    # Metropolis/Gibbs/LSB(+CEM) run at the exact same (lr, reg, n_samples,
-    # iterations) cell as FPGA/VeloxQ's "sweeps100" campaign below (see
-    # scripts/exper/mcmc_matched_sweep.py) -- this makes the comparison
-    # hyperparameter-matched, not just h-matched.
     def mcmc_recs(solver, n, cem=0):
         recs = load(f"results/tfim_1d/{n}/custom/{solver}/result_1d_h0.5_rbmfull_nh{n}_lr0.08_reg0.05_ns200_seed*_iter100_cem{cem}_sigma1.0.json.gz")
         return [r for r in recs if r["config"]["n_hidden"] == n and abs(r["config"]["learning_rate"] - 0.08) < 1e-9
                 and abs(r["config"]["regularization"] - 0.05) < 1e-9 and r["config"]["n_samples"] == 200
                 and r["config"]["iterations"] == 100][:20]
 
-    def sweeps_recs(solver, n):
+    def fpga_recs(n):
         out = []
-        for r in load(f"results/sweeps100/tfim_1d/{n}/{solver}/*/result_*_seed*_iter*"):
+        for r in load(fpga_glob(n)):
             c = r["config"]
             if c["n_hidden"] == n and abs(c["learning_rate"] - 0.08) < 1e-9 \
                     and abs(c["regularization"] - 0.05) < 1e-9 and c["n_samples"] == 200:
                 out.append(r)
         return out[:20]
 
-    # Pegasus/Zephyr QPU runs at the same matched cell (see
-    # scripts/exper/dwave_matched_sweep.py). Zephyr (Advantage2_system1,
-    # 4577 live qubits) stops at N in {16,32,64} -- its dense full-RBM
-    # biclique embedding is confirmed (independently re-verified) to fail
-    # starting at N=80, so K_128,128 never embeds. Pegasus (Advantage_system6,
-    # 5760 qubits) does embed K_128,128 (chains up to 12, 2987 qubits), so it
-    # additionally runs at N=128.
     def dwave_recs(method, n, cem=0):
         recs = load(f"results/tfim_1d/{n}/dimod/{method}/result_1d_h0.5_rbmfull_nh{n}_lr0.08_reg0.05_ns200_seed*_iter100_cem{cem}_sigma1.0.json.gz")
         return [r for r in recs if r["config"]["n_hidden"] == n and abs(r["config"]["learning_rate"] - 0.08) < 1e-9
@@ -1048,7 +953,7 @@ def fig10_ite_tte_vs_n_all_solvers(epsilon=0.01):
         ("Gibbs", _sizes, lambda n: mcmc_recs("gibbs", n), COLOR_GREEN, "s", "-"),
         ("LSB", _sizes, lambda n: mcmc_recs("lsb", n, cem=0), COLOR_MAGENTA, "^", "--"),
         ("VeloxQ (SA, untuned)", _sizes, lambda n: velox_untuned_recs(n), "#eb6834", "P", "-"),
-        ("FPGA", _sizes, lambda n: sweeps_recs("fpga", n), "#ffa600", "X", "-"),
+        ("FPGA", _sizes, lambda n: fpga_recs(n), "#ffa600", "X", "-"),
         ("Pegasus (QPU)", _pegasus_sizes, lambda n: dwave_recs("pegasus", n, cem=0), "#bc5090", "*", ":"),
         ("Pegasus (+CEM)", _pegasus_sizes, lambda n: dwave_recs("pegasus", n, cem=1), "#bc5090", "D", "--"),
         ("Zephyr (QPU)", _dwave_sizes, lambda n: dwave_recs("zephyr", n, cem=0), "#ef5675", "*", ":"),
@@ -1120,19 +1025,11 @@ def fig10_ite_tte_vs_n_all_solvers(epsilon=0.01):
 
 
 # ---------------------------------------------------------------------------
-# Figure 10b — same as Figure 10, QPUs only (Pegasus/Zephyr, with and
-# without CEM) -- companion figure, saved separately so Figure 10 stays
-# the all-solvers overview.
+# Figure 10b — same as Figure 10, QPUs only (Pegasus/Zephyr, with/without CEM)
 # ---------------------------------------------------------------------------
 
 def fig10b_ite_tte_vs_n_qpu_only(epsilon=0.01):
-    # See scripts/exper/dwave_matched_sweep.py -- same matched cell as
-    # Figure 10 (lr=0.08, reg=0.05, ns=200, iter=100, h=0.5). Zephyr
-    # (Advantage2_system1, 4577 live qubits) stops at N in {16,32,64} --
-    # its dense full-RBM biclique embedding is confirmed (independently
-    # re-verified) to fail starting at N=80, so K_128,128 never embeds.
-    # Pegasus (Advantage_system6, 5760 qubits) does embed K_128,128
-    # (chains up to 12, 2987 qubits), so it additionally runs at N=128.
+    # Zephyr's embedding fails past N=64; Pegasus supports up to N=128
     def dwave_recs(method, n, cem=0):
         recs = load(f"results/tfim_1d/{n}/dimod/{method}/result_1d_h0.5_rbmfull_nh{n}_lr0.08_reg0.05_ns200_seed*_iter100_cem{cem}_sigma1.0.json.gz")
         return [r for r in recs if r["config"]["n_hidden"] == n and abs(r["config"]["learning_rate"] - 0.08) < 1e-9
@@ -1213,11 +1110,8 @@ def fig10b_ite_tte_vs_n_qpu_only(epsilon=0.01):
 
 
 # ---------------------------------------------------------------------------
-# Figure 10c — same as Figure 10 (all solvers), but time-to-CONVERGENCE
-# instead of time-to-epsilon: uses compute_convergence_iter (module-level
-# helper above), which needs no exact_energy at all. See that function's
-# docstring for why CV = std(E_loc)/|mean(E_loc)| is the metric, not a
-# naive per-spin-normalized Var(E_loc).
+# Figure 10c — same as Figure 10, but time-to-convergence (self-detected,
+# no exact_energy needed) instead of time-to-epsilon.
 # ---------------------------------------------------------------------------
 
 def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01):
@@ -1227,9 +1121,9 @@ def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01)
                 and abs(r["config"]["regularization"] - 0.05) < 1e-9 and r["config"]["n_samples"] == 200
                 and r["config"]["iterations"] == 100][:20]
 
-    def sweeps_recs(solver, n):
+    def fpga_recs(n):
         out = []
-        for r in load(f"results/sweeps100/tfim_1d/{n}/{solver}/*/result_*_seed*_iter*"):
+        for r in load(fpga_glob(n)):
             c = r["config"]
             if c["n_hidden"] == n and abs(c["learning_rate"] - 0.08) < 1e-9 \
                     and abs(c["regularization"] - 0.05) < 1e-9 and c["n_samples"] == 200:
@@ -1242,21 +1136,13 @@ def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01)
                 and abs(r["config"]["regularization"] - 0.05) < 1e-9 and r["config"]["n_samples"] == 200
                 and r["config"]["iterations"] == 100][:20]
 
-    # Capped at N=64: at N=128 the 100-iteration training budget doesn't reach
-    # epsilon for ANY solver (verified against the oracle exact_energy, not
-    # just the self-detector), so every series censors there for the same
-    # training-budget reason, not a sampler-speed reason. Plotting it would
-    # invite a solver-vs-solver reading the data can't support.
+    # Capped at N=64 -- no solver reaches epsilon by N=128 within budget
     _sizes = [8, 12, 16, 24, 32, 64]
     _dwave_sizes = [8, 16, 32, 64]
     _pegasus_sizes = [8, 16, 32, 64]
 
-    # Nine series on one axis was unreadable, so the panel is split into three
-    # groups sharing a y-axis: (a) classical MCMC samplers with asymptotic
-    # correctness guarantees, (b) classical, physics-inspired heuristics
-    # (annealing/bifurcation dynamics, no such guarantee), (c) actual quantum
-    # hardware (D-Wave QPUs). Grouping this way, rather than e.g. by vendor,
-    # is what makes the "does quantum hardware help" comparison legible.
+    # Split into three groups sharing a y-axis: classical MCMC, classical
+    # physics-inspired heuristics, and quantum hardware (QPU).
     groups = [
         ("(a) Classical samplers", [
             ("Metropolis", _sizes, lambda n: mcmc_recs("metropolis", n), COLOR_BLUE, "o", "-"),
@@ -1264,13 +1150,8 @@ def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01)
         ]),
         ("(b) Classical, physics-inspired", [
             ("LSB (+CEM)", _sizes, lambda n: mcmc_recs("lsb", n, cem=1), COLOR_MAGENTA, "^", "--"),
-            # ClassicalSampler's own JAX/GPU simulated_annealing method (src/sampler.py), run
-            # on this repo's Titan RTX via mcmc_matched_sweep.py --sa-sweeps 40 (calibrated
-            # against the untuned sa_sweeps=1 default -- see scripts/exper/mcmc_calibration.py
-            # -- which collapsed even faster than Metropolis/Gibbs did: validated 3/20 at N=8,
-            # 0/20 at N=12/16).
             ("Simulated Annealing", _sizes, lambda n: mcmc_recs("simulated_annealing", n), "#6a3d9a", "v", "-."),
-            ("FPGA", _sizes, lambda n: sweeps_recs("fpga", n), "#ffa600", "X", "-"),
+            ("FPGA", _sizes, lambda n: fpga_recs(n), "#ffa600", "X", "-"),
         ]),
         ("(c) Quantum annealers (QPU)", [
             ("Pegasus (QPU)", _pegasus_sizes, lambda n: dwave_recs("pegasus", n, cem=0), "#bc5090", "*", ":"),
@@ -1324,10 +1205,7 @@ def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01)
     setup_style(fontsize=13)
     fig, axes = plt.subplots(1, 3, figsize=(15, 6), sharey=True)
 
-    # (a)/(b) data climbs toward the top-right as N grows, so the legend goes
-    # top-left; (c)'s QPU data stays well below the shared axis ceiling
-    # everywhere, so top-left would sit on top of the N=8 points instead --
-    # top-right is the empty corner there.
+    # top-left works for (a)/(b); (c)'s QPU data needs top-right instead
     legend_locs = ["upper left", "upper left", "upper right"]
 
     for ax, (panel_title, panel_series), legend_loc in zip(axes, groups, legend_locs):
@@ -1350,41 +1228,10 @@ def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01)
 
 
 def fig11_appendix_convergence_grid():
-    # Appendix figure: convergence to the exact ground-state energy across
-    # every model in the suite that has BOTH a real exact reference energy at
-    # N=16 (TFIM's is analytic and exists at any N; the others come from exact
-    # diagonalization and are only available at small N) AND several
-    # matched-hyperparameter seeds at that cell. This ruled out lr_tfim_1d
-    # beyond N~16-ish, j1j2_1d, and heisenberg_xxz_2d, none of which have both
-    # at once (see chat). heisenberg_xy_1d was also dropped: its recorded
-    # history["energy"] never approaches its own exact_energy (stays positive,
-    # decays toward 0 instead of ~-20.5) -- that result set looks broken/
-    # mismatched, not just unconverged, so it isn't shown rather than plotting
-    # a misleading trace.
-    #
-    # heisenberg_xxz_1d was tried and dropped too: none of its classical
-    # solvers (exchange/gibbs/lsb) actually reach the true ground state at
-    # this cell -- best case (exchange) lands at ~42% of the exact
-    # correlation energy, others land further off or SR-diverge to NaN before
-    # getting there. That's a genuine unresolved optimization failure for
-    # this model at these hyperparameters, not a plotting issue, so it isn't
-    # shown rather than presenting an unconverged run as "convergence".
-    # tfim_2d (L=2, N=16 spins) replaces it: ED-exact energy, and the raw
-    # traces were checked to land within ~1e-3 of exact at h=0.5/1.0/2.0.
-    #
-    # One row per model. Column 0 is a multi-solver comparison at one
-    # representative parameter value (hyperparameters matched *within* that
-    # panel across solvers -- this is the "different solvers" column).
-    # Columns 1-2 sweep the model's physical parameter (h / alpha) using its
-    # single richest classical solver across several seeds (hyperparameters
-    # matched within each of those panels too, but not necessarily equal to
-    # column 0's cell -- each panel documents its own hyperparameters isn't
-    # shown on the plot, but every path below was individually verified to
-    # be a real matched-hyperparameter, multi-seed cell before use).
-    #
-    # Solver colors are shared across all column-0 panels for a consistent
-    # legend; parameter-sweep colors (cols 1-2) are one color per model, kept
-    # from the previous version of this figure.
+    # One row per model. Column 0 compares solvers at one parameter value;
+    # columns 1-2 sweep the model's physical parameter with its richest
+    # classical solver. Models without both an exact reference energy and
+    # matched-hyperparameter multi-seed data are excluded.
     SOLVER_COLORS = {
         "Metropolis (CPU)": "#1f77b4",
         "Gibbs (CPU)": "#2ca02c",
@@ -1456,7 +1303,7 @@ def fig11_appendix_convergence_grid():
             solver_panel_title="TFIM 1D, h=0.5 -- solvers",
             solver_groups={
                 "Metropolis (CPU)": [f"results/tfim_1d/16/custom/metropolis/result_1d_h0.5_rbmfull_nh16_lr0.08_reg0.05_ns200_seed{s}_iter100_cem0_sigma1.0.json.gz" for s in range(20)],
-                "FPGA": [f"results/sweeps100/tfim_1d/16/fpga/fpga/result_1d_h0.5_rbmfull_nh16_lr0.08_reg0.05_ns200_seed{s}_iter100_cem0_sigma1.0.json.gz" for s in range(20)],
+                "FPGA": [f"results/tfim_1d/16/fpga/fpga/result_1d_h0.5_rbmfull_nh16_lr0.08_reg0.05_ns200_seed{s}_iter100_cem0_sigma1.0.json.gz" for s in range(20)],
                 "VeloxQ (SA)": [f"results/sweeps100/tfim_1d/16/velox/simulated_annealing/result_1d_h0.5_rbmfull_nh16_lr0.08_reg0.05_ns200_seed{s}_iter100_cem0_sigma1.0.json.gz" for s in range(20)],
                 "D-Wave Zephyr (QPU)": [f"results/tfim_1d/16/dimod/zephyr/result_1d_h0.5_rbmfull_nh16_lr0.08_reg0.05_ns200_seed{s}_iter100_cem0_sigma1.0.json.gz" for s in range(1, 20)],
             },

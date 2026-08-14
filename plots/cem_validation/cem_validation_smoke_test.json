@@ -1,0 +1,29 @@
+[
+  {
+    "N": 8,
+    "h": 1.0,
+    "checkpoint": "early",
+    "beta_x": 1.0,
+    "seed": 0,
+    "beta_ground_truth": 0.4412856130566046,
+    "beta_cem": 0.3025037466334468
+  },
+  {
+    "N": 8,
+    "h": 1.0,
+    "checkpoint": "mid",
+    "beta_x": 1.0,
+    "seed": 0,
+    "beta_ground_truth": 0.3946465682529727,
+    "beta_cem": 0.3413974552454947
+  },
+  {
+    "N": 8,
+    "h": 1.0,
+    "checkpoint": "late",
+    "beta_x": 1.0,
+    "seed": 0,
+    "beta_ground_truth": 0.40412411080018046,
+    "beta_cem": 0.33563493494496494
+  }
+]

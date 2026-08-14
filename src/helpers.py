@@ -3,19 +3,13 @@ import json
 from pathlib import Path
 import numpy as np
 import jax
-import jax.numpy as jnp
 import pickle
 
-# Maps CLI --model value to its results subdirectory.
-# New models should be added here; unknown names pass through unchanged.
+# Unknown model names pass through unchanged.
 _MODEL_SUBDIR: dict[str, str] = {
     "1d": "tfim_1d",
     "2d": "tfim_2d",
-    "lr1d": "lr_tfim_1d",
-    "j1j2_1d": "j1j2_1d",
     "heisenberg_j1j2_1d": "heisenberg_j1j2_1d",
-    "heisenberg_xy_1d": "heisenberg_xy_1d",
-    "heisenberg_xxz_2d": "heisenberg_xxz_2d",
 }
 
 
@@ -35,29 +29,11 @@ def load_result_json(path) -> dict:
 
 def _model_params_str(args) -> str:
     """Return the model-parameter component for result filenames."""
-    if args.model == "heisenberg_xxz_1d":
-        J = getattr(args, "J", 1.0)
-        delta = getattr(args, "delta", 1.0)
-        return f"_J{J}_delta{delta}"
-    if args.model == "lr1d":
-        alpha = getattr(args, "alpha", 2.0)
-        return f"_h{args.h}_alpha{alpha}"
-    if args.model == "j1j2_1d":
-        J1 = getattr(args, "J1", 1.0)
-        J2 = getattr(args, "J2", 0.5)
-        return f"_J1{J1}_J2{J2}_h{args.h}"
     if args.model == "heisenberg_j1j2_1d":
         J1 = getattr(args, "J1", 1.0)
         J2 = getattr(args, "J2", 0.3)
         delta = getattr(args, "delta", 1.0)
         return f"_J1{J1}_J2{J2}_delta{delta}"
-    if args.model == "heisenberg_xy_1d":
-        J = getattr(args, "J", 1.0)
-        return f"_J{J}"
-    if args.model == "heisenberg_xxz_2d":
-        J = getattr(args, "J", 1.0)
-        delta = getattr(args, "delta", 1.0)
-        return f"_J{J}_delta{delta}"
     return f"_h{args.h}"
 
 
@@ -67,14 +43,12 @@ def save_rbm_checkpoint(rbm, args, iteration):
 
     Called from encoder.Trainer when config["save_checkpoints"] is set.
     """
-    # Directory structure: checkpoints/{model}/{size}/{sampler}/{method}/{rbm}/
     checkpoint_dir = Path(
         f"{args.output_dir.replace('results', 'checkpoints')}"
         f"/{_model_subdir(args.model)}/{args.size}/{args.sampler}/{args.sampling_method}/{args.rbm}"
     )
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
-    # Create checkpoint data
     checkpoint = {
         "iteration": iteration,
         "config": vars(args),
@@ -123,14 +97,6 @@ def _safe_rel_error(final_energy, ising):
 
 def _ansatz_str(args) -> str:
     """Return the ansatz component of the result filename."""
-    ansatz = getattr(args, "ansatz", "rbm")
-    if ansatz == "vit":
-        d_model  = getattr(args, "d_model", 32)
-        n_layers = getattr(args, "n_layers", 2)
-        n_heads  = getattr(args, "n_heads", 4)
-        patch    = getattr(args, "patch_size", 2)
-        return f"_vit_dm{d_model}_nl{n_layers}_nh{n_heads}_ph{patch}"
-    # Default: RBM
     rbm     = getattr(args, "rbm", "full")
     n_hidden = getattr(args, "n_hidden", None)
     return f"_rbm{rbm}_nh{n_hidden}"
@@ -153,7 +119,6 @@ def save_results(args, history, ising, rbm=None, energy_j=None, num_sweeps=None,
     JSON as "embedding_info" -- otherwise this is unverifiable after the
     fact since the embedding search is only logged to stdout.
     """
-    # Directory structure: results/{model}/{size}/{sampler}/{method}/
     output_dir = Path(
         f"{args.output_dir}/{_model_subdir(args.model)}/{args.size}/{args.sampler}/{args.sampling_method}"
     )
@@ -224,10 +189,7 @@ def save_results(args, history, ising, rbm=None, energy_j=None, num_sweeps=None,
         + f".json.gz"
     )
 
-    # Write to a temp file and rename atomically: if the process is killed
-    # mid-write, no partial/corrupt file ever appears at output_file, so a
-    # resumed run's _result_exists() check can't mistake a truncated file
-    # for a completed one and silently skip re-running that seed.
+    # atomic write via temp file + rename
     tmp_file = output_file.with_suffix(output_file.suffix + ".tmp")
     with gzip.open(tmp_file, "wt") as f:
         json.dump(results, f, indent=2)
@@ -240,7 +202,6 @@ def save_results(args, history, ising, rbm=None, energy_j=None, num_sweeps=None,
     print(f"  Final energy : {_fmt(results['final_energy'])}")
     print(f"  Exact energy : {_fmt(results['exact_energy'])}")
     print(f"  Error        : {_fmt(results['error'])}")
-    # For plots
     plot_dir = output_dir / "plots"
     plot_dir.mkdir(parents=True, exist_ok=True)
 

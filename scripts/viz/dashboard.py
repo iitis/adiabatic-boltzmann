@@ -15,7 +15,6 @@ HOW TO EXTEND
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
-import json
 import re
 import sys
 from pathlib import Path
@@ -29,7 +28,6 @@ import reference_energies
 
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
@@ -38,7 +36,6 @@ _ROOT = Path(__file__).resolve().parent.parent.parent
 RESULTS_DIRS = [_ROOT / "results"]
 
 # ── Extension points ───────────────────────────────────────────────────────────
-# Add one dict  → new sidebar filter appears automatically
 # col must match a key in the flat DataFrame built by load_all_runs()
 FILTER_AXES = [
     {"col": "device", "label": "Device (GPU/CPU)"},
@@ -72,7 +69,6 @@ FILTER_AXES = [
     {"col": "seed", "label": "Seed"},
 ]
 
-# Add one tuple → metric appears in table and aggregation plots
 SCALAR_METRICS = [
     ("error", "Energy error |E_rbm − E_exact|"),
     ("error_per_spin", "Energy error per spin"),
@@ -88,7 +84,6 @@ SCALAR_METRICS = [
     ("mean_mh_acceptance_rate", "Mean MH acceptance rate"),
 ]
 
-# Add one tuple → series appears in convergence curves
 HISTORY_METRICS = [
     ("energy", "Energy"),
     ("kl_exact", "KL divergence (exact)"),
@@ -145,8 +140,7 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
     records: list[dict] = []
     histories: dict[str, dict] = {}
 
-    # results/archive/** holds superseded/invalid runs (e.g. pre-auto_scale-fix
-    # D-Wave data) kept for reference, not live results -- never show them here.
+    # skip archived/superseded runs
     paths = sorted(
         p for d in results_dirs for p in d.rglob("*.json*")
         if "archive" not in p.relative_to(d).parts
@@ -161,7 +155,6 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
         run_id = str(path.relative_to(base))
         cfg = d.get("config", {})
 
-        # Extract num_sweeps from sweepsNNN/ directory component in the path.
         sw_match = next(
             filter(None, (re.fullmatch(r"sweeps(\d+)", part) for part in path.parts)),
             None,
@@ -170,7 +163,6 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
 
         row: dict = {"run_id": run_id}
 
-        # Config columns — one per FILTER_AXES entry; missing keys → None
         for ax in FILTER_AXES:
             row[ax["col"]] = cfg.get(ax["col"])
 
@@ -178,17 +170,14 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
         if row.get("ansatz") is None:
             row["ansatz"] = "rbm"
 
-        # num_sweeps: prefer config field, fall back to path-derived value.
         if row.get("num_sweeps") is None:
             row["num_sweeps"] = _path_num_sweeps
 
-        # nh_ratio: n_hidden / n_visible (rounded to 1 dp); None if either missing.
         _nh = cfg.get("n_hidden")
         _nv = cfg.get("size")
         row["nh_ratio"] = round(_nh / _nv, 1) if (_nh and _nv) else None
 
-        # Scalar outputs — exact_energy and error come from the master cache,
-        # not from the JSON file (those values may be stale or inaccurate).
+        # exact_energy/error come from master cache, not JSON (may be stale)
         for key in (
             "final_energy",
             "final_ess",
@@ -201,7 +190,6 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
         ):
             row[key] = d.get(key)
 
-        # Reference energy: master cache only; None if not yet computed.
         model_str = cfg.get("model")
         size_val = cfg.get("size")
         h_val = cfg.get("h")
@@ -247,7 +235,6 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
         )
         row["error"] = error
 
-        # Device: read from jax_devices (JAX backend) or fall back to cuda dict
         jax_devices = d.get("jax_devices")
         if jax_devices is not None:
             row["device"] = jax_devices.get("backend", "unknown")
@@ -260,7 +247,6 @@ def load_all_runs(results_dirs: tuple[Path, ...]) -> tuple[pd.DataFrame, dict]:
             else:
                 row["device"] = cuda.get("torch_device", "gpu")
 
-        # Derived scalars
         n_sp = _n_spins(row.get("model"), row.get("size"))
         row["n_spins"] = n_sp
         row["relative_error"] = (
@@ -497,7 +483,6 @@ def tab_curves(df: pd.DataFrame, histories: dict) -> None:
     )
     metric_key, metric_label = HISTORY_METRICS[metric_idx]
 
-    # Default to learning_rate for easy lr comparison; fall back to sampling_method
     color_col, color_label = _group_selectbox(
         df, "curve_color", "Color by", prefer="learning_rate"
     )
@@ -754,7 +739,6 @@ def tab_correlation(df: pd.DataFrame) -> None:
         "of VMC convergence quality (`error`). Each point is one run."
     )
 
-    # Determine which predictor metrics are available
     predictor_opts = [
         (k, l)
         for k, l in SCALAR_METRICS
@@ -1109,8 +1093,7 @@ def tab_timing(df: pd.DataFrame, histories: dict) -> None:
     import math as _math
 
     tte_valid = df[["error_per_spin", "sampling_time_s"]].dropna()
-    # Diverged runs can record a literal -inf final_energy, which survives
-    # dropna() (it isn't NaN) and breaks the epsilon slider's max_value below.
+    # -inf survives dropna(); filter separately or it breaks the slider's max_value
     tte_valid = tte_valid[tte_valid["error_per_spin"].apply(_math.isfinite)]
 
     if tte_valid.empty:

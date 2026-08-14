@@ -60,8 +60,7 @@ def load_graph_and_embedding(embedding_path: Path):
         hw_data = json.load(f)
     node_list = [n for n, _ in hw_data["nodes"]]
     edge_list = [tuple(e) for e in hw_data["edges"]]
-    # Rebuild via the dwave_networkx generator (not a plain nx.Graph) so the
-    # graph carries the family metadata zephyr_layout/pegasus_layout require.
+    # dwave_networkx generator carries layout metadata nx.Graph lacks
     G = gen(*shape, node_list=node_list, edge_list=edge_list, data=True)
     return G, emb, index_key
 
@@ -121,9 +120,7 @@ def main():
     out_dir = Path(__file__).resolve().parent.parent.parent / "plots" / "sparsity" / "sparse_graph_construction"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # (a) raw hardware graph: every real coupler, no roles assigned yet, but
-    # cross-shore couplers (kept in (b)) already colored distinctly from
-    # same-shore ones (dropped in (b)) to preview the filtering step.
+    # (a) raw hardware graph
     bip_edge_set = set(bip_edges) | {(v, u) for u, v in bip_edges}
     same_shore_edges = [e for e in sub.edges() if e not in bip_edge_set]
     fig, ax = _new_panel_fig()
@@ -133,7 +130,7 @@ def main():
                             edgecolors="black", ax=ax)
     _save(fig, out_dir, "a")
 
-    # (b) shore-filtered subgraph: visible (shore 0) vs. hidden candidates (shore 1)
+    # (b) shore-filtered subgraph
     fig, ax = _new_panel_fig()
     nx.draw_networkx_edges(sub, pos, edgelist=bip_edges, edge_color=BIP_EDGE_COLOR, width=0.7, ax=ax)
     node_colors_b = [VIS_COLOR if n in visible else HID_COLOR for n in sub.nodes()]
@@ -141,7 +138,7 @@ def main():
                             edgecolors="black", ax=ax)
     _save(fig, out_dir, "b")
 
-    # (c) final RBM connectivity: only the selected hidden candidates survive
+    # (c) final RBM connectivity
     fig, ax = _new_panel_fig()
     nx.draw_networkx_edges(sub, pos, edgelist=final_edges, edge_color=FINAL_EDGE_COLOR, width=0.9, ax=ax)
     node_colors_c = [
@@ -152,7 +149,7 @@ def main():
                             edgecolors="black", ax=ax)
     _save(fig, out_dir, "c")
 
-    # standalone legend, to place separately in the LaTeX layout
+    # standalone legend
     legend_handles = [
         mpatches.Patch(color=VIS_COLOR, label="visible qubit"),
         mpatches.Patch(color=HID_COLOR, label="hidden qubit (selected)"),

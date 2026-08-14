@@ -85,7 +85,7 @@ from kl_utils import (
 
 
 # ---------------------------------------------------------------------------
-# QPU budget guard (same pattern as scripts/exper/dwave_matched_sweep.py)
+# QPU budget guard
 # ---------------------------------------------------------------------------
 
 DWAVE_TIME_FILE = Path("time.json")
@@ -142,9 +142,7 @@ def _load_ckpt(rbm, path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Training (identical SR loop to dtv_beta_scale.py — DWaveTopologyRBM's mask
-# is re-applied inside rbm.set_weights(), so training respects the sparse
-# Pegasus subgraph automatically).
+# Training
 # ---------------------------------------------------------------------------
 
 def _train(rbm, ising, n_samples, n_iter, lr, reg, ckpt_path: Path, label: str) -> None:
@@ -179,7 +177,7 @@ def _train(rbm, ising, n_samples, n_iter, lr, reg, ckpt_path: Path, label: str) 
 
 
 # ---------------------------------------------------------------------------
-# β_eff estimation (identical to dtv_beta_scale.py)
+# β_eff estimation
 # ---------------------------------------------------------------------------
 
 def _estimate_beta_eff(energies_np: np.ndarray, p_emp_np: np.ndarray,
@@ -235,8 +233,8 @@ def _sweep(rbm, dwave_sampler, beta_x_values, auto_scale_values, num_reads,
             raise SystemExit(
                 "OBSOLETE: auto_scale=True can no longer be exercised through "
                 "DimodSampler — src/sampler.py now hardcodes auto_scale=False "
-                "in every D-Wave call (dwave(), dwave_parallel(), fast_anneal(), "
-                "reverse_annealing()), with no config path to turn it back on. "
+                "in every D-Wave call (dwave(), dwave_parallel()), with no "
+                "config path to turn it back on. "
                 "Requesting it here would silently run as auto_scale=False while "
                 "being recorded as True, corrupting the comparison this script "
                 "exists to make. The historical auto_scale=True vs False evidence "
@@ -261,10 +259,7 @@ def _sweep(rbm, dwave_sampler, beta_x_values, auto_scale_values, num_reads,
                 try:
                     v = dwave_sampler.sample(rbm, num_reads, config=cfg, return_hidden=False)
                 except RuntimeError as e:
-                    # A hardware coefficient-range violation (h_range/extended_j_range)
-                    # is a legitimate outcome of this exact experiment when
-                    # auto_scale=False and beta_x is small — log and skip this repeat
-                    # rather than crash the whole sweep or silently record a fake value.
+                    # expected hardware range violation; skip, don't fake a value
                     print(f"    [SKIP] auto_scale={auto_scale} beta_x={beta_x} "
                           f"repeat={rep}: {e}")
                     continue

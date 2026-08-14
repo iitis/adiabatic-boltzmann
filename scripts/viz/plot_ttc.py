@@ -39,8 +39,6 @@ Usage:
 """
 
 import argparse
-import json
-import warnings
 from collections import defaultdict
 from itertools import chain
 from pathlib import Path
@@ -468,7 +466,6 @@ def plot_ttc(model: str, runs: list[dict], mode: str, window: int, tol: float,
             ]
             ax_err.errorbar(xs, ms, yerr=yerr, **kw)
 
-    # -- TTC panel formatting
     ax_ttc.set_ylabel("TTC (s) — cumulative sampling time", fontsize=11)
     ax_ttc.set_xscale("log")
     ax_ttc.set_yscale("log")
@@ -476,7 +473,6 @@ def plot_ttc(model: str, runs: list[dict], mode: str, window: int, tol: float,
     ax_ttc.legend(fontsize=8, loc="lower right")
     ax_ttc.set_title("Time to convergence", fontsize=11)
 
-    # -- Error panel formatting
     ax_err.set_xlabel("Instance size N", fontsize=11)
     ax_err.set_ylabel("Relative energy error  |E − E_exact| / |E_exact|", fontsize=11)
     ax_err.set_xscale("log")

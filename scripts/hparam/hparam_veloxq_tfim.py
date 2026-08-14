@@ -36,9 +36,9 @@ import hparam_optuna
 
 _DEFAULT_ARGV = [
     "--hamiltonian", "tfim_1d",
-    "--study-name", "veloxq_tfim",  # fixed on purpose — see module docstring
+    "--study-name", "veloxq_tfim",
     "--N", "32", "64",
-    "--J2", "0.5",  # tfim_1d's sweep parameter is h; 0.5 matches the failing sweep
+    "--J2", "0.5",
     "--sampling-methods", "velox_sa",
     "--ansatz-types", "rbm",
     "--n-trials", "60",
@@ -50,8 +50,6 @@ _DEFAULT_ARGV = [
 
 
 def main():
-    # Defaults first, caller's flags after — argparse keeps the last value
-    # for any flag given twice, so this lets every default be overridden.
     hparam_optuna.main(_DEFAULT_ARGV + sys.argv[1:])
 
 

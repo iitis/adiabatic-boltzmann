@@ -66,7 +66,7 @@ def main():
     out_dir = Path(__file__).resolve().parent.parent.parent / "plots" / "embedding" / "toy_triangle_chain"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # --- (a) source graph: logical triangle A-B-C, all 3 edges required ---
+    # --- (a) source graph ---
     src = nx.Graph()
     src.add_edges_from([("A", "B"), ("B", "C"), ("C", "A")])
     src_pos = {"A": (0.0, 1.0), "B": (-0.87, -0.5), "C": (0.87, -0.5)}
@@ -78,9 +78,8 @@ def main():
                             node_size=NODE_SIZE, linewidths=0.8, edgecolors="black", ax=ax)
     _save(fig, out_dir, "a")
 
-    # --- (b) target graph: bare 4-cycle hardware qubits, no roles yet ---
-    # u-v-w-x-u cycle; bipartite (no triangle), so a direct 1-to-1 mapping
-    # of the source triangle onto it is impossible.
+    # --- (b) target graph ---
+    # bipartite 4-cycle can't host a triangle 1-to-1
     hw = nx.Graph()
     hw.add_edges_from([("u", "v"), ("v", "w"), ("w", "x"), ("x", "u")])
     hw_pos = {"u": (-0.7, 0.7), "v": (0.7, 0.7), "w": (0.7, -0.7), "x": (-0.7, -0.7)}
@@ -92,8 +91,7 @@ def main():
     _save(fig, out_dir, "b")
 
     # --- (c) embedded result: A -> chain {u, x}, B -> v, C -> w ---
-    # u-v realizes A-B, v-w realizes B-C, w-x realizes C-A; x-u is the
-    # intra-chain (ferromagnetic) coupling forcing u == x.
+    # x-u is the intra-chain coupling forcing u == x
     node_colors_c = {"u": NODE_A_COLOR, "x": NODE_A_COLOR, "v": NODE_B_COLOR, "w": NODE_C_COLOR}
     logical_edges = [("u", "v"), ("v", "w"), ("w", "x")]
     chain_edge = [("x", "u")]

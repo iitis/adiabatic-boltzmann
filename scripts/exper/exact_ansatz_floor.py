@@ -39,16 +39,11 @@ H_FIELD = 1.0
 TOPOLOGY = "zephyr"
 SEEDS = [42, 123, 456, 789, 1234]  # same seeds as the classical/QPU ablation cache
 TARGET_SPARSITIES = [0.557, 0.682, 0.809, 0.877]
-# Unpruned native mask (sparsity 0.42578125) -- can't go through _make_pruned_rbm,
-# which requires target_sparsity > native_sparsity. Matches the "native" label
-# used in scripts/exper/sparsity_ablation_classical_baselines.py.
+# native mask; below _make_pruned_rbm's minimum target_sparsity
 NATIVE_LABEL = "native"
 LR = 0.05
 REG = 1e-3
-N_ITERATIONS = 3000  # exact (noise-free) training can hit long plateaus at high
-# sparsity before escaping to the true optimum (observed: one seed at
-# sparsity=0.877 sat flat for ~950 iterations before dropping) — enough budget
-# for every run to actually converge instead of being cut off mid-plateau
+N_ITERATIONS = 3000  # generous budget; high-sparsity runs can plateau long
 CACHE_PATH = _REPO / "plots" / "sparsity" / "cache_sparsity_ablation_exact.json"
 
 

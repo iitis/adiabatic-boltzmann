@@ -96,7 +96,7 @@ def plot_hardware(G, emb, draw_fn, layout_fn, n_visible, out, figsize=(10, 10)):
         width=0.4,
         ax=ax,
     )
-    # overdraw extra chain qubits (index > 0) in a distinct color
+    # extra chain qubits (index > 0), drawn in a distinct color
     extra = [phys for chain in emb.values() for phys in list(chain)[1:]]
     if extra:
         pos = layout_fn(G)

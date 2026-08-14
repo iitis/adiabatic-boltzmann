@@ -50,7 +50,6 @@ import gzip
 import json
 import math
 import sys
-from collections import defaultdict
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parent.parent.parent
@@ -67,16 +66,14 @@ import numpy as np
 # ---------------------------------------------------------------------------
 
 HAMILTONIAN = "heisenberg_j1j2_1d"
-METHOD = "gibbs"          # declared sampler for this figure
+METHOD = "gibbs"
 N_ROWS = [8, 12]
 J2_COLS = [0.3, 0.5, 0.7, 0.9]
 
-# Seeds that appeared in the Optuna tuning trials (hparam_optuna --seeds).
-# They are excluded from evaluation so tuning and evaluation stay disjoint.
+# Excluded from evaluation to keep tuning/eval disjoint.
 TUNING_SEEDS = {1, 42, 123}
 
-# Hyperparameter fields that must match for an existing result file to count
-# as a run of the selected configuration.
+# Fields an existing result file must match to count as this configuration.
 _MATCH_KEYS = ("learning_rate", "regularization", "n_samples", "n_hidden")
 
 SUMMARY_DIR = _REPO / "results" / "j1j2_convergence_median"
@@ -319,10 +316,7 @@ def main():
     configs = select_configs(hparam_base)
     target_seeds = eval_seeds(cli.n_seeds)
 
-    # Persistent per-cell attempt ledger {cell: {seed(str): "ok"|"diverged"}}.
-    # Diverged runs leave no result file, so this ledger is the only durable
-    # record of failed seeds — carry it across invocations (a --plot-only
-    # pass must never erase divergences recorded by an earlier top-up pass).
+    # Per-cell attempt ledger; must survive across --plot-only runs.
     summary_path = SUMMARY_DIR / "summary.json"
     prev_attempts: dict[str, dict[str, str]] = {}
     if summary_path.exists():

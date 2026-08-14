@@ -61,7 +61,7 @@ from hparam_optuna import (
     _QPU_METHODS,
     _build_args,
 )
-from model import FullBoltzmannMachine, FullyConnectedRBM
+from model import FullyConnectedRBM
 from sampler import ClassicalSampler, DimodSampler
 
 
@@ -248,10 +248,7 @@ def run_ite_trial(
     key = jax.random.PRNGKey(seed)
     key, model_key, sampler_key = jax.random.split(key, 3)
 
-    if ansatz_type == "fbm":
-        wave_fn = FullBoltzmannMachine(N, n_hidden, model_key)
-    else:
-        wave_fn = FullyConnectedRBM(N, n_hidden, model_key)
+    wave_fn = FullyConnectedRBM(N, n_hidden, model_key)
 
     if sampling_method in _QPU_METHODS:
         sampler_obj = DimodSampler(method=sampling_method)
@@ -571,7 +568,6 @@ def main():
             print("  No completed trials after filtering — skipping")
             continue
 
-        # Group by (N, phys_key) so each combo is processed together
         combos: dict[tuple, dict[str, dict]] = {}
         for (N, phys_key, method), best_row in best_map.items():
             combos.setdefault((N, phys_key), {})[method] = best_row

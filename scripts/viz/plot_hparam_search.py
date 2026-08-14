@@ -50,7 +50,7 @@ GRID = "#e1e0d9"
 INK = "#0b0b0b"
 GOOD = "#0ca30c"
 
-# single-hue sequential blue ramp (palette.md steps 150->650), light=low/good, dark=high/bad
+# single-hue sequential blue ramp: light=low/good, dark=high/bad
 BLUE_RAMP = LinearSegmentedColormap.from_list(
     "seq_blue", ["#b7d3f6", "#6da7ec", "#2a78d6", "#184f95"]
 )
@@ -111,9 +111,7 @@ def load_histories(search_dir):
         N = config["size"]
         energies = np.array(d["history"]["energy"], dtype=float)
         series = np.abs(energies - exact) / N
-        # Match hparam_optuna.py's objective exactly: mean energy over the last
-        # 20% of iterations, THEN diff against exact — not mean(|diff|), which
-        # is inflated by per-iteration noise that a converged run averages out.
+        # Tail-mean energy first, then diff — avoids noise inflation from mean(|diff|).
         tail_start = max(0, int(0.8 * len(energies)))
         tail_mean_energy = float(np.mean(energies[tail_start:]))
         tail_err = abs(tail_mean_energy - exact) / N
@@ -175,9 +173,7 @@ def plot(search_dir, out_dir, title_tag, top_k):
     # Second figure: full parameter-sensitivity panel (6 params, 2x3)
     fig2, axes = plt.subplots(2, 3, figsize=(13, 7.5))
     for ax2, (key, label, logx) in zip(axes.flat, PARAM_SPECS):
-        # Studies that mix sampling methods (metropolis/exchange/SA/LSB/velox_sa)
-        # only record method-specific params (e.g. T_initial, num_sweeps) for the
-        # trials that used that method — plot whichever subset has this key.
+        # Only trials using this param have the key — filter by presence.
         subset = [t for t in trials if key in t["params"]]
         if not subset:
             ax2.text(0.5, 0.5, "no trials used this param", ha="center", va="center",
@@ -206,8 +202,7 @@ def plot(search_dir, out_dir, title_tag, top_k):
         print(f"wrote {path}")
     plt.close(fig2)
 
-    # Third figure: convergence per config — top-K trials by tail-mean err/spin,
-    # read from each trial's full training history.
+    # Third figure: convergence per config, top-K trials.
     records = load_histories(search_dir)
     if not records:
         print("no result_*.json.gz histories found with an exact-energy reference "
@@ -246,7 +241,7 @@ def plot(search_dir, out_dir, title_tag, top_k):
         print(f"wrote {path}")
     plt.close(fig3)
 
-    # Best-config summary, dumped for reuse elsewhere (e.g. run_fpga_best.py).
+    # Best-config summary, for reuse elsewhere.
     best = shown[0]
     best_config_path = os.path.join(out_dir, "best_config.json")
     with open(best_config_path, "w") as f:

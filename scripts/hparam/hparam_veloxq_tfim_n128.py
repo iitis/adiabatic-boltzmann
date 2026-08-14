@@ -38,22 +38,20 @@ import hparam_optuna
 
 _DEFAULT_ARGV = [
     "--hamiltonian", "tfim_1d",
-    "--study-name", "veloxq_tfim",  # shared family name — see module docstring
+    "--study-name", "veloxq_tfim",
     "--N", "128",
-    "--J2", "0.5",  # tfim_1d's sweep parameter is h; 0.5 matches the failing sweep
+    "--J2", "0.5",
     "--sampling-methods", "velox_sa",
     "--ansatz-types", "rbm",
     "--n-trials", "60",
     "--iterations", "150",
-    "--n-samples-max", "6000",  # raised from 4000 for the 2x-larger N=128 system
+    "--n-samples-max", "6000",
     "--julia-project", str(Path(__file__).parent.parent / "fpga" / "julia_local"),
     "--server-timeout", "600",
 ]
 
 
 def main():
-    # Defaults first, caller's flags after — argparse keeps the last value
-    # for any flag given twice, so this lets every default be overridden.
     hparam_optuna.main(_DEFAULT_ARGV + sys.argv[1:])
 
 

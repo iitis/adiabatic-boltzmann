@@ -82,24 +82,14 @@ import numpy as np
 CONFIG = dict(N=8, h=0.5, method="pegasus", lr=0.1, reg=1e-5,
               n_samples=990, iterations=150)
 ARMS = [1, 3, 5, 99, 165]
-# n_parallel=165 chosen classically (zero QPU cost): busclique found 191
-# disjoint K_{8,8} embeddings on Advantage_system6 (76.5% of chip, chain
-# length 2-3), and 165 is the largest divisor of n_samples=990 comfortably
-# under that ceiling (990/165 = 6 reads/copy/iteration).
-# n_parallel=99 is a second, smaller "big" arm (990/99 = 10 reads/copy) —
-# nearest divisor of n_samples to 100, added as its own arm (not a swap for
-# 165, which already has live seed data) to keep both comparisons uncorrupted.
+# 165 = largest divisor of n_samples under the busclique embedding ceiling; 99 is a second "big" arm.
 EVAL_SEEDS = [0, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13]
 META_SEED = 7
 EPSILON = 0.01
 WINDOW = 10
 FIXED_BUDGET_S = 5.0
 QPU_BUDGET_MS = 15 * 60 * 1000
-# Conservative per-run cost (ms of time.json delta) used until >=1 live run
-# of the arm has been measured; based on cache medians x1.5 overhead margin.
-# arm=165 is untested at this scale (embedded BQM spans ~76% of the chip) —
-# prior set pessimistically (above arm=1) so the budget guard stays safe
-# until a real measurement replaces it.
+# Conservative per-run cost prior, used until a live run measures the actual delta.
 COST_PRIOR_MS = {1: 21_000, 3: 11_000, 5: 9_000, 99: 12_000, 165: 25_000}
 
 QPU_TIME_PATH = _REPO / "time.json"
@@ -170,17 +160,14 @@ def check_budget(ledger: dict, arm: int) -> float:
 # One run
 # ---------------------------------------------------------------------------
 
-_SHARED_EMBEDDING_CACHE: dict = {}  # injected into each fresh DimodSampler so
-# the expensive n_parallel-way disjoint busclique packing is reused across
-# seeds, without reusing the sampler instance itself (which stays fresh per
-# run to avoid carrying over any other instance state between runs).
+_SHARED_EMBEDDING_CACHE: dict = {}  # shared across fresh DimodSampler instances to reuse embeddings
 
 
 def run_one(seed: int, arm: int, rehearse: bool, ledger: dict) -> dict:
     from encoder import Trainer
     from ising import TransverseFieldIsing1D
     from model import FullyConnectedRBM
-    from sampler import ClassicalSampler, DimodSampler
+    from sampler import DimodSampler
     from helpers import read_qpu_time_ms
 
     used_before = None if rehearse else check_budget(ledger, arm)
@@ -192,11 +179,7 @@ def run_one(seed: int, arm: int, rehearse: bool, ledger: dict) -> dict:
     ising = TransverseFieldIsing1D(size=CONFIG["N"], h=CONFIG["h"])
     rbm = FullyConnectedRBM(CONFIG["N"], CONFIG["N"], model_key)
     if rehearse:
-        # neal SA via DimodSampler: same QUBO sampling pipeline as the QPU,
-        # classical, no time.json writes. ClassicalSampler alternatives fail
-        # on this config (metropolis barely mixes at ~14/990 unique samples;
-        # gibbs blows up NaN@3), leaving the event path (KM medians, paired
-        # ratios) unexercised.
+        # neal SA via DimodSampler: same QUBO pipeline as the QPU, no time.json writes.
         sampler = DimodSampler(method="simulated_annealing")
         n_parallel_actual = 1  # sample_parallel is QPU-only (pegasus/zephyr)
     else:
@@ -457,7 +440,7 @@ def main():
     cli = parser.parse_args()
 
     live = cli.live
-    rehearse = not live  # default; also governs which ledger plot-only/dry-run reads
+    rehearse = not live
     if (cli.plot_only or cli.dry_run) and cli.live_ledger:
         rehearse = False
 

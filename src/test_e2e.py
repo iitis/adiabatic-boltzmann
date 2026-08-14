@@ -1,5 +1,5 @@
 """
-End-to-end tests for the FBM (and baseline RBM) VMC implementation.
+End-to-end tests for the RBM VMC implementation.
 
 All tests use N=4 (16 enumerable configurations) so we can check against
 exact results without relying on sampling.
@@ -14,11 +14,10 @@ import math
 import numpy as np
 import jax
 import jax.numpy as jnp
-import pytest
 
 jax.config.update("jax_enable_x64", True)
 
-from model import FullyConnectedRBM, FullBoltzmannMachine
+from model import FullyConnectedRBM
 from ising import TransverseFieldIsing1D
 
 # ---------------------------------------------------------------------------
@@ -35,25 +34,6 @@ def _all_configs(N: int) -> jax.Array:
     indices = np.arange(2**N, dtype=np.int32)
     bits = ((indices[:, None] >> np.arange(N - 1, -1, -1)) & 1).astype(np.float64)
     return jnp.asarray(bits * 2 - 1)
-
-
-def _random_fbm(N: int, M: int, seed: int = 0) -> FullBoltzmannMachine:
-    """FBM with non-trivial random J (scaled to avoid numerical issues)."""
-    key = jax.random.PRNGKey(seed)
-    fbm = FullBoltzmannMachine(N, M, key)
-    # Randomise all parameters
-    rng = np.random.default_rng(seed)
-    a = rng.standard_normal(N) * 0.3
-    b = rng.standard_normal(M) * 0.3
-    W = rng.standard_normal((N, M)) * 0.3
-    J_raw = rng.standard_normal((N, N)) * 0.2
-    J_sym = (J_raw + J_raw.T) / 2
-    np.fill_diagonal(J_sym, 0.0)
-    fbm.a = jnp.asarray(a)
-    fbm.b = jnp.asarray(b)
-    fbm.W = jnp.asarray(W)
-    fbm.J = jnp.asarray(J_sym)
-    return fbm
 
 
 def _hamiltonian_matrix(N: int, h: float) -> np.ndarray:
@@ -102,117 +82,6 @@ def _vmc_energy(model, all_v: jax.Array, H: np.ndarray) -> float:
         for v in np.array(all_v)
     ])
     return float(np.sum(weights * e_locs))
-
-
-# ===========================================================================
-# FBM-specific tests
-# ===========================================================================
-
-
-def test_fbm_psi_ratio_consistent_with_log_psi():
-    """psi_ratio(v, i) must equal exp(log_psi(v') - log_psi(v)) for every site."""
-    fbm = _random_fbm(N, M=N)
-    all_v = _all_configs(N)
-
-    mismatches = []
-    for v in all_v:
-        for i in range(N):
-            v_flip = v.at[i].set(-v[i])
-            expected = float(jnp.exp(fbm.log_psi(v_flip) - fbm.log_psi(v)))
-            got = float(fbm.psi_ratio(v, i))
-            if not math.isclose(expected, got, rel_tol=1e-9):
-                mismatches.append((v, i, expected, got))
-
-    assert not mismatches, f"psi_ratio mismatch in {len(mismatches)} cases: {mismatches[:3]}"
-
-
-def test_fbm_psi_ratio_pair_consistent_with_log_psi():
-    """psi_ratio_pair(v, i, j) must equal exp(log_psi(v') - log_psi(v))."""
-    fbm = _random_fbm(N, M=N)
-    all_v = _all_configs(N)
-
-    mismatches = []
-    for v in all_v:
-        for i in range(N):
-            for j in range(i + 1, N):
-                v_flip = v.at[i].set(-v[i]).at[j].set(-v[j])
-                expected = float(jnp.exp(fbm.log_psi(v_flip) - fbm.log_psi(v)))
-                got = float(fbm.psi_ratio_pair(v, i, j))
-                if not math.isclose(expected, got, rel_tol=1e-9):
-                    mismatches.append((i, j, expected, got))
-
-    assert not mismatches, (
-        f"psi_ratio_pair mismatch in {len(mismatches)} cases: {mismatches[:3]}"
-    )
-
-
-def test_fbm_local_energy_consistent_with_hamiltonian():
-    """
-    VMC energy from local_energy must match <Ψ|H|Ψ>/<Ψ|Ψ> from the full matrix.
-    """
-    fbm = _random_fbm(N, M=N)
-    all_v = _all_configs(N)
-    H = _hamiltonian_matrix(N, H_FIELD)
-
-    matrix_energy = _exact_expval(fbm, all_v, H)
-    vmc_energy = _vmc_energy(fbm, all_v, H)
-
-    assert math.isclose(matrix_energy, vmc_energy, rel_tol=1e-7), (
-        f"Matrix energy {matrix_energy:.8f} != VMC energy {vmc_energy:.8f}"
-    )
-
-
-def test_fbm_variational_bound():
-    """<E>_FBM >= E_exact  (variational principle)."""
-    fbm = _random_fbm(N, M=N)
-    all_v = _all_configs(N)
-    H = _hamiltonian_matrix(N, H_FIELD)
-
-    vmc_energy = _vmc_energy(fbm, all_v, H)
-    exact = TransverseFieldIsing1D(N, H_FIELD).exact_ground_energy()
-
-    assert vmc_energy >= exact - 1e-8, (
-        f"Variational bound violated: <E>={vmc_energy:.6f} < E_exact={exact:.6f}"
-    )
-
-
-def test_fbm_get_set_weights_roundtrip():
-    """get_weights / set_weights must be a lossless roundtrip."""
-    fbm = _random_fbm(N, M=N)
-    w = fbm.get_weights()
-    fbm2 = FullBoltzmannMachine(N, N, jax.random.PRNGKey(99))
-    fbm2.set_weights(w)
-    w2 = fbm2.get_weights()
-    assert jnp.allclose(w, w2, atol=1e-12), "get_weights/set_weights roundtrip failed"
-
-
-def test_fbm_n_parameters():
-    """n_parameters() must equal N + M + N*M + N*(N-1)//2."""
-    fbm = FullBoltzmannMachine(N, N, jax.random.PRNGKey(0))
-    expected = N + N + N * N + N * (N - 1) // 2
-    assert fbm.n_parameters() == expected, (
-        f"n_parameters={fbm.n_parameters()}, expected {expected}"
-    )
-
-
-def test_fbm_j_zero_reduces_to_rbm():
-    """With J=0, FBM log_psi must equal FullyConnectedRBM log_psi for all configs."""
-    key = jax.random.PRNGKey(7)
-    rbm = FullyConnectedRBM(N, N, key)
-    fbm = FullBoltzmannMachine(N, N, key)
-    # Share same a, b, W
-    fbm.a = rbm.a
-    fbm.b = rbm.b
-    fbm.W = rbm.W
-    # J is zero by default
-
-    all_v = _all_configs(N)
-    for v in all_v:
-        lp_rbm = float(rbm.log_psi(v))
-        lp_fbm = float(fbm.log_psi(v))
-        assert math.isclose(lp_rbm, lp_fbm, rel_tol=1e-12), (
-            f"log_psi mismatch: RBM={lp_rbm}, FBM={lp_fbm}"
-        )
 
 
 # ===========================================================================
@@ -267,125 +136,11 @@ def test_rbm_variational_bound():
 
 
 # ---------------------------------------------------------------------------
-# Reverse annealing tests (no QPU required — composite is mocked)
-# ---------------------------------------------------------------------------
-
-
-def test_ra_fallback_on_first_iteration():
-    """reverse_annealing delegates to dwave() when no initial state is available."""
-    import dimod
-    from unittest.mock import MagicMock, patch
-    from sampler import DimodSampler
-
-    sampler = DimodSampler(method="pegasus_ra")
-    sampler.n_visible = N
-    sampler.n_hidden = N
-    bqm = dimod.BinaryQuadraticModel({i: 0.1 for i in range(2 * N)}, {}, 0.0, "SPIN")
-    config = {"solver": None, "ra_s_target": 0.45, "ra_anneal_time": 10, "ra_pause_time": 10}
-
-    mock_dwave = MagicMock(return_value=np.ones((4, N), dtype=np.float64))
-    with patch.object(sampler, "dwave", mock_dwave):
-        result = sampler.reverse_annealing(bqm, 4, config, rbm=None, return_hidden=False)
-
-    mock_dwave.assert_called_once()
-    assert result.shape == (4, N)
-
-
-def test_ra_anneal_schedule_shape():
-    """reverse_annealing builds a 4-point schedule with correct s values and reinitialize_state=True."""
-    import dimod
-    import pandas as pd
-    from unittest.mock import MagicMock, patch
-    from sampler import DimodSampler
-
-    sampler = DimodSampler(method="pegasus_ra")
-    sampler.n_visible = N
-    sampler.n_hidden = N
-    bqm = dimod.BinaryQuadraticModel({i: 0.1 for i in range(2 * N)}, {}, 0.0, "SPIN")
-    config = {
-        "solver": None,
-        "ra_s_target": 0.3,
-        "ra_anneal_time": 5,
-        "ra_pause_time": 8,
-        "ra_initial_state": {i: 1 for i in range(2 * N)},
-    }
-
-    captured_kwargs = {}
-
-    def fake_sample(bqm_arg, **kwargs):
-        captured_kwargs.update(kwargs)
-        data = {i: [1] * 4 for i in range(2 * N)}
-        data["num_occurrences"] = [1] * 4
-        ss = MagicMock()
-        ss.info = {"timing": {"qpu_access_time": 100}}
-        ss.to_pandas_dataframe.return_value = pd.DataFrame(data)
-        return ss
-
-    fake_composite = MagicMock()
-    fake_composite.sample.side_effect = fake_sample
-
-    sampler._log_access_time = MagicMock()
-    with patch.object(sampler, "_get_composite", return_value=(fake_composite, True, (N, None))):
-        sampler.reverse_annealing(bqm, 4, config, rbm=None, return_hidden=False)
-
-    sched = captured_kwargs["anneal_schedule"]
-    assert len(sched) == 4
-    assert sched[0] == (0.0, 1.0)
-    assert sched[1][1] == pytest.approx(0.3)
-    assert sched[2][1] == pytest.approx(0.3)
-    assert sched[3][1] == pytest.approx(1.0)
-    times = [t for t, _ in sched]
-    assert times == sorted(times), "anneal schedule times must be monotonically increasing"
-    assert captured_kwargs["reinitialize_state"] is True
-
-
-def test_ra_initial_state_format():
-    """_update_ra_initial_state produces a dict covering all variables with ±1 spin values."""
-    from sampler import DimodSampler
-    from encoder import Trainer
-    from ising import TransverseFieldIsing1D
-
-    key = jax.random.PRNGKey(0)
-    rbm = FullyConnectedRBM(N, N, key)
-    ising = TransverseFieldIsing1D(N, H_FIELD)
-    sampler = DimodSampler(method="pegasus_ra")
-    config = {
-        "n_iterations": 1,
-        "n_samples": 4,
-        "ra_s_target": 0.45,
-        "ra_anneal_time": 10,
-        "ra_pause_time": 10,
-    }
-    trainer = Trainer(rbm, ising, sampler, config)
-
-    rng = np.random.default_rng(7)
-    v_samples = rng.choice([-1, 1], size=(8, N)).astype(np.float64)
-    h_samples = rng.choice([-1, 1], size=(8, N)).astype(np.float64)
-
-    trainer._update_ra_initial_state(v_samples, h_samples)
-
-    state = trainer._ra_initial_state
-    assert state is not None
-    assert set(state.keys()) == set(range(2 * N)), "must cover all visible + hidden variables"
-    assert all(v in (-1, 1) for v in state.values()), "all spin values must be ±1"
-
-
-# ---------------------------------------------------------------------------
 # Direct execution (no pytest)
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     tests = [
-        test_ra_fallback_on_first_iteration,
-        test_ra_anneal_schedule_shape,
-        test_ra_initial_state_format,
-        test_fbm_psi_ratio_consistent_with_log_psi,
-        test_fbm_psi_ratio_pair_consistent_with_log_psi,
-        test_fbm_local_energy_consistent_with_hamiltonian,
-        test_fbm_variational_bound,
-        test_fbm_get_set_weights_roundtrip,
-        test_fbm_n_parameters,
-        test_fbm_j_zero_reduces_to_rbm,
         test_rbm_psi_ratio_consistent_with_log_psi,
         test_rbm_local_energy_consistent_with_hamiltonian,
         test_rbm_variational_bound,

@@ -47,12 +47,7 @@ from sampler import ClassicalSampler, DimodSampler
 from encoder import Trainer
 from helpers import read_qpu_time_ms
 
-# ── QPU budget guard (real D-Wave sampling only — _run_one/ClassicalSampler
-# never touches this) ───────────────────────────────────────────────────────
-# Conservative self-imposed cap for this script specifically; other scripts
-# (e.g. scripts/j1j2/j1j2_bench.py) track the same shared time.json against
-# their own, separate caps. No silent fallback: if the file is missing or
-# unreadable, read_qpu_time_ms raises rather than assuming 0.
+# ── QPU budget guard ───────────────────────────────────────────────────────
 QPU_BUDGET_MS = 30 * 60 * 1000  # 30 minutes
 QPU_TIME_PATH = Path("time.json")
 
@@ -170,15 +165,6 @@ def _make_rbm(topology, N, alpha, seed):
 
 
 # ── Sparsity ablation: prune a fixed-alpha mask instead of raising alpha ──────
-#
-# The alpha-sweep confounds two things that both increase together on a real
-# hardware graph: more hidden units (n_hidden = N*alpha) AND higher sparsity
-# (each additional hidden unit gets fewer real edges, since a visible qubit's
-# neighbour pool on the chip is finite). This section isolates sparsity from
-# alpha: start from the real alpha=1 Zephyr/Pegasus mask (n_hidden = N, fixed
-# for every point in this sweep) and prune real edges out of it to reach
-# higher target sparsity levels, so n_hidden never changes — only how many of
-# its genuine hardware edges survive.
 
 
 def _prune_mask_balanced(mask: np.ndarray, target_sparsity: float, rng) -> np.ndarray:
@@ -342,22 +328,13 @@ def _run_one_qpu(N, alpha, h, topology, seed, cfg, n_iters, num_reads, annealing
         "n_iterations":        n_iters,
         "learning_rate":       cfg["lr"],
         "regularization":      cfg["reg"],
-        # Reuse Trainer's existing convergence detection instead of a fixed
-        # iteration count: stops once Var(E_loc) stays below threshold for
-        # conv_window consecutive iterations (encoder.py) — exactly "abort
-        # once nothing is changing anymore", so we don't burn QPU budget
-        # running out a full n_iters on a run that plateaued at iteration 20.
         "stop_at_convergence": True,
         "save_checkpoints":    False,
         "num_reads":           num_reads,
         "annealing_time":      annealing_time,
         "auto_scale":          auto_scale,
     }
-    # Minimal args namespace — only what save_dwave_samples/_model_params_str
-    # (src/helpers.py) actually read. Setting sampling_method to a QPU method
-    # is what makes Trainer.train() call save_dwave_samples every iteration
-    # (encoder.py), reusing that existing function rather than writing new
-    # save logic here.
+    # Fields read by save_dwave_samples (helpers.py)
     args = SimpleNamespace(
         model="1d",
         h=h,
@@ -525,7 +502,6 @@ def plot_heatmap(cache, cfg, out: Path):
     h_sweep = cfg["h_sweep"]
     seeds   = cfg["seeds"]
 
-    # Build error matrices (n_alphas × n_h) for each topology
     grids = {}
     for topo in TOPOLOGIES:
         grid = np.full((len(alphas), len(h_sweep)), np.nan)
@@ -536,7 +512,6 @@ def plot_heatmap(cache, cfg, out: Path):
                     grid[ia, ih] = np.nanmean(errs)
         grids[topo] = grid
 
-    # Shared colour scale (log)
     all_vals = np.concatenate([g[~np.isnan(g)].ravel() for g in grids.values()])
     if len(all_vals) == 0:
         print("  [heatmap] no data — skipping")
@@ -574,7 +549,6 @@ def plot_heatmap(cache, cfg, out: Path):
         else:
             ax.set_yticklabels([])
         ax.grid(False)
-        # Mark critical point
         h_c_idx = min(range(len(h_sweep)), key=lambda i: abs(h_sweep[i] - 1.0))
         ax.axvline(h_c_idx, color="white", linewidth=0.8, linestyle=":")
 
@@ -674,7 +648,6 @@ def plot_param_efficiency(cache, cfg, out: Path):
             marker=TOPO_MARKER[topo],
             markersize=5, capsize=2, alpha=0.85,
         )
-        # Trend line through same topology points
         ax.plot(x, y, color=TOPO_COLOR[topo], linestyle=TOPO_LS[topo],
                 linewidth=0.8, alpha=0.5)
 
