@@ -592,7 +592,7 @@ class Trainer:
             _energy_meter.__enter__()
 
         if isinstance(self.sampler, ClassicalSampler) and self.sampler.method in (
-            "metropolis", "gibbs", "lsb",
+            "metropolis", "gibbs", "lsb", "simulated_annealing",
         ) and self.n_parallel <= 1:
             # One untimed call to force XLA compilation for this RBM's shapes,
             # so history["sampling_time_s"][0] measures real sampling only,

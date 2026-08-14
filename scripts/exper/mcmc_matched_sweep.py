@@ -44,14 +44,31 @@ def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--sizes", type=int, nargs="+", default=DEFAULT_SIZES)
     p.add_argument("--methods", type=str, nargs="+", default=DEFAULT_METHODS,
-                   choices=["metropolis", "gibbs", "lsb"])
-    p.add_argument("--seeds", type=int, default=20, help="Number of seeds, 0..seeds-1")
+                   choices=["metropolis", "gibbs", "lsb", "simulated_annealing"])
+    p.add_argument("--seeds", type=int, default=20, help="Number of seeds, seed_start..seed_start+seeds-1")
+    p.add_argument("--seed-start", type=int, default=0,
+                   help="First seed (e.g. 90 for a calibration probe disjoint from the "
+                        "reported 0..19 seeds)")
     p.add_argument("--h", type=float, default=0.5)
     p.add_argument("--lr", type=float, default=0.08)
     p.add_argument("--reg", type=float, default=0.05)
     p.add_argument("--n-samples", type=int, default=200)
     p.add_argument("--iterations", type=int, default=100)
     p.add_argument("--gibbs-sweeps", type=int, default=10)
+    p.add_argument("--sa-sweeps", type=int, default=None,
+                   help="Simulated-annealing cooling length (cool_steps = N * sa_sweeps in "
+                        "ClassicalSampler._simulated_annealing). Default: ClassicalSampler's "
+                        "built-in default (1) if unset.")
+    p.add_argument("--n-warmup", type=int, default=None,
+                   help="Metropolis warmup steps (paid every SR iteration -- cost scales "
+                        "with n_iterations) / Gibbs persistent-chain burn-in (paid once) / "
+                        "SA fixed-temperature warmup (paid every SR iteration). "
+                        "Default: ClassicalSampler's built-in default (200) if unset.")
+    p.add_argument("--variant", type=str, default="",
+                   help="Suffix appended to the method name for the output subdir and "
+                        "mcmc_recs() solver key, e.g. 'tuned' -> results/.../custom/"
+                        "metropolis_tuned/... Keeps calibrated runs from colliding on disk "
+                        "with the existing untuned baseline files.")
     p.add_argument("--cem", action="store_true", default=False,
                    help="Enable CEM beta_eff scheduling for this invocation "
                         "(run once without and once with to get both variants)")
@@ -64,16 +81,19 @@ def parse_args():
 
 
 def run_one(size, method, seed, args):
+    solver_dir = f"{method}_{args.variant}" if args.variant else method
+
     ns_args = Namespace(
         model="1d", size=size, h=args.h, rbm="full", n_hidden=size,
-        sampler="custom", sampling_method=method,
+        sampler="custom", sampling_method=solver_dir,
         iterations=args.iterations, learning_rate=args.lr,
         regularization=args.reg, n_samples=args.n_samples,
         output_dir=args.output_dir, seed=seed, visualize=False, cem=args.cem,
+        n_warmup=args.n_warmup, gibbs_sweeps=args.gibbs_sweeps,
     )
 
     out_file = (
-        Path(args.output_dir) / "tfim_1d" / str(size) / "custom" / method /
+        Path(args.output_dir) / "tfim_1d" / str(size) / "custom" / solver_dir /
         f"result_1d_h{args.h}_rbmfull_nh{size}_lr{args.lr}_reg{args.reg}"
         f"_ns{args.n_samples}_seed{seed}_iter{args.iterations}_cem{int(args.cem)}_sigma1.0.json.gz"
     )
@@ -86,10 +106,19 @@ def run_one(size, method, seed, args):
     ising = TransverseFieldIsing1D(size, args.h)
     rbm = FullyConnectedRBM(size, size, model_key)
 
-    sampler = ClassicalSampler(
-        method=method,
-        n_sweeps=args.gibbs_sweeps if method == "gibbs" else 1,
-    )
+    if method == "gibbs":
+        n_sweeps = args.gibbs_sweeps
+    elif method == "simulated_annealing" and getattr(args, "sa_sweeps", None) is not None:
+        n_sweeps = args.sa_sweeps
+    else:
+        n_sweeps = 1
+    sampler_kwargs = {
+        "method": method,
+        "n_sweeps": n_sweeps,
+    }
+    if args.n_warmup is not None:
+        sampler_kwargs["n_warmup"] = args.n_warmup
+    sampler = ClassicalSampler(**sampler_kwargs)
     key, sampler_key = jax.random.split(key)
     sampler._key = sampler_key
 
@@ -115,7 +144,7 @@ def main():
 
     for method in args.methods:
         for size in args.sizes:
-            for seed in range(args.seeds):
+            for seed in range(args.seed_start, args.seed_start + args.seeds):
                 print(f"=== {method} N={size} seed={seed} ===")
                 run_one(size, method, seed, args)
 

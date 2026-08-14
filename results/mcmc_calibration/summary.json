@@ -1,0 +1,146 @@
+{
+  "protocol": {
+    "size": 32,
+    "seed_start": 90,
+    "n_seeds": 10,
+    "cv_threshold": 0.05,
+    "window": 10,
+    "epsilon": 0.1,
+    "rate_margin": 0.3,
+    "tte_budget_mult": 2.0
+  },
+  "report": {
+    "metropolis": {
+      "grid": [
+        200,
+        400,
+        800,
+        1600
+      ],
+      "results": {
+        "200": {
+          "n": 10,
+          "n_validated": 10,
+          "rate": 1.0,
+          "median_tte_s": 2.8950330782681704,
+          "iqr_lo_s": 2.778409820050001,
+          "iqr_hi_s": 3.4490337818861008
+        },
+        "400": {
+          "n": 10,
+          "n_validated": 10,
+          "rate": 1.0,
+          "median_tte_s": 5.325928436592221,
+          "iqr_lo_s": 4.9961600406095386,
+          "iqr_hi_s": 5.741180010139942
+        },
+        "800": {
+          "n": 10,
+          "n_validated": 10,
+          "rate": 1.0,
+          "median_tte_s": 11.409122206270695,
+          "iqr_lo_s": 10.481338645331562,
+          "iqr_hi_s": 12.386024752631783
+        },
+        "1600": {
+          "n": 10,
+          "n_validated": 10,
+          "rate": 1.0,
+          "median_tte_s": 22.883610401302576,
+          "iqr_lo_s": 20.169549846090376,
+          "iqr_hi_s": 25.875371268950403
+        }
+      },
+      "chosen": 200,
+      "reason": "no candidate cleared the rate margin within budget (5.79s); picked the highest validated-rate candidate within budget"
+    },
+    "gibbs": {
+      "grid": [
+        10,
+        20,
+        40,
+        80
+      ],
+      "results": {
+        "10": {
+          "n": 10,
+          "n_validated": 10,
+          "rate": 1.0,
+          "median_tte_s": 1.166521567851305,
+          "iqr_lo_s": 1.076477530412376,
+          "iqr_hi_s": 1.223347557708621
+        },
+        "20": {
+          "n": 10,
+          "n_validated": 9,
+          "rate": 0.9,
+          "median_tte_s": 1.5909539982676506,
+          "iqr_lo_s": 1.514174610376358,
+          "iqr_hi_s": 1.6990873664617538
+        },
+        "40": {
+          "n": 10,
+          "n_validated": 10,
+          "rate": 1.0,
+          "median_tte_s": 2.7475764211267233,
+          "iqr_lo_s": 2.6021574726328254,
+          "iqr_hi_s": 2.8049881672486663
+        },
+        "80": {
+          "n": 10,
+          "n_validated": 10,
+          "rate": 1.0,
+          "median_tte_s": 5.1495705377310514,
+          "iqr_lo_s": 4.5995631674304605,
+          "iqr_hi_s": 5.609405036084354
+        }
+      },
+      "chosen": 10,
+      "reason": "no candidate cleared the rate margin within budget (2.33s); picked the highest validated-rate candidate within budget"
+    },
+    "simulated_annealing": {
+      "grid": [
+        1,
+        10,
+        40,
+        160
+      ],
+      "results": {
+        "1": {
+          "n": 10,
+          "n_validated": 0,
+          "rate": 0.0,
+          "median_tte_s": null,
+          "iqr_lo_s": null,
+          "iqr_hi_s": null
+        },
+        "10": {
+          "n": 10,
+          "n_validated": 10,
+          "rate": 1.0,
+          "median_tte_s": 8.829590803012252,
+          "iqr_lo_s": 8.079990841448307,
+          "iqr_hi_s": 9.434477646835148
+        },
+        "40": {
+          "n": 10,
+          "n_validated": 10,
+          "rate": 1.0,
+          "median_tte_s": 5.742821015417576,
+          "iqr_lo_s": 5.183853194117546,
+          "iqr_hi_s": 6.5031350664794445
+        },
+        "160": {
+          "n": 10,
+          "n_validated": 10,
+          "rate": 1.0,
+          "median_tte_s": 6.717360133305192,
+          "iqr_lo_s": 5.913998829200864,
+          "iqr_hi_s": 8.147544614039361
+        }
+      },
+      "chosen": 10,
+      "reason": "cheapest candidate clearing the +0.3 validated-rate margin within 2x TTE budget (17.66s, anchored to 1's median TTE)"
+    }
+  }
+}

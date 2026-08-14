@@ -1278,7 +1278,17 @@ def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01)
         ]),
         ("(b) Classical, physics-inspired", [
             ("LSB (+CEM)", _sizes, lambda n: mcmc_recs("lsb", n, cem=1), COLOR_MAGENTA, "^", "--"),
-            ("SA", _sizes, lambda n: velox_untuned_recs(n), "#eb6834", "P", "-"),
+            # VeloxQ's SA runs via a remote API call to VeloxQ's own backend (src/sampler.py's
+            # VeloxSampler -- see chat), not a local kernel, so its timing reflects VeloxQ's
+            # hardware (an H100, per the user), not this repo's usual Titan RTX. Labeled
+            # explicitly so it isn't misread as hardware-matched against the other series here.
+            ("SA (VeloxQ, H100)", _sizes, lambda n: velox_untuned_recs(n), "#eb6834", "P", "-"),
+            # Same-hardware counterpart: ClassicalSampler's own JAX/GPU simulated_annealing
+            # method (src/sampler.py), run on this repo's Titan RTX via mcmc_matched_sweep.py
+            # --sa-sweeps 40 (calibrated against the untuned sa_sweeps=1 default -- see
+            # scripts/exper/mcmc_calibration.py -- which collapsed even faster than
+            # Metropolis/Gibbs did: validated 3/20 at N=8, 0/20 at N=12/16).
+            ("SA (Titan)", _sizes, lambda n: mcmc_recs("simulated_annealing", n), "#6a3d9a", "v", "-."),
             ("FPGA", _sizes, lambda n: sweeps_recs("fpga", n), "#ffa600", "X", "-"),
         ]),
         ("(c) Quantum annealers (QPU)", [
