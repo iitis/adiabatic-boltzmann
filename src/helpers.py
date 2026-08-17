@@ -1,9 +1,49 @@
 import gzip
 import json
+import subprocess
 from pathlib import Path
 import numpy as np
 import jax
 import pickle
+
+
+def _git_sha() -> str | None:
+    """Short SHA of HEAD, so a result file can be traced to the code that produced it.
+
+    Best-effort only (not a shared resource/budget check) -- on failure this
+    logs and returns None rather than raising, since a missing SHA shouldn't
+    block saving a training result.
+    """
+    try:
+        return subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=Path(__file__).resolve().parent,
+            capture_output=True, text=True, check=True, timeout=5,
+        ).stdout.strip()
+    except Exception as e:
+        print(f"  [save_results] could not resolve git SHA: {e}")
+        return None
+
+
+def _sampler_config(sampler) -> dict | None:
+    """Snapshot the mixing hyperparameters that decide a ClassicalSampler run's
+    output but aren't otherwise recoverable from `args`/the filename -- without
+    this, two files with identical (h, lr, reg, ns, seed, iterations) can have
+    been produced by different n_warmup/n_sweeps/T_initial/T_final and there
+    would be no way to tell after the fact (see results/tfim_1d git history:
+    commit a53d81da7 added simulated_annealing wholesale, and different sizes
+    of ClassicalSampler.method sweep have been going through
+    scripts/exper/mcmc_matched_sweep.py's --sa-sweeps/--n-warmup un-recorded).
+    """
+    if sampler is None or not hasattr(sampler, "method"):
+        return None
+    return {
+        "method": sampler.method,
+        "n_warmup": getattr(sampler, "n_warmup", None),
+        "n_sweeps": getattr(sampler, "n_sweeps", None),
+        "T_initial": getattr(sampler, "T_initial", None),
+        "T_final": getattr(sampler, "T_final", None),
+    }
 
 # Unknown model names pass through unchanged.
 _MODEL_SUBDIR: dict[str, str] = {
@@ -169,6 +209,8 @@ def save_results(args, history, ising, rbm=None, energy_j=None, num_sweeps=None,
         "n_parallel": getattr(args, "n_parallel", None),
         "num_sweeps": num_sweeps,
         "embedding_info": getattr(sampler, "last_embedding_info", None),
+        "sampler_config": _sampler_config(sampler),
+        "git_sha": _git_sha(),
     }
 
     # Filename encodes every axis that varies in the sweep

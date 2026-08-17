@@ -249,7 +249,7 @@ def main():
     trainer = Trainer(wave_fn, ising, sampler, trainer_config, args=args)
     print(f"\nStarting RBM training...")
     history = trainer.train()
-    save_results(args, history, ising, wave_fn, energy_j=trainer.total_energy_j)
+    save_results(args, history, ising, wave_fn, energy_j=trainer.total_energy_j, sampler=sampler)
     if args.rbm != "full" and hasattr(wave_fn, "connectivity_summary"):
         print(f"sparsity: {wave_fn.connectivity_summary()['sparsity']}")
 
