@@ -64,6 +64,11 @@ def parse_args():
                         "with n_iterations) / Gibbs persistent-chain burn-in (paid once) / "
                         "SA fixed-temperature warmup (paid every SR iteration). "
                         "Default: ClassicalSampler's built-in default (200) if unset.")
+    p.add_argument("--lsb-steps", type=int, default=None,
+                   help="LSB Langevin-SB integration steps (paid every SR iteration -- "
+                        "read from Trainer's per-sample config, NOT the ClassicalSampler "
+                        "constructor). Default: ClassicalSampler's built-in default (1000) "
+                        "if unset.")
     p.add_argument("--variant", type=str, default="",
                    help="Suffix appended to the method name for the output subdir and "
                         "mcmc_recs() solver key, e.g. 'tuned' -> results/.../custom/"
@@ -130,6 +135,8 @@ def run_one(size, method, seed, args):
         "seed": seed,
         "use_cem": args.cem,
     }
+    if getattr(args, "lsb_steps", None) is not None:
+        trainer_config["lsb_steps"] = args.lsb_steps
     trainer = Trainer(rbm, ising, sampler, trainer_config, args=ns_args)
     history = trainer.train()
     save_results(ns_args, history, ising, rbm, energy_j=trainer.total_energy_j, sampler=sampler)

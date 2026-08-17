@@ -141,6 +141,50 @@
       },
       "chosen": 10,
       "reason": "cheapest candidate clearing the +0.3 validated-rate margin within 2x TTE budget (17.66s, anchored to 1's median TTE)"
+    },
+    "lsb": {
+      "grid": [
+        1000,
+        2000,
+        4000,
+        8000
+      ],
+      "results": {
+        "1000": {
+          "n": 10,
+          "n_validated": 5,
+          "rate": 0.5,
+          "median_tte_s": 4.019514612853527,
+          "iqr_lo_s": 3.679924502968788,
+          "iqr_hi_s": 4.646540619432926
+        },
+        "2000": {
+          "n": 10,
+          "n_validated": 5,
+          "rate": 0.5,
+          "median_tte_s": 6.8536991737782955,
+          "iqr_lo_s": 6.494667157530785,
+          "iqr_hi_s": 7.28623628243804
+        },
+        "4000": {
+          "n": 10,
+          "n_validated": 4,
+          "rate": 0.4,
+          "median_tte_s": 19.10071467794478,
+          "iqr_lo_s": 16.84994955547154,
+          "iqr_hi_s": 20.06662060227245
+        },
+        "8000": {
+          "n": 10,
+          "n_validated": 5,
+          "rate": 0.5,
+          "median_tte_s": 28.490731734782457,
+          "iqr_lo_s": 20.285574056208134,
+          "iqr_hi_s": 34.76282100751996
+        }
+      },
+      "chosen": 1000,
+      "reason": "no candidate cleared the rate margin within budget (8.04s); picked the highest validated-rate candidate within budget"
     }
   }
 }
