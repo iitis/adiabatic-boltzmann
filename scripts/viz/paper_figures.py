@@ -1227,6 +1227,146 @@ def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01)
     _save(fig, f"fig10c_tte_vs_n_self_convergence_cv{cv_threshold:g}_eps{epsilon:g}")
 
 
+# ---------------------------------------------------------------------------
+# Figure 10d — energy-to-convergence vs N. Same cells/methodology as Figure
+# 10c (self-detected + epsilon-validated convergence), plotted as GPU energy
+# (Wh) instead of wall-clock time.
+#
+# Classical samplers (metropolis/gibbs/simulated_annealing/lsb) read from
+# results/energy_corrected/ -- NOT the main results/tfim_1d/ archive fig10c
+# uses. The archive's gpu_energy_wh was measured before src/energy.py's
+# active()-window fix (whole train() loop, including SR/CG, not just the
+# sampler call) and disagrees with the corrected solver-only definition by
+# ~2.5x at N=8/metropolis (0.274 Wh archived vs 0.110 Wh corrected). Per this
+# repo's rule against hand-patching result artifacts, the fix is a full
+# re-run at matched (lr, reg, ns, iterations, seeds) -- see
+# scripts/exper/mcmc_matched_sweep.py invocations that produced that dir --
+# rather than reusing or re-deriving from the stale archive.
+#
+# FPGA is unaffected by that bug (it was never GPU-metered; its "energy" is
+# assumed constant power x its own archived sampling_time_s, both untouched
+# by the fix) so it's read from the same official archive fig10c uses.
+#
+# D-Wave QPU (pegasus/zephyr) is omitted entirely: no API exposes per-job
+# QPU energy, and the only published figure (D-Wave's whitepaper, ~25kW
+# whole-system draw dominated by a continuously-running dilution
+# refrigerator) isn't attributable to a single job.
+# ---------------------------------------------------------------------------
+
+ENERGY_CORRECTED_ROOT = "results/energy_corrected"
+FPGA_ASSUMED_POWER_W = 45.0  # matches plot_ite.py's ASSUMED_POWER_W["fpga/fpga"]
+
+
+def fig10d_energy_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01):
+    def mcmc_recs(solver, n, cem=0):
+        recs = load(f"{ENERGY_CORRECTED_ROOT}/tfim_1d/{n}/custom/{solver}/result_1d_h0.5_rbmfull_nh{n}_lr0.08_reg0.05_ns200_seed*_iter100_cem{cem}_sigma1.0.json.gz")
+        return [r for r in recs if r["config"]["n_hidden"] == n and abs(r["config"]["learning_rate"] - 0.08) < 1e-9
+                and abs(r["config"]["regularization"] - 0.05) < 1e-9 and r["config"]["n_samples"] == 200
+                and r["config"]["iterations"] == 100][:20]
+
+    def fpga_recs(n):
+        out = []
+        for r in load(fpga_glob(n)):
+            c = r["config"]
+            if c["n_hidden"] == n and abs(c["learning_rate"] - 0.08) < 1e-9 \
+                    and abs(c["regularization"] - 0.05) < 1e-9 and c["n_samples"] == 200:
+                out.append(r)
+        return out[:20]
+
+    _sizes = [8, 12, 16, 24, 32, 64]
+
+    groups = [
+        ("(a) Classical samplers", [
+            ("Metropolis", _sizes, lambda n: mcmc_recs("metropolis", n), COLOR_BLUE, "o", "-", None),
+            ("Gibbs", _sizes, lambda n: mcmc_recs("gibbs", n), COLOR_GREEN, "s", "-", None),
+        ]),
+        ("(b) Classical, physics-inspired", [
+            ("LSB (+CEM)", _sizes, lambda n: mcmc_recs("lsb", n, cem=1), COLOR_MAGENTA, "^", "--", None),
+            ("Simulated Annealing", _sizes, lambda n: mcmc_recs("simulated_annealing", n), "#6a3d9a", "v", "-.", None),
+            ("FPGA", _sizes, lambda n: fpga_recs(n), "#ffa600", "X", "-", FPGA_ASSUMED_POWER_W),
+        ]),
+    ]
+
+    def _energy_at_conv_wh(r, n, power_w):
+        conv_iter = compute_validated_convergence_iter(
+            r["history"], r["exact_energy"], n, epsilon, cv_threshold, window
+        )
+        if conv_iter is None:
+            return None
+        times = r["history"].get("total_sampling_time_s") or r["history"].get("sampling_time_s")
+        if not times:
+            return None
+        cum_times = np.cumsum(times)
+        time_at_conv = float(cum_times[conv_iter - 1])
+        if power_w is not None:
+            return power_w * time_at_conv / 3600.0
+        wh = r.get("gpu_energy_wh")
+        total_time = float(cum_times[-1])
+        if wh is None or total_time <= 0:
+            return None
+        return wh * (time_at_conv / total_time)
+
+    def _plot_energy_series(ax, label, sizes, get_recs, color, marker, linestyle, power_w):
+        e_med, e_lo, e_hi, e_n = [], [], [], []
+        for n in sizes:
+            recs = get_recs(n)
+            vals = [v for v in (_energy_at_conv_wh(r, n, power_w) for r in recs) if v is not None]
+            m, l, h = median_iqr(vals) if vals else (None, None, None)
+            e_med.append(m); e_lo.append(l); e_hi.append(h)
+            e_n.append((len(vals), len(recs)))
+
+        xs = [n for n, m in zip(sizes, e_med) if m is not None]
+        ys = [m for m in e_med if m is not None]
+        lo_v = [v for v in e_lo if v is not None]
+        hi_v = [v for v in e_hi if v is not None]
+        lbl = f"{label} (assumed)" if power_w is not None else label
+        if xs:
+            yerr = [[y - l for y, l in zip(ys, lo_v)], [h - y for y, h in zip(ys, hi_v)]]
+            ax.errorbar(xs, ys, yerr=yerr, marker=marker, color=color, label=lbl,
+                        markersize=10, linewidth=2.0, capsize=4, zorder=3, linestyle=linestyle)
+        else:
+            ax.plot([], [], marker=marker, color=color, linestyle=linestyle, label=lbl)
+        for n, (r, total) in zip(sizes, e_n):
+            if total and r < total:
+                idx = sizes.index(n)
+                if e_med[idx] is not None:
+                    ax.annotate(f"{r}/{total}", (n, e_med[idx]), textcoords="offset points",
+                                xytext=(5, 7), fontsize=9, color=color, ha="left")
+
+    setup_style(fontsize=13)
+    fig, axes = plt.subplots(1, 2, figsize=(11, 6), sharey=True)
+
+    # Panel (b)'s series span 4 decades (FPGA ~1e-4 to SA ~1e-1) with dense
+    # data in the upper-left corner (LSB+SA at low N); "lower left" keeps
+    # the legend over FPGA's single smooth line instead of SA's scattered
+    # markers/annotations. Frameless so it never fully hides a point
+    # underneath (verified: an opaque upper-left box previously made SA's
+    # markers fully invisible despite valid computed data).
+    legend_locs = ["upper left", "lower left"]
+    for ax, (panel_title, panel_series), legend_loc in zip(axes, groups, legend_locs):
+        for label, sizes, get_recs, color, marker, linestyle, power_w in panel_series:
+            _plot_energy_series(ax, label, sizes, get_recs, color, marker, linestyle, power_w)
+        ax.set_yscale("log")
+        ax.set_xscale("log")
+        log_x_with_ticks(ax, _sizes)
+        ax.set_xlabel("System size $N$")
+        ax.set_title(panel_title, fontsize=13)
+        ax.legend(loc=legend_loc, fontsize=9, handlelength=1.6, borderpad=0.4,
+                  frameon=False).set_zorder(1)
+
+    axes[0].set_ylabel("Energy to convergence [Wh]\n(median, IQR)")
+    for ax in axes[1:]:
+        ax.label_outer()
+
+    fig.suptitle(
+        "Energy at convergence (h=0.5, lr=0.08, reg=0.05, ns=200)\n"
+        "D-Wave QPU omitted -- no per-job energy telemetry available",
+        fontsize=13,
+    )
+    fig.tight_layout()
+    _save(fig, f"fig10d_energy_vs_n_self_convergence_cv{cv_threshold:g}_eps{epsilon:g}")
+
+
 def fig11_appendix_convergence_grid():
     # One row per model. Column 0 compares solvers at one parameter value;
     # columns 1-2 sweep the model's physical parameter with its richest

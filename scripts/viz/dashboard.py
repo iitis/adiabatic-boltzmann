@@ -1281,7 +1281,8 @@ def tab_timing(df: pd.DataFrame, histories: dict) -> None:
         "analogue of Time to Epsilon above. "
         "**WHS = Wh_f × ⌈log(0.01) / log(1 − p(ε))⌉**, where Wh_f is each group's "
         "mean GPU energy (watt-hours) per run, measured by polling `nvidia-smi` "
-        "power draw during training. Runs without GPU energy data (CPU-only "
+        "power draw during the sampler's `sample()` calls only (SR/CG/gradient "
+        "work is excluded). Runs without GPU energy data (CPU-only "
         "machines, or nvidia-smi unavailable) are excluded."
     )
 

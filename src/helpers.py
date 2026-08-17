@@ -142,6 +142,7 @@ def save_results(args, history, ising, rbm=None, energy_j=None, num_sweeps=None,
         "sampling_time_s": float(sum(history.get("sampling_time_s", []))),
         "cem_time_s": float(sum(history.get("cem_time_s", []))),
         "total_sampling_time_s": float(sum(history.get("total_sampling_time_s", []))),
+        # solver (sampling) GPU energy only — excludes SR/CG/gradient work, see energy.py
         "gpu_energy_wh": (energy_j / 3600.0) if energy_j is not None else None,
         "jax_devices": {
             "backend": _jax_backend,

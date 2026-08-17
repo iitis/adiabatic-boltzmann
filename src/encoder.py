@@ -15,6 +15,7 @@ Key changes vs the NumPy version
   arrays passed through it are just read, not traced.
 """
 
+import contextlib
 import math
 import time
 import functools
@@ -329,8 +330,17 @@ class Trainer:
         self._key = jax.random.PRNGKey(_seed)
 
         # GPU energy metering for the watt-hours-to-solution (WHS) metric.
+        # Only the sampler.sample()/sample_parallel() calls are metered
+        # (via meter.active()) — SR/CG/gradient work also runs on the GPU
+        # but isn't solver cost, so it's excluded.
+        # Restricted to ClassicalSampler: for DimodSampler (D-Wave QPU) the
+        # "active" window would just be the network wait for the QPU job,
+        # not GPU work — metering it would report bogus GPU-idle-during-wait
+        # power as if it were QPU solver energy. D-Wave has no per-job energy
+        # telemetry at all (only qpu_access_time, a timing budget), so this
+        # stays None for those runs rather than reporting a misleading number.
         self.total_energy_j: float | None = None
-        self._gpu_energy_available = gpu_available()
+        self._gpu_energy_available = gpu_available() and isinstance(sampler, ClassicalSampler)
 
         self.history = {
             "energy": [],
@@ -439,9 +449,11 @@ class Trainer:
         ) and self.n_parallel <= 1:
             _saved_key = self.sampler._key
             _saved_gibbs_v = self.sampler._gibbs_v
-            self.sampler.sample(
-                self.rbm, self.n_samples, config={**self.config, "beta_x": self.beta_x}
-            )
+            _warmup_ctx = _energy_meter.active() if _energy_meter is not None else contextlib.nullcontext()
+            with _warmup_ctx:
+                self.sampler.sample(
+                    self.rbm, self.n_samples, config={**self.config, "beta_x": self.beta_x}
+                )
             self.sampler._key = _saved_key
             self.sampler._gibbs_v = _saved_gibbs_v
 
@@ -451,29 +463,31 @@ class Trainer:
             _sample_config = {**self.config, "beta_x": self.beta_x}
             try:
                 _t0 = time.perf_counter()
-                if self.n_parallel > 1:
-                    _per_copy = self.n_samples // self.n_parallel
-                    _parallel_results = self.sampler.sample_parallel(
-                        [self.rbm] * self.n_parallel,
-                        _per_copy,
-                        config=_sample_config,
-                        n_parallel=self.n_parallel,
-                        return_hidden=_need_hidden,
-                    )
-                    if _need_hidden:
-                        _result = (
-                            np.concatenate([r[0] for r in _parallel_results], axis=0),
-                            np.concatenate([r[1] for r in _parallel_results], axis=0),
+                _sample_ctx = _energy_meter.active() if _energy_meter is not None else contextlib.nullcontext()
+                with _sample_ctx:
+                    if self.n_parallel > 1:
+                        _per_copy = self.n_samples // self.n_parallel
+                        _parallel_results = self.sampler.sample_parallel(
+                            [self.rbm] * self.n_parallel,
+                            _per_copy,
+                            config=_sample_config,
+                            n_parallel=self.n_parallel,
+                            return_hidden=_need_hidden,
                         )
+                        if _need_hidden:
+                            _result = (
+                                np.concatenate([r[0] for r in _parallel_results], axis=0),
+                                np.concatenate([r[1] for r in _parallel_results], axis=0),
+                            )
+                        else:
+                            _result = np.concatenate(_parallel_results, axis=0)
                     else:
-                        _result = np.concatenate(_parallel_results, axis=0)
-                else:
-                    _result = self.sampler.sample(
-                        self.rbm,
-                        self.n_samples,
-                        config=_sample_config,
-                        return_hidden=_need_hidden,
-                    )
+                        _result = self.sampler.sample(
+                            self.rbm,
+                            self.n_samples,
+                            config=_sample_config,
+                            return_hidden=_need_hidden,
+                        )
                 elapsed = time.perf_counter() - _t0
                 _has_hw_time = hasattr(self.sampler, "last_sampling_time_s")
                 if _has_hw_time:

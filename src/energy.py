@@ -10,8 +10,15 @@ background thread and integrating power over time (trapezoidal rule).
 This is a coarse estimate (subprocess-poll resolution, not an on-device
 energy counter) but requires no extra dependency and works on any
 machine with the NVIDIA driver installed.
+
+The poll thread runs continuously for the whole `with GPUEnergyMeter():`
+block, but `energy_j` only integrates power over the sub-intervals
+wrapped in `meter.active()` — this isolates solver (sampling) energy
+from the surrounding SR/CG/gradient computation, which also runs on the
+GPU but isn't part of what WHS is meant to measure.
 """
 
+import contextlib
 import shutil
 import subprocess
 import threading
@@ -40,25 +47,42 @@ def _read_power_draw_w(gpu_index: int) -> float:
 
 
 class GPUEnergyMeter:
-    """Context manager measuring GPU energy consumption (joules) over its block.
+    """Context manager measuring GPU energy consumption (joules) of specific
+    sub-intervals of its block — the ones wrapped in `meter.active()`.
 
     Usage:
         with GPUEnergyMeter() as meter:
-            ...  # GPU work
-        joules = meter.energy_j
+            ...  # e.g. SR/CG update — not measured
+            with meter.active():
+                sampler.sample(...)  # measured
+            ...
+        joules = meter.energy_j  # energy over active() windows only
 
     Raises RuntimeError on exit if fewer than 2 power samples were collected
-    (e.g. the block finished faster than one poll interval, or nvidia-smi
-    failed mid-run) — callers must not treat that as "zero energy consumed".
+    over the whole block (e.g. it finished faster than one poll interval, or
+    nvidia-smi failed throughout), or if `energy_j` is read without any
+    `active()` window having been recorded — callers must not treat either
+    case as "zero energy consumed".
     """
 
     def __init__(self, gpu_index: int = 0, poll_interval_s: float = 0.5):
         self._gpu_index = gpu_index
         self._poll_interval_s = poll_interval_s
         self._samples: list[tuple[float, float]] = []
+        self._active_intervals: list[tuple[float, float]] = []
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self._start_time = 0.0
+
+    @contextlib.contextmanager
+    def active(self):
+        """Mark the wrapped block as solver time; only this time counts toward energy_j."""
+        t0 = time.perf_counter() - self._start_time
+        try:
+            yield
+        finally:
+            t1 = time.perf_counter() - self._start_time
+            self._active_intervals.append((t0, t1))
 
     def _poll_loop(self):
         while not self._stop.is_set():
@@ -81,6 +105,18 @@ class GPUEnergyMeter:
         self._stop.set()
         self._thread.join(timeout=self._poll_interval_s + 5)
 
+    def _power_at(self, t: float) -> float:
+        """Linearly interpolate power draw at time t (clamped to sample range)."""
+        if t <= self._samples[0][0]:
+            return self._samples[0][1]
+        if t >= self._samples[-1][0]:
+            return self._samples[-1][1]
+        for (t0, p0), (t1, p1) in zip(self._samples, self._samples[1:]):
+            if t0 <= t <= t1:
+                frac = (t - t0) / (t1 - t0) if t1 != t0 else 0.0
+                return p0 + frac * (p1 - p0)
+        raise AssertionError("unreachable: t within sample range but no bracket found")
+
     @property
     def energy_j(self) -> float:
         if len(self._samples) < 2:
@@ -90,7 +126,17 @@ class GPUEnergyMeter:
                 "be shorter than poll_interval_s, or nvidia-smi may be "
                 "failing silently."
             )
+        if not self._active_intervals:
+            raise RuntimeError(
+                "GPUEnergyMeter recorded no active() windows — energy_j has "
+                "nothing to integrate. Wrap the solver call in `with "
+                "meter.active():`."
+            )
         joules = 0.0
-        for (t0, p0), (t1, p1) in zip(self._samples, self._samples[1:]):
-            joules += 0.5 * (p0 + p1) * (t1 - t0)
+        for a, b in self._active_intervals:
+            points = [(a, self._power_at(a))]
+            points += [(t, p) for t, p in self._samples if a < t < b]
+            points.append((b, self._power_at(b)))
+            for (t0, p0), (t1, p1) in zip(points, points[1:]):
+                joules += 0.5 * (p0 + p1) * (t1 - t0)
         return joules
