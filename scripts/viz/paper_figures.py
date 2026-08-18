@@ -111,6 +111,16 @@ def compute_validated_convergence_iter(history, exact_energy, size, epsilon, cv_
     return None
 
 
+def fit_powerlaw_exponent(xs, ys):
+    """Least-squares exponent of a power-law fit y = c * x**p in log-log space.
+
+    None if fewer than 2 usable points.
+    """
+    if len(xs) < 2:
+        return None
+    return float(np.polyfit(np.log(xs), np.log(ys), 1)[0])
+
+
 def wilson_ci(k, n, z=1.96):
     if n == 0:
         return (0.0, 1.0)
@@ -1186,8 +1196,10 @@ def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01)
         lo_v = [v for v in tte_lo if v is not None]
         hi_v = [v for v in tte_hi if v is not None]
         if xs:
+            exp = fit_powerlaw_exponent(xs, ys)
+            lbl = f"{label} ($\\propto N^{{{exp:.2f}}}$)" if exp is not None else label
             yerr = [[y - l for y, l in zip(ys, lo_v)], [h - y for y, h in zip(ys, hi_v)]]
-            ax.errorbar(xs, ys, yerr=yerr, marker=marker, color=color, label=label,
+            ax.errorbar(xs, ys, yerr=yerr, marker=marker, color=color, label=lbl,
                         markersize=10, linewidth=2.0, capsize=4, zorder=3, linestyle=linestyle)
         else:
             ax.plot([], [], marker=marker, color=color, linestyle=linestyle, label=label)
@@ -1339,6 +1351,9 @@ def fig10d_energy_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.
         hi_v = [v for v in e_hi if v is not None]
         lbl = f"{label} (assumed)" if power_w is not None else label
         if xs:
+            exp = fit_powerlaw_exponent(xs, ys)
+            if exp is not None:
+                lbl = f"{lbl} ($\\propto N^{{{exp:.2f}}}$)"
             yerr = [[y - l for y, l in zip(ys, lo_v)], [h - y for y, h in zip(ys, hi_v)]]
             ax.errorbar(xs, ys, yerr=yerr, marker=marker, color=color, label=lbl,
                         markersize=10, linewidth=2.0, capsize=4, zorder=3, linestyle=linestyle)
@@ -1354,13 +1369,14 @@ def fig10d_energy_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.
     setup_style(fontsize=13)
     fig, axes = plt.subplots(1, 2, figsize=(11, 6), sharey=True)
 
-    # Panel (b)'s series span 4 decades (FPGA ~1e-4 to SA ~1e-1) with dense
-    # data in the upper-left corner (LSB+SA at low N); "lower left" keeps
-    # the legend over FPGA's single smooth line instead of SA's scattered
-    # markers/annotations. Frameless so it never fully hides a point
-    # underneath (verified: an opaque upper-left box previously made SA's
-    # markers fully invisible despite valid computed data).
-    legend_locs = ["upper left", "lower left"]
+    # No series in either panel has data past N=32, so the N=64 corner is
+    # blank in both panels -- "upper right" (b) and "upper left" (a) land
+    # the (opaque, matching fig10c's default legend.frameon styling) box
+    # there instead of on top of a curve. An earlier version used "lower
+    # left"/frameless in panel (b) to dodge FPGA's line, but a frameless
+    # legend just sits illegibly on top of the data instead of hiding it;
+    # the empty N=64 corner avoids the trade-off entirely.
+    legend_locs = ["upper left", "center right"]
     for ax, (panel_title, panel_series), legend_loc in zip(axes, groups, legend_locs):
         for label, sizes, get_recs, color, marker, linestyle, power_w in panel_series:
             _plot_energy_series(ax, label, sizes, get_recs, color, marker, linestyle, power_w)
@@ -1369,8 +1385,7 @@ def fig10d_energy_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.
         log_x_with_ticks(ax, _sizes)
         ax.set_xlabel("System size $N$")
         ax.set_title(panel_title, fontsize=13)
-        ax.legend(loc=legend_loc, fontsize=9, handlelength=1.6, borderpad=0.4,
-                  frameon=False).set_zorder(1)
+        ax.legend(loc=legend_loc, fontsize=9, handlelength=1.6, borderpad=0.4)
 
     axes[0].set_ylabel("Energy to convergence [Wh]\n(median, IQR)")
     for ax in axes[1:]:
@@ -1541,6 +1556,189 @@ def fig11_appendix_convergence_grid():
     _save(fig, "fig11_appendix_convergence_grid")
 
 
+# ---------------------------------------------------------------------------
+# Figure 12 -- appendix grid of convergence trajectories across models,
+# sizes, and solvers. TFIM 1D panels use the exact same matched cell as
+# fig10c/fig10d (h=0.5, lr=0.08, reg=0.05, ns=200, iterations=100, 20 seeds)
+# so this is a trajectory-level view of the same archive those TTE/energy
+# figures summarize into scalars -- not a separate/independent sweep.
+#
+# Layout: two stacked blocks, no blank cells.
+#   Top block:    3 rows (N=8,12,16) x 4 cols (TFIM-classical, TFIM-physics/
+#                 HW, Heisenberg J2=0.3, Heisenberg J2=0.5) -- every model has
+#                 data at these 3 sizes.
+#   Bottom block: 3 rows (N=24,32,64) x 2 cols (TFIM-classical, TFIM-physics/
+#                 HW only -- Heisenberg has no archive past N=16). Using only
+#                 2 columns lets each bottom panel take the full page width
+#                 instead of leaving a blank Heisenberg-shaped hole.
+# Heisenberg panels use Gibbs + Simulated Annealing only (Exchange isn't
+# discussed elsewhere in the paper and was dropped to avoid introducing an
+# unexplained solver here) at J2/J1=0.3 (below the Majumdar-Ghosh point) and
+# 0.5 (at it), each the single dominant per-instance-tuned hyperparameter
+# cell archived for that (N, method, J2) -- these aren't matched to a single
+# shared (lr, reg) across N the way the TFIM cell is.
+# ---------------------------------------------------------------------------
+
+def fig12_appendix_size_solver_grid():
+    def matched_cell(recs, n):
+        return [r for r in recs if r["config"]["n_hidden"] == n
+                and abs(r["config"]["learning_rate"] - 0.08) < 1e-9
+                and abs(r["config"]["regularization"] - 0.05) < 1e-9
+                and r["config"]["n_samples"] == 200
+                and r["config"]["iterations"] == 100][:20]
+
+    def tfim_mcmc_recs(method, n, cem=0):
+        recs = load(f"results/tfim_1d/{n}/custom/{method}/result_1d_h0.5_rbmfull_nh{n}_lr0.08_reg0.05_ns200_seed*_iter100_cem{cem}_sigma1.0.json.gz")
+        return matched_cell(recs, n)
+
+    def tfim_fpga_recs(n):
+        # fpga_glob() doesn't pin lr/reg/ns/iterations in the filename (unlike
+        # the custom/dimod solvers above) -- filter on config explicitly.
+        out = []
+        for r in load(fpga_glob(n)):
+            c = r["config"]
+            if c["n_hidden"] == n and abs(c["learning_rate"] - 0.08) < 1e-9 \
+                    and abs(c["regularization"] - 0.05) < 1e-9 and c["n_samples"] == 200 \
+                    and c["iterations"] == 100:
+                out.append(r)
+        return out[:20]
+
+    def tfim_dwave_recs(method, n, cem=1):
+        recs = load(f"results/tfim_1d/{n}/dimod/{method}/result_1d_h0.5_rbmfull_nh{n}_lr0.08_reg0.05_ns200_seed*_iter100_cem{cem}_sigma1.0.json.gz")
+        return matched_cell(recs, n)
+
+    def heis_recs(method, n, j2):
+        # cem varies per archived (N, method, J2) cell (whichever the
+        # per-instance hyperparameter search happened to land on) -- glob
+        # across both rather than assume cem0.
+        return load(f"results/heisenberg_j1j2_1d/{n}/custom/{method}/result_heisenberg_j1j2_1d_J11.0_J2{j2}_delta*_seed*_iter300_cem*_sigma1.0.json.gz")
+
+    def plot_band(ax, recs, color, label):
+        traces, exact = [], None
+        for r in recs:
+            e = r["history"].get("energy")
+            if not e:
+                continue
+            traces.append(np.array(e))
+            exact = r.get("exact_energy", exact)
+        if not traces:
+            return None
+        n = min(len(t) for t in traces)
+        stacked = np.stack([t[:n] for t in traces])
+        med = np.nanmedian(stacked, axis=0)
+        lo, hi = np.nanpercentile(stacked, [25, 75], axis=0)
+        x = np.arange(1, n + 1)
+        ax.plot(x, med, color=color, linewidth=1.3, label=label, zorder=3)
+        ax.fill_between(x, lo, hi, color=color, alpha=0.18, linewidth=0, zorder=2)
+        return exact, stacked
+
+    def clip_ylim(ax, exact, pools):
+        all_vals = np.concatenate([p.ravel() for p in pools])
+        scale = 20 * (abs(exact) + 1)
+        all_vals = all_vals[np.isfinite(all_vals) & (np.abs(all_vals - exact) < scale)]
+        if not all_vals.size:
+            return
+        lo, hi = np.percentile(all_vals, [1, 99])
+        span = max(hi - lo, abs(exact) * 0.05, 1e-3)
+        ax.set_ylim(min(lo, exact) - 0.3 * span, max(hi, exact) + 1.2 * span)
+
+    # Colors match fig10c/fig10d exactly so a solver reads identically
+    # across the paper.
+    color_sa, color_fpga, color_pegasus, color_zephyr = "#6a3d9a", "#ffa600", "#bc5090", "#ef5675"
+
+    tfim_row1 = [
+        ("Metropolis", COLOR_BLUE, lambda n: tfim_mcmc_recs("metropolis", n)),
+        ("Gibbs", COLOR_GREEN, lambda n: tfim_mcmc_recs("gibbs", n)),
+        ("Sim. Annealing", color_sa, lambda n: tfim_mcmc_recs("simulated_annealing", n)),
+    ]
+    tfim_row2 = [
+        ("LSB (+CEM)", COLOR_MAGENTA, lambda n: tfim_mcmc_recs("lsb", n, cem=1)),
+        ("FPGA", color_fpga, lambda n: tfim_fpga_recs(n)),
+        ("Pegasus (+CEM)", color_pegasus, lambda n: tfim_dwave_recs("pegasus", n, cem=1)),
+        ("Zephyr (+CEM)", color_zephyr, lambda n: tfim_dwave_recs("zephyr", n, cem=1)),
+    ]
+    heis_row_easy = [
+        ("Gibbs", COLOR_GREEN, lambda n: heis_recs("gibbs", n, "0.3")),
+        ("Sim. Annealing", color_sa, lambda n: heis_recs("simulated_annealing", n, "0.3")),
+    ]
+    heis_row_mg = [
+        ("Gibbs", COLOR_GREEN, lambda n: heis_recs("gibbs", n, "0.5")),
+        ("Sim. Annealing", color_sa, lambda n: heis_recs("simulated_annealing", n, "0.5")),
+    ]
+
+    def draw_panel(ax, series, n, show_legend):
+        exact, pools = None, []
+        for label, color, get_recs in series:
+            result = plot_band(ax, get_recs(n), color, label)
+            if result is not None:
+                exact, stacked = result
+                pools.append(stacked)
+        if exact is not None:
+            ax.axhline(exact, color=INK, linestyle="--", linewidth=0.9, zorder=4)
+            clip_ylim(ax, exact, pools)
+        else:
+            ax.text(0.5, 0.5, "no data", transform=ax.transAxes, ha="center", va="center",
+                    color=MUTED, fontsize=8)
+        style_axes(ax)
+        if show_legend:
+            ax.legend(fontsize=6, loc="best", frameon=True, handlelength=1.5, borderpad=0.3)
+
+    setup_style(fontsize=9)
+    fig = plt.figure(figsize=(11.5, 11.3))
+    top_fig, bot_fig = fig.subfigures(2, 1, height_ratios=[3, 3], hspace=0.0)
+
+    top_sizes, bot_sizes = [8, 12, 16], [24, 32, 64]
+    top_cols = [
+        ("TFIM classical", tfim_row1),
+        ("TFIM physics/HW", tfim_row2),
+        ("Heisenberg J2=0.3", heis_row_easy),
+        ("Heisenberg J2=0.5", heis_row_mg),
+    ]
+    bot_cols = [
+        ("TFIM classical", tfim_row1),
+        ("TFIM physics/HW", tfim_row2),
+    ]
+
+    def fill_block(subfig, sizes, cols, fontsize_title=9.5):
+        axes = subfig.subplots(len(sizes), len(cols), squeeze=False)
+        for col, (col_title, series) in enumerate(cols):
+            for row, n in enumerate(sizes):
+                ax = axes[row][col]
+                draw_panel(ax, series, n, show_legend=(row == 0))
+                if row == 0:
+                    ax.set_title(col_title, fontsize=fontsize_title)
+                if row == len(sizes) - 1:
+                    ax.set_xlabel("SR iteration", fontsize=8)
+        # Explicit left/right margins -- subfigures' subplots() otherwise
+        # only fills part of the subfigure's actual width (a matplotlib
+        # subfigure quirk without constrained_layout), leaving the rest
+        # visibly blank regardless of column count.
+        subfig.subplots_adjust(left=0.07, right=0.98, top=0.90, bottom=0.11,
+                                hspace=0.5, wspace=0.32)
+        return axes
+
+    top_axes = fill_block(top_fig, top_sizes, top_cols)
+    bot_axes = fill_block(bot_fig, bot_sizes, bot_cols, fontsize_title=10.5)
+
+    fig.suptitle(
+        "Appendix: convergence trajectories across models, sizes, and solvers\n"
+        "solid = median over seeds, band = IQR, dashed = exact ground-state energy",
+        fontsize=12, y=1.0,
+    )
+
+    # Bold "N=" row tags in each block's own left margin, positioned from the
+    # actual post-layout bbox of that block's first column -- much more
+    # visible than an in-axes ylabel competing with the y-tick numbers.
+    for subfig, axes, sizes in ((top_fig, top_axes, top_sizes), (bot_fig, bot_axes, bot_sizes)):
+        for ax, n in zip(axes[:, 0], sizes):
+            bbox = ax.get_position()  # already in subfig-local figure coords
+            y_center = (bbox.y0 + bbox.y1) / 2
+            subfig.text(0.01, y_center, f"N={n}", rotation=90, ha="center", va="center",
+                        fontsize=12, fontweight="bold")
+
+    _save(fig, "fig12_appendix_size_solver_grid")
+
+
 def _save(fig, name):
     os.makedirs(OUT_DIR, exist_ok=True)
     for ext in ("png", "pdf"):
@@ -1562,3 +1760,4 @@ if __name__ == "__main__":
     fig9_ite_tte_all_solvers_n16()
     fig10_ite_tte_vs_n_all_solvers()
     fig11_appendix_convergence_grid()
+    fig12_appendix_size_solver_grid()

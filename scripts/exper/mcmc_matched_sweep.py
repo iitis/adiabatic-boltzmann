@@ -69,6 +69,12 @@ def parse_args():
                         "read from Trainer's per-sample config, NOT the ClassicalSampler "
                         "constructor). Default: ClassicalSampler's built-in default (1000) "
                         "if unset.")
+    p.add_argument("--lsb-delta", type=float, default=None,
+                   help="LSB integration step size delta. Default: 0.1 if unset.")
+    p.add_argument("--lsb-gamma", type=float, default=None,
+                   help="LSB damping coefficient gamma. Default: 0.1 if unset.")
+    p.add_argument("--lsb-sigma", type=float, default=None,
+                   help="LSB noise precision sigma^-2 (paper convention). Default: 1.0 if unset.")
     p.add_argument("--variant", type=str, default="",
                    help="Suffix appended to the method name for the output subdir and "
                         "mcmc_recs() solver key, e.g. 'tuned' -> results/.../custom/"
@@ -135,8 +141,15 @@ def run_one(size, method, seed, args):
         "seed": seed,
         "use_cem": args.cem,
     }
-    if getattr(args, "lsb_steps", None) is not None:
-        trainer_config["lsb_steps"] = args.lsb_steps
+    if method == "lsb":
+        # Always record the resolved values (CLI override or _lsb_sample's own
+        # default) explicitly, so save_results()'s sampler_config snapshot --
+        # read from the sampler's last-used config -- captures them even when
+        # every flag below is left at its default.
+        trainer_config["lsb_steps"] = args.lsb_steps if args.lsb_steps is not None else 1000
+        trainer_config["lsb_delta"] = args.lsb_delta if args.lsb_delta is not None else 0.1
+        trainer_config["lsb_gamma"] = args.lsb_gamma if args.lsb_gamma is not None else 0.1
+        trainer_config["lsb_sigma"] = args.lsb_sigma if args.lsb_sigma is not None else 1.0
     trainer = Trainer(rbm, ising, sampler, trainer_config, args=ns_args)
     history = trainer.train()
     save_results(ns_args, history, ising, rbm, energy_j=trainer.total_energy_j, sampler=sampler)
