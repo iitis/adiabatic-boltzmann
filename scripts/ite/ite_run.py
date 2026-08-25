@@ -240,9 +240,6 @@ def run_ite_trial(
     use_cem = bool(p.get("use_cem", False))
     cem_interval = int(p.get("cem_interval", 5))
     cem_ema_alpha = float(p.get("cem_ema_alpha", 0.3))
-    lsb_steps = int(p.get("lsb_steps", 1000))
-    lsb_sigma = float(p.get("lsb_sigma", 1.0))
-    lsb_delta = float(p.get("lsb_delta", 1.0))
     fast_anneal_time_ns = float(p.get("fast_anneal_time_ns", 7.0))
 
     key = jax.random.PRNGKey(seed)
@@ -274,9 +271,6 @@ def run_ite_trial(
         "cem_ema_alpha": cem_ema_alpha,
         "T_initial": T_initial,
         "T_final": T_final,
-        "lsb_steps": lsb_steps,
-        "lsb_sigma": lsb_sigma,
-        "lsb_delta": lsb_delta,
         "fast_anneal_time_ns": fast_anneal_time_ns,
         "seed": seed,
         "stop_at_convergence": False,

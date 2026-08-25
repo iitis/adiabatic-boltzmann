@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
 Validate CEM's beta_eff estimate against an independent, exact ground-truth
-estimate, across system size, field, LSB energy scale (beta_x), and training
+estimate, across system size, field, energy scale (beta_x), and training
 checkpoint (early/mid/late).
 
 For each (N, h) TFIM instance we train an RBM with SR, saving checkpoints at
-three points during training. At each checkpoint we sweep beta_x, draw LSB
+three points during training. At each checkpoint we sweep beta_x, draw Gibbs
 joint (v, h) samples, and on each sample batch compute two independent
 estimates of the sampler's effective inverse temperature:
 
@@ -51,7 +51,10 @@ _OUT_DIR = _ROOT / "plots" / "cem_validation"
 
 CKPT_FRACTIONS = {"early": 0.1, "mid": 0.5, "late": 1.0}
 LR, REG = 0.05, 1e-3
-LSB_CFG_BASE = {"lsb_steps": 1000, "lsb_delta": 0.1, "lsb_gamma": 0.1, "lsb_sigma": 1.0}
+# NOTE: Gibbs does not rescale the RBM's energy by beta_x, so this config
+# is a no-op placeholder and the beta_x sweep below no longer changes the
+# sampling distribution.
+GIBBS_CFG_BASE = {"n_sweeps": 10, "n_warmup": 100}
 
 
 # ---------------------------------------------------------------------------
@@ -158,7 +161,7 @@ def _ground_truth_beta(rbm, N, samples_v, beta_bounds=(0.01, 200.0)) -> float:
 def run_sweep(n_values, h_values, beta_x_values, n_seeds, n_iter, train_samples,
               n_samples, retrain, out_path):
     _CKPT_DIR.mkdir(parents=True, exist_ok=True)
-    sampler = ClassicalSampler("lsb")
+    sampler = ClassicalSampler("gibbs")
     records = []
     draw_id = 0  # deterministic seed counter
 
@@ -177,7 +180,7 @@ def run_sweep(n_values, h_values, beta_x_values, n_seeds, n_iter, train_samples,
                 _load_ckpt(rbm, ckpt_path)
 
                 for beta_x in beta_x_values:
-                    cfg = {"beta_x": beta_x, **LSB_CFG_BASE}
+                    cfg = {"beta_x": beta_x, **GIBBS_CFG_BASE}
                     for seed in range(n_seeds):
                         sampler._key = jax.random.PRNGKey(draw_id)
                         draw_id += 1

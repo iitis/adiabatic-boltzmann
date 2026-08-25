@@ -1,5 +1,5 @@
 """
-D_TV vs sampler effort: SA vs LSB on a trained RBM.
+D_TV vs sampler effort: SA / Metropolis / Gibbs on a trained RBM.
 
 Trains small RBMs (N=8) on TFIM at h ∈ {0.5, 1.0, 2.0}, then for each
 frozen RBM sweeps the effort parameter of both classical samplers and
@@ -135,7 +135,6 @@ _SAMPLER_STYLES = {
     "sa":         ("#1f77b4", "o-", "SA"),
     "metropolis": ("#ff7f0e", "s-", "Metropolis"),
     "gibbs":      ("#2ca02c", "^-", "Gibbs"),
-    "lsb":        ("#d62728", "D-", "LSB"),
 }
 _FLOOR_COLOR = "#555555"
 
@@ -176,7 +175,7 @@ def _make_plot(all_data, h_values, N, n_samples, out_path: Path) -> None:
 
     axes[0].set_ylabel(r"$D_\mathrm{TV}$ (\%)")
     fig.suptitle(
-        rf"Sampling quality: SA / MH / Gibbs / LSB $\mid$ TFIM 1D $N={N}$ $n_\mathrm{{samples}}={n_samples}$"
+        rf"Sampling quality: SA / MH / Gibbs $\mid$ TFIM 1D $N={N}$ $n_\mathrm{{samples}}={n_samples}$"
     )
     fig.tight_layout()
     fig.savefig(out_path)
@@ -235,15 +234,9 @@ def parse_args():
         "--sa-sweeps", type=int, nargs="+",
         default=[1, 2, 5, 10, 20, 50, 100, 200, 500, 1000],
     )
-    p.add_argument(
-        "--lsb-steps", type=int, nargs="+",
-        default=[10, 20, 50, 100, 200, 500, 1000, 2000, 5000],
-    )
     p.add_argument("--floor-trials", type=int, default=20)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--retrain", action="store_true")
-    p.add_argument("--no-lsb-damping", action="store_true",
-                   help="Disable LSB damping (set gamma=0, replicates undamped behaviour)")
     p.add_argument("--plot-only", action="store_true",
                    help="Skip sampling; reload existing JSON and regenerate the plot only")
     p.add_argument("--output-dir", default=None)
@@ -263,7 +256,7 @@ def _load_json(json_path: Path):
             "p_exact": entry.get("p_exact"),
             **{
                 key: {int(k): v for k, v in entry[key].items()}
-                for key in ("sa", "metropolis", "gibbs", "lsb")
+                for key in ("sa", "metropolis", "gibbs")
                 if key in entry
             },
         }
@@ -331,19 +324,12 @@ def main():
         gibbs_results = _sweep(rbm, "gibbs", args.sa_sweeps,
                                "n_sweeps", args.n_samples, args.n_seeds, N)
 
-        print("  LSB sweep:")
-        lsb_extra = {"lsb_gamma": 0.0} if args.no_lsb_damping else {}
-        lsb_results = _sweep(rbm, "lsb", args.lsb_steps,
-                             "lsb_steps", args.n_samples, args.n_seeds, N,
-                             extra_config=lsb_extra)
-
         all_data[h] = {
             "floor": floor,
             "p_exact": p_exact,
             "sa": sa_results,
             "metropolis": mh_results,
             "gibbs": gibbs_results,
-            "lsb": lsb_results,
         }
 
     json_path = out_dir / f"dtv_classical_N{N}_M{M}.json"
@@ -351,14 +337,14 @@ def main():
         json.dump({
             "size": N, "n_hidden": M, "h_values": args.h_values,
             "n_samples": args.n_samples, "n_seeds": args.n_seeds,
-            "sa_sweeps": args.sa_sweeps, "lsb_steps": args.lsb_steps,
+            "sa_sweeps": args.sa_sweeps,
             "results": {
                 str(h): {
                     "floor": v["floor"],
                     "p_exact": np.asarray(v["p_exact"]).tolist(),
                     **{
                         key: {str(k): vs for k, vs in v[key].items()}
-                        for key in ("sa", "metropolis", "gibbs", "lsb")
+                        for key in ("sa", "metropolis", "gibbs")
                         if key in v
                     },
                 }

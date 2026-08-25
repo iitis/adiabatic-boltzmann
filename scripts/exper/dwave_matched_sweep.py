@@ -2,7 +2,7 @@
 """
 dwave_matched_sweep.py — run D-Wave Pegasus/Zephyr QPU at the same
 (lr, reg, n_samples, iterations) cell as scripts/exper/mcmc_matched_sweep.py
-(FPGA/VeloxQ/Metropolis/Gibbs/LSB's shared point: lr=0.08, reg=0.05, ns=200,
+(FPGA/VeloxQ/Metropolis/Gibbs/SA's shared point: lr=0.08, reg=0.05, ns=200,
 iter=100), so Figure 10 can add D-Wave to that matched comparison.
 
 QPU access time is a metered, shared, non-reset budget (src/time.json).
@@ -27,10 +27,10 @@ Runs in-process (Trainer/DimodSampler directly, same construction as
 scripts/main.py's --sampler dimod path) — never shells out to main.py.
 
 --cem-values controls which beta_x regime(s) to run, one full pass each:
-  False -- matches every other "plain" series in Figure 10 (LSB, FPGA):
+  False -- matches every other "plain" series in Figure 10 (SA, FPGA):
            beta_x starts at 1.0 and is nudged by Trainer's blind
            heuristic (encoder.py, +-5% on energy regression).
-  True  -- matches "LSB (+CEM)": beta_x is instead tracked online via
+  True  -- matches "SA (+CEM)": beta_x is instead tracked online via
            estimate_beta_eff_cem from the same per-iteration QPU sample
            (return_hidden=True) -- no extra QPU calls versus False.
 Default runs both, False fully before True, so a mid-run budget cutoff
@@ -116,8 +116,8 @@ def parse_args():
     p.add_argument(
         "--cem-values", type=lambda s: s.lower() == "true", nargs="+",
         default=[False, True],
-        help="beta_x regime(s) to run: False = plain (matches LSB/FPGA's "
-             "blind-heuristic series), True = online CEM (matches 'LSB "
+        help="beta_x regime(s) to run: False = plain (matches SA/FPGA's "
+             "blind-heuristic series), True = online CEM (matches 'SA "
              "(+CEM)'). Default runs both, False fully before True.",
     )
     p.add_argument("--h", type=float, default=0.5)

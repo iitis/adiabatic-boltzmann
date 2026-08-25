@@ -7,7 +7,6 @@ Key changes vs NumPy/CuPy/Numba version
   JAX dispatches to GPU automatically via XLA — no code changes needed.
 * Numba @njit kernels (_mh_sweep_nb, _sa_sweep_nb) replaced by
   jax.lax.scan-based kernels JIT-compiled once per unique (C, N, n_steps).
-* LSB migrated from PyTorch to JAX lax.scan.
 * All np.random calls replaced by jax.random with explicit PRNG keys.
   ClassicalSampler maintains self._key as stateful key; call _next_key()
   to get a fresh subkey and advance the state.
@@ -204,49 +203,6 @@ def _exchange_mh_sweep_jit(
     return v, theta
 
 
-@functools.partial(jax.jit, static_argnums=(6, 7, 8))
-def _lsb_jit(
-    key: jax.Array,
-    M: jax.Array,
-    f: jax.Array,
-    sigma: float,
-    delta: float,
-    gamma: float,
-    n_samples: int,
-    steps: int,
-    N_total: int,
-) -> jax.Array:
-    """
-    Langevin Simulated Bifurcation (Kubo & Goto 2025, Sec. II B 1).
-
-    Symplectic Euler integration (lax.scan over `steps` iterations):
-        y[k+1] = (1−γ)·y[k] + δ·(M·x[k] + f) + σ·ξ    ξ ~ N(0,1)
-        x[k+1] = x[k] + δ·y[k+1]
-        x      ← clip(x, −1, +1)
-
-    Init: x ~ U[−1,1],  y ~ N(0, σ²).
-    Discretise once at the end: s = sgn(x).
-    """
-    k1, k2, k3 = jax.random.split(key, 3)
-    x = jax.random.uniform(k1, (n_samples, N_total), dtype=jnp.float64) * 2.0 - 1.0
-    y = sigma * jax.random.normal(k2, (n_samples, N_total), dtype=jnp.float64)
-
-    def step_fn(carry, _):
-        x, y, key = carry
-        key, noise_key = jax.random.split(key)
-        force = x @ M.T + f
-        noise = sigma * jax.random.normal(noise_key, y.shape, dtype=jnp.float64)
-        y = (1.0 - gamma) * y + delta * force + noise
-        x = x + delta * y
-        x = jnp.clip(x, -1.0, 1.0)
-        return (x, y, key), None
-
-    (x, _, _), _ = jax.lax.scan(step_fn, (x, y, k3), None, length=steps)
-    s = jnp.sign(x)
-    s = jnp.where(s == 0, 1.0, s)
-    return s
-
-
 # ---------------------------------------------------------------------------
 # Abstract sampler
 # ---------------------------------------------------------------------------
@@ -299,7 +255,7 @@ class Sampler(ABC):
 class ClassicalSampler(Sampler):
     """
     Classical sampling via Metropolis-Hastings, Simulated Annealing,
-    Gibbs, or Langevin SB — all JAX-accelerated.
+    or Gibbs — all JAX-accelerated.
     """
 
     def __init__(
@@ -352,12 +308,6 @@ class ClassicalSampler(Sampler):
             config = {}
         self._last_sample_config = dict(config)
 
-        if self.method == "lsb":
-            v, h = self._lsb_sample(rbm, n_samples, config)
-            if not return_jax:
-                v, h = np.asarray(v), np.asarray(h)
-            return (v, h) if return_hidden else v
-
         if self.method == "gibbs":
             v, h = self._gibbs_sample(rbm, n_samples, config)
             if not return_jax:
@@ -379,40 +329,6 @@ class ClassicalSampler(Sampler):
         if return_hidden:
             return v, self._sample_hidden(rbm, v)
         return v
-
-    # ── Langevin SB ──────────────────────────────────────────────────────
-
-    def _lsb_sample(self, rbm: RBM, n_samples: int, config: dict):
-        """
-        Langevin Simulated Bifurcation — pure JAX, GPU-accelerated via lax.scan.
-        """
-        beta_x = config.get("beta_x", 1.0)
-        steps = config.get("lsb_steps", 1000)
-        delta = config.get("lsb_delta", 0.1)
-        gamma = config.get("lsb_gamma", 0.1)
-        sigma_inv2 = config.get("lsb_sigma", 1.0)
-        sigma = float(1.0 / np.sqrt(sigma_inv2))
-
-        Nv, Nh = rbm.n_visible, rbm.n_hidden
-        N_total = Nv + Nh
-
-        M = jnp.zeros((N_total, N_total), dtype=jnp.float64)
-        M = M.at[:Nv, Nv:].set(rbm.W / beta_x)
-        M = M.at[Nv:, :Nv].set(rbm.W.T / beta_x)
-        f = jnp.concatenate([-rbm.a / beta_x, rbm.b / beta_x])
-
-        key = self._next_key()
-        s = _lsb_jit(key, M, f, sigma, delta, gamma, n_samples, steps, N_total)
-
-        v = s[:, :Nv]
-        h = s[:, Nv:]
-
-        unique = len(np.unique(np.asarray(v), axis=0))
-        print(
-            f"  [LSB] steps={steps} delta={delta} gamma={gamma} sigma={sigma:.4f}"
-            f" unique={unique}/{n_samples}"
-        )
-        return v, h
 
     # ── Gibbs ─────────────────────────────────────────────────────────────
 

@@ -3,7 +3,7 @@ KL divergence / D_TV utilities for evaluating sampler quality (JAX, GPU-native).
 
 Works for any model by accepting an RBM's log_psi. Handles two cases:
   - Visible-only samples (Metropolis, SA): N = n_visible, enumerate 2^N_v states
-  - Joint (v, h) samples (LSB, Gibbs):    N = n_visible + n_hidden, enumerate 2^N states
+  - Joint (v, h) samples (Gibbs):         N = n_visible + n_hidden, enumerate 2^N states
 
 All spin configurations are over {-1, +1}. Keeps data on GPU and avoids CPU
 round-trips in hot loops.

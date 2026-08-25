@@ -1,12 +1,9 @@
 """
 cem_matching_demo.py -- isolates the "matching" step of CEM, nothing else.
 
-Trains one TFIM 1D RBM (N=16, h=1) with CEM using the production LSB config
-(lsb_steps=100, lsb_delta=1.0, lsb_sigma=1.0 -- matching results/tfim_1d/16/
-custom/lsb/*.json.gz, NOT cem_mechanism.py's steps=1000/delta=0.1 defaults,
-which drive the sampler into a different regime and give beta values ~4x
-smaller than what training actually uses). Snapshots at iteration 300
-(converged) and produces two SEPARATE standalone figures:
+Trains one TFIM 1D RBM (N=16, h=1) with CEM using the Gibbs sampler.
+Snapshots at iteration 300 (converged) and produces two SEPARATE standalone
+figures:
 
   cem_matching_candidates : the empirical <h> vs Theta response ("the
       distribution of observed hidden units") against several CANDIDATE
@@ -55,9 +52,6 @@ REGULARIZATION = 1e-5
 N_SAMPLES_TRAIN = 1000
 N_ITERATIONS = 300
 CEM_INTERVAL = 5
-LSB_STEPS = 100      # production config
-LSB_DELTA = 1.0
-LSB_SIGMA = 1.0
 
 SNAPSHOT_N_SAMPLES = 5000
 N_BINS = 40
@@ -74,7 +68,7 @@ def build_trainer():
     key, model_key, sampler_key = jax.random.split(key, 3)
     rbm = FullyConnectedRBM(N, N, model_key)
     ising = TransverseFieldIsing1D(N, H_FIELD)
-    sampler = ClassicalSampler(method="lsb")
+    sampler = ClassicalSampler(method="gibbs")
     sampler._key = sampler_key
     config = {
         "learning_rate": LEARNING_RATE,
@@ -83,9 +77,6 @@ def build_trainer():
         "regularization": REGULARIZATION,
         "use_cem": True,
         "cem_interval": CEM_INTERVAL,
-        "lsb_steps": LSB_STEPS,
-        "lsb_delta": LSB_DELTA,
-        "lsb_sigma": LSB_SIGMA,
         "seed": SEED,
     }
     return Trainer(rbm, ising, sampler, config, args=None)

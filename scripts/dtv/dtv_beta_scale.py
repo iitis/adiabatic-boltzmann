@@ -1,21 +1,26 @@
 """
-D_TV and β_eff vs LSB energy scale (beta_x): TFIM and Heisenberg XXZ.
+D_TV and β_eff vs SA final cooling temperature (beta_x): TFIM and Heisenberg XXZ.
 
-Analogue of Nelson et al. (PRApp 17, 044046, 2022) Figs. 1–2 for classical LSB.
+Analogue of Nelson et al. (PRApp 17, 044046, 2022) Figs. 1–2 for classical
+Simulated Annealing.
 
-LSB operates on the full (visible + hidden) RBM-to-Ising graph.  The coupling
-matrix and fields are rescaled by beta_x:
-
-    M ← W / beta_x,    f ← [a, b] / beta_x
+SA cools each chain from T_initial down to a final temperature T_final over a
+geometric schedule. Setting T_final = beta_x rescales the effective sampling
+inverse-temperature exactly as the beta_x energy-rescale does for QPU
+(the MH acceptance ratio in _sa_sweep_jit is 2*log_ratio/T, so annealing to
+T_final=beta_x is equivalent to sampling the beta_x-rescaled model at unit
+temperature).
 
 For a *perfect* Gibbs sampler at β=1 over the joint (v, h) Ising model, the
 visible marginal would be p(v) ∝ |Ψ(v)|^{2/beta_x}, i.e. β_eff = 1/beta_x.
-LSB is a heuristic bifurcation algorithm — not an exact Gibbs sampler — so the
-actual β_eff of its visible samples deviates from this ideal in a non-trivial
-way that depends on lsb_steps, sigma, and the problem landscape.
+SA is a heuristic annealer with a finite cooling schedule — not an exact
+Gibbs sampler — so the actual β_eff of its visible samples deviates from this
+ideal in a non-trivial way that depends on the number of cooling sweeps,
+T_initial, and the problem landscape.
 
-Experiment: sweep beta_x over a range (analogous to α_in in the paper) for
-several lsb_steps values (analogous to annealing time).  Measure:
+Experiment: sweep beta_x (= T_final) over a range (analogous to α_in in the
+paper) for several cooling-sweep counts (analogous to annealing time).
+Measure:
 
   1. D_TV(visible samples, exact |Ψ(v)|²)        — quality metric
   2. β_eff via argmin_β D_KL(p_S ∥ |Ψ|^{2β})   — effective temperature
@@ -134,7 +139,7 @@ def _estimate_beta_eff(energies_np: np.ndarray, p_emp_np: np.ndarray,
     E(v) = -2 * log|Ψ(v)|, so β=1 recovers the target |Ψ|² distribution.
 
     For a perfect Gibbs sampler at energy scale beta_x, we expect β_eff = 1/beta_x.
-    Deviations from this ideal line show where LSB behaves non-Gibbsian.
+    Deviations from this ideal line show where SA behaves non-Gibbsian.
     """
     def _logsumexp(a):
         c = float(np.max(a))
@@ -156,9 +161,9 @@ def _estimate_beta_eff(energies_np: np.ndarray, p_emp_np: np.ndarray,
 # ---------------------------------------------------------------------------
 
 def _sweep_beta_x(rbm, beta_x_values, steps_list, n_samples, n_seeds, N,
-                  lsb_delta=0.1, lsb_gamma=0.1, lsb_sigma=1.0):
+                  sa_t_initial=5.0, sa_n_warmup=200):
     """
-    For each (beta_x, lsb_steps) pair draw n_seeds sample sets; compute D_TV + β_eff.
+    For each (beta_x, sa_sweeps) pair draw n_seeds sample sets; compute D_TV + β_eff.
 
     Returns
     -------
@@ -173,18 +178,17 @@ def _sweep_beta_x(rbm, beta_x_values, steps_list, n_samples, n_seeds, N,
     dtv_results = {s: {} for s in steps_list}
     beta_results = {s: {} for s in steps_list}
 
-    sampler = ClassicalSampler("lsb")
+    sampler = ClassicalSampler("simulated_annealing", T_initial=sa_t_initial)
 
     for s_idx, steps in enumerate(steps_list):
-        print(f"  lsb_steps={steps}:")
+        print(f"  sa_sweeps={steps}:")
         for bx_idx, beta_x in enumerate(beta_x_values):
             dtv_vals, beta_vals = [], []
             cfg = {
-                "beta_x": beta_x,
-                "lsb_steps": steps,
-                "lsb_delta": lsb_delta,
-                "lsb_gamma": lsb_gamma,
-                "lsb_sigma": lsb_sigma,
+                "T_initial": sa_t_initial,
+                "T_final": beta_x,
+                "n_sweeps": steps,
+                "n_warmup": sa_n_warmup,
             }
             for seed in range(n_seeds):
                 sampler._key = jax.random.PRNGKey(s_idx * 10000 + bx_idx * 100 + seed)
@@ -230,7 +234,7 @@ def _plot_dtv_panel(ax, beta_x_values, dtv_results, beta_results, steps_list,
         means = np.array([np.mean(dtv_results[steps][bx]) for bx in beta_x_values]) * 100
         stds = np.array([np.std(dtv_results[steps][bx]) for bx in beta_x_values]) * 100
         ax.plot(beta_x_values, means, "o-", color=color,
-                label=f"{steps} steps", linewidth=2, markersize=5)
+                label=f"{steps} sweeps", linewidth=2, markersize=5)
         ax.fill_between(beta_x_values, means - stds, means + stds,
                         alpha=0.18, color=color)
     ax.axhline(floor_pct, color=_FLOOR_COLOR, linestyle="--", linewidth=1.5,
@@ -263,7 +267,7 @@ def _plot_beta_panel(ax, beta_x_values, dtv_results, beta_results, steps_list,
         means = np.array([np.mean(beta_results[steps][bx]) for bx in beta_x_values])
         stds = np.array([np.std(beta_results[steps][bx]) for bx in beta_x_values])
         ax.plot(beta_x_values, means, "o-", color=color,
-                label=f"{steps} steps", linewidth=2, markersize=5)
+                label=f"{steps} sweeps", linewidth=2, markersize=5)
         ax.fill_between(beta_x_values, means - stds, means + stds,
                         alpha=0.18, color=color)
 
@@ -395,16 +399,19 @@ def parse_args():
     p.add_argument("--n-seeds", type=int, default=5)
     p.add_argument(
         "--beta-x-values", type=float, nargs="+",
-        default=[0.40, 0.42, 0.44, 0.46, 0.48, 0.50, 0.52, 0.54, 0.56, 0.58, 0.60],
+        default=[0.85, 0.88, 0.91, 0.94, 0.97, 1.00, 1.03, 1.06, 1.09, 1.12, 1.15],
+        help="SA's D_TV-minimizing beta_x sits near 1.0; this range brackets "
+             "that optimum.",
     )
     p.add_argument(
         "--steps-list", type=int, nargs="+",
-        default=[200, 1000, 5000],
-        help="LSB step counts to compare (analogous to annealing times)",
+        default=[40, 200, 1000],
+        help="SA cooling-sweep counts to compare (analogous to annealing times)",
     )
-    p.add_argument("--lsb-delta", type=float, default=0.1)
-    p.add_argument("--lsb-gamma", type=float, default=0.1)
-    p.add_argument("--lsb-sigma", type=float, default=1.0)
+    p.add_argument("--sa-t-initial", type=float, default=5.0,
+                   help="SA warmup/starting temperature")
+    p.add_argument("--sa-n-warmup", type=int, default=200,
+                   help="SA warmup sweeps at T_initial before cooling begins")
     p.add_argument("--floor-trials", type=int, default=20)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--retrain", action="store_true")
@@ -445,9 +452,8 @@ def _run_one_size(N, M, args, repo_root):
             dtv_r, beta_r, _ = _sweep_beta_x(
                 rbm, args.beta_x_values, args.steps_list,
                 args.n_samples, args.n_seeds, N,
-                lsb_delta=args.lsb_delta,
-                lsb_gamma=args.lsb_gamma,
-                lsb_sigma=args.lsb_sigma,
+                sa_t_initial=args.sa_t_initial,
+                sa_n_warmup=args.sa_n_warmup,
             )
             results_list.append({"label": label, "floor": floor,
                                   "dtv": dtv_r, "beta": beta_r})
@@ -475,9 +481,8 @@ def _run_one_size(N, M, args, repo_root):
             dtv_r, beta_r, _ = _sweep_beta_x(
                 rbm, args.beta_x_values, args.steps_list,
                 args.n_samples, args.n_seeds, N,
-                lsb_delta=args.lsb_delta,
-                lsb_gamma=args.lsb_gamma,
-                lsb_sigma=args.lsb_sigma,
+                sa_t_initial=args.sa_t_initial,
+                sa_n_warmup=args.sa_n_warmup,
             )
             results_list.append({"label": label, "floor": floor,
                                   "dtv": dtv_r, "beta": beta_r})

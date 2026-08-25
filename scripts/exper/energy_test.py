@@ -36,14 +36,14 @@ from mcmc_matched_sweep import run_one  # noqa: E402
 
 # Same sizes as fig10c_tte_vs_n_self_convergence's classical-sampler `_sizes`.
 FIG10C_SIZES = [8, 12, 16, 24, 32, 64]
-DEFAULT_METHODS = ["metropolis", "gibbs", "simulated_annealing", "lsb"]
+DEFAULT_METHODS = ["metropolis", "gibbs", "simulated_annealing"]
 
 
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--sizes", type=int, nargs="+", default=FIG10C_SIZES)
     p.add_argument("--methods", type=str, nargs="+", default=DEFAULT_METHODS,
-                   choices=["metropolis", "gibbs", "lsb", "simulated_annealing"])
+                   choices=["metropolis", "gibbs", "simulated_annealing"])
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--h", type=float, default=0.5)
     p.add_argument("--lr", type=float, default=0.08)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 mcmc_calibration.py -- fair calibration of ClassicalSampler mixing params
-(Metropolis n_warmup, Gibbs n_sweeps, SA cooling length, LSB steps) at the
+(Metropolis n_warmup, Gibbs n_sweeps, SA cooling length) at the
 exact fig10c cell (h=0.5, lr=0.08, reg=0.05, ns=200, iterations=100),
 N=32 only.
 
@@ -44,33 +44,12 @@ used -- correctly. Treat summary.json's SA "chosen: 10" as informational
 only; 40 is the right value and decide()'s binary validated/not-validated
 tie-break is the thing that's wrong here, not the production data.
 
-LSB (Langevin Simulated Bifurcation) was added last, and unlike the other
-three does NOT have a calibration fix: at N=32 (seeds 90-99), lsb_steps in
-{1000, 2000, 4000, 8000} (lsb_delta/gamma/sigma held at their class
-defaults 0.1/0.1/1.0) scores validated_rate 0.50/0.50/0.40/0.50 -- flat,
-not monotone, and never close to Metropolis/Gibbs/SA's 1.00. A follow-up
-3-seed (90-92) screen over lsb_delta in {0.1, 0.05, 0.02, 0.01} x lsb_gamma
-in {0.1, 0.3, 0.5, 0.05} x lsb_sigma (paper sigma_inv2 convention) in
-{0.5, 1.0, 2.0} at fixed lsb_steps=1000 found nothing that beats the class
-default (delta=0.1, gamma=0.1, sigma_inv2=1.0, itself only 1/3): every
-delta below 0.1 got WORSE and increasingly produced NaN training energies
-(delta=0.01 was 0/3 all-NaN), and neither more damping (gamma up to 0.5)
-nor either noise direction (sigma_inv2 0.5 or 2.0) recovered it. This
-points to something more structural than a mixing-length problem -- e.g.
-RBM weight growth over SR iterations pushing the fixed-hyperparameter
-Langevin integration into an unstable regime -- not fixable by a grid
-search over (steps, delta, gamma, sigma) alone. LSB_GRID is kept in this
-file's protocol so the decision rule still runs and records a "chosen"
-value (it picks 1000, the cheapest of several statistically-tied-bad
-candidates), but that choice should NOT be read as "LSB is calibrated" the
-way Metropolis/Gibbs/SA's chosen values are.
-
-Separately: this whole calibration (all four methods) only ever ran at
+Separately: this whole calibration (all three methods) only ever ran at
 N=32. Checking the actual production fig10c data across the full size
 range (N=8..128) with the SAME validated-convergence criterion used here
-shows Metropolis/Gibbs/SA/LSB are all near-100% through N=32 but collapse
-at N=64 (Metropolis 12/20, Gibbs 10/20, SA 12/20, LSB 6/20) and fail
-outright at N=128 (0/20 for Metropolis/Gibbs/LSB; SA has no N=128 data).
+shows Metropolis/Gibbs/SA are all near-100% through N=32 but collapse
+at N=64 (Metropolis 12/20, Gibbs 10/20, SA 12/20) and fail outright at
+N=128 (0/20 for Metropolis/Gibbs; SA has no N=128 data).
 The N=32 calibration in this file does not address that -- it was never
 in scope here, since this file's grid only ever varies the mixing
 parameter, never N.
@@ -127,10 +106,9 @@ Usage:
     python scripts/exper/mcmc_calibration.py --run --analyze
 
 Output data lands in the normal results/ tree, namespaced so it can never
-collide with or be swept into the production Metropolis/Gibbs/LSB series:
+collide with or be swept into the production Metropolis/Gibbs/SA series:
     results/tfim_1d/32/custom/metropolis_calib_w{warmup}/result_..._seed{90..99}_....json.gz
     results/tfim_1d/32/custom/gibbs_calib_s{sweeps}/result_..._seed{90..99}_....json.gz
-    results/tfim_1d/32/custom/lsb_calib_st{steps}/result_..._seed{90..99}_....json.gz
 The scored summary (rates, median TTE, chosen value, decision-rule text)
 is written to results/mcmc_calibration/summary.json.
 """
@@ -159,13 +137,6 @@ METROPOLIS_GRID = [200, 400, 800, 1600]
 GIBBS_GRID = [10, 20, 40, 80]
 # SA per-seed cost is nearly flat across cooling length, so widened straight to 160.
 SA_GRID = [1, 10, 40, 160]
-# LSB (Langevin SB): unlike SA, a single-seed spot check (seed 90, N=32) showed
-# NO monotonic improvement with more steps -- final energy went good/bad/good/bad
-# across 1000/2000/4000/8000 (-33.99/-31.80/-33.96/-31.75 vs exact ~-34.03), so
-# raw step count is not obviously the dominant knob the way sa_sweeps was for
-# SA. Kept as a doubling grid anyway (same as the others) so the multi-seed
-# validated-rate protocol -- not a single noisy seed -- decides it.
-LSB_GRID = [1000, 2000, 4000, 8000]
 SEED_START = 90
 N_SEEDS = 10
 SIZE = 32
@@ -206,15 +177,6 @@ def run_grid():
         for seed in range(SEED_START, SEED_START + N_SEEDS):
             print(f"=== simulated_annealing n_sweeps={sweeps} seed={seed} ===")
             run_one(SIZE, "simulated_annealing", seed, args)
-    for steps in LSB_GRID:
-        args = Namespace(
-            h=H, lr=LR, reg=REG, n_samples=N_SAMPLES, iterations=ITERATIONS,
-            gibbs_sweeps=10, n_warmup=None, lsb_steps=steps, variant=f"calib_st{steps}",
-            cem=False, output_dir=OUTPUT_DIR, skip_existing=True,
-        )
-        for seed in range(SEED_START, SEED_START + N_SEEDS):
-            print(f"=== lsb steps={steps} seed={seed} ===")
-            run_one(SIZE, "lsb", seed, args)
 
 
 def _score(solver_dir):
@@ -276,7 +238,6 @@ def analyze():
         ("metropolis", METROPOLIS_GRID, "metropolis_calib_w{}"),
         ("gibbs", GIBBS_GRID, "gibbs_calib_s{}"),
         ("simulated_annealing", SA_GRID, "simulated_annealing_calib_s{}"),
-        ("lsb", LSB_GRID, "lsb_calib_st{}"),
     ):
         results = {c: _score(solver_dir_fmt.format(c)) for c in grid}
         chosen, reason = decide(grid, results)

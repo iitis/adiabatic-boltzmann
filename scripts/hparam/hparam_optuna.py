@@ -186,7 +186,7 @@ def _build_args(
         # CEM flags — save_results reads args.cem
         cem=use_cem,
         cem_interval=cem_interval,
-        # sigma encodes lsb_sigma (LSB) or fast_anneal_time_ns (pegasus_fast)
+        # sigma encodes fast_anneal_time_ns (pegasus_fast); otherwise fixed at 1.0
         sigma=fast_anneal_time_ns if sampling_method == "pegasus_fast" else 1.0,
         visualize=False,
         output_dir=str(output_dir),
@@ -218,9 +218,6 @@ def run_trial(
     T_initial: float,
     T_final: float,
     n_warmup: int,
-    lsb_steps: int,
-    lsb_sigma: float,
-    lsb_delta: float,
     seed: int,
     output_dir: Path,
     fast_anneal_time_ns: float = 7.0,
@@ -270,10 +267,6 @@ def run_trial(
         "cem_ema_alpha": cem_ema_alpha,
         "T_initial": T_initial,
         "T_final": T_final,
-        # LSB params — ignored by non-LSB samplers
-        "lsb_steps": lsb_steps,
-        "lsb_sigma": lsb_sigma,
-        "lsb_delta": lsb_delta,
         # fast anneal param — ignored by non-fast-anneal samplers
         "fast_anneal_time_ns": fast_anneal_time_ns,
         "seed": seed,
@@ -422,7 +415,6 @@ def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_
             use_cem = False
             cem_ema_alpha, cem_interval = 0.3, 5
             fast_anneal_time_ns = 7.0
-            lsb_steps, lsb_sigma, lsb_delta = 1000, 1.0, 1.0
 
         elif sampling_method == "simulated_annealing":
             T_initial = trial.suggest_float("T_initial", 1.0, 20.0)
@@ -435,20 +427,6 @@ def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_
                 cem_ema_alpha = 0.3
                 cem_interval = 5
             fast_anneal_time_ns = 7.0
-            lsb_steps, lsb_sigma, lsb_delta = 1000, 1.0, 1.0
-
-        elif sampling_method == "lsb":
-            # LSB integration params
-            lsb_steps = trial.suggest_int("lsb_steps", 500, 3000, step=500)
-            # lsb_sigma is 1/σ² — higher = less noise; log scale covers [0.25, 4]
-            lsb_sigma = trial.suggest_float("lsb_sigma", 0.25, 4.0, log=True)
-            lsb_delta = trial.suggest_float("lsb_delta", 0.5, 2.0)
-            # CEM always active for LSB (beta_fixed=False in Trainer)
-            use_cem = True
-            cem_ema_alpha = trial.suggest_float("cem_ema_alpha", 0.05, 0.5)
-            cem_interval = trial.suggest_int("cem_interval", 1, 10)
-            fast_anneal_time_ns = 7.0
-            T_initial, T_final = 5.0, 1.0
 
         else:
             # metropolis, exchange, gibbs, remaining QPU methods — no schedule, no CEM
@@ -456,7 +434,6 @@ def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_
             T_initial, T_final = 5.0, 1.0
             use_cem = False
             cem_ema_alpha, cem_interval = 0.3, 5
-            lsb_steps, lsb_sigma, lsb_delta = 1000, 1.0, 1.0
 
         # ── Seed (multiple seeds → robust estimate of each config) ────────
         seed = trial.suggest_categorical("seed", cli.seeds)
@@ -481,9 +458,6 @@ def make_objective(cli, study_dir: Path, n_iterations: int, fixed_N: int, fixed_
             T_initial=T_initial,
             T_final=T_final,
             n_warmup=n_warmup,
-            lsb_steps=lsb_steps,
-            lsb_sigma=lsb_sigma,
-            lsb_delta=lsb_delta,
             fast_anneal_time_ns=fast_anneal_time_ns,
             seed=seed,
             output_dir=study_dir,

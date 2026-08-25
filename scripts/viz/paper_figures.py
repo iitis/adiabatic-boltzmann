@@ -187,9 +187,7 @@ def log_x_with_ticks(ax, sizes, rotation=0):
 # ---------------------------------------------------------------------------
 # Figure 1 — ITE vs N, tfim_1d, TFIM critical point
 #
-# Metropolis/Gibbs are a true sampler-only match (cem=False for both); LSB
-# is plotted separately (dashed/hollow, "+CEM") since only cem=True LSB runs
-# are archived here, so it isn't sampler-matched to the other two.
+# Metropolis/Gibbs are a true sampler-only match (cem=False for both).
 # Epsilon=0.01 energy error per spin, rolling window=10. Runs that never
 # cross epsilon within the 300-iteration budget are censored (hollow marker
 # at the iteration budget), not dropped.
@@ -200,7 +198,6 @@ def fig1_ite_vs_n_tfim1d():
     samplers = [
         ("metropolis", "Metropolis (cem=False)", COLOR_BLUE, "o", "-"),
         ("gibbs", "Gibbs (cem=False)", COLOR_GREEN, "s", "-"),
-        ("lsb", "LSB +CEM (not sampler-matched)", COLOR_MAGENTA, "^", "--"),
     ]
     epsilon = 0.01
     n_iterations = 300
@@ -374,7 +371,6 @@ def fig3_energy_to_solution_vs_n():
     samplers = [
         ("metropolis", "Metropolis (cem=False)", COLOR_BLUE, "o", "-"),
         ("gibbs", "Gibbs (cem=False)", COLOR_GREEN, "s", "-"),
-        ("lsb", "LSB +CEM (not sampler-matched)", COLOR_MAGENTA, "^", "--"),
     ]
     for method, label, color, marker, linestyle in samplers:
         med, lo, hi = [], [], []
@@ -730,7 +726,6 @@ def fig7_classical_scaling_tfim1d():
 # Per-solver cell (all rbm=full, n_hidden=16 unless noted):
 #   Metropolis / dimod-SA / dimod-Tabu : h=1.0, lr=0.1,  reg=1e-05, ns=1000, iter=100,  n=10 each
 #   Gibbs                              : h=0.5, lr=0.01, reg=1e-05, ns=1000, iter=300, cem=False, n=6
-#   LSB                                : h=0.5, lr=0.01, reg=1e-05, ns=1000, iter=300, cem=False, n=3
 #   VeloxQ (SA) / FPGA                 : h=0.5, lr=0.08, reg=0.05, ns=200, sweeps100+sweeps2000 pooled, n=40
 #   D-Wave Pegasus / Zephyr (QPU)      : h=0.5, rbmfull, lr=0.1, reg=0.001, ns=1000, iter=300, n=2
 #
@@ -741,7 +736,6 @@ def fig8_all_solvers_n16():
     rows = [
         ("Metropolis (MCMC)", "results/tfim_1d/16/custom/metropolis/result_1d_h1.0_rbmfull_nh16_lr0.1_reg1e-05_ns1000_seed*_iter100_cem0.json.gz", None, COLOR_BLUE),
         ("Gibbs (MCMC)", "results/tfim_1d/16/custom/gibbs/result_1d_h0.5_rbmfull_nh16_lr0.01_reg1e-05_ns1000_seed*_iter300_cem0_sigma1.0.json.gz", None, COLOR_BLUE),
-        ("LSB (MCMC)", "results/tfim_1d/16/custom/lsb/result_1d_h0.5_rbmfull_nh16_lr0.01_reg1e-05_ns1000_seed*_iter300_cem0_sigma1.0.json.gz", None, COLOR_BLUE),
         ("Simulated annealing (dimod/neal)", "results/tfim_1d/16/dimod/simulated_annealing/result_1d_h1.0_rbmfull_nh16_lr0.1_reg1e-05_ns1000_seed*_iter100_cem0.json.gz", None, COLOR_GREEN),
         ("Tabu search (dimod)", "results/tfim_1d/16/dimod/tabu/result_1d_h1.0_rbmfull_nh16_lr0.1_reg1e-05_ns1000_seed*_iter100_cem0.json.gz", None, COLOR_GREEN),
         ("VeloxQ (SA hardware)", None, "velox", "#eb6834"),
@@ -819,7 +813,6 @@ def fig9_ite_tte_all_solvers_n16():
     rows = [
         ("Metropolis (MCMC)", "results/tfim_1d/16/custom/metropolis/result_1d_h1.0_rbmfull_nh16_lr0.1_reg1e-05_ns1000_seed*_iter100_cem0.json.gz", None, COLOR_BLUE),
         ("Gibbs (MCMC)", "results/tfim_1d/16/custom/gibbs/result_1d_h0.5_rbmfull_nh16_lr0.01_reg1e-05_ns1000_seed*_iter300_cem0_sigma1.0.json.gz", None, COLOR_BLUE),
-        ("LSB (MCMC)", "results/tfim_1d/16/custom/lsb/result_1d_h0.5_rbmfull_nh16_lr0.01_reg1e-05_ns1000_seed*_iter300_cem0_sigma1.0.json.gz", None, COLOR_BLUE),
         ("Simulated annealing (dimod/neal)", "results/tfim_1d/16/dimod/simulated_annealing/result_1d_h1.0_rbmfull_nh16_lr0.1_reg1e-05_ns1000_seed*_iter100_cem0.json.gz", None, COLOR_GREEN),
         ("Tabu search (dimod)", "results/tfim_1d/16/dimod/tabu/result_1d_h1.0_rbmfull_nh16_lr0.1_reg1e-05_ns1000_seed*_iter100_cem0.json.gz", None, COLOR_GREEN),
         ("VeloxQ (SA hardware)", None, "velox", "#eb6834"),
@@ -961,7 +954,6 @@ def fig10_ite_tte_vs_n_all_solvers(epsilon=0.01):
     series = [
         ("Metropolis", _sizes, lambda n: mcmc_recs("metropolis", n), COLOR_BLUE, "o", "-"),
         ("Gibbs", _sizes, lambda n: mcmc_recs("gibbs", n), COLOR_GREEN, "s", "-"),
-        ("LSB", _sizes, lambda n: mcmc_recs("lsb", n, cem=0), COLOR_MAGENTA, "^", "--"),
         ("VeloxQ (SA, untuned)", _sizes, lambda n: velox_untuned_recs(n), "#eb6834", "P", "-"),
         ("FPGA", _sizes, lambda n: fpga_recs(n), "#ffa600", "X", "-"),
         ("Pegasus (QPU)", _pegasus_sizes, lambda n: dwave_recs("pegasus", n, cem=0), "#bc5090", "*", ":"),
@@ -1159,7 +1151,6 @@ def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01)
             ("Gibbs", _sizes, lambda n: mcmc_recs("gibbs", n), COLOR_GREEN, "s", "-"),
         ]),
         ("(b) Classical, physics-inspired", [
-            ("LSB (+CEM)", _sizes, lambda n: mcmc_recs("lsb", n, cem=1), COLOR_MAGENTA, "^", "--"),
             ("Simulated Annealing", _sizes, lambda n: mcmc_recs("simulated_annealing", n), "#6a3d9a", "v", "-."),
             ("FPGA", _sizes, lambda n: fpga_recs(n), "#ffa600", "X", "-"),
         ]),
@@ -1244,7 +1235,7 @@ def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01)
 # 10c (self-detected + epsilon-validated convergence), plotted as GPU energy
 # (Wh) instead of wall-clock time.
 #
-# Metropolis/Gibbs/LSB(+CEM) read from the main results/tfim_1d/ archive --
+# Metropolis/Gibbs read from the main results/tfim_1d/ archive --
 # same as fig10c. They used to live in a separate results/energy_corrected/
 # tree because the archive's gpu_energy_wh was measured before
 # src/energy.py's active()-window fix (whole train() loop, including SR/CG,
@@ -1311,7 +1302,6 @@ def fig10d_energy_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.
             ("Gibbs", _sizes, lambda n: mcmc_recs("gibbs", n), COLOR_GREEN, "s", "-", None),
         ]),
         ("(b) Classical, physics-inspired", [
-            ("LSB (+CEM)", _sizes, lambda n: mcmc_recs("lsb", n, cem=1), COLOR_MAGENTA, "^", "--", None),
             ("Simulated Annealing", _sizes, lambda n: mcmc_recs("simulated_annealing", n), "#6a3d9a", "v", "-.", None),
             ("FPGA", _sizes, lambda n: fpga_recs(n), "#ffa600", "X", "-", FPGA_ASSUMED_POWER_W),
         ]),
@@ -1408,7 +1398,6 @@ def fig11_appendix_convergence_grid():
     SOLVER_COLORS = {
         "Metropolis (CPU)": "#1f77b4",
         "Gibbs (CPU)": "#2ca02c",
-        "LSB (CPU)": "#8c564b",
         "FPGA": "#17becf",
         "VeloxQ (SA)": "#9467bd",
         "D-Wave Zephyr (QPU)": "#d62728",
@@ -1505,7 +1494,6 @@ def fig11_appendix_convergence_grid():
             solver_groups={
                 "Metropolis (CPU)": [f"results/lr_tfim_1d/16/custom/metropolis/result_lr1d_h0.5_alpha1.0_rbmfull_nh16_lr0.01_reg1e-05_ns1000_seed{s}_iter300_cem0_sigma1.0.json.gz" for s in (1, 2, 3, 4, 5)],
                 "Gibbs (CPU)": [f"results/lr_tfim_1d/16/custom/gibbs/result_lr1d_h0.5_alpha1.0_rbmfull_nh16_lr0.01_reg1e-05_ns1000_seed{s}_iter300_cem0_sigma1.0.json.gz" for s in (1, 2, 3, 4, 5)],
-                "LSB (CPU)": [f"results/lr_tfim_1d/16/custom/lsb/result_lr1d_h0.5_alpha1.0_rbmfull_nh16_lr0.01_reg1e-05_ns1000_seed{s}_iter300_cem1_sigma1.0.json.gz" for s in (1, 2, 3, 4, 5)],
             },
             sweep_color=COLOR_MAGENTA,
             sweep_dir="results/lr_tfim_1d/16/custom/gibbs",
@@ -1652,7 +1640,6 @@ def fig12_appendix_size_solver_grid():
         ("Sim. Annealing", color_sa, lambda n: tfim_mcmc_recs("simulated_annealing", n)),
     ]
     tfim_row2 = [
-        ("LSB (+CEM)", COLOR_MAGENTA, lambda n: tfim_mcmc_recs("lsb", n, cem=1)),
         ("FPGA", color_fpga, lambda n: tfim_fpga_recs(n)),
         ("Pegasus (+CEM)", color_pegasus, lambda n: tfim_dwave_recs("pegasus", n, cem=1)),
         ("Zephyr (+CEM)", color_zephyr, lambda n: tfim_dwave_recs("zephyr", n, cem=1)),

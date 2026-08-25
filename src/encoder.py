@@ -205,7 +205,7 @@ KL_EXACT_MAX_N = 16
 
 def estimate_beta_eff_cem(V: jax.Array, H: jax.Array, rbm) -> float:
     """
-    CEM estimate of β_eff from joint LSB samples (V, H).
+    CEM estimate of β_eff from joint (v, h) samples (V, H).
 
     scipy.optimize.minimize_scalar calls F(beta) with Python floats.
     The JAX computation inside F runs on device; float() pulls the scalar.
@@ -311,7 +311,7 @@ class Trainer:
         if self.use_cem:
             print(
                 f"  [CEM] β scheduling ENABLED — estimating β_eff every "
-                f"{self.cem_interval} iteration(s) from joint LSB samples"
+                f"{self.cem_interval} iteration(s) from joint (v, h) samples"
                 f", EMA α={self.cem_ema_alpha}"
             )
         else:
@@ -445,7 +445,7 @@ class Trainer:
             _energy_meter.__enter__()
 
         if isinstance(self.sampler, ClassicalSampler) and self.sampler.method in (
-            "metropolis", "gibbs", "lsb", "simulated_annealing",
+            "metropolis", "gibbs", "simulated_annealing",
         ) and self.n_parallel <= 1:
             _saved_key = self.sampler._key
             _saved_gibbs_v = self.sampler._gibbs_v

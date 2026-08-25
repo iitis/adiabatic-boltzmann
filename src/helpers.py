@@ -37,20 +37,6 @@ def _sampler_config(sampler) -> dict | None:
     """
     if sampler is None or not hasattr(sampler, "method"):
         return None
-    if sampler.method == "lsb":
-        # LSB's actual knobs live in the per-call config dict (_lsb_sample's
-        # config.get(...) defaults), not sampler attributes -- pull the
-        # resolved values from the last sample() call instead. n_warmup/
-        # n_sweeps/T_initial/T_final are unused by _lsb_sample, so omit them
-        # rather than record misleading numbers.
-        last = getattr(sampler, "_last_sample_config", None) or {}
-        return {
-            "method": sampler.method,
-            "lsb_steps": last.get("lsb_steps"),
-            "lsb_delta": last.get("lsb_delta"),
-            "lsb_gamma": last.get("lsb_gamma"),
-            "lsb_sigma": last.get("lsb_sigma"),
-        }
     return {
         "method": sampler.method,
         "n_warmup": getattr(sampler, "n_warmup", None),

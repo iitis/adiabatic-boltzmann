@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-mcmc_matched_sweep.py — run Metropolis / Gibbs / LSB at the exact
+mcmc_matched_sweep.py — run Metropolis / Gibbs / SA at the exact
 (lr, reg, n_samples, iterations) cell already used for the FPGA/VeloxQ
 "sweeps100" campaign, across the same system sizes, so Figure 10
 (scripts/viz/paper_figures.py) can compare all five solvers at one
@@ -16,7 +16,6 @@ picks these up unchanged once pointed at lr=0.08/reg=0.05/ns=200/iter=100:
 
 Usage:
     python scripts/exper/mcmc_matched_sweep.py
-    python scripts/exper/mcmc_matched_sweep.py --methods lsb --cem   # lsb+CEM variant
     python scripts/exper/mcmc_matched_sweep.py --sizes 8 12 --seeds 3 --smoke-test
 """
 import argparse
@@ -37,14 +36,14 @@ from encoder import Trainer
 from ising import TransverseFieldIsing1D
 
 DEFAULT_SIZES = [8, 12, 16, 24, 32, 64, 128]
-DEFAULT_METHODS = ["metropolis", "gibbs", "lsb"]
+DEFAULT_METHODS = ["metropolis", "gibbs", "simulated_annealing"]
 
 
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--sizes", type=int, nargs="+", default=DEFAULT_SIZES)
     p.add_argument("--methods", type=str, nargs="+", default=DEFAULT_METHODS,
-                   choices=["metropolis", "gibbs", "lsb", "simulated_annealing"])
+                   choices=["metropolis", "gibbs", "simulated_annealing"])
     p.add_argument("--seeds", type=int, default=20, help="Number of seeds, seed_start..seed_start+seeds-1")
     p.add_argument("--seed-start", type=int, default=0,
                    help="First seed (e.g. 90 for a calibration probe disjoint from the "
@@ -64,17 +63,6 @@ def parse_args():
                         "with n_iterations) / Gibbs persistent-chain burn-in (paid once) / "
                         "SA fixed-temperature warmup (paid every SR iteration). "
                         "Default: ClassicalSampler's built-in default (200) if unset.")
-    p.add_argument("--lsb-steps", type=int, default=None,
-                   help="LSB Langevin-SB integration steps (paid every SR iteration -- "
-                        "read from Trainer's per-sample config, NOT the ClassicalSampler "
-                        "constructor). Default: ClassicalSampler's built-in default (1000) "
-                        "if unset.")
-    p.add_argument("--lsb-delta", type=float, default=None,
-                   help="LSB integration step size delta. Default: 0.1 if unset.")
-    p.add_argument("--lsb-gamma", type=float, default=None,
-                   help="LSB damping coefficient gamma. Default: 0.1 if unset.")
-    p.add_argument("--lsb-sigma", type=float, default=None,
-                   help="LSB noise precision sigma^-2 (paper convention). Default: 1.0 if unset.")
     p.add_argument("--variant", type=str, default="",
                    help="Suffix appended to the method name for the output subdir and "
                         "mcmc_recs() solver key, e.g. 'tuned' -> results/.../custom/"
@@ -141,15 +129,6 @@ def run_one(size, method, seed, args):
         "seed": seed,
         "use_cem": args.cem,
     }
-    if method == "lsb":
-        # Always record the resolved values (CLI override or _lsb_sample's own
-        # default) explicitly, so save_results()'s sampler_config snapshot --
-        # read from the sampler's last-used config -- captures them even when
-        # every flag below is left at its default.
-        trainer_config["lsb_steps"] = args.lsb_steps if args.lsb_steps is not None else 1000
-        trainer_config["lsb_delta"] = args.lsb_delta if args.lsb_delta is not None else 0.1
-        trainer_config["lsb_gamma"] = args.lsb_gamma if args.lsb_gamma is not None else 0.1
-        trainer_config["lsb_sigma"] = args.lsb_sigma if args.lsb_sigma is not None else 1.0
     trainer = Trainer(rbm, ising, sampler, trainer_config, args=ns_args)
     history = trainer.train()
     save_results(ns_args, history, ising, rbm, energy_j=trainer.total_energy_j, sampler=sampler)

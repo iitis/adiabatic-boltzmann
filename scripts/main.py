@@ -84,7 +84,6 @@ def parse_arguments():
             "velox",
             "simulated_annealing",
             "gibbs",
-            "lsb",
             "exchange",
         ],
         default="simulated_annealing",
@@ -125,13 +124,6 @@ def parse_arguments():
         default=5,
         help="Iterations between β_eff estimates when --cem is active",
     )
-    parser.add_argument(
-        "--sigma",
-        type=float,
-        default=1.0,
-        help='LSB noise precision σ⁻² (paper convention). σ = 1/√(σ⁻²). Default 1.0 → σ=1.0. Only used if --sampling-method is "lsb".',
-    )
-
     parser.add_argument(
         "--output-dir", type=str, default=str(Path(__file__).parent.parent / "results"), help="Directory for results"
     )
@@ -242,7 +234,6 @@ def main():
         "checkpoint_interval": 10,
         "use_cem": args.cem,
         "cem_interval": args.cem_interval,
-        "lsb_sigma": args.sigma,
         "seed": args.seed,
         "n_parallel": args.n_parallel,
     }

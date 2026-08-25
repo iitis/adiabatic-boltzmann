@@ -18,7 +18,7 @@ So beta_x's effect on the physical energy scale seen by the annealer should
 be absorbed by R whenever auto_scale=True, i.e. β_eff should be roughly flat
 across beta_x. With auto_scale=False, R=1 and β_eff should track the ideal
 1/beta_x line (up to a fixed offset set by the QPU's own physical
-temperature) — same ideal reference already used for the classical LSB
+temperature) — same ideal reference already used for the classical SA
 sampler in dtv_beta_scale.py.
 
 Uses a DWaveTopologyRBM (chain-free identity embedding on Pegasus) so any
