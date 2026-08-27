@@ -1,19 +1,6 @@
 """
 Samplers — JAX backend
 
-Key changes vs NumPy/CuPy/Numba version
------------------------------------------
-* CuPy and the _xp device-dispatch abstraction are removed.
-  JAX dispatches to GPU automatically via XLA — no code changes needed.
-* Numba @njit kernels (_mh_sweep_nb, _sa_sweep_nb) replaced by
-  jax.lax.scan-based kernels JIT-compiled once per unique (C, N, n_steps).
-* All np.random calls replaced by jax.random with explicit PRNG keys.
-  ClassicalSampler maintains self._key as stateful key; call _next_key()
-  to get a fresh subkey and advance the state.
-* Gibbs persistent chain (self._gibbs_v) is now a JAX array.
-* In-place mutations like v[idx] = x become v = v.at[idx].set(x).
-* DimodSampler, VeloxSampler, FPGASampler are unchanged — they interface
-  with external hardware and return NumPy arrays.
 """
 
 import fcntl

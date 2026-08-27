@@ -330,15 +330,13 @@ class TransverseFieldIsing1D(IsingModel):
 
     def _compute_exact_ground_energy(self) -> float:
         # Assumes J=1 (ferromagnetic); invalid for AF couplings on odd-N rings.
+        # Ground state always sits in the antiperiodic (APBC) sector for J>0, h>=0
+        # (Lieb-Schultz-Mattis 1961; He & Guo, arXiv:1707.02400, below their Eq. 11) —
+        # no need to compare against the periodic sector.
         N, h = self.size, self.h
         m = np.arange(N)
-        # Ramond sector: anti-periodic fermion BC
-        k_R = np.pi * (2 * m + 1) / N
-        E_R = -float(np.sum(np.sqrt(1.0 + h**2 - 2.0 * h * np.cos(k_R))))
-        # Neveu-Schwarz sector: periodic fermion BC
-        k_NS = 2.0 * np.pi * m / N
-        E_NS = -float(np.sum(np.sqrt(1.0 + h**2 - 2.0 * h * np.cos(k_NS))))
-        return min(E_R, E_NS)
+        k = np.pi * (2 * m + 1) / N
+        return -float(np.sum(np.sqrt(1.0 + h**2 - 2.0 * h * np.cos(k))))
 
     def exact_ground_energy_netket(self):
         import netket as nk

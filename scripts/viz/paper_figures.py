@@ -1390,6 +1390,86 @@ def fig10d_energy_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.
     _save(fig, f"fig10d_energy_vs_n_self_convergence_cv{cv_threshold:g}_eps{epsilon:g}")
 
 
+# ---------------------------------------------------------------------------
+# Figure — TTE vs h at fixed N=16, self-convergence criterion (same
+# criterion as fig10c), Gibbs vs Simulated Annealing, before/at/after h_c=1.
+# ---------------------------------------------------------------------------
+
+def fig_tte_vs_h_n16(cv_threshold=0.05, window=10, epsilon=0.01,
+                      h_values=(0.5, 0.7, 0.9, 1.0, 1.1, 1.3, 1.5), h_c=1.0):
+    N = 16
+
+    def mcmc_recs(solver, h):
+        recs = load(f"results/tfim_1d/{N}/custom/{solver}/result_1d_h{h}_rbmfull_nh{N}_lr0.08_reg0.05_ns200_seed*_iter100_cem0_sigma1.0.json.gz")
+        return [r for r in recs if r["config"]["n_hidden"] == N and abs(r["config"]["learning_rate"] - 0.08) < 1e-9
+                and abs(r["config"]["regularization"] - 0.05) < 1e-9 and r["config"]["n_samples"] == 200
+                and r["config"]["iterations"] == 100][:20]
+
+    series_defs = [
+        ("Gibbs", lambda h: mcmc_recs("gibbs", h), COLOR_GREEN, "s", "-"),
+        ("Simulated Annealing", lambda h: mcmc_recs("simulated_annealing", h), "#6a3d9a", "v", "-."),
+    ]
+
+    def _plot_tte_vs_h(ax, series_idx, label, get_recs, color, marker, linestyle):
+        tte_med, tte_lo, tte_hi, tte_n, tte_budget = [], [], [], [], []
+        for h in h_values:
+            recs = get_recs(h)
+            timed_recs = [r for r in recs if "sampling_time_s" in r["history"] or "total_sampling_time_s" in r["history"]]
+            if timed_recs:
+                tf = "total_sampling_time_s" if "total_sampling_time_s" in timed_recs[0]["history"] else "sampling_time_s"
+                cum_times = [np.cumsum(r["history"][tf]) for r in timed_recs]
+                conv_iters = [compute_validated_convergence_iter(
+                    r["history"], r["exact_energy"], N, epsilon, cv_threshold, window
+                ) for r in timed_recs]
+                ttes = [float(ct[it - 1]) for ct, it in zip(cum_times, conv_iters) if it is not None]
+                m, lo, hi = median_iqr(ttes) if ttes else (None, None, None)
+                tte_med.append(m); tte_lo.append(lo); tte_hi.append(hi)
+                tte_n.append((len(ttes), len(recs)))
+                tte_budget.append(max((float(ct[-1]) for ct in cum_times), default=None))
+            else:
+                tte_med.append(None); tte_lo.append(None); tte_hi.append(None)
+                tte_n.append((0, 0)); tte_budget.append(None)
+
+        xs = [h for h, m in zip(h_values, tte_med) if m is not None]
+        ys = [m for m in tte_med if m is not None]
+        lo_v = [v for v in tte_lo if v is not None]
+        hi_v = [v for v in tte_hi if v is not None]
+        if xs:
+            yerr = [[y - lo for y, lo in zip(ys, lo_v)], [hi - y for y, hi in zip(ys, hi_v)]]
+            ax.errorbar(xs, ys, yerr=yerr, marker=marker, color=color, label=label,
+                        markersize=10, linewidth=2.0, capsize=4, zorder=3, linestyle=linestyle)
+        else:
+            ax.plot([], [], marker=marker, color=color, linestyle=linestyle, label=label)
+        cx = [h for h, m, b in zip(h_values, tte_med, tte_budget) if m is None and b is not None]
+        cb = [b * (1.0 + 0.05 * series_idx) for m, b in zip(tte_med, tte_budget) if m is None and b is not None]
+        if cx:
+            ax.scatter(cx, cb, marker=marker, facecolors="none", edgecolors=color, s=100, linewidth=1.6, zorder=3)
+        for idx, h in enumerate(h_values):
+            r, total = tte_n[idx]
+            if total and r < total:
+                y_pos = tte_budget[idx] if tte_med[idx] is None else tte_med[idx]
+                if y_pos is not None:
+                    ax.annotate(f"{r}/{total}", (h, y_pos), textcoords="offset points",
+                                xytext=(5, 7), fontsize=9, color=color, ha="left")
+
+    setup_style(fontsize=13)
+    fig, ax = plt.subplots(figsize=(7, 6))
+    for series_idx, (label, get_recs, color, marker, linestyle) in enumerate(series_defs):
+        _plot_tte_vs_h(ax, series_idx, label, get_recs, color, marker, linestyle)
+
+    ax.axvline(h_c, color=MUTED, linestyle=":", linewidth=1.5, zorder=1)
+    ax.text(h_c, 1.01, "$h_c$", transform=ax.get_xaxis_transform(),
+            ha="center", va="bottom", fontsize=10, color=MUTED)
+
+    ax.set_yscale("log")
+    ax.set_xlabel("Transverse field $h$")
+    ax.set_ylabel(f"TTE to $\\epsilon={epsilon:.3g}$ [s]\n(median, IQR)")
+    ax.legend(loc="best", fontsize=10, handlelength=1.6, borderpad=0.4)
+    ax.set_title(f"TTE vs $h$, $N={N}$ (lr=0.08, reg=0.05, ns=200)", fontsize=13)
+    fig.tight_layout()
+    _save(fig, f"fig_tte_vs_h_n{N}_cv{cv_threshold:g}_eps{epsilon:g}")
+
+
 def fig11_appendix_convergence_grid():
     # One row per model. Column 0 compares solvers at one parameter value;
     # columns 1-2 sweep the model's physical parameter with its richest
