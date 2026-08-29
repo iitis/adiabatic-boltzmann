@@ -4,12 +4,9 @@ plot_phase_transition_ordering.py
 
 Trains a small RBM-VMC on the 1D TFIM at three values of the transverse
 field h (ordered / critical / disordered) and visualises how spin ordering
-changes across the quantum phase transition at h_c = 1:
-
-  Row 0: heatmap of spin configurations sampled from the trained RBM
-          (rows = samples sorted by magnetisation, columns = sites)
-  Row 1: spin-spin correlation C(r) = <σ⁰z σrz> vs distance r,
-          VMC samples (solid) vs exact ground state (dashed)
+changes across the quantum phase transition at h_c = 1, via a heatmap of
+spin configurations sampled from the trained RBM (rows = samples sorted by
+magnetisation, columns = sites).
 
 The relative energy error ε is shown in each panel to demonstrate that the
 model has actually converged to the correct ground state.
@@ -30,8 +27,6 @@ import matplotlib.colors as mcolors
 import matplotlib.patches as mpatches
 from matplotlib.gridspec import GridSpec
 import numpy as np
-import scipy.sparse as sp
-from scipy.sparse.linalg import eigsh
 
 _REPO = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_REPO / "src"))
@@ -54,57 +49,6 @@ H_POINTS = [
     (1.0, r"Critical  ($h = 1.0 = h_c$)"),
     (1.7, r"Disordered  ($h = 1.7 > h_c$)"),
 ]
-
-_COLORS = ["#2166ac", "#756bb1", "#d7191c"]
-
-
-# ── Exact reference ───────────────────────────────────────────────────────────
-
-def _build_tfim_sparse(N: int, h: float) -> sp.csr_matrix:
-    """TFIM sparse Hamiltonian; bit (N-1-i) of index s encodes spin i."""
-    dim = 2 ** N
-    k = np.arange(dim, dtype=np.int64)
-
-    diag = np.zeros(dim)
-    for i in range(N):
-        j = (i + 1) % N
-        si = (1 - 2 * ((k >> (N - 1 - i)) & 1)).astype(float)
-        sj = (1 - 2 * ((k >> (N - 1 - j)) & 1)).astype(float)
-        diag -= si * sj
-
-    row_list, col_list, val_list = [k], [k], [diag]
-    for i in range(N):
-        flip = k ^ (1 << (N - 1 - i))
-        row_list.append(k)
-        col_list.append(flip)
-        val_list.append(np.full(dim, -h))
-
-    rows = np.concatenate(row_list)
-    cols = np.concatenate(col_list)
-    vals = np.concatenate(val_list)
-    return sp.csr_matrix((vals, (rows, cols)), shape=(dim, dim))
-
-
-def exact_spin_corr(N: int, h: float, max_r: int) -> np.ndarray:
-    """C_exact(r) = <ψ₀| σ₀z σᵣz |ψ₀> from full diagonalization."""
-    H = _build_tfim_sparse(N, h)
-    _, vecs = eigsh(H, k=1, which="SA")
-    psi2 = vecs[:, 0] ** 2
-
-    k = np.arange(2 ** N, dtype=np.int64)
-    s0 = (1 - 2 * ((k >> (N - 1)) & 1)).astype(float)
-
-    corr = np.empty(max_r + 1)
-    for r in range(max_r + 1):
-        sr = (1 - 2 * ((k >> (N - 1 - r)) & 1)).astype(float)
-        corr[r] = np.sum(psi2 * s0 * sr)
-    return corr
-
-
-def vmc_spin_corr(V: np.ndarray, max_r: int) -> np.ndarray:
-    """C_VMC(r) = mean over samples of σ₀ · σᵣ."""
-    N = V.shape[1]
-    return np.array([np.mean(V[:, 0] * V[:, r % N]) for r in range(max_r + 1)])
 
 
 # ── Training ──────────────────────────────────────────────────────────────────
@@ -141,7 +85,6 @@ def train_and_sample(
 
 def make_figure(args):
     N = args.size
-    max_r = N // 2
 
     out = _REPO / "plots" / "phase_transitions"
     out.mkdir(parents=True, exist_ok=True)
@@ -184,20 +127,16 @@ def make_figure(args):
     cmap_spins = mcolors.ListedColormap(["#2166ac", "#d7191c"])
     spin_norm  = mcolors.BoundaryNorm([-1.5, 0, 1.5], cmap_spins.N)
 
-    fig = plt.figure(figsize=(12, 5.5))
+    fig = plt.figure(figsize=(12, 3.3))
     gs = GridSpec(
-        2, 4, figure=fig,
-        height_ratios=[2.2, 1],
+        1, 4, figure=fig,
         width_ratios=[1, 1, 1, 0.12],
-        hspace=0.55, wspace=0.32,
+        wspace=0.32,
     )
     heat_axes = [fig.add_subplot(gs[0, c]) for c in range(3)]
-    corr_axes = [fig.add_subplot(gs[1, c]) for c in range(3)]
     cbar_ax   = fig.add_subplot(gs[0, 3])
 
-    for col, ((h, label), (V, E_vmc, E_exact)) in enumerate(zip(H_POINTS, phase_data)):
-        color = _COLORS[col]
-
+    for col, ((_, label), (V, E_vmc, E_exact)) in enumerate(zip(H_POINTS, phase_data)):
         # Sort rows by total magnetisation: ordered → two clear blocks (↑↑ / ↓↓)
         order = np.argsort(V.sum(axis=1))[::-1]
         V_plot = V[order]
@@ -224,22 +163,6 @@ def make_figure(args):
             ha="right", va="bottom", fontsize=8, color="white",
             bbox=dict(boxstyle="round,pad=0.2", fc="#222", alpha=0.55, ec="none"),
         )
-
-        # ── correlation ────────────────────────────────────────────────────
-        ax_c = corr_axes[col]
-        r_vals = np.arange(max_r + 1)
-        c_exact = exact_spin_corr(N, h, max_r)
-        c_vmc   = vmc_spin_corr(V, max_r)
-
-        ax_c.plot(r_vals, c_exact, "k--", lw=1.3, label="Exact")
-        ax_c.plot(r_vals, c_vmc,   color=color, lw=1.8, label="VMC")
-        ax_c.axhline(0, color="#aaaaaa", lw=0.7, ls=":")
-        ax_c.set_xlabel(r"Distance $r$", fontsize=9)
-        if col == 0:
-            ax_c.set_ylabel(r"$\langle \sigma^z_0 \sigma^z_r \rangle$", fontsize=9)
-        ax_c.legend(fontsize=8, loc="upper right", handlelength=1.5)
-        ax_c.set_xlim(0, max_r)
-        ax_c.set_xticks(range(0, max_r + 1, 2))
 
     # ── spin legend: two discrete swatches (spins are binary, no gradient) ──
     cbar_ax.axis("off")

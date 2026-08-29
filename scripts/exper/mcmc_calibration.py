@@ -75,12 +75,18 @@ inspected):
     *sequentially*.
   - Seeds 90..99 (10 seeds), disjoint from the reported 0..19 seeds used
     by the actual fig10c figure.
-  - Score = (validated_rate, median_TTE), computed with the *exact same*
-    compute_validated_convergence_iter(cv_threshold=0.05, window=10,
-    epsilon=0.01) and cumulative-sampling_time_s TTE convention as
-    paper_figures.py's fig10c_tte_vs_n_self_convergence, so the
-    calibration criterion matches the criterion the paper figure itself
-    reports against.
+  - Score = (validated_rate, median_TTE), computed with
+    compute_cv_self_convergence_iter(cv_threshold=0.05, window=10,
+    epsilon=0.01) and cumulative-sampling_time_s TTE convention.
+    NOTE: this is the CV self-detection criterion, kept here for this
+    calibration script's own internal-tuning purposes; it is no longer the
+    criterion paper_figures.py's fig10c_tte_vs_n_validated_convergence uses
+    to render the published TTE figure (that now follows report.tex's
+    literal text-protocol definition, sec:exper:tte). The parameter values
+    this script already chose are baked into the archived production result
+    files regardless of which criterion later scores them, so this
+    divergence does not require re-running the calibration or the
+    production sweeps.
   - Decision rule (fixed before results were inspected -- see decide()):
     among candidates whose median TTE is within 2x of the baseline's
     (the grid's first/cheapest value) median TTE, pick the CHEAPEST
@@ -131,7 +137,7 @@ jax.config.update("jax_enable_x64", True)
 from mcmc_matched_sweep import run_one  # noqa: E402
 import matplotlib
 matplotlib.use("Agg")
-from paper_figures import load, compute_validated_convergence_iter, median_iqr  # noqa: E402
+from paper_figures import load, compute_cv_self_convergence_iter, median_iqr  # noqa: E402
 
 METROPOLIS_GRID = [200, 400, 800, 1600]
 GIBBS_GRID = [10, 20, 40, 80]
@@ -191,7 +197,7 @@ def _score(solver_dir):
         hist = r["history"]
         tf = "total_sampling_time_s" if "total_sampling_time_s" in hist else "sampling_time_s"
         cum = np.cumsum(hist[tf])
-        it = compute_validated_convergence_iter(
+        it = compute_cv_self_convergence_iter(
             hist, r["exact_energy"], SIZE, EPSILON, CV_THRESHOLD, WINDOW
         )
         if it is not None:

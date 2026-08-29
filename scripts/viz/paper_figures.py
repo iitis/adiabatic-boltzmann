@@ -85,17 +85,21 @@ def compute_convergence_iter(history, cv_threshold, window=10):
     return None
 
 
-def compute_validated_convergence_iter(history, exact_energy, size, epsilon, cv_threshold, window=10):
-    """A genuine TTE point: the run must (1) self-detect convergence (see
-    compute_convergence_iter -- oracle-free, this is what a real deployment
-    without a known answer would use to decide "we're done") AND (2) the
-    value it stopped at must actually be within epsilon energy-error-per-spin
-    of the true answer (same convention as compute_ite). A run that
-    self-detects convergence at the WRONG plateau (verified to happen often
-    for uncalibrated D-Wave sampling, see conversation) does NOT count --
-    it's censored, same as a run that never stabilizes at all. This is what
-    makes it a genuine "time to a good answer" rather than "time to
-    training visibly stopping", which those two can disagree about.
+def compute_cv_self_convergence_iter(history, exact_energy, size, epsilon, cv_threshold, window=10):
+    """CV-based self-detected + validated convergence point: the run must (1)
+    self-detect convergence (see compute_convergence_iter -- oracle-free, this
+    is what a real deployment without a known answer would use to decide
+    "we're done") AND (2) the value it stopped at must actually be within
+    epsilon energy-error-per-spin of the true answer (same convention as
+    compute_ite). A run that self-detects convergence at the WRONG plateau
+    (verified to happen often for uncalibrated D-Wave sampling, see
+    conversation) does NOT count -- it's censored, same as a run that never
+    stabilizes at all.
+
+    This is the internal-tuning criterion used by mcmc_calibration.py to pick
+    solver mixing/integration parameters. It is NOT the report's published TTE
+    criterion -- see compute_validated_convergence_iter below for that (report
+    sec:exper:tte, Figure 15 / fig10c-fig10d).
 
     Returns the self-detected convergence iteration if validated, else None.
     """
@@ -109,6 +113,65 @@ def compute_validated_convergence_iter(history, exact_energy, size, epsilon, cv_
     if abs(mean_e - exact_energy) / size < epsilon:
         return conv_iter
     return None
+
+
+def compute_validated_convergence_iter(energies, exact_energy, size, epsilon, window=10):
+    """The report's published TTE criterion (sec:exper:tte, Figure 15): the
+    causal rolling-window (size `window`) mean energy error per spin,
+    |mean(E)-E_exact|/size, must first drop below epsilon AND then stay below
+    epsilon for `window` consecutive iterations -- the crossing iteration is
+    the first element of that sustained window. Oracle-based (uses
+    exact_energy directly, unlike the CV self-detection criterion above).
+
+    Requiring `window` consecutive passes rather than a single crossing
+    discards runs that briefly and spuriously dip below epsilon before moving
+    back away from it (observed in some D-Wave trajectories).
+
+    Returns the 1-indexed iteration of that first sustained-below-epsilon
+    window, or None if the run never satisfies the criterion within its
+    recorded iteration budget (censored).
+    """
+    n = len(energies)
+    errors = []
+    for t in range(n):
+        w_start = max(0, t - window + 1)
+        mean_e = sum(energies[w_start:t + 1]) / (t - w_start + 1)
+        errors.append(abs(mean_e - exact_energy) / size)
+    for t in range(n):
+        if errors[t] < epsilon:
+            end = t + window
+            if end <= n and all(e < epsilon for e in errors[t:end]):
+                return t + 1
+    return None
+
+
+def tte99_from_validated(ttes, total, p_target=0.99):
+    """Convert a validated-convergence sample (per-seed TTEs from
+    compute_validated_convergence_iter, evaluated at the fixed iteration
+    budget) into the literature-standard probabilistic TTE (arXiv:2401.07184,
+    generalizing TTS/TTS99 from exact-ground-state success to
+    within-epsilon success): TTE99 = T_r * ln(1-p_target)/ln(1-p), where
+    p = len(ttes)/total is the validated (success) fraction and T_r is a
+    representative single-run time. This is the expected total wall-clock
+    time to reach epsilon with p_target confidence, if a run that fails to
+    validate within its budget is discarded and restarted from scratch with
+    a new seed.
+
+    Applied identically to the median and IQR bounds (R depends only on p,
+    a single scalar per cell, not on the individual seed's own TTE).
+
+    Returns (None, None, None, p) if no seed validated (p=0, undefined --
+    infinitely many restarts would be needed); returns (T_r, T_r, T_r, 1.0)
+    unchanged if every seed validated (p=1, R=1, no repeats needed).
+    """
+    p = len(ttes) / total if total else 0.0
+    if not ttes:
+        return None, None, None, p
+    m, lo, hi = median_iqr(ttes)
+    if p >= 1.0:
+        return m, lo, hi, p
+    R = np.log(1 - p_target) / np.log(1 - p)
+    return m * R, lo * R, hi * R, p
 
 
 def fit_powerlaw_exponent(xs, ys):
@@ -1112,11 +1175,19 @@ def fig10b_ite_tte_vs_n_qpu_only(epsilon=0.01):
 
 
 # ---------------------------------------------------------------------------
-# Figure 10c — same as Figure 10, but time-to-convergence (self-detected,
-# no exact_energy needed) instead of time-to-epsilon.
+# Figure 10c — same as Figure 10, but using the report's published TTE99
+# criterion (report.tex sec:exper:tte, Figure 15): the per-seed rolling-window
+# sustained crossing of epsilon (compute_validated_convergence_iter) gives,
+# per cell, a validated fraction p and a median single-run time T_r; TTE99
+# converts these into the literature-standard 99%-confidence repeated-trials
+# time (tte99_from_validated), generalizing TTS/TTS99 (arXiv:2401.07184).
+# Raw (non-CEM) Pegasus/Zephyr are omitted here: their low validated
+# fractions make TTE99 blow up by 1-2 orders of magnitude, which would
+# dominate the shared log-scale axis; the CEM-corrected series already make
+# the CEM-matters point by contrast.
 # ---------------------------------------------------------------------------
 
-def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01):
+def fig10c_tte_vs_n_validated_convergence(window=10, epsilon=0.1, p_target=0.99):
     def mcmc_recs(solver, n, cem=0):
         recs = load(f"results/tfim_1d/{n}/custom/{solver}/result_1d_h0.5_rbmfull_nh{n}_lr0.08_reg0.05_ns200_seed*_iter100_cem{cem}_sigma1.0.json.gz")
         return [r for r in recs if r["config"]["n_hidden"] == n and abs(r["config"]["learning_rate"] - 0.08) < 1e-9
@@ -1155,9 +1226,7 @@ def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01)
             ("FPGA", _sizes, lambda n: fpga_recs(n), "#ffa600", "X", "-"),
         ]),
         ("(c) Quantum annealers (QPU)", [
-            ("Pegasus (QPU)", _pegasus_sizes, lambda n: dwave_recs("pegasus", n, cem=0), "#bc5090", "*", ":"),
             ("Pegasus (+CEM)", _pegasus_sizes, lambda n: dwave_recs("pegasus", n, cem=1), "#bc5090", "D", "--"),
-            ("Zephyr (QPU)", _dwave_sizes, lambda n: dwave_recs("zephyr", n, cem=0), "#ef5675", "*", ":"),
             ("Zephyr (+CEM)", _dwave_sizes, lambda n: dwave_recs("zephyr", n, cem=1), "#ef5675", "h", "--"),
         ]),
     ]
@@ -1171,10 +1240,10 @@ def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01)
                 tf = "total_sampling_time_s" if "total_sampling_time_s" in timed_recs[0]["history"] else "sampling_time_s"
                 cum_times = [np.cumsum(r["history"][tf]) for r in timed_recs]
                 conv_iters = [compute_validated_convergence_iter(
-                    r["history"], r["exact_energy"], n, epsilon, cv_threshold, window
+                    r["history"]["energy"], r["exact_energy"], n, epsilon, window
                 ) for r in timed_recs]
                 ttes = [float(ct[it - 1]) for ct, it in zip(cum_times, conv_iters) if it is not None]
-                m, l, h = median_iqr(ttes) if ttes else (None, None, None)
+                m, l, h, _p = tte99_from_validated(ttes, len(recs), p_target)
                 tte_med.append(m); tte_lo.append(l); tte_hi.append(h)
                 tte_n.append((len(ttes), len(recs)))
                 tte_budget.append(max((float(ct[-1]) for ct in cum_times), default=None))
@@ -1221,19 +1290,20 @@ def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01)
         ax.set_title(panel_title, fontsize=13)
         ax.legend(loc=legend_loc, fontsize=10, handlelength=1.6, borderpad=0.4)
 
-    axes[0].set_ylabel(f"TTE to $\\epsilon={epsilon:.3g}$ [s]\n(median, IQR)")
+    axes[0].set_ylabel(f"TTE$_{{{p_target*100:.0f}}}$ to $\\epsilon={epsilon:.3g}$ [s]\n(median, IQR)")
     for ax in axes[1:]:
         ax.label_outer()
 
-    fig.suptitle("TTE at convergence (h=0.5, lr=0.08, reg=0.05, ns=200)", fontsize=14)
+    fig.suptitle(f"TTE$_{{{p_target*100:.0f}}}$ at convergence (h=0.5, lr=0.08, reg=0.05, ns=200)", fontsize=14)
     fig.tight_layout()
-    _save(fig, f"fig10c_tte_vs_n_self_convergence_cv{cv_threshold:g}_eps{epsilon:g}")
+    _save(fig, f"fig10c_tte{p_target*100:.0f}_vs_n_eps{epsilon:g}")
 
 
 # ---------------------------------------------------------------------------
 # Figure 10d — energy-to-convergence vs N. Same cells/methodology as Figure
-# 10c (self-detected + epsilon-validated convergence), plotted as GPU energy
-# (Wh) instead of wall-clock time.
+# 10c (report.tex's published TTE99 criterion: compute_validated_convergence_iter
+# per seed, then tte99_from_validated's 99%-confidence conversion applied to
+# energy instead of time), plotted as GPU energy (Wh) instead of wall-clock time.
 #
 # Metropolis/Gibbs read from the main results/tfim_1d/ archive --
 # same as fig10c. They used to live in a separate results/energy_corrected/
@@ -1278,7 +1348,7 @@ def fig10c_tte_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01)
 FPGA_ASSUMED_POWER_W = 45.0  # matches plot_ite.py's ASSUMED_POWER_W["fpga/fpga"]
 
 
-def fig10d_energy_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.01):
+def fig10d_energy_vs_n_validated_convergence(window=10, epsilon=0.1, p_target=0.99):
     def mcmc_recs(solver, n, cem=0):
         recs = load(f"results/tfim_1d/{n}/custom/{solver}/result_1d_h0.5_rbmfull_nh{n}_lr0.08_reg0.05_ns200_seed*_iter100_cem{cem}_sigma1.0.json.gz")
         return [r for r in recs if r["config"]["n_hidden"] == n and abs(r["config"]["learning_rate"] - 0.08) < 1e-9
@@ -1309,7 +1379,7 @@ def fig10d_energy_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.
 
     def _energy_at_conv_wh(r, n, power_w):
         conv_iter = compute_validated_convergence_iter(
-            r["history"], r["exact_energy"], n, epsilon, cv_threshold, window
+            r["history"]["energy"], r["exact_energy"], n, epsilon, window
         )
         if conv_iter is None:
             return None
@@ -1331,7 +1401,7 @@ def fig10d_energy_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.
         for n in sizes:
             recs = get_recs(n)
             vals = [v for v in (_energy_at_conv_wh(r, n, power_w) for r in recs) if v is not None]
-            m, l, h = median_iqr(vals) if vals else (None, None, None)
+            m, l, h, _p = tte99_from_validated(vals, len(recs), p_target)
             e_med.append(m); e_lo.append(l); e_hi.append(h)
             e_n.append((len(vals), len(recs)))
 
@@ -1377,25 +1447,26 @@ def fig10d_energy_vs_n_self_convergence(cv_threshold=0.05, window=10, epsilon=0.
         ax.set_title(panel_title, fontsize=13)
         ax.legend(loc=legend_loc, fontsize=9, handlelength=1.6, borderpad=0.4)
 
-    axes[0].set_ylabel("Energy to convergence [Wh]\n(median, IQR)")
+    axes[0].set_ylabel(f"Energy$_{{{p_target*100:.0f}}}$ to convergence [Wh]\n(median, IQR)")
     for ax in axes[1:]:
         ax.label_outer()
 
     fig.suptitle(
-        "Energy at convergence (h=0.5, lr=0.08, reg=0.05, ns=200)\n"
+        f"Energy$_{{{p_target*100:.0f}}}$ at convergence (h=0.5, lr=0.08, reg=0.05, ns=200)\n"
         "D-Wave QPU omitted -- no per-job energy telemetry available",
         fontsize=13,
     )
     fig.tight_layout()
-    _save(fig, f"fig10d_energy_vs_n_self_convergence_cv{cv_threshold:g}_eps{epsilon:g}")
+    _save(fig, f"fig10d_energy{p_target*100:.0f}_vs_n_eps{epsilon:g}")
 
 
 # ---------------------------------------------------------------------------
-# Figure — TTE vs h at fixed N=16, self-convergence criterion (same
-# criterion as fig10c), Gibbs vs Simulated Annealing, before/at/after h_c=1.
+# Figure — TTE99 vs h at fixed N=16, using the report's published TTE99
+# criterion (same criterion as fig10c: compute_validated_convergence_iter +
+# tte99_from_validated), Gibbs vs Simulated Annealing, before/at/after h_c=1.
 # ---------------------------------------------------------------------------
 
-def fig_tte_vs_h_n16(cv_threshold=0.05, window=10, epsilon=0.01,
+def fig_tte_vs_h_n16(window=10, epsilon=0.1, p_target=0.99,
                       h_values=(0.5, 0.7, 0.9, 1.0, 1.1, 1.3, 1.5), h_c=1.0):
     N = 16
 
@@ -1419,10 +1490,10 @@ def fig_tte_vs_h_n16(cv_threshold=0.05, window=10, epsilon=0.01,
                 tf = "total_sampling_time_s" if "total_sampling_time_s" in timed_recs[0]["history"] else "sampling_time_s"
                 cum_times = [np.cumsum(r["history"][tf]) for r in timed_recs]
                 conv_iters = [compute_validated_convergence_iter(
-                    r["history"], r["exact_energy"], N, epsilon, cv_threshold, window
+                    r["history"]["energy"], r["exact_energy"], N, epsilon, window
                 ) for r in timed_recs]
                 ttes = [float(ct[it - 1]) for ct, it in zip(cum_times, conv_iters) if it is not None]
-                m, lo, hi = median_iqr(ttes) if ttes else (None, None, None)
+                m, lo, hi, _p = tte99_from_validated(ttes, len(recs), p_target)
                 tte_med.append(m); tte_lo.append(lo); tte_hi.append(hi)
                 tte_n.append((len(ttes), len(recs)))
                 tte_budget.append(max((float(ct[-1]) for ct in cum_times), default=None))
@@ -1463,11 +1534,11 @@ def fig_tte_vs_h_n16(cv_threshold=0.05, window=10, epsilon=0.01,
 
     ax.set_yscale("log")
     ax.set_xlabel("Transverse field $h$")
-    ax.set_ylabel(f"TTE to $\\epsilon={epsilon:.3g}$ [s]\n(median, IQR)")
+    ax.set_ylabel(f"TTE$_{{{p_target*100:.0f}}}$ to $\\epsilon={epsilon:.3g}$ [s]\n(median, IQR)")
     ax.legend(loc="best", fontsize=10, handlelength=1.6, borderpad=0.4)
-    ax.set_title(f"TTE vs $h$, $N={N}$ (lr=0.08, reg=0.05, ns=200)", fontsize=13)
+    ax.set_title(f"TTE$_{{{p_target*100:.0f}}}$ vs $h$, $N={N}$ (lr=0.08, reg=0.05, ns=200)", fontsize=13)
     fig.tight_layout()
-    _save(fig, f"fig_tte_vs_h_n{N}_cv{cv_threshold:g}_eps{epsilon:g}")
+    _save(fig, f"fig_tte{p_target*100:.0f}_vs_h_n{N}_eps{epsilon:g}")
 
 
 def fig11_appendix_convergence_grid():
@@ -1826,5 +1897,7 @@ if __name__ == "__main__":
     fig8_all_solvers_n16()
     fig9_ite_tte_all_solvers_n16()
     fig10_ite_tte_vs_n_all_solvers()
+    fig10c_tte_vs_n_validated_convergence()
+    fig10d_energy_vs_n_validated_convergence()
     fig11_appendix_convergence_grid()
     fig12_appendix_size_solver_grid()
