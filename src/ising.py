@@ -49,19 +49,21 @@ def _local_energy_1d_jit(
 
     All N flips computed at once as a (ns, N, M) tensor — one XLA kernel.
     """
-    theta = V @ W + b[None, :]                              # (ns, M)
-    blc = jnp.logaddexp(theta, -theta)                      # logcosh base  (ns, M)
+    theta = V @ W + b[None, :]  # (ns, M)
+    blc = jnp.logaddexp(theta, -theta)  # logcosh base  (ns, M)
 
-    theta_flipped = theta[:, None, :] - 2.0 * V[:, :, None] * W[None, :, :]  # (ns, N, M)
+    theta_flipped = (
+        theta[:, None, :] - 2.0 * V[:, :, None] * W[None, :, :]
+    )  # (ns, N, M)
 
     log_ratios = a[None, :] * V + 0.5 * jnp.sum(
         jnp.logaddexp(theta_flipped, -theta_flipped) - blc[:, None, :], axis=2
     )  # (ns, N)
 
-    E_off = -h * jnp.sum(jnp.exp(log_ratios), axis=1)      # (ns,)
+    E_off = -h * jnp.sum(jnp.exp(log_ratios), axis=1)  # (ns,)
 
     right = (jnp.arange(N) + 1) % N
-    E_diag = -jnp.sum(V * V[:, right], axis=1)             # (ns,)
+    E_diag = -jnp.sum(V * V[:, right], axis=1)  # (ns,)
 
     return E_diag + E_off
 
@@ -94,7 +96,7 @@ def _local_energy_2d_jit(
     i_idx = jnp.arange(N)
     cols = i_idx % L
     rows = i_idx // L
-    right_idx = rows * L + (cols + 1) % L   # right neighbor (periodic within row)
+    right_idx = rows * L + (cols + 1) % L  # right neighbor (periodic within row)
     down_idx = ((rows + 1) % L) * L + cols  # down neighbor  (periodic across rows)
 
     E_diag = -jnp.sum(V * V[:, right_idx] + V * V[:, down_idx], axis=1)
@@ -138,30 +140,32 @@ def _local_energy_xxz_1d_jit(
         log Ψ'/Ψ = aᵢvᵢ + aᵣvᵣ + ½ Σⱼ [logcosh(θⱼ - 2vᵢWᵢⱼ - 2vᵣWᵣⱼ) - logcosh(θⱼ)]
     where r = right[i].  Vectorised over all N bonds as a (ns, N, M) tensor.
     """
-    theta = V @ W + b[None, :]                               # (ns, M)
-    blc = jnp.logaddexp(theta, -theta)                        # logcosh base (ns, M)
+    theta = V @ W + b[None, :]  # (ns, M)
+    blc = jnp.logaddexp(theta, -theta)  # logcosh base (ns, M)
 
-    right = (jnp.arange(N) + 1) % N                          # (N,) right-neighbor indices
+    right = (jnp.arange(N) + 1) % N  # (N,) right-neighbor indices
 
     delta_theta = -2.0 * (
-        V[:, :, None] * W[None, :, :]            # (ns, N, M)  site-i contribution
-        + V[:, right, None] * W[None, right, :]  # (ns, N, M)  right-neighbor contribution
-    )                                             # (ns, N, M)
+        V[:, :, None] * W[None, :, :]  # (ns, N, M)  site-i contribution
+        + V[:, right, None]
+        * W[None, right, :]  # (ns, N, M)  right-neighbor contribution
+    )  # (ns, N, M)
 
-    theta_flipped = theta[:, None, :] + delta_theta           # (ns, N, M)
+    theta_flipped = theta[:, None, :] + delta_theta  # (ns, N, M)
 
     log_ratios = (
-        a[None, :] * V                            # (ns, N)  a[i]*v[i]
-        + a[None, right] * V[:, right]            # (ns, N)  a[right[i]]*v[right[i]]
-        + 0.5 * jnp.sum(
+        a[None, :] * V  # (ns, N)  a[i]*v[i]
+        + a[None, right] * V[:, right]  # (ns, N)  a[right[i]]*v[right[i]]
+        + 0.5
+        * jnp.sum(
             jnp.logaddexp(theta_flipped, -theta_flipped) - blc[:, None, :], axis=2
         )
-    )                                             # (ns, N)
+    )  # (ns, N)
 
     # antiparallel→2, parallel→0 — already encodes the 2J factor
-    exchange = 1.0 - V * V[:, right]                                        # (ns, N)
+    exchange = 1.0 - V * V[:, right]  # (ns, N)
     E_off = off_sign * J * jnp.sum(exchange * jnp.exp(log_ratios), axis=1)  # (ns,)
-    E_diag = J * delta * jnp.sum(V * V[:, right], axis=1)                   # (ns,)
+    E_diag = J * delta * jnp.sum(V * V[:, right], axis=1)  # (ns,)
 
     return E_diag + E_off
 
@@ -195,32 +199,32 @@ def _local_energy_j1j2_heisenberg_jit(
         H = J₁ Σᵢ [σˣᵢσˣᵢ₊₁ + σʸᵢσʸᵢ₊₁ + Δ σᶻᵢσᶻᵢ₊₁]
           + J₂ Σᵢ [σˣᵢσˣᵢ₊₂ + σʸᵢσʸᵢ₊₂ + Δ σᶻᵢσᶻᵢ₊₂]
     """
-    theta = V @ W + b[None, :]                               # (ns, M)
-    blc = jnp.logaddexp(theta, -theta)                       # logcosh base (ns, M)
+    theta = V @ W + b[None, :]  # (ns, M)
+    blc = jnp.logaddexp(theta, -theta)  # logcosh base (ns, M)
 
-    right1 = (jnp.arange(N) + 1) % N                        # NN neighbours
-    right2 = (jnp.arange(N) + 2) % N                        # NNN neighbours
+    right1 = (jnp.arange(N) + 1) % N  # NN neighbours
+    right2 = (jnp.arange(N) + 2) % N  # NNN neighbours
 
     def bond_off_diagonal(right_idx: jax.Array, J_bond: float) -> jax.Array:
         delta_theta = -2.0 * (
             V[:, :, None] * W[None, :, :]
             + V[:, right_idx, None] * W[None, right_idx, :]
-        )                                                    # (ns, N, M)
-        theta_flipped = theta[:, None, :] + delta_theta     # (ns, N, M)
+        )  # (ns, N, M)
+        theta_flipped = theta[:, None, :] + delta_theta  # (ns, N, M)
         log_ratios = (
             a[None, :] * V
             + a[None, right_idx] * V[:, right_idx]
-            + 0.5 * jnp.sum(
+            + 0.5
+            * jnp.sum(
                 jnp.logaddexp(theta_flipped, -theta_flipped) - blc[:, None, :], axis=2
             )
-        )                                                    # (ns, N)
-        exchange = 1.0 - V * V[:, right_idx]               # (ns, N)
+        )  # (ns, N)
+        exchange = 1.0 - V * V[:, right_idx]  # (ns, N)
         return J_bond * jnp.sum(exchange * jnp.exp(log_ratios), axis=1)  # (ns,)
 
     E_off = bond_off_diagonal(right1, nn_off_sign * J1) + bond_off_diagonal(right2, J2)
-    E_diag = (
-        J1 * delta * jnp.sum(V * V[:, right1], axis=1)
-        + J2 * delta * jnp.sum(V * V[:, right2], axis=1)
+    E_diag = J1 * delta * jnp.sum(V * V[:, right1], axis=1) + J2 * delta * jnp.sum(
+        V * V[:, right2], axis=1
     )
     return E_diag + E_off
 
@@ -289,9 +293,7 @@ class TransverseFieldIsing1D(IsingModel):
     def local_energy(self, v: np.ndarray, psi_ratio_fn) -> float:
         E_diag = (
             -sum(
-                v[i] * v[i_n]
-                for i in range(self.size)
-                for i_n in self.get_neighbors(i)
+                v[i] * v[i_n] for i in range(self.size) for i_n in self.get_neighbors(i)
             )
             / 2
         )
@@ -311,22 +313,25 @@ class TransverseFieldIsing1D(IsingModel):
         """
         N = self.size
         h = self.h
-        log_p_V = jax.vmap(log_psi_fn)(V)                   # (ns,)
+        log_p_V = jax.vmap(log_psi_fn)(V)  # (ns,)
         right = (jnp.arange(N) + 1) % N
-        E_diag = -jnp.sum(V * V[:, right], axis=1)           # (ns,)
+        E_diag = -jnp.sum(V * V[:, right], axis=1)  # (ns,)
 
         def ratio_for_site(i):
             mask = jax.nn.one_hot(i, N, dtype=jnp.float64)
-            V_flip = V * (1.0 - 2.0 * mask[None, :])         # (ns, N)
+            V_flip = V * (1.0 - 2.0 * mask[None, :])  # (ns, N)
             return jnp.exp(jax.vmap(log_psi_fn)(V_flip) - log_p_V)  # (ns,)
 
         all_ratios = jax.vmap(ratio_for_site)(jnp.arange(N))  # (N, ns)
-        E_off = -h * jnp.sum(all_ratios, axis=0)              # (ns,)
+        E_off = -h * jnp.sum(all_ratios, axis=0)  # (ns,)
         return E_diag + E_off
 
     def exact_ground_energy(self) -> float:
         from reference_energies import get_or_compute
-        return get_or_compute("1d", self.size, self.h, self._compute_exact_ground_energy)
+
+        return get_or_compute(
+            "1d", self.size, self.h, self._compute_exact_ground_energy
+        )
 
     def _compute_exact_ground_energy(self) -> float:
         # Assumes J=1 (ferromagnetic); invalid for AF couplings on odd-N rings.
@@ -401,11 +406,11 @@ class TransverseFieldIsing2D(IsingModel):
         N = self.size
         L = self.linear_size
         h = self.h
-        log_p_V = jax.vmap(log_psi_fn)(V)                    # (ns,)
+        log_p_V = jax.vmap(log_psi_fn)(V)  # (ns,)
 
         i_idx = jnp.arange(N)
         right_idx = (i_idx // L) * L + (i_idx % L + 1) % L
-        down_idx  = ((i_idx // L + 1) % L) * L + i_idx % L
+        down_idx = ((i_idx // L + 1) % L) * L + i_idx % L
         E_diag = -jnp.sum(V * V[:, right_idx] + V * V[:, down_idx], axis=1)  # (ns,)
 
         def ratio_for_site(i):
@@ -419,7 +424,10 @@ class TransverseFieldIsing2D(IsingModel):
 
     def exact_ground_energy(self) -> float:
         from reference_energies import get_or_compute
-        return get_or_compute("2d", self.linear_size, self.h, self._compute_exact_ground_energy)
+
+        return get_or_compute(
+            "2d", self.linear_size, self.h, self._compute_exact_ground_energy
+        )
 
     def _compute_exact_ground_energy(self) -> float:
         L = self.linear_size
@@ -445,7 +453,7 @@ class TransverseFieldIsing2D(IsingModel):
         L = self.linear_size
         N = self.size  # L²
         h = self.h
-        dim = 2 ** N
+        dim = 2**N
 
         def spin(s: int, i: int) -> int:
             return 1 - 2 * ((s >> (N - 1 - i)) & 1)
@@ -460,14 +468,18 @@ class TransverseFieldIsing2D(IsingModel):
                 col_i = i % L
                 row_i = i // L
                 right = row_i * L + (col_i + 1) % L
-                down  = ((row_i + 1) % L) * L + col_i
+                down = ((row_i + 1) % L) * L + col_i
                 diag -= spin(s, i) * spin(s, right) + spin(s, i) * spin(s, down)
-            rows.append(s); cols.append(s); vals.append(diag)
+            rows.append(s)
+            cols.append(s)
+            vals.append(diag)
 
             # Off-diagonal: -h σˣᵢ flips spin i, matrix element = -h
             for i in range(N):
                 s_flip = s ^ (1 << (N - 1 - i))
-                rows.append(s_flip); cols.append(s); vals.append(-h)
+                rows.append(s_flip)
+                cols.append(s)
+                vals.append(-h)
 
         H = sp.csr_matrix((vals, (rows, cols)), shape=(dim, dim), dtype=float)
         eigenvalues, _ = eigsh(H, k=1, which="SA")
@@ -528,14 +540,18 @@ class HeisenbergXXZ1D(IsingModel):
             rbm : RBM instance (must have psi_ratio_pair method)
         """
         v_jax = jnp.asarray(v, dtype=jnp.float64)
-        E_diag = self.J * self.delta * float(
-            sum(v[i] * v[(i + 1) % self.size] for i in range(self.size))
+        E_diag = (
+            self.J
+            * self.delta
+            * float(sum(v[i] * v[(i + 1) % self.size] for i in range(self.size)))
         )
         E_off = 0.0
         for i in range(self.size):
             j = (i + 1) % self.size
             if v[i] != v[j]:  # only antiparallel bonds contribute; matrix element = 2J
-                E_off += 2 * self.J * self.off_sign * float(rbm.psi_ratio_pair(v_jax, i, j))
+                E_off += (
+                    2 * self.J * self.off_sign * float(rbm.psi_ratio_pair(v_jax, i, j))
+                )
         return E_diag + E_off
 
     def local_energy_batch(self, V, rbm) -> jax.Array:
@@ -552,20 +568,21 @@ class HeisenbergXXZ1D(IsingModel):
         """
         N = self.size
         J, delta = self.J, self.delta
-        log_p_V = jax.vmap(log_psi_fn)(V)                    # (ns,)
+        log_p_V = jax.vmap(log_psi_fn)(V)  # (ns,)
 
         right = (jnp.arange(N) + 1) % N
         E_diag = J * delta * jnp.sum(V * V[:, right], axis=1)  # (ns,)
 
         def exchange_ratio_for_bond(i):
             j = (i + 1) % N
-            mask = (jax.nn.one_hot(i, N, dtype=jnp.float64)
-                    + jax.nn.one_hot(j, N, dtype=jnp.float64))
-            V_flip = V * (1.0 - 2.0 * mask[None, :])         # (ns, N)
+            mask = jax.nn.one_hot(i, N, dtype=jnp.float64) + jax.nn.one_hot(
+                j, N, dtype=jnp.float64
+            )
+            V_flip = V * (1.0 - 2.0 * mask[None, :])  # (ns, N)
             return jnp.exp(jax.vmap(log_psi_fn)(V_flip) - log_p_V)  # (ns,)
 
         all_ratios = jax.vmap(exchange_ratio_for_bond)(jnp.arange(N))  # (N, ns)
-        exchange = (1.0 - V * V[:, right]).T                         # (N, ns)
+        exchange = (1.0 - V * V[:, right]).T  # (N, ns)
         E_off = J * self.off_sign * jnp.sum(exchange * all_ratios, axis=0)  # (ns,)
         return E_diag + E_off
 
@@ -579,7 +596,9 @@ class HeisenbergXXZ1D(IsingModel):
             )
         # Encode delta in the model key; J maps to the 'h' slot in the cache key.
         model_key = f"heisenberg_xxz_1d_delta{self.delta:.10g}"
-        return get_or_compute(model_key, self.size, self.J, self._compute_exact_ground_energy)
+        return get_or_compute(
+            model_key, self.size, self.J, self._compute_exact_ground_energy
+        )
 
     def _compute_exact_ground_energy(self) -> float:
         """
@@ -593,7 +612,7 @@ class HeisenbergXXZ1D(IsingModel):
         from scipy.sparse.linalg import eigsh
 
         N = self.size
-        dim = 2 ** N
+        dim = 2**N
 
         def spin(s: int, i: int) -> int:
             return 1 - 2 * ((s >> (N - 1 - i)) & 1)
@@ -603,17 +622,23 @@ class HeisenbergXXZ1D(IsingModel):
         vals: list[float] = []
 
         for s in range(dim):
-            diag = self.J * self.delta * sum(
-                spin(s, i) * spin(s, (i + 1) % N) for i in range(N)
+            diag = (
+                self.J
+                * self.delta
+                * sum(spin(s, i) * spin(s, (i + 1) % N) for i in range(N))
             )
-            rows.append(s); cols.append(s); vals.append(diag)
+            rows.append(s)
+            cols.append(s)
+            vals.append(diag)
 
             # Off-diagonal: matrix element = 2J for antiparallel bonds
             for i in range(N):
                 j = (i + 1) % N
                 if spin(s, i) != spin(s, j):
                     s_flip = s ^ (1 << (N - 1 - i)) ^ (1 << (N - 1 - j))
-                    rows.append(s_flip); cols.append(s); vals.append(2 * self.J)
+                    rows.append(s_flip)
+                    cols.append(s)
+                    vals.append(2 * self.J)
 
         H = sp.csr_matrix((vals, (rows, cols)), shape=(dim, dim), dtype=float)
         eigenvalues, _ = eigsh(H, k=1, which="SA")
@@ -647,8 +672,9 @@ class J1J2HeisenbergXXZ1D(HeisenbergXXZ1D):
         self.J2 = J2
         if J1 > 0 and J2 > 0 and J2 / J1 > 0.241:
             import warnings
+
             warnings.warn(
-                f"J2/J1={J2/J1:.3f} > 0.241 is in the frustrated regime. "
+                f"J2/J1={J2 / J1:.3f} > 0.241 is in the frustrated regime. "
                 "The positive real RBM ansatz is biased and will not converge to the "
                 "true ground state without a phase network.",
                 stacklevel=2,
@@ -656,14 +682,15 @@ class J1J2HeisenbergXXZ1D(HeisenbergXXZ1D):
 
     def local_energy(self, v: np.ndarray, rbm) -> float:
         v_jax = jnp.asarray(v, dtype=jnp.float64)
-        E_diag = (
-            self.J1 * self.delta * sum(v[i] * v[(i + 1) % self.size] for i in range(self.size))
-            + self.J2 * self.delta * sum(v[i] * v[(i + 2) % self.size] for i in range(self.size))
+        E_diag = self.J1 * self.delta * sum(
+            v[i] * v[(i + 1) % self.size] for i in range(self.size)
+        ) + self.J2 * self.delta * sum(
+            v[i] * v[(i + 2) % self.size] for i in range(self.size)
         )
         E_off = 0.0
         for bond_len, J_bond, sign in (
-            (1, self.J1, self.off_sign),   # NN: Marshall sign for AF bipartite
-            (2, self.J2, 1),               # NNN: same sublattice, sign = +1
+            (1, self.J1, self.off_sign),  # NN: Marshall sign for AF bipartite
+            (2, self.J2, 1),  # NNN: same sublattice, sign = +1
         ):
             for i in range(self.size):
                 j = (i + bond_len) % self.size
@@ -674,7 +701,14 @@ class J1J2HeisenbergXXZ1D(HeisenbergXXZ1D):
     def local_energy_batch(self, V, rbm) -> jax.Array:
         V_jax = jnp.asarray(V, dtype=jnp.float64)
         return _local_energy_j1j2_heisenberg_jit(
-            V_jax, rbm.W, rbm.a, rbm.b, self.J1, self.J2, self.delta, self.size,
+            V_jax,
+            rbm.W,
+            rbm.a,
+            rbm.b,
+            self.J1,
+            self.J2,
+            self.delta,
+            self.size,
             self.off_sign,
         )
 
@@ -686,49 +720,50 @@ class J1J2HeisenbergXXZ1D(HeisenbergXXZ1D):
         right1 = (jnp.arange(N) + 1) % N
         right2 = (jnp.arange(N) + 2) % N
 
-        E_diag = (
-            J1 * delta * jnp.sum(V * V[:, right1], axis=1)
-            + J2 * delta * jnp.sum(V * V[:, right2], axis=1)
+        E_diag = J1 * delta * jnp.sum(V * V[:, right1], axis=1) + J2 * delta * jnp.sum(
+            V * V[:, right2], axis=1
         )
 
         def ratios_for_right(right_idx):
             def ratio_for_bond(i):
-                mask = (
-                    jax.nn.one_hot(i, N, dtype=jnp.float64)
-                    + jax.nn.one_hot(right_idx[i], N, dtype=jnp.float64)
+                mask = jax.nn.one_hot(i, N, dtype=jnp.float64) + jax.nn.one_hot(
+                    right_idx[i], N, dtype=jnp.float64
                 )
                 V_flip = V * (1.0 - 2.0 * mask[None, :])
                 return jnp.exp(jax.vmap(log_psi_fn)(V_flip) - log_p_V)
+
             return jax.vmap(ratio_for_bond)(jnp.arange(N))  # (N, ns)
 
-        nn_ratios = ratios_for_right(right1)    # (N, ns)
-        nnn_ratios = ratios_for_right(right2)   # (N, ns)
+        nn_ratios = ratios_for_right(right1)  # (N, ns)
+        nnn_ratios = ratios_for_right(right2)  # (N, ns)
 
-        nn_exchange = (1.0 - V * V[:, right1]).T    # (N, ns)
-        nnn_exchange = (1.0 - V * V[:, right2]).T   # (N, ns)
+        nn_exchange = (1.0 - V * V[:, right1]).T  # (N, ns)
+        nnn_exchange = (1.0 - V * V[:, right2]).T  # (N, ns)
 
-        E_off = (
-            J1 * self.off_sign * jnp.sum(nn_exchange * nn_ratios, axis=0)
-            + J2 * jnp.sum(nnn_exchange * nnn_ratios, axis=0)
-        )
+        E_off = J1 * self.off_sign * jnp.sum(
+            nn_exchange * nn_ratios, axis=0
+        ) + J2 * jnp.sum(nnn_exchange * nnn_ratios, axis=0)
         return E_diag + E_off
 
     def exact_ground_energy(self) -> float:
         from reference_energies import get_or_compute
+
         if self.size > 20:
             raise NotImplementedError(
                 f"Exact diagonalization not feasible for J1J2 Heisenberg N={self.size}. "
                 "Only N ≤ 20 is supported (2^20 = 1 048 576 states)."
             )
         model_key = f"heisenberg_j1j2_1d_J1{self.J1:.10g}_J2{self.J2:.10g}_delta{self.delta:.10g}"
-        return get_or_compute(model_key, self.size, self.J1, self._compute_exact_ground_energy)
+        return get_or_compute(
+            model_key, self.size, self.J1, self._compute_exact_ground_energy
+        )
 
     def _compute_exact_ground_energy(self) -> float:
         import scipy.sparse as sp
         from scipy.sparse.linalg import eigsh
 
         N, J1, J2, delta = self.size, self.J1, self.J2, self.delta
-        dim = 2 ** N
+        dim = 2**N
 
         def spin(s: int, i: int) -> int:
             return 1 - 2 * ((s >> (N - 1 - i)) & 1)
@@ -742,14 +777,18 @@ class J1J2HeisenbergXXZ1D(HeisenbergXXZ1D):
             for i in range(N):
                 diag += J1 * delta * spin(s, i) * spin(s, (i + 1) % N)
                 diag += J2 * delta * spin(s, i) * spin(s, (i + 2) % N)
-            rows.append(s); cols.append(s); vals.append(diag)
+            rows.append(s)
+            cols.append(s)
+            vals.append(diag)
 
             for bond_len, J_bond in ((1, J1), (2, J2)):
                 for i in range(N):
                     j = (i + bond_len) % N
                     if spin(s, i) != spin(s, j):
                         s_flip = s ^ (1 << (N - 1 - i)) ^ (1 << (N - 1 - j))
-                        rows.append(s_flip); cols.append(s); vals.append(2 * J_bond)
+                        rows.append(s_flip)
+                        cols.append(s)
+                        vals.append(2 * J_bond)
 
         H = sp.csr_matrix((vals, (rows, cols)), shape=(dim, dim), dtype=float)
         eigenvalues, _ = eigsh(H, k=1, which="SA")
@@ -757,5 +796,4 @@ class J1J2HeisenbergXXZ1D(HeisenbergXXZ1D):
 
     def get_neighbors(self, idx: int) -> list[int]:
         N = self.size
-        return [(idx - 2) % N, (idx - 1) % N, (idx + 1) % N, (idx + 2) % N]
-
+        return [(idx - 1) % N, (idx - 1) % N, (idx + 1) % N, (idx + 2) % N]
