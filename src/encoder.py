@@ -203,6 +203,9 @@ def conjugate_gradient(
 KL_EXACT_MAX_N = 16
 
 
+CEM_BETA_BOUNDS = (0.01, 50.0)
+
+
 def estimate_beta_eff_cem(V: jax.Array, H: jax.Array, rbm) -> float:
     """
     CEM estimate of β_eff from joint (v, h) samples (V, H).
@@ -215,8 +218,37 @@ def estimate_beta_eff_cem(V: jax.Array, H: jax.Array, rbm) -> float:
     def F(beta):
         return float(jnp.sum((H - jnp.tanh(beta * Theta)) ** 2))
 
-    result = minimize_scalar(F, bounds=(0.01, 50.0), method="bounded")
+    result = minimize_scalar(F, bounds=CEM_BETA_BOUNDS, method="bounded")
     return float(result.x)
+
+
+def is_cem_fit_degenerate(beta_hat: float) -> bool:
+    """
+    True if beta_hat is pinned at (or past) the CEM search bounds -- the
+    signature of an unreliable fit (report Fig. 2: 5/324 outliers reach the
+    upper bound). Such fits should not be trusted by the feedback rule.
+    """
+    lo, hi = CEM_BETA_BOUNDS
+    return beta_hat <= lo * 1.5 or beta_hat >= hi * 0.98
+
+
+CEM_TRUST_RATIO = 8.0  # reject a single-step beta_x correction larger than this
+
+
+def is_cem_step_untrusted(beta_hat: float, beta_x: float) -> bool:
+    """
+    True if beta_hat implies more than an 8x change in beta_x in one step.
+
+    Not every bad fit is pinned at the search bounds -- an isolated noisy
+    sample batch can return an interior value (e.g. beta_hat~=37 against a
+    current beta_x~=0.5) that survives is_cem_fit_degenerate but still
+    causes a large one-step swing before the loop relaxes back (confirmed
+    with the LSB sampler: a single such reading spiked DKL(q_hat||pi_theta)
+    to 5x its steady-state value for several iterations). This is exactly
+    the "isolated failure the moving average damps but does not remove"
+    behaviour noted in the report; rejecting the step outright removes it.
+    """
+    return not (1.0 / CEM_TRUST_RATIO <= beta_hat / beta_x <= CEM_TRUST_RATIO)
 
 
 class Trainer:
@@ -307,6 +339,7 @@ class Trainer:
         self.use_cem = config.get("use_cem", False)
         self.cem_interval = config.get("cem_interval", 1)
         self.cem_ema_alpha = config.get("cem_ema_alpha", 0.3)
+        self._cem_bootstrapped = False
 
         if self.use_cem:
             print(
@@ -590,15 +623,59 @@ class Trainer:
             if self._beta_fixed:
                 pass
             elif self.use_cem and _cem_beta_raw is not None:
-                self.beta_x = (
-                    1.0 - self.cem_ema_alpha
-                ) * self.beta_x + self.cem_ema_alpha * _cem_beta_raw
-                self.beta_x = float(jnp.clip(self.beta_x, self.beta_min, self.beta_max))
+                # _cem_beta_raw estimates beta_eff = beta_hw / beta_x, a RATIO,
+                # not an absolute temperature comparable to beta_x. Blending it
+                # with beta_x arithmetically (the old rule) has fixed point
+                # beta_x = beta_hat regardless of the mix weight, which forces
+                # beta_eff -> sqrt(beta_hw) instead of 1. The fix: smooth in
+                # log(beta_x) space instead, i.e. beta_x <- beta_x * beta_hat**alpha.
+                # This keeps the same damping strength as before but converges
+                # to the correct fixed point beta_eff = 1 for any alpha > 0.
+                # A fit pinned at the CEM search bounds is a known-unreliable
+                # outlier (report Fig. 2) and is skipped rather than applied.
+                # A fit that isn't pinned but still implies an implausible
+                # single-step jump is the "isolated failure" the report notes
+                # the old moving average damps but does not remove; reject it
+                # too (confirmed with the LSB sampler — see
+                # cem_feedback_lsb_validation.py).
+                # The trust-region check compares beta_hat against the CURRENT
+                # beta_x, but beta_x starts at an arbitrary, uninformative guess
+                # (1.0). If the true correction needed from that guess exceeds
+                # the trust ratio, every reading gets rejected forever — beta_x
+                # never moves, so it can never satisfy the check either: a
+                # permanent deadlock. Confirmed on real Zephyr hardware (11/20
+                # seeds at N=8 stuck at beta_x=1.0 for the entire run — see
+                # scripts/exper/rerun_cem_fixed_headline.py results). Fix: skip
+                # the trust check only for the first-ever accepted correction
+                # (bootstrap out of the arbitrary initial guess); every
+                # subsequent correction is trust-checked as before. A "clip to
+                # the trust interval" alternative was tried and rejected: once
+                # beta_x has overshot, the interval is anchored to the now-wrong
+                # beta_x, so a correct "come back down" reading gets clipped
+                # back up — verified to run away to beta_max instead of
+                # converging (see conversation).
+                if is_cem_fit_degenerate(_cem_beta_raw):
+                    print(
+                        f"  [CEM iter {iteration:3d}] β_eff = {_cem_beta_raw:.4f}"
+                        f" (pinned at CEM bounds — fit rejected, beta_x unchanged)"
+                    )
+                elif self._cem_bootstrapped and is_cem_step_untrusted(_cem_beta_raw, self.beta_x):
+                    print(
+                        f"  [CEM iter {iteration:3d}] β_eff = {_cem_beta_raw:.4f}"
+                        f" (implies >{CEM_TRUST_RATIO:.0f}x step from beta_x={self.beta_x:.4f}"
+                        f" — fit rejected, beta_x unchanged)"
+                    )
+                else:
+                    self.beta_x = self.beta_x * (_cem_beta_raw ** self.cem_ema_alpha)
+                    self.beta_x = float(jnp.clip(self.beta_x, self.beta_min, self.beta_max))
+                    _bootstrap_tag = "" if self._cem_bootstrapped else " (bootstrap, trust check skipped)"
+                    self._cem_bootstrapped = True
+                    print(
+                        f"  [CEM iter {iteration:3d}] β_eff = {_cem_beta_raw:.4f}"
+                        f" → beta_x = {self.beta_x:.4f} (log-EMA α={self.cem_ema_alpha})"
+                        f"{_bootstrap_tag}"
+                    )
                 beta_eff_this_iter = self.beta_x
-                print(
-                    f"  [CEM iter {iteration:3d}] β_eff = {_cem_beta_raw:.4f}"
-                    f" → beta_x = {self.beta_x:.4f} (EMA α={self.cem_ema_alpha})"
-                )
             elif not self.use_cem:
                 if prev_energy is not None and E_mean > prev_energy:
                     self._key, subkey = jax.random.split(self._key)
