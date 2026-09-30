@@ -1,5 +1,56 @@
 # Continuing on a different machine
 
+## UPDATE 2026-09-30 (supersedes items 1-2 of "What's actually left to do")
+
+**Zephyr rerun is complete** (commit `b482e20e7`): all 80 Zephyr +CEM runs
+(N=8/16/32/64 x seeds 0-19) exist with the bootstrap fix. Device time used
+this round: 8.09 min; **total now 21.60 of 60 min** (`time.json` =
+3448080.37 ms). Driver: `scripts/exper/rerun_zephyr_budget_driver.py`
+(re-reads `time.json` before every run, 3.5 min/batch cap, hard stop at 57).
+fig10/10b/10c regenerated.
+
+Median rel. error, Zephyr +CEM (new): N=8 0.22%, N=16 0.21%, **N=32 7.14%,
+N=64 4.23%** (Pegasus: 0.09/0.12/0.21/0.19%). N=8 fixed (was 15.8%, 11/20
+stuck). N=32/64 unchanged -- the deadlock never touched them.
+
+**Why N=32/64 Zephyr is bad (diagnosed, CPU only, no QPU used):**
+- Not an estimator artifact: unbiased CPU Metropolis on the saved seed-19
+  checkpoints gives true <H> = -31.58 (N=32, 7.2%) / -62.47 (N=64, 8.2%),
+  matching the QPU estimate (`scripts/exper/cem_zephyr_trap_true_energy.py`).
+- Not steady-state sampler bias at N=32: real Zephyr samples at iter 91 match
+  true |Psi|^2 (2.90 vs 2.98 domain walls, same <log Psi^2>). At N=64 Zephyr
+  is somewhat colder than |Psi|^2 (4.3 vs 6.3 walls)
+  (`cem_zephyr_trap_compare_samples.py`).
+- It is a **variational local minimum** (state with ~3 domain walls, |m|~0.4
+  vs ~0.96 in the ground state). Zephyr runs reach ~0% error around iter 10,
+  then degrade to +7% while beta_x climbs 3 -> 6.
+- Synthetic annealer at hidden beta_hw, running the real Trainer + CEM rule
+  (`cem_zephyr_trap_synthetic.py`, data in `results/cem_zephyr_trap/`), N=32:
+  calibrated (beta_hw=1) 11/20 seeds good; **beta_hw=6 with beta_x_init=1
+  (Zephyr as run) 3/20 good at ~7.1%** -- reproduces the hardware numbers
+  (final beta_x ~6.1). beta_hw=6 with beta_x_init=6 behaves exactly like the
+  calibrated case (7/10). cem_interval=1 does not help (3/10); a hot start
+  (beta_x_init=20) is worse (1/10).
+- So: (i) N=32 SR has a domain-wall trap even with perfect sampling;
+  (ii) Zephyr's long too-cold calibration transient greatly increases the
+  trap rate. Only mitigation found: start beta_x at its calibrated value.
+- Caveat: the synthetic model is harsher than real Pegasus (at beta_hw=2.6 it
+  traps 6/10, real Pegasus N=32 does not).
+
+**Open decision (user's call):** keep the N=32/64 Zephyr numbers and report
+the trap, or rerun N=32/64 Zephyr with `beta_x_init` ~6 / ~3.7 (the
+converged values; ~4.2 min device time for 40 runs). Changing the protocol
+for one device needs a methods justification in the paper.
+
+**Other issues found:** `_git_sha()` records no dirty-tree marker (archived
+runs claim `02899b56b` but ran uncommitted code); `history.beta_eff_cem`
+stores post-update beta_x, not raw beta_hat; checkpoint filenames lack seed
+and `dwave_samples/` filenames lack the cem flag (both overwrite across runs);
+4/20 new Zephyr N=8 runs hit beta_max=20; Zephyr cem0 energies lie *below*
+exact (sample collapse) so their `error` values are not comparable.
+
+---
+
 State as of commit `8f37fda54` (main). Read this before doing anything else.
 
 ## What happened this session
