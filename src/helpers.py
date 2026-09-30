@@ -227,6 +227,8 @@ def save_results(args, history, ising, rbm=None, energy_j=None, num_sweeps=None,
         f"_iter{args.iterations}"
         f"_cem{int(use_cem)}"
         f"_sigma{float(getattr(args, 'sigma', 1.0))}"
+        + (f"_calib{args.cem_calib}" if getattr(args, "cem_calib", 0) else "")
+        + (f"_fb{args.beta_feedback}" if getattr(args, "beta_feedback", "cem") != "cem" else "")
         + (f"_np{_n_parallel}" if _n_parallel and _n_parallel != 1 else "")
         + (f"_sw{num_sweeps}" if num_sweeps is not None else "")
         + f".json.gz"

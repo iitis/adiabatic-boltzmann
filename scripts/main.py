@@ -125,6 +125,19 @@ def parse_arguments():
         help="Iterations between β_eff estimates when --cem is active",
     )
     parser.add_argument(
+        "--cem-calib",
+        type=int,
+        default=0,
+        help="Frozen-parameter CEM calibration draws before training (requires --cem)",
+    )
+    parser.add_argument(
+        "--beta-feedback",
+        choices=["cem", "pl"],
+        default="cem",
+        help="beta_x feedback during training: joint-(v,h) CEM, or visible-marginal "
+        "pseudo-likelihood ('pl'; use with --cem --cem-calib 3 — the Zephyr protocol)",
+    )
+    parser.add_argument(
         "--output-dir", type=str, default=str(Path(__file__).parent.parent / "results"), help="Directory for results"
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
@@ -234,6 +247,8 @@ def main():
         "checkpoint_interval": 10,
         "use_cem": args.cem,
         "cem_interval": args.cem_interval,
+        "cem_calib_iters": args.cem_calib,
+        "beta_feedback": args.beta_feedback,
         "seed": args.seed,
         "n_parallel": args.n_parallel,
     }

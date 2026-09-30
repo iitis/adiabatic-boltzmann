@@ -251,6 +251,46 @@ def is_cem_step_untrusted(beta_hat: float, beta_x: float) -> bool:
     return not (1.0 / CEM_TRUST_RATIO <= beta_hat / beta_x <= CEM_TRUST_RATIO)
 
 
+PL_BETA_BOUNDS = (0.05, 20.0)
+PL_STEP_CLIP = 1.5  # max one-step factor applied to beta_x by the visible-PL feedback
+
+
+def estimate_beta_visible_pl(V: jax.Array, rbm, n_newton: int = 30) -> float:
+    """
+    Visible-marginal temperature s of samples V under the model p_s(v) ∝ |Psi(v)|^(2s),
+    fitted by single-spin pseudo-likelihood: p(v_i | v_-i) = 1/(1+exp(s·Δ_i)) with
+    Δ_i = log|Psi|^2(v with spin i flipped) - log|Psi|^2(v). s=1 means V is faithful to
+    |Psi|^2, s>1 too cold, s<1 too hot.
+
+    Unlike estimate_beta_eff_cem this only uses the visible samples, i.e. exactly the
+    distribution SR consumes. On Zephyr the joint-(v,h) CEM left the visible marginal
+    1.5-2.3x too cold at N=64 (scripts/exper/cem_zephyr_visible_pl.py), which trapped
+    training in a domain-wall local minimum. Undetermined at near-zero couplings (all
+    Δ_i ≈ 0), so it is not usable for the very first calibration from random init.
+
+    The negative log pseudo-likelihood Σ softplus(sΔ) is convex in s: Newton from s=1.
+    """
+    p = rbm.params
+    theta = V @ p.W + p.b  # (ns, M)
+    theta_f = theta[:, None, :] - 2 * V[:, :, None] * p.W[None, :, :]  # (ns, N, M)
+    lc = lambda x: jnp.logaddexp(x, -x)
+    D = (2 * p.a[None, :] * V + jnp.sum(lc(theta_f) - lc(theta)[:, None, :], axis=2)).ravel()
+    lo, hi = PL_BETA_BOUNDS
+    s_ = 1.0
+    for _ in range(n_newton):
+        sig = jax.nn.sigmoid(s_ * D)
+        g = float(jnp.sum(D * sig))
+        h = float(jnp.sum(D * D * sig * (1 - sig)))
+        if h <= 0:
+            break
+        s_new = min(max(s_ - g / h, lo), hi)
+        if abs(s_new - s_) < 1e-6:
+            s_ = s_new
+            break
+        s_ = s_new
+    return float(s_)
+
+
 class Trainer:
     """
     Variational Monte Carlo trainer using Stochastic Reconfiguration.
@@ -271,6 +311,12 @@ class Trainer:
         cg_tol         : float  (default 1e-8)
         cg_maxiter     : int    (default 200)
         beta_x_init    : float  (default 1.0)
+        cem_calib_iters: int    (default 0)      frozen-parameter CEM calibration draws
+                                                 before training (full log step each)
+        beta_feedback  : str    (default "cem")  "pl": after calibration, beta_x tracks the
+                                                 visible-marginal pseudo-likelihood temperature
+        pl_interval    : int    (default 1)
+        pl_alpha       : float  (default 0.5)    beta_x <- beta_x * clip(s, 1/1.5, 1.5)**pl_alpha
         beta_adapt     : float  (default 0.05)
         beta_min       : float  (default 0.05)
         beta_max       : float  (default 20.0)
@@ -340,6 +386,19 @@ class Trainer:
         self.cem_interval = config.get("cem_interval", 1)
         self.cem_ema_alpha = config.get("cem_ema_alpha", 0.3)
         self._cem_bootstrapped = False
+        # Zephyr calibration protocol (CONTINUE.md "P4"): cem_calib_iters frozen draws with
+        # full-step joint CEM, then visible pseudo-likelihood feedback during training.
+        self.cem_calib_iters = int(config.get("cem_calib_iters", 0))
+        self.beta_feedback = config.get("beta_feedback", "cem")
+        if self.beta_feedback not in ("cem", "pl"):
+            raise ValueError(f"beta_feedback must be 'cem' or 'pl', got {self.beta_feedback!r}")
+        self.pl_interval = int(config.get("pl_interval", 1))
+        self.pl_alpha = float(config.get("pl_alpha", 0.5))
+        if self.cem_calib_iters > 0 and not self.use_cem:
+            raise ValueError("cem_calib_iters > 0 requires use_cem=True (calibration uses the joint CEM)")
+        if self.beta_feedback == "pl" and self.cem_calib_iters == 0:
+            print("  [PL] WARNING: beta_feedback='pl' without cem_calib_iters — s_PL is "
+                  "undetermined at near-zero initial couplings")
 
         if self.use_cem:
             print(
@@ -385,6 +444,7 @@ class Trainer:
             "s_condition_number": [],
             "beta_x": [],
             "beta_eff_cem": [],
+            "beta_eff_pl": [],
             "cg_iterations": [],
             "cg_residual": [],
             "sampling_time_s": [],
@@ -394,6 +454,8 @@ class Trainer:
             "kl_exact": [],
             "n_unique_ratio": [],
             "mh_acceptance_rate": [],
+            "calib_beta_x": [],
+            "calib_sampling_time_s": [],
         }
 
         self._kl_all_v = None
@@ -462,6 +524,37 @@ class Trainer:
         )
         return ess_norm, kl, n_unique_ratio
 
+    def _calibrate_beta_cem(self):
+        """
+        cem_calib_iters draws at the (frozen) initial parameters; after each, beta_x takes a
+        full log step to the joint-CEM reading (beta_x <- beta_x * beta_hat). No trust check:
+        the starting beta_x is an arbitrary guess. Degenerate (bound-pinned) fits are skipped.
+        Costs cem_calib_iters extra sampler calls (device time is logged in
+        history["calib_sampling_time_s"], separately from the training iterations).
+        """
+        for k in range(self.cem_calib_iters):
+            _cfg = {**self.config, "beta_x": self.beta_x}
+            if self.n_parallel > 1:
+                _res = self.sampler.sample_parallel(
+                    [self.rbm] * self.n_parallel, self.n_samples // self.n_parallel,
+                    config=_cfg, n_parallel=self.n_parallel, return_hidden=True,
+                )
+                V = np.concatenate([r[0] for r in _res], axis=0)
+                H = np.concatenate([r[1] for r in _res], axis=0)
+            else:
+                V, H = self.sampler.sample(self.rbm, self.n_samples, config=_cfg, return_hidden=True)
+            self.history["calib_sampling_time_s"].append(getattr(self.sampler, "last_sampling_time_s", None))
+            beta_hat = estimate_beta_eff_cem(
+                jnp.asarray(V, dtype=jnp.float64), jnp.asarray(H, dtype=jnp.float64), self.rbm
+            )
+            if is_cem_fit_degenerate(beta_hat):
+                print(f"  [CEM calib {k}] β_eff = {beta_hat:.4f} (pinned at CEM bounds — skipped)")
+            else:
+                self.beta_x = float(np.clip(self.beta_x * beta_hat, self.beta_min, self.beta_max))
+                self._cem_bootstrapped = True
+                print(f"  [CEM calib {k}] β_eff = {beta_hat:.4f} → beta_x = {self.beta_x:.4f}")
+            self.history["calib_beta_x"].append(self.beta_x)
+
     def train(self, start_iteration: int = 0) -> dict:
         if start_iteration >= self.n_iterations:
             raise RuntimeError(
@@ -490,9 +583,14 @@ class Trainer:
             self.sampler._key = _saved_key
             self.sampler._gibbs_v = _saved_gibbs_v
 
+        if start_iteration == 0 and self.cem_calib_iters > 0 and not self._beta_fixed:
+            _calib_ctx = _energy_meter.active() if _energy_meter is not None else contextlib.nullcontext()
+            with _calib_ctx:
+                self._calibrate_beta_cem()
+
         for iteration in range(start_iteration, self.n_iterations):
             # ── 1. Sample ──────────────────────────────────────────────────
-            _need_hidden = self.use_cem and not self._beta_fixed
+            _need_hidden = self.use_cem and not self._beta_fixed and self.beta_feedback == "cem"
             _sample_config = {**self.config, "beta_x": self.beta_x}
             try:
                 _t0 = time.perf_counter()
@@ -586,6 +684,18 @@ class Trainer:
                 _cem_beta_raw = estimate_beta_eff_cem(V, H_cem, self.rbm)
                 cem_time = time.perf_counter() - _cem_t0
 
+            # ── 3c. Visible-PL β estimate (before weight update: V was drawn from these params)
+            _pl_s = None
+            if (
+                self.beta_feedback == "pl"
+                and not self._beta_fixed
+                and iteration % self.pl_interval == 0
+            ):
+                _pl_t0 = time.perf_counter()
+                _pl_s = estimate_beta_visible_pl(V, self.rbm)
+                cem_time += time.perf_counter() - _pl_t0
+            self.history["beta_eff_pl"].append(_pl_s)
+
             self.history["cem_time_s"].append(cem_time)
             self.history["total_sampling_time_s"].append(sample_time_s + cem_time)
 
@@ -622,6 +732,12 @@ class Trainer:
 
             if self._beta_fixed:
                 pass
+            elif self.beta_feedback == "pl":
+                if _pl_s is not None:
+                    _f = min(max(_pl_s, 1.0 / PL_STEP_CLIP), PL_STEP_CLIP) ** self.pl_alpha
+                    self.beta_x = float(np.clip(self.beta_x * _f, self.beta_min, self.beta_max))
+                    print(f"  [PL iter {iteration:3d}] s_PL = {_pl_s:.4f} → beta_x = {self.beta_x:.4f}")
+                beta_eff_this_iter = self.beta_x
             elif self.use_cem and _cem_beta_raw is not None:
                 # _cem_beta_raw estimates beta_eff = beta_hw / beta_x, a RATIO,
                 # not an absolute temperature comparable to beta_x. Blending it
