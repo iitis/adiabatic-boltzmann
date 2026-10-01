@@ -11,16 +11,21 @@
 # Writes only to results/cem_pegasus_protocol_qpu/ (append-only, finished seeds are
 # skipped), so running it again resumes and never touches existing results.
 #
-# Usage (no arguments): scripts/exper/cem_pegasus_p4_launch.sh
+# Usage (no arguments, bash script, already backgrounds itself): bash scripts/exper/cem_pegasus_p4_launch.sh
+# Uses $PYTHON, else .venv/bin/python, else the python on PATH (e.g. an active conda env).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 CAP_S=600
 SEEDS=0-19
 SIZES="8 16 32 64"
-PY=${PYTHON:-.venv/bin/python}
+if [ -n "${PYTHON:-}" ]; then PY=$PYTHON
+elif [ -x .venv/bin/python ]; then PY=.venv/bin/python
+else PY=$(command -v python || true)
+fi
 O=results/cem_pegasus_protocol_qpu
 
-[ -x "$PY" ] || { echo "python not found at $PY (set PYTHON=...)"; exit 1; }
+[ -n "$PY" ] && [ -x "$PY" ] || { echo "python not found (set PYTHON=...)"; exit 1; }
+echo "python: $PY"
 [ -f time.json ] || { echo "time.json missing: it is the QPU budget counter, refusing to start"; exit 1; }
 if pgrep -f "^[^ ]*python[^ ]* scripts/exper/cem_zephyr_protocol_qpu.py .*--device pegasus" > /dev/null; then
   echo "Pegasus P4 runs are already running:"; pgrep -af "^[^ ]*python[^ ]* scripts/exper/cem_zephyr_protocol_qpu.py .*--device pegasus"; exit 1

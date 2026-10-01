@@ -570,3 +570,7 @@ TSWLatexianTemp*
 # option is specified. Footnotes are the stored in a file with suffix Notes.bib.
 # Uncomment the next line to have this generated file ignored.
 #*Notes.bib
+
+# QPU budget counter lock/temp files (src/sampler.py DimodSampler._log_access_time)
+time.json.lock
+time.json.tmp
