@@ -1,0 +1,3 @@
+{"tag": "P4cemPL", "device": "pegasus", "N": 8, "seed": 0, "qpu_s": 3.19440148, "t": 1790840291.510842}
+{"tag": "TESTrec", "device": "pegasus", "N": 8, "seed": 0, "qpu_s": 3.19442388, "t": 1790840904.4262774}
+{"tag": "TESTrec", "device": "pegasus", "N": 64, "seed": 0, "qpu_s": 3.9803298799999998, "t": 1790840951.6457312}

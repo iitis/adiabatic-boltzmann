@@ -1256,17 +1256,22 @@ class DimodSampler(Sampler):
             raise ValueError(f"Unknown method: {self.method}")
 
     def _log_access_time(self, access_time_us: float):
-        with self.time_path.open("r+") as f:
-            fcntl.flock(f, fcntl.LOCK_EX)
+        # Lock a separate, never-replaced file: locking time.json itself breaks under
+        # the atomic rename below (a waiter holding the old inode would read a stale
+        # value and drop the other process's update).
+        lock_path = self.time_path.with_name(self.time_path.name + ".lock")
+        with lock_path.open("a") as lf:
+            fcntl.flock(lf, fcntl.LOCK_EX)
             try:
-                time_dict = json.load(f)
+                with self.time_path.open("r") as f:
+                    time_dict = json.load(f)
                 time_dict["time_ms"] += access_time_us * 1e-3
-                tmp = self.time_path.with_suffix(".tmp")
+                tmp = self.time_path.with_name(self.time_path.name + ".tmp")
                 with tmp.open("w") as tf:
                     json.dump(time_dict, tf)
-                tmp.rename(self.time_path)
+                tmp.replace(self.time_path)
             finally:
-                fcntl.flock(f, fcntl.LOCK_UN)
+                fcntl.flock(lf, fcntl.LOCK_UN)
 
     def simulated_annealing(self, bqm, n_samples, config={}, return_hidden=False):
         import neal
@@ -1476,10 +1481,6 @@ class DimodSampler(Sampler):
                     bqms, chain_strengths=chain_strengths, **sample_kwargs
                 )
                 access_time_us = info["timing"]["qpu_access_time"]
-                self._log_access_time(access_time_us)
-                self.last_sampling_time_s = access_time_us * 1e-6
-                self.last_n_parallel = n_parallel
-                break
             except Exception as e:
                 print(
                     f"  D-Wave parallel attempt {tries}/{MAX_DWAVE_RETRIES} failed: {e}"
@@ -1493,6 +1494,13 @@ class DimodSampler(Sampler):
                 composite = self._get_parallel_composite(
                     bqms[0], solver_name, rbms, n_parallel
                 )
+            else:
+                break
+        # Logged outside the retry block: a failure to update time.json must raise,
+        # not be mistaken for a D-Wave error and trigger another (unlogged) QPU call.
+        self._log_access_time(access_time_us)
+        self.last_sampling_time_s = access_time_us * 1e-6
+        self.last_n_parallel = n_parallel
 
         results = []
         for ss in samplesets:
@@ -1586,10 +1594,6 @@ class DimodSampler(Sampler):
             try:
                 sampleset = composite.sample(bqm, **sample_kwargs)
                 access_time_us = sampleset.info["timing"]["qpu_access_time"]
-                self._log_access_time(access_time_us)
-                self.last_sampling_time_s = access_time_us * 1e-6
-                self.last_sampleset = sampleset
-                break
             except Exception as e:
                 print(
                     f"  D-Wave sampling attempt {tries}/{MAX_DWAVE_RETRIES} failed: {e}"
@@ -1602,6 +1606,13 @@ class DimodSampler(Sampler):
                 composite, is_trivial, cache_key = self._get_composite(
                     bqm, solver_name, rbm
                 )
+            else:
+                break
+        # Logged outside the retry block: a failure to update time.json must raise,
+        # not be mistaken for a D-Wave error and trigger another (unlogged) QPU call.
+        self._log_access_time(access_time_us)
+        self.last_sampling_time_s = access_time_us * 1e-6
+        self.last_sampleset = sampleset
 
         df = sampleset.to_pandas_dataframe()
         df = df.loc[df.index.repeat(df["num_occurrences"])].reset_index(drop=True)
