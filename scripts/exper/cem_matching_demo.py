@@ -1,9 +1,12 @@
 """
 cem_matching_demo.py -- isolates the "matching" step of CEM, nothing else.
 
-Trains one TFIM 1D RBM (N=16, h=1) with CEM using the Gibbs sampler.
-Snapshots at iteration 300 (converged) and produces two SEPARATE standalone
-figures:
+Trains one TFIM 1D RBM (N=16, h=1) with the Gibbs sampler (which samples at beta=1 and
+ignores beta_x, so no temperature feedback is used). The snapshot is then drawn at a KNOWN
+temperature BETA_TRUE: exact block Gibbs sampling of the network with all parameters
+multiplied by BETA_TRUE samples the original network at BETA_TRUE, and the fit (evaluated
+with the unscaled parameters) should return BETA_TRUE. Produces two SEPARATE standalone
+figures (suffix _beta{BETA_TRUE}):
 
   cem_matching_candidates : the empirical <h> vs Theta response ("the
       distribution of observed hidden units") against several CANDIDATE
@@ -38,7 +41,7 @@ import matplotlib.pyplot as plt
 
 from encoder import Trainer, estimate_beta_eff_cem
 from ising import TransverseFieldIsing1D
-from model import FullyConnectedRBM
+from model import FullyConnectedRBM, RBMParams
 from sampler import ClassicalSampler
 from plot_style import setup_style
 
@@ -54,6 +57,9 @@ N_ITERATIONS = 300
 CEM_INTERVAL = 5
 
 SNAPSHOT_N_SAMPLES = 5000
+BETA_TRUE = 2.0          # known temperature of the snapshot samples
+SNAPSHOT_WARMUP = 500    # fresh chains at the scaled network: burn-in sweeps
+SNAPSHOT_SWEEPS = 50
 N_BINS = 40
 MIN_BIN_COUNT = 30
 
@@ -75,7 +81,7 @@ def build_trainer():
         "n_iterations": N_ITERATIONS,
         "n_samples": N_SAMPLES_TRAIN,
         "regularization": REGULARIZATION,
-        "use_cem": True,
+        "use_cem": False,  # Gibbs samples at beta=1 regardless of beta_x
         "cem_interval": CEM_INTERVAL,
         "seed": SEED,
     }
@@ -85,10 +91,15 @@ def build_trainer():
 def collect_snapshot():
     trainer = build_trainer()
     trainer.train()
-    snap_config = {**trainer.config, "beta_x": trainer.beta_x}
-    V, H = trainer.sampler.sample(
-        trainer.rbm, SNAPSHOT_N_SAMPLES, snap_config, return_hidden=True
-    )
+    rbm = trainer.rbm
+    scaled = FullyConnectedRBM(N, N, jax.random.PRNGKey(0))
+    p = rbm.params
+    scaled.params = RBMParams(a=BETA_TRUE * p.a, b=BETA_TRUE * p.b, W=BETA_TRUE * p.W)
+    sampler = ClassicalSampler(method="gibbs")
+    sampler._key = jax.random.PRNGKey(SEED + 100)
+    V, H = sampler.sample(scaled, SNAPSHOT_N_SAMPLES,
+                          {"n_warmup": SNAPSHOT_WARMUP, "n_sweeps": SNAPSHOT_SWEEPS},
+                          return_hidden=True)
     V, H = jnp.asarray(V, dtype=jnp.float64), jnp.asarray(H, dtype=jnp.float64)
     Theta = V @ trainer.rbm.W + trainer.rbm.b[None, :]
     beta_fit = estimate_beta_eff_cem(V, H, trainer.rbm)
@@ -153,7 +164,7 @@ def plot_candidates(snap):
     ax.legend(loc="lower right", fontsize=6, frameon=True, edgecolor="black",
               handlelength=1.6, borderpad=0.4)
 
-    _save(fig, "cem_matching_candidates")
+    _save(fig, f"cem_matching_candidates_beta{BETA_TRUE:g}")
 
 
 def plot_objective(snap):
@@ -181,12 +192,12 @@ def plot_objective(snap):
     ax.set_ylabel(r"$F(\beta) = \sum \left(h_{\rm observed} - \tanh(\beta\Theta)\right)^2$")
     ax.legend(loc="upper center", fontsize=7, frameon=True, edgecolor="black")
 
-    _save(fig, "cem_matching_objective")
+    _save(fig, f"cem_matching_objective_beta{BETA_TRUE:g}")
 
 
 if __name__ == "__main__":
     print(f"Training TFIM 1D N={N} h={H_FIELD} to iteration {N_ITERATIONS}...")
     snap = collect_snapshot()
-    print(f"  beta_eff (matched) = {snap['beta_fit']:.3f}")
+    print(f"  beta_eff (matched) = {snap['beta_fit']:.3f}  (true {BETA_TRUE:g})")
     plot_candidates(snap)
     plot_objective(snap)

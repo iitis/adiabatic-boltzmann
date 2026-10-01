@@ -71,3 +71,23 @@
 {"tag": "P4cemPL", "N": 64, "seed": 19, "qpu_s": 6.7136556, "t": 1790796953.3187766}
 {"tag": "P4cemPL", "N": 64, "seed": 7, "qpu_s": 6.7135028, "t": 1790796964.4267077}
 {"tag": "P4cemPL", "N": 64, "seed": 15, "qpu_s": 6.713525199999999, "t": 1790796968.560195}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 10, "qpu_s": 5.982453199999999, "t": 1790850611.9170177}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 0, "qpu_s": 5.982456, "t": 1790850612.955266}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 11, "qpu_s": 5.9824496, "t": 1790850810.6683547}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 1, "qpu_s": 5.982451999999999, "t": 1790850810.6750169}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 12, "qpu_s": 5.9824512, "t": 1790850997.35348}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 2, "qpu_s": 5.9824496, "t": 1790850997.3691416}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 3, "qpu_s": 5.982450399999999, "t": 1790851194.5548012}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 13, "qpu_s": 5.9824524, "t": 1790851196.0835326}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 4, "qpu_s": 5.9824492, "t": 1790851365.4453442}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 14, "qpu_s": 5.9824535999999995, "t": 1790851365.5399048}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 15, "qpu_s": 5.982448, "t": 1790851533.9373393}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 5, "qpu_s": 5.982453199999999, "t": 1790851535.3345866}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 16, "qpu_s": 5.982449999999999, "t": 1790851691.5881977}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 6, "qpu_s": 5.9824535999999995, "t": 1790851693.0224884}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 17, "qpu_s": 5.982454799999999, "t": 1790851860.9264452}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 7, "qpu_s": 5.982448, "t": 1790851863.7932622}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 18, "qpu_s": 5.982454, "t": 1790852014.5217638}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 8, "qpu_s": 5.9824588, "t": 1790852015.895718}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 19, "qpu_s": 5.9824508, "t": 1790852172.6389658}
+{"tag": "P4cemPL", "device": "zephyr", "N": 8, "seed": 9, "qpu_s": 5.982448799999999, "t": 1790852175.0886002}
