@@ -41,9 +41,10 @@ def _mh_sweep_jit(
     C: int,
     N: int,
     total_steps: int,
+    s: float = 1.0,
 ) -> tuple:
     """
-    Batched Metropolis-Hastings: C independent chains for total_steps flips.
+    Batched Metropolis-Hastings: C independent chains for total_steps flips, targeting |Psi|^(2s).
 
     v     : (C, N)   spin configs ±1
     theta : (C, Nh)  pre-activations b + v @ W
@@ -69,7 +70,7 @@ def _mh_sweep_jit(
         )  # (C,)
         log_ratio = a[flip_idx] * vi + lc_diff  # (C,)
         rand_u = jax.random.uniform(k2, (C,), dtype=jnp.float64)
-        accept = jnp.log(rand_u) < 2.0 * log_ratio  # (C,) bool
+        accept = jnp.log(rand_u) < 2.0 * s * log_ratio  # (C,) bool
         v = v.at[ci, flip_idx].set(jnp.where(accept, -vi, vi))
         theta = jnp.where(accept[:, None], theta_flip, theta)
         return (v, theta, key), None
@@ -423,8 +424,22 @@ class ClassicalSampler(Sampler):
         )
         theta = b[None, :] + v @ W  # (C, Nh)
 
-        total_steps = N * (n_warmup + n_sweeps)
-        v, _ = _mh_sweep_jit(v, theta, W, a, k2, C, N, total_steps)
+        if config.get("global_flip", False):
+            # One global spin-flip proposal v -> -v after every sweep, so chains can move
+            # between the +-m modes that single flips cannot cross at large N.
+            lc = lambda x: jnp.logaddexp(x, -x)
+            s_pow = float(config.get("s_power", 1.0))  # target |Psi|^(2 s_pow)
+            for _ in range(n_warmup + n_sweeps):
+                k2, ks, kg = jax.random.split(k2, 3)
+                v, theta = _mh_sweep_jit(v, theta, W, a, ks, C, N, N, s_pow)
+                theta_f = 2.0 * b[None, :] - theta  # pre-activations of -v
+                log_r = 2.0 * (v @ a) + jnp.sum(lc(theta_f) - lc(theta), axis=1)  # log pi(-v)/pi(v)
+                acc = jnp.log(jax.random.uniform(kg, (C,), dtype=jnp.float64)) < s_pow * log_r
+                v = jnp.where(acc[:, None], -v, v)
+                theta = jnp.where(acc[:, None], theta_f, theta)
+        else:
+            total_steps = N * (n_warmup + n_sweeps)
+            v, _ = _mh_sweep_jit(v, theta, W, a, k2, C, N, total_steps)
 
         unique = len(np.unique(np.asarray(v), axis=0))
         print(f"  [MH]    unique={unique}/{n_samples}")
@@ -1584,10 +1599,12 @@ class DimodSampler(Sampler):
             num_reads=num_reads,
             annealing_time=annealing_time,
             answer_mode="raw",
-            auto_scale=False,
+            auto_scale=config.get("auto_scale", False),
         )
         if not is_trivial and chain_strength is not None:
             sample_kwargs["chain_strength"] = chain_strength
+        if config.get("chain_break_method") is not None:  # default: Ocean's majority vote (ties -> +1)
+            sample_kwargs["chain_break_method"] = config["chain_break_method"]
 
         MAX_DWAVE_RETRIES = 3
         for tries in range(1, MAX_DWAVE_RETRIES + 1):
