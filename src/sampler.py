@@ -422,6 +422,12 @@ class ClassicalSampler(Sampler):
         v = jax.random.choice(k1, jnp.array([-1.0, 1.0]), shape=(C, N)).astype(
             jnp.float64
         )
+        persistent = config.get("persistent", False)
+        prev = getattr(self, "_mh_v", None)
+        if persistent and prev is not None and prev.shape == (C, N):
+            # Persistent chains (like the persistent Gibbs sampler): continue from the last
+            # state under the new parameters, with n_sweeps_persistent sweeps instead of a warm-up.
+            v, n_warmup, n_sweeps = prev, 0, config.get("n_sweeps_persistent", 10)
         theta = b[None, :] + v @ W  # (C, Nh)
 
         if config.get("global_flip", False):
@@ -440,6 +446,8 @@ class ClassicalSampler(Sampler):
         else:
             total_steps = N * (n_warmup + n_sweeps)
             v, _ = _mh_sweep_jit(v, theta, W, a, k2, C, N, total_steps)
+        if persistent:
+            self._mh_v = v
 
         unique = len(np.unique(np.asarray(v), axis=0))
         print(f"  [MH]    unique={unique}/{n_samples}")
