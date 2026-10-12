@@ -574,3 +574,34 @@ TSWLatexianTemp*
 # QPU budget counter lock/temp files (src/sampler.py DimodSampler._log_access_time)
 time.json.lock
 time.json.tmp
+
+# Removed from the repository to reduce download size (kept locally)
+/plots
+/dwave_checkpoints
+/literature
+/presentation
+/article.pdf
+/article_draft.pdf
+/2512.02323v1.pdf
+/0408370v1.pdf
+/Advantage_system6_4_16_seed42.png
+/results/archive
+/results/cem_zephyr_trap
+/results/cem_zephyr_trap_gpu
+/results/cem_zephyr_trap_synthetic
+/results/custom
+/results/energy_test
+/results/heisenberg_j1j2_1d
+/results/hparam_search
+/results/j1j2_convergence_median
+/results/mcmc_calibration
+/results/parallel_embedding_bench
+/results/sample_quality
+/results/sweeps100
+/results/sweeps2000
+/results/tfim_1d
+/results/tfim_2d
+/results/tts
+!/checkpoints/
+/checkpoints/*
+!/checkpoints/cem_validation/
