@@ -605,3 +605,6 @@ time.json.tmp
 !/checkpoints/
 /checkpoints/*
 !/checkpoints/cem_validation/
+
+# mf_vs_h raw runs (~140 MB: per-checkpoint RBM parameters, resume state, logs); regenerate with scripts/exper/mf_vs_h*.
+/results/mf_vs_h

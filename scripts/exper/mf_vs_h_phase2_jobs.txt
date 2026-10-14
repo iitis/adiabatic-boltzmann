@@ -1,0 +1,124 @@
+# Phase 2 of mf_vs_h.py (run with scripts/exper/mf_vs_h_queue.sh). Longest jobs first.
+# C: N=128 persistent Gibbs, 3 seeds, all h
+--arm gibbs --N 128 --hs 0.5 --seeds 0-0 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 0.5 --seeds 1-1 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 0.5 --seeds 2-2 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 0.8 --seeds 0-0 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 0.8 --seeds 1-1 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 0.8 --seeds 2-2 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 0.9 --seeds 0-0 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 0.9 --seeds 1-1 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 0.9 --seeds 2-2 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 0.95 --seeds 0-0 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 0.95 --seeds 1-1 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 0.95 --seeds 2-2 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 1.0 --seeds 0-0 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 1.0 --seeds 1-1 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 1.0 --seeds 2-2 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 1.05 --seeds 0-0 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 1.05 --seeds 1-1 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 1.05 --seeds 2-2 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 1.1 --seeds 0-0 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 1.1 --seeds 1-1 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 1.1 --seeds 2-2 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 1.25 --seeds 0-0 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 1.25 --seeds 1-1 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 1.25 --seeds 2-2 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 1.5 --seeds 0-0 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 1.5 --seeds 1-1 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 1.5 --seeds 2-2 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 2.0 --seeds 0-0 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 2.0 --seeds 1-1 --steps 100,300,1000,3000
+--arm gibbs --N 128 --hs 2.0 --seeds 2-2 --steps 100,300,1000,3000
+# B: more seeds (3-9) in the critical window, N=32 and 64
+--arm gibbs --N 64 --hs 0.9 --seeds 3-6 --steps 100,300,1000,3000
+--arm gibbs --N 64 --hs 0.9 --seeds 7-9 --steps 100,300,1000,3000
+--arm gibbs --N 64 --hs 0.95 --seeds 3-6 --steps 100,300,1000,3000
+--arm gibbs --N 64 --hs 0.95 --seeds 7-9 --steps 100,300,1000,3000
+--arm gibbs --N 64 --hs 1.0 --seeds 3-6 --steps 100,300,1000,3000
+--arm gibbs --N 64 --hs 1.0 --seeds 7-9 --steps 100,300,1000,3000
+--arm gibbs --N 64 --hs 1.05 --seeds 3-6 --steps 100,300,1000,3000
+--arm gibbs --N 64 --hs 1.05 --seeds 7-9 --steps 100,300,1000,3000
+--arm gibbs --N 64 --hs 1.1 --seeds 3-6 --steps 100,300,1000,3000
+--arm gibbs --N 64 --hs 1.1 --seeds 7-9 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 0.9 --seeds 3-6 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 0.9 --seeds 7-9 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 0.95 --seeds 3-6 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 0.95 --seeds 7-9 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 1.0 --seeds 3-6 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 1.0 --seeds 7-9 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 1.05 --seeds 3-6 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 1.05 --seeds 7-9 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 1.1 --seeds 3-6 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 1.1 --seeds 7-9 --steps 100,300,1000,3000
+# A: extend the phase-1 Gibbs runs (seeds 0-2) to 1000 and 3000 steps
+--arm gibbs --N 64 --hs 0.5 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 64 --hs 0.8 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 64 --hs 0.9 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 64 --hs 0.95 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 64 --hs 1.0 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 64 --hs 1.05 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 64 --hs 1.1 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 64 --hs 1.25 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 64 --hs 1.5 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 64 --hs 2.0 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 0.5 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 0.8 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 0.9 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 0.95 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 1.0 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 1.05 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 1.1 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 1.25 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 1.5 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 32 --hs 2.0 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 16 --hs 0.5 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 16 --hs 0.8 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 16 --hs 0.9 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 16 --hs 0.95 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 16 --hs 1.0 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 16 --hs 1.05 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 16 --hs 1.1 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 16 --hs 1.25 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 16 --hs 1.5 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 16 --hs 2.0 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 8 --hs 0.5 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 8 --hs 0.8 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 8 --hs 0.9 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 8 --hs 0.95 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 8 --hs 1.0 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 8 --hs 1.05 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 8 --hs 1.1 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 8 --hs 1.25 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 8 --hs 1.5 --seeds 0-2 --steps 100,300,1000,3000
+--arm gibbs --N 8 --hs 2.0 --seeds 0-2 --steps 100,300,1000,3000
+# D: start from the best product state (visible biases), N=32 and 64
+--arm gibbs --N 64 --hs 0.5 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+--arm gibbs --N 64 --hs 0.8 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+--arm gibbs --N 64 --hs 0.9 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+--arm gibbs --N 64 --hs 0.95 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+--arm gibbs --N 64 --hs 1.0 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+--arm gibbs --N 64 --hs 1.05 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+--arm gibbs --N 64 --hs 1.1 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+--arm gibbs --N 64 --hs 1.25 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+--arm gibbs --N 64 --hs 1.5 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+--arm gibbs --N 64 --hs 2.0 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+--arm gibbs --N 32 --hs 0.5 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+--arm gibbs --N 32 --hs 0.8 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+--arm gibbs --N 32 --hs 0.9 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+--arm gibbs --N 32 --hs 0.95 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+--arm gibbs --N 32 --hs 1.0 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+--arm gibbs --N 32 --hs 1.05 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+--arm gibbs --N 32 --hs 1.1 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+--arm gibbs --N 32 --hs 1.25 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+--arm gibbs --N 32 --hs 1.5 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+--arm gibbs --N 32 --hs 2.0 --seeds 0-2 --steps 100,300,1000,3000 --init mf
+# E: twice as many hidden units near and above h=1
+--arm gibbs --N 64 --hs 0.9 --seeds 0-2 --steps 100,300,1000,3000 --alpha 2
+--arm gibbs --N 64 --hs 1.0 --seeds 0-2 --steps 100,300,1000,3000 --alpha 2
+--arm gibbs --N 64 --hs 1.1 --seeds 0-2 --steps 100,300,1000,3000 --alpha 2
+--arm gibbs --N 64 --hs 1.5 --seeds 0-2 --steps 100,300,1000,3000 --alpha 2
+--arm gibbs --N 32 --hs 0.9 --seeds 0-2 --steps 100,300,1000,3000 --alpha 2
+--arm gibbs --N 32 --hs 1.0 --seeds 0-2 --steps 100,300,1000,3000 --alpha 2
+--arm gibbs --N 32 --hs 1.1 --seeds 0-2 --steps 100,300,1000,3000 --alpha 2
+--arm gibbs --N 32 --hs 1.5 --seeds 0-2 --steps 100,300,1000,3000 --alpha 2

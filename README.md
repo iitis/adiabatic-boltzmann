@@ -31,4 +31,6 @@ Commands are offline (CPU-only) unless noted. Full details in each script's `--h
 
 Not covered by any script (hand-made schematics): `tta_overview_*.pdf`, `anneal_schedule_plot.pdf`, `pegasus.pdf`, `zephyr.pdf`.
 
+Mean-field (best product state) baseline, N = 8–64, against stored runs: `python scripts/validation/mean_field_baseline.py` (levels in `src/mean_field.py`, tests in `tests/test_mean_field.py`).
+
 `scripts/validation/` and a few `scripts/viz/` files (`dashboard.py`, `plot_ite.py`, `plot_hparam_search.py`, `plot_ttc.py`) are diagnostics, not tied to a figure.
