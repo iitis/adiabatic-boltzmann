@@ -1,0 +1,3 @@
+# gpu14 fix: rerun the chain N=64 h=0.5 product-state-start runs (first attempt started from a 2-domain-wall state, mean-field optimiser bug fixed in src/graph_tfim.py)
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model chain --size 64 --h 0.5 --arm gibbs --ns 1000 --init mf --seeds 0-0 --steps 300,1000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model chain --size 64 --h 0.5 --arm gibbs --ns 5000 --init mf --seeds 0-0 --steps 300,1000

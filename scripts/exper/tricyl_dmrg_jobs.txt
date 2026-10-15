@@ -1,0 +1,25 @@
+# Triangular AF TFIM on width-6 cylinders: DMRG (parity-conserving, chi ladder). Run: scripts/exper/job_queue.sh scripts/exper/tricyl_dmrg_jobs.txt 4 4 0 results/vmc_gpu/logs
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 3x6 --h 0.5 --chis 16,32,64,128,256
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 3x6 --h 1.0 --chis 16,32,64,128,256
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 3x6 --h 1.5 --chis 16,32,64,128,256
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 3x6 --h 1.7 --chis 16,32,64,128,256
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 3x6 --h 2.0 --chis 16,32,64,128,256
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 3x6 --h 3.0 --chis 16,32,64,128,256
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 6x6 --h 0.5 --chis 16,32,64,128,256,512,1024
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 6x6 --h 1.0 --chis 16,32,64,128,256,512,1024
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 6x6 --h 1.5 --chis 16,32,64,128,256,512,1024
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 6x6 --h 1.7 --chis 16,32,64,128,256,512,1024
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 6x6 --h 2.0 --chis 16,32,64,128,256,512,1024
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 6x6 --h 3.0 --chis 16,32,64,128,256,512,1024
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 9x6 --h 0.5 --chis 16,32,64,128,256,512,1024
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 9x6 --h 1.0 --chis 16,32,64,128,256,512,1024
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 9x6 --h 1.5 --chis 16,32,64,128,256,512,1024
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 9x6 --h 1.7 --chis 16,32,64,128,256,512,1024
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 9x6 --h 2.0 --chis 16,32,64,128,256,512,1024
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 9x6 --h 3.0 --chis 16,32,64,128,256,512,1024
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 12x6 --h 0.5 --chis 16,32,64,128,256,512,1024
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 12x6 --h 1.0 --chis 16,32,64,128,256,512,1024
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 12x6 --h 1.5 --chis 16,32,64,128,256,512,1024
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 12x6 --h 1.7 --chis 16,32,64,128,256,512,1024
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 12x6 --h 2.0 --chis 16,32,64,128,256,512,1024
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tricyl --size 12x6 --h 3.0 --chis 16,32,64,128,256,512,1024

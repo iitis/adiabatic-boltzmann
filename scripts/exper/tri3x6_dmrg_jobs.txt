@@ -1,0 +1,7 @@
+# DMRG chi ladder for triangular 3x6 (exact reference available) for the accuracy-vs-time comparison
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tri --size 3x6 --h 0.5 --chis 8,16,32,64,128,256
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tri --size 3x6 --h 1.0 --chis 8,16,32,64,128,256
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tri --size 3x6 --h 1.5 --chis 8,16,32,64,128,256
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tri --size 3x6 --h 1.7 --chis 8,16,32,64,128,256
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tri --size 3x6 --h 2.0 --chis 8,16,32,64,128,256
+JAX_PLATFORMS=cpu /home/phanussek/miniconda3/envs/test/bin/python scripts/validation/dmrg_graph.py --model tri --size 3x6 --h 3.0 --chis 8,16,32,64,128,256

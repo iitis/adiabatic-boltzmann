@@ -1,0 +1,60 @@
+# gpu14 GPU jobs, priority order (run: scripts/exper/job_queue.sh scripts/exper/gpu14_gpu_jobs.txt 2 4 0 results/vmc_gpu/logs)
+# P0 controls: exact SR with the sampled arms' optimiser (ns -> inf limit); 1D ns=200 reproduction of mf_vs_h
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 0.5 --arm exact_sr --lr 0.08 --shift 0.05 --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 1.0 --arm exact_sr --lr 0.08 --shift 0.05 --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 1.5 --arm exact_sr --lr 0.08 --shift 0.05 --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 2.0 --arm exact_sr --lr 0.08 --shift 0.05 --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 3.0 --arm exact_sr --lr 0.08 --shift 0.05 --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model chain --size 64 --h 1.0 --arm gibbs --ns 200 --seeds 0-0 --steps 300
+# P1 triangular 3x6 (exact reference): ceiling, sample-count scan, Gibbs vs Metropolis
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 0.5 --arm exact_sr --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 1.0 --arm exact_sr --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 1.5 --arm exact_sr --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 2.0 --arm exact_sr --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 3.0 --arm exact_sr --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 1.0 --arm gibbs --ns 200 --seeds 0-1 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 1.0 --arm gibbs --ns 1000 --seeds 0-1 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 1.0 --arm gibbs --ns 5000 --seeds 0-1 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 1.5 --arm gibbs --ns 200 --seeds 0-1 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 1.5 --arm gibbs --ns 1000 --seeds 0-1 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 1.5 --arm gibbs --ns 5000 --seeds 0-1 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 0.5 --arm gibbs --ns 1000 --seeds 0-1 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 2.0 --arm gibbs --ns 1000 --seeds 0-1 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 3.0 --arm gibbs --ns 1000 --seeds 0-1 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 0.5 --arm mh --ns 1000 --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 0.5 --arm mh --ns 5000 --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 1.0 --arm mh --ns 1000 --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 1.0 --arm mh --ns 5000 --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 1.5 --arm mh --ns 1000 --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 1.5 --arm mh --ns 5000 --seeds 0-0 --steps 300,1000,3000
+# P1b triangular 6x6 (DMRG upper bounds on CPU)
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 6x6 --h 0.5 --arm gibbs --ns 1000 --seeds 0-1 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 6x6 --h 1.0 --arm gibbs --ns 1000 --seeds 0-1 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 6x6 --h 1.5 --arm gibbs --ns 1000 --seeds 0-1 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 6x6 --h 2.0 --arm gibbs --ns 1000 --seeds 0-1 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 6x6 --h 3.0 --arm gibbs --ns 1000 --seeds 0-1 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 6x6 --h 0.5 --arm gibbs --ns 10000 --alpha 2 --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 6x6 --h 1.0 --arm gibbs --ns 10000 --alpha 2 --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 6x6 --h 1.5 --arm gibbs --ns 10000 --alpha 2 --seeds 0-0 --steps 300,1000,3000
+# P2 fair VMC on the 1D chain (vs results/mf_vs_h ns=200 and results/dmrg_baseline)
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model chain --size 64 --h 1.0 --arm gibbs --ns 1000 --seeds 0-1 --steps 300,1000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model chain --size 64 --h 1.0 --arm gibbs --ns 5000 --seeds 0-1 --steps 300,1000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model chain --size 64 --h 1.0 --arm gibbs --ns 20000 --seeds 0-1 --steps 300,1000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model chain --size 64 --h 0.5 --arm gibbs --ns 1000 --init mf --seeds 0-0 --steps 300,1000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model chain --size 64 --h 0.5 --arm gibbs --ns 5000 --init mf --seeds 0-0 --steps 300,1000
+# P3 filler
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 6x6 --h 0.5 --arm mh --ns 10000 --alpha 2 --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 6x6 --h 1.0 --arm mh --ns 10000 --alpha 2 --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 1.0 --arm exact_sr --alpha 2 --seeds 0-0 --steps 300,1000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 1.5 --arm exact_sr --alpha 2 --seeds 0-0 --steps 300,1000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 1.7 --arm exact_sr --seeds 0-0 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 3x6 --h 1.7 --arm gibbs --ns 1000 --seeds 0-1 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 6x6 --h 1.7 --arm gibbs --ns 1000 --seeds 0-1 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 6x6 --h 0.5 --arm gibbs --ns 10000 --alpha 2 --seeds 1-1 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 6x6 --h 1.0 --arm gibbs --ns 10000 --alpha 2 --seeds 1-1 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 6x6 --h 1.5 --arm gibbs --ns 10000 --alpha 2 --seeds 1-1 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 6x6 --h 0.5 --arm gibbs --ns 1000 --seeds 2-3 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 6x6 --h 1.0 --arm gibbs --ns 1000 --seeds 2-3 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 6x6 --h 1.5 --arm gibbs --ns 1000 --seeds 2-3 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 6x6 --h 2.0 --arm gibbs --ns 1000 --seeds 2-3 --steps 300,1000,3000
+/home/phanussek/miniconda3/envs/test/bin/python scripts/exper/vmc_gpu.py --model tri --size 6x6 --h 3.0 --arm gibbs --ns 1000 --seeds 2-3 --steps 300,1000,3000
